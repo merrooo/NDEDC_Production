@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Power Manager Pro - Full Sync</title>
+    <link rel="stylesheet" href="Munipilation_Report.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="logo-section">
+            <h2>⚡ الضبطية القضائية</h2>
+            <div class="header-actions">
+                <button class="btn-save" id="btnSave">💾 حفظ البيانات</button>
+                <button class="btn-search" onclick="window.showSearchModal()">🔍 تعديل البيانات</button>
+                <button type="button" class="btn-report" onclick="window.showViewModal()">📊 تقرير البيانات</button>
+                <button class="btn-search" onclick="window.location.href='index.html'">الصفحة الرئيسية</button>
+        </div>
+    </div>
+
+    <div class="main-form-grid">
+        <input type="text" id="mname" placeholder="اسم المشترك">
+        <input type="text" id="mno" placeholder="رقم العداد">
+        <input type="number" id="mco" placeholder="كود المشترك">
+        <input type="text" id="notes" placeholder="ملاحظات">
+    </div>
+
+    <button class="btn-photo-select" onclick="document.getElementById('photoInput').click()">🖼️ رفع
+        المرفقات</button>
+    <input type="file" id="photoInput" multiple accept="image/*" class="hidden">
+    <div id="frontPhotoGrid" class="photo-grid"></div>
+
+    <div class="section-title">تصنيف الأحمال</div>
+
+    <div class="add-load-row">
+        <input type="text" id="newItemName" placeholder="وصف نوع الحمل">
+        <input type="number" id="newItemW" placeholder="Watts القدرة بالوات">
+        <input type="number" id="newItemHP" placeholder="HP القدرة بالحصان">
+        <button class="btn-search" id="btnAddLoad">اضافة</button>
+    </div>
+
+    <table id="mainTable">
+        <thead>
+            <tr>
+                <th>وصف نوع الحمل</th>
+                <th>Watts القدرة بالوات</th>
+                <th>HP القدرة بالحصان</th>
+                <th>حذف</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    </div>
+
+
+    <script type="module">
+        import { Storage } from 'https://unpkg.com/megajs/dist/main.browser-es.mjs';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
+            authDomain: "ndedc-meter-calib.firebaseapp.com",
+            databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
+            projectId: "ndedc-meter-calib"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const megaEmail = 'amirmerrooo@gmail.com', megaPass = 'J851581800amir';
+
+        let selectedFiles = [];
+        const genId = () => Math.floor(100000 + Math.random() * 900000);
+
+        // UI: Photo Preview Front
+        document.getElementById('photoInput').onchange = (e) => {
+            Array.from(e.target.files).forEach(file => {
+                selectedFiles.push(file);
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const div = document.createElement('div');
+                    div.className = 'photo-box';
+                    div.innerHTML = `<img src="${ev.target.result}"><div class="del-photo" onclick="window.removeSelected(this)">✕</div>`;
+                    document.getElementById('frontPhotoGrid').appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+        window.removeSelected = (el) => {
+            const idx = Array.from(el.parentElement.parentElement.children).indexOf(el.parentElement);
+            selectedFiles.splice(idx, 1);
+            el.parentElement.remove();
+        };
+
+        // --- Save New ---
+        document.getElementById('btnSave').onclick = async () => {
+            const code = document.getElementById('mco').value;
+            if (!code) return Swal.fire('Error', 'Unique ID required', 'error');
+            Swal.fire({ title: 'Saving...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const storage = await new Storage({ email: megaEmail, password: megaPass }).ready;
+                let folder = storage.root.children.find(c => c.name === 'ndedc-loads') || await storage.mkdir('ndedc-loads');
+                let links = [];
+                for (let file of selectedFiles) {
+                    const id = genId();
+                    const upload = storage.upload({ name: `${id}.jpeg`, size: file.size, target: folder }, new Uint8Array(await file.arrayBuffer()));
+                    const mf = await upload.complete;
+                    links.push({ id: id, url: await mf.link() });
+                }
+                await db.ref('subscribers/' + code).set({
+                    name: document.getElementById('mname').value,
+                    meter_no: document.getElementById('mno').value,
+                    description: document.getElementById('notes').value,
+                    loads: Array.from(document.querySelectorAll('#tableBody tr')).map(r => ({ item: r.cells[0].innerText, watts: r.cells[1].innerText, hp: r.cells[2].innerText })),
+                    megaPhotos: links
+                });
+                location.reload();
+            } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        };
+
+        // --- Search ---
+        window.showSearchModal = () => {
+            Swal.fire({
+                title: 'بحث برقم العداد لتعديل البيانات',
+                html: `<input type="text" id="mSearch" placeholder="ادخل رقم العداد ..." onkeyup="window.runSearch()" style="margin-bottom:10px;">
+                    <div id="searchResults" style="max-height:400px; overflow-y:auto;"></div>`,
+                showConfirmButton: false, width: '800px'
+            });
+        };
+        window.runSearch = async () => {
+            const term = document.getElementById('mSearch').value;
+            const res = document.getElementById('searchResults');
+            if (term.length < 1) return;
+
+            const snap = await db.ref('subscribers').once('value');
+            res.innerHTML = "";
+
+            snap.forEach(child => {
+                const d = child.val();
+                // Check if meter_no exists and matches the search term
+                if (d.meter_no?.toString().includes(term)) {
+                    const div = document.createElement('div');
+                    div.className = "search-row"; // Using the CSS class now
+
+                    div.innerHTML = `
+    <div style="text-align: right;">
+        <strong>الأسم:</strong> <span>${d.name || '---'}</span> 
+        <span style="margin: 0 10px; color: #ccc;">|</span>
+        <strong>رقم العداد:</strong> <span>${d.meter_no}</span>
+    </div>
+    <button style="background:var(--warning); font-weight:bold; padding: 5px 15px;" 
+            onclick="window.editSubscriber('${child.key}')">تعديل EDIT</button>
+`;
+                    res.appendChild(div);
+                }
+            });
+        };
+
+        // --- Modal Load Row Adder ---
+        window.addNewRowInModal = () => {
+            const tbody = document.getElementById('sw-body');
+            const row = `<tr>
+                <td><input class="sw-item-input" placeholder="وصف نوع الحمل""></td>
+                <td><input class="sw-watts-input" type="number" placeholder="Watts القدرة بالوات"" oninput="this.parentElement.nextElementSibling.querySelector('input').value = (this.value/746).toFixed(3)"></td>
+                <td><input class="sw-hp-input" type="number" placeholder="HP القدرة بالحصان"" oninput="this.parentElement.previousElementSibling.querySelector('input').value = (this.value*746).toFixed(0)"></td>
+              // Change this line in your btnAddLoad.onclick and addNewRowInModal functions:
+                <td class="btn-delete-row" onclick = "this.parentElement.remove()" >حذف</ > 
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
+        };
+
+        // --- Edit Subscriber ---
+        window.editSubscriber = async (key) => {
+            const snap = await db.ref('subscribers/' + key).once('value');
+            const data = snap.val();
+
+            await Swal.fire({
+                title: 'تعديل بيانات مشترك',
+                width: '1000px',
+                html: `
+                    <div class="edit-modal-grid">
+        <div class="form-group">
+            <label>الأسم:</label>
+            <input id="sw-name" value="${data.name || ''}">
+        </div>
+        <div class="form-group">
+            <label>رقم العداد:</label>
+            <input id="sw-mno" value="${data.meter_no || ''}">
+        </div>
+        <div class="form-group">
+            <label>كود المشترك:</label>
+            <input id="sw-id" value="${key}">
+        </div>
+        <div class="form-group">
+            <label>ملاحظات:</label>
+            <input id="sw-note" value="${data.description || ''}">
+        </div>
+    </div>
+
+                    <div class="section-title">تصنيف الأحمال</div>
+                    <table>
+
+                        <thead><tr><th>وصف نوع الحمل</th><th>Watts القدرة بالوات</th><th>HP القدرة بالحصان</th><th>حذف</th></tr></thead>
+                        <tbody id="sw-body">
+                            ${(data.loads || []).map(l => `<tr>
+                                <td><input class="sw-item-input" value="${l.item}"></td>
+                                <td><input class="sw-watts-input" type="number" value="${l.watts}" oninput="this.parentElement.nextElementSibling.querySelector('input').value = (this.value/746).toFixed(3)"></td>
+                                <td><input class="sw-hp-input" type="number" value="${l.hp}" oninput="this.parentElement.previousElementSibling.querySelector('input').value = (this.value*746).toFixed(0)"></td>
+                                <td class="btn-delete-row" onclick="this.parentElement.remove()">حذف</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    <button class="btn-search" style="width:100%; margin-bottom:15px;" onclick="window.addNewRowInModal()">➕ اضافة احمال جديدة</button>
+                    
+                    <div class="section-title">المرفقات</div>
+                    <div class="photo-grid" id="sw-photo-grid">
+                        ${(data.megaPhotos || []).map((p) => `
+                            <div class="photo-box" data-id="${p.id}" data-url="${p.url}">
+                                <img src="${p.url}">
+                                <div class="del-photo" onclick="window.syncDeletePhoto('${key}', this)">✕</div>
+                                <small>${p.id}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="section-title">اضافة مرفقات جديدة</div>
+                    <input type="file" id="sw-new-photos" multiple accept="image/*">
+                `,
+                showCancelButton: true,
+                confirmButtonText: '🚀 تعديل وحفظ البيانات',
+                preConfirm: async () => {
+                    const newPhotoFiles = document.getElementById('sw-new-photos').files;
+                    const remainingPhotos = [];
+                    document.querySelectorAll('#sw-photo-grid .photo-box').forEach(box => {
+                        remainingPhotos.push({ id: box.dataset.id, url: box.dataset.url });
+                    });
+
+                    // Logic to collect all rows (new and old)
+                    const updatedLoads = Array.from(document.querySelectorAll('#sw-body tr')).map(r => ({
+                        item: r.querySelector('.sw-item-input').value,
+                        watts: r.querySelector('.sw-watts-input').value,
+                        hp: r.querySelector('.sw-hp-input').value
+                    })).filter(item => item.item !== ""); // Ignore empty rows
+
+                    Swal.showLoading();
+                    try {
+                        const storage = await new Storage({ email: megaEmail, password: megaPass }).ready;
+                        const folder = storage.root.children.find(c => c.name === 'ndedc-loads');
+                        for (let file of newPhotoFiles) {
+                            const id = genId();
+                            const upload = storage.upload({ name: `${id}.jpeg`, size: file.size, target: folder }, new Uint8Array(await file.arrayBuffer()));
+                            const mf = await upload.complete;
+                            remainingPhotos.push({ id: id, url: await mf.link() });
+                        }
+
+                        const newKey = document.getElementById('sw-id').value;
+                        const finalObj = {
+                            name: document.getElementById('sw-name').value,
+                            meter_no: document.getElementById('sw-mno').value,
+                            description: document.getElementById('sw-note').value,
+                            loads: updatedLoads,
+                            megaPhotos: remainingPhotos
+                        };
+
+                        await db.ref('subscribers/' + newKey).set(finalObj);
+                        if (newKey !== key) await db.ref('subscribers/' + key).remove();
+                        return true;
+                    } catch (err) { Swal.showValidationMessage(`Error: ${err.message}`); }
+                }
+            }).then((res) => { if (res.isConfirmed) location.reload(); });
+        };
+
+        window.syncDeletePhoto = async (subKey, el) => {
+            const box = el.parentElement;
+            const photoId = box.dataset.id;
+            if (!confirm(`Permanent Delete?`)) return;
+            try {
+                const storage = await new Storage({ email: megaEmail, password: megaPass }).ready;
+                const folder = storage.root.children.find(c => c.name === 'ndedc-loads');
+                const file = folder.children.find(c => c.name === `${photoId}.jpeg`);
+                if (file) await file.delete();
+                const ref = db.ref(`subscribers/${subKey}/megaPhotos`);
+                const snap = await ref.once('value');
+                let photos = (snap.val() || []).filter(p => p.id != photoId);
+                await ref.set(photos);
+                box.remove();
+            } catch (e) { alert(e.message); }
+        };
+
+        // --- Helper for Front Page ---
+        document.getElementById('btnAddLoad').onclick = () => {
+            const n = document.getElementById('newItemName').value;
+            const w = document.getElementById('newItemW').value;
+            const h = document.getElementById('newItemHP').value;
+
+            if (!n) return;
+
+            // تم إضافة class="btn-delete-row" ليعمل مؤشر الماوس حسب الـ CSS
+            const newRow = `
+        <tr>
+            <td>${n}</td>
+            <td>${w}</td>
+            <td>${h}</td>
+            <td class="btn-delete-row" onclick="this.parentElement.remove()">حذف</td>
+        </tr>`;
+
+            document.getElementById('tableBody').insertAdjacentHTML('beforeend', newRow);
+
+            // تفريغ الحقول بعد الإضافة
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemW').value = '';
+            document.getElementById('newItemHP').value = '';
+        };
+
+        // تحويل من Watts إلى HP (القسمة على 746)
+        document.getElementById('newItemW').oninput = function () {
+            if (this.value) {
+                document.getElementById('newItemHP').value = (this.value / 746).toFixed(3);
+            } else {
+                document.getElementById('newItemHP').value = '';
+            }
+        };
+
+        // تحويل من HP إلى Watts (الضرب في 746)
+        document.getElementById('newItemHP').oninput = function () {
+            if (this.value) {
+                document.getElementById('newItemW').value = (this.value * 746).toFixed(0);
+            } else {
+                document.getElementById('newItemW').value = '';
+            }
+        };
+
+
+
+        window.showViewModal = () => {
+            Swal.fire({
+                title: 'عرض البيانات - أكسيل  ',
+                html: `
+            <input type="text" id="viewSearch" placeholder="بحث برقم العداد للعرض..." onkeyup="window.runViewSearch()" style="margin-bottom:15px;">
+            <div id="viewResults" style="max-height:450px; overflow-y:auto; text-align:right;"></div>
+        `,
+                showConfirmButton: false,
+                width: '900px'
+            });
+        };
+
+        window.runViewSearch = async () => {
+            const term = document.getElementById('viewSearch').value;
+            const res = document.getElementById('viewResults');
+            if (term.length < 1) return;
+
+            const snap = await db.ref('subscribers').once('value');
+            res.innerHTML = "";
+
+            snap.forEach(child => {
+                const d = child.val();
+                if (d.meter_no?.toString().includes(term)) {
+                    const div = document.createElement('div');
+                    div.className = "search-row";
+                    div.style.flexDirection = "column";
+                    div.style.alignItems = "stretch";
+
+                    div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#f8f9fa; padding:12px 15px; border-radius:8px; border:1px solid #dee2e6; margin-bottom:10px;">
+        <div style="font-size: 12px; color: #2c3e50; line-height: 1.5;">
+            <strong style="color: #34495e;">👤 اسم المشترك:</strong> <span>${d.name || '---'}</span> 
+            <span style="margin: 0 8px; color: #ccc;">|</span>
+            <strong style="color: #34495e;">🔢 رقم العداد:</strong> <span>${d.meter_no}</span> 
+            <span style="margin: 0 8px; color: #ccc;">|</span>
+            <strong style="color: #34495e;">🆔 كود المشترك:</strong> <span style="font-family: monospace; font-weight: bold; color: #e67e22;">${child.key}</span>
+        </div> 
+        <button class="btn-save" style="padding:6px 15px; font-size:13px; white-space: nowrap;" onclick="window.exportToExcel('${child.key}')">📥 Excel</button>
+    </div>
+    <div style="margin-top:5px; padding: 0 10px;">
+        <table style="width:100%; font-size:13px; margin-bottom:10px; border: 1px solid #eee;">
+            <thead>
+                <tr style="background:#f1f3f5;">
+                    <th style="padding:8px;">وصف الحمل</th>
+                    <th style="padding:8px;">Watts</th>
+                    <th style="padding:8px;">HP</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(d.loads || []).map(l => `
+                    <tr>
+                        <td style="padding:6px; border:1px solid #eee;">${l.item}</td>
+                        <td style="padding:6px; border:1px solid #eee;">${l.watts}</td>
+                        <td style="padding:6px; border:1px solid #eee;">${l.hp}</td>
+                    </tr>`).join('')}
+            </tbody>
+        </table>
+        <div style="background:#fffbe6; padding:10px; border-radius:6px; border:1px solid #ffe58f; font-size: 13px;">
+            <strong>📝 ملاحظات:</strong> <span style="color: #666;">${d.description || 'لا يوجد'}</span>
+        </div>
+    </div>
+    <hr style="margin:20px 0; border:0; border-top: 1px dashed #ddd;">
+`;
+                    res.appendChild(div);
+                }
+            });
+        };
+
+
+        window.exportToExcel = async (key) => {
+            try {
+                const snap = await db.ref('subscribers/' + key).once('value');
+                const data = snap.val();
+
+                if (!data) {
+                    Swal.fire('خطأ', 'لم يتم العثور على بيانات', 'error');
+                    return;
+                }
+
+                // 1. تجهيز المصفوفة (البيانات)
+                const info = [
+                    ["تقرير بيانات المشترك والأحمال"], // الصف 0
+                    [""],                            // الصف 1
+                    ["اسم المشترك", data.name || "---", ""], // الصف 2
+                    ["رقم العداد", data.meter_no || "---", ""], // الصف 3
+                    ["كود المشترك", key, ""],        // الصف 4
+                    ["ملاحظات", data.description || "لا يوجد", ""], // الصف 5
+                    [""],                            // الصف 6
+                    ["جدول الأحمال", "", ""],        // الصف 7 (هذا ما سنقوم بدمجه)
+                    ["وصف نوع الحمل", "القدرة بالوات (W)", "القدرة بالحصان (HP)"] // الصف 8
+                ];
+
+                // 2. إضافة صفوف جدول الأحمال من قاعدة البيانات
+                const loadsData = (data.loads || []).map(l => [l.item, l.watts, l.hp]);
+                const finalData = info.concat(loadsData);
+
+                // 3. إنشاء ورقة العمل
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(finalData);
+
+                // 4. إعداد خاصية الدمج (Merging)
+                // s = start, e = end | r = row, c = col (الترقيم يبدأ من 0)
+                ws['!merges'] = [
+                    // دمج عنوان "تقرير بيانات المشترك" (الصف الأول)
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+                    // دمج عنوان "جدول الأحمال" (الصف الثامن - index 7) عبر 3 أعمدة
+                    { s: { r: 7, c: 0 }, e: { r: 7, c: 2 } }
+                ];
+
+                // 5. تنسيقات إضافية (الاتجاه وعرض الأعمدة)
+                ws['!dir'] = "rtl";
+                ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 20 }];
+
+                // 6. التحميل
+                XLSX.utils.book_append_sheet(wb, ws, "تقرير الأحمال");
+                XLSX.writeFile(wb, `تقرير احمال رقم العداد ${data.meter_no || key}.xlsx`);
+
+            } catch (error) {
+                console.error("Excel Export Error:", error);
+                Swal.fire('خطأ', 'فشل تصدير الملف: ' + error.message, 'error');
+            }
+        };
+
+
+        // الإعدادات العامة لجميع نوافذ SweetAlert2
+        const Swal = window.Swal.mixin({
+            allowOutsideClick: false, // منع الإغلاق عند الضغط خارج النافذة
+            allowEscapeKey: false,    // منع الإغلاق بمفتاح Esc
+            showCancelButton: true,   // إظهار زر الإلغاء تلقائياً في كل النوافذ
+            cancelButtonText: 'إغلاق ✖', // نص زر الإلغاء
+            cancelButtonColor: '#d33',  // لون زر الإلغاء (أحمر)
+            confirmButtonColor: '#3085d6' // لون زر التأكيد الافتراضي
+        });
+
+
+    </script>
+</body>
+
+</html>
