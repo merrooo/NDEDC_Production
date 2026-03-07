@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 <html lang="ar" dir="rtl">
 
@@ -557,4 +558,565 @@
     </script>
 </body>
 
+=======
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>نظام إدارة المشتركين - النسخة الأمنية</title>
+    <link rel="stylesheet" href="MD.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="side-panel">
+
+            <div class="modern-dropdown">
+                <button class="dropdown-btn" id="dropdownBtn">
+                    <span>🚀 اختر وجهتك للانتقال</span>
+                    <span id="arrow">▾</span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" data-page="MD.html">📊 بيانات كبار المشتركين</div>
+                    <div class="dropdown-item" data-page="MD_Add.html">➕ إضافة مشترك جديد</div>
+                    <div class="dropdown-item" data-page="MD_Pass.html">🔍 تسجيل مرور ميداني</div>
+                    <div class="dropdown-item" data-page="MD_Pass_Dashboard.html">📅 تقرير المرور العام</div>
+                    <div class="dropdown-item" data-page="index.html">📅 الصفحة الرئيسية</div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const btn = document.getElementById('dropdownBtn');
+                    const menu = document.getElementById('dropdownMenu');
+
+                    // 1. فتح وإغلاق القائمة عند الضغط على الزر
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation(); // منع انتقال الضغطة للعناصر الأب
+                        menu.classList.toggle('show');
+                    });
+
+                    // 2. التنقل بين الصفحات عند الضغط على أي خيار
+                    const items = document.querySelectorAll('.dropdown-item');
+                    items.forEach(item => {
+                        item.addEventListener('click', function () {
+                            const page = this.getAttribute('data-page');
+                            if (page) {
+                                window.location.href = page;
+                            }
+                        });
+                    });
+
+                    // 3. إغلاق القائمة تلقائياً إذا ضغطت في أي مكان خارجها
+                    window.addEventListener('click', function () {
+                        if (menu.classList.contains('show')) {
+                            menu.classList.remove('show');
+                        }
+                    });
+                });
+            </script>
+
+
+            <h2>⚡ إدارة قاعدة البيانات</h2>
+            <div id="customerModeTag" class="mode-tag customer-edit-mode">تعديل البيانات العامة للمشترك</div>
+            <div id="meterModeTag" class="mode-tag meter-edit-mode">تعديل بيانات العداد المحدّد</div>
+
+            <div class="input-group">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;">
+                <button class="btn-excel" onclick="protectedAction('upload')">📤 رفع ملف الإكسيل</button>
+            </div>
+            <hr>
+
+            <div id="fixedSection">
+                <div class="input-group"><label>اسم المشترك</label><input id="mname"></div>
+                <div class="row-flex">
+                    <div class="input-group"><label>القطاع</label><input id="keta3"></div>
+                    <div class="input-group"><label>الهندسة</label><input id="handsa"></div>
+                </div>
+                <div class="row-flex">
+                    <div class="input-group"><label>معامل القدرة (PF)</label><input id="power_factor"></div>
+                    <div class="input-group"><label>أقصى حمل</label><input id="max_load"></div>
+                </div>
+
+                <div class="input-group"><label>تاريخ اخر المرور</label><input type="date" id="passing_date"></div>
+            </div>
+
+            <div id="variableSection">
+                <hr>
+                <div class="input-group"><label>رقم العداد (Key)</label><input id="mno"></div>
+                <div class="row-flex">
+                    <div class="input-group"><label>تاريخ الرفع</label><input type="date" id="inspection_date"></div>
+                    <div class="input-group"><label>تاريخ التركيب</label><input type="date" id="fix_date"></div>
+                </div>
+                <div class="input-group"><label>تاريخ الإطلاق</label><input type="date" id="power_date"></div>
+                <div class="row-flex">
+                    <div class="input-group"><label>kWh</label><input id="kwh_reading"></div>
+                    <div class="input-group"><label>kVARh</label><input id="kvarh_reading"></div>
+                </div>
+                <div class="row-flex">
+                    <div class="input-group"><label>VT Ratio</label><input id="vt_ratio"></div>
+                    <div class="input-group"><label>CT Ratio</label><input id="ct_ratio"></div>
+                </div>
+                <div class="row-flex">
+                    <div class="input-group"><label>الثابت</label><input id="constant"></div>
+                    <div class="input-group"><label>المكان</label><input id="location"></div>
+                </div>
+                <div class="input-group"><label>نوع العداد</label><input id="mtype"></div>
+                <div class="input-group"><label>الملاحظات</label><textarea id="notes" rows="2"></textarea></div>
+            </div>
+
+            <div class="action-btns">
+                <button id="saveBtn" class="btn-save" onclick="quickSave()">💾 حفظ/تحديث العداد</button>
+                <button id="updateAllBtn" class="btn-update-all" onclick="updateCustomerData()">🔄 تحديث
+                    البيانات
+                    العامة</button>
+                <button class="btn-clear" onclick="clearForm()">🧹 تفريغ الحقول</button>
+                <button class="btn-delete-db" onclick="protectedAction('deleteAll')">🗑️ مسح قاعدة البيانات
+                    بالكامل</button>
+            </div>
+        </div>
+
+        <div class="display-panel">
+            <div class="stats-dashboard">
+                <div class="stat-card">
+                    <h4>إجمالي المشتركين</h4>
+                    <span id="count-customers">0</span>
+                </div>
+                <div class="stat-card" style="border-top-color: var(--success);">
+                    <h4>إجمالي العدادات</h4>
+                    <span id="count-meters">0</span>
+                </div>
+                <div class="stat-card" style="border-top-color: var(--warning);">
+                    <h4>آخر تحديث</h4>
+                    <span id="last-update" style="font-size: 0.9rem;">--:--</span>
+                </div>
+            </div>
+
+            <div class="top-bar">
+                <h3 style="margin:0;">📋 سجل المشتركين </h3>
+                <input type="text" id="searchInput" placeholder="🔍 بحث بالاسم أو رقم العداد...">
+                <button onclick="loadDataFromFirebase()"
+                    style="background:var(--accent); color:white; border-radius:50%; width:40px; height:40px; border:none; cursor:pointer;">🔄</button>
+            </div>
+            <div id="cardsGrid"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
+            databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let allCustomers = {};
+        const ADMIN_PASS = "1"; // كلمة مرور الأدمن
+
+        // --- نظام حماية الأزرار ---
+        window.protectedAction = async function (type) {
+            const { value: password } = await Swal.fire({
+                title: 'كلمة المرور مطلوبة',
+                input: 'password',
+                inputPlaceholder: 'أدخل كلمة المرور',
+                showCancelButton: true
+            });
+
+            if (password === ADMIN_PASS) {
+                if (type === 'upload') document.getElementById('excelFile').click();
+                if (type === 'deleteAll') deleteAllData();
+            } else if (password !== undefined) {
+                Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+            }
+        };
+
+        function sanitizeKey(key) {
+            if (!key) return "unknown";
+            return String(key).replace(/[.#$\[\]\(\)\/\s]/g, "").trim();
+        }
+
+        function formatExcelDate(val) {
+            if (!val) return "";
+            if (!isNaN(val) && typeof val === 'number') {
+                const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                return date.toISOString().split('T')[0];
+            }
+            return String(val).trim();
+        }
+
+        function getVal(row, possibleNames) {
+            const rowKeys = Object.keys(row);
+            for (let target of possibleNames) {
+                let cleanTarget = target.replace(/\s+/g, '').toLowerCase();
+                for (let actualKey of rowKeys) {
+                    let cleanActual = actualKey.replace(/\s+/g, '').toLowerCase();
+                    if (cleanActual === cleanTarget || cleanActual.includes(cleanTarget)) return row[actualKey];
+                }
+            }
+            return "";
+        }
+
+        // معالجة ملف الإكسيل
+        document.getElementById("excelFile").addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                Swal.fire({ title: 'جاري المعالجة...', text: `تحليل ${json.length} سجل`, didOpen: () => Swal.showLoading() });
+
+                const grouped = {};
+                json.forEach((row) => {
+                    const rawName = String(getVal(row, ['الاسم', 'اسم المشترك'])).trim();
+                    const rawMNo = String(getVal(row, ['رقم الشاسيه', 'رقم العداد'])).trim();
+                    if (!rawName || rawName === "undefined" || !rawMNo || rawMNo === "undefined") return;
+
+                    const safeNameKey = sanitizeKey(rawName);
+                    const safeMKey = sanitizeKey(rawMNo);
+
+                    if (!grouped[safeNameKey]) {
+                        grouped[safeNameKey] = {
+                            metername: rawName,
+                            name: rawName,
+                            keta3: getVal(row, ['القطاع']) || "-",
+                            handsa: getVal(row, ['الهندسة', 'الهندسه']) || "-",
+                            max_load: getVal(row, ['اقصى حمل', 'أقصى حمل']) || 0,
+                            power_factor: getVal(row, ['معامل قدرة', 'معامل القدرة', 'pf']) || 0,
+                            passing_date: formatExcelDate(getVal(row, ['تاريخ المرور', 'المرور'])),
+                            meters: {}
+                        };
+                    }
+                    grouped[safeNameKey].meters[safeMKey] = {
+                        meternumber: rawMNo,
+                        kwh_reading: getVal(row, ['القراءة ك.و.س', 'kwh']) || 0,
+                        kvarh_reading: getVal(row, ['القراءة ك.فار .س', 'kvarh']) || 0,
+                        vt_ratio: getVal(row, ['محولات الجهد']) || "11000/110",
+                        ct_ratio: getVal(row, ['محولات التيار']) || "200/5",
+                        constant: getVal(row, ['الثابت']) || 1,
+                        location: getVal(row, ['مكان التركيب']) || "",
+                        metertype: getVal(row, ['نوع العداد']) || "",
+                        inspection_date: formatExcelDate(getVal(row, ['تاريخ الرفع'])),
+                        fix_date: formatExcelDate(getVal(row, ['تاريخ التركيب'])),
+                        power_date: formatExcelDate(getVal(row, ['تاريخ الأطلاق'])),
+                        meternotes: getVal(row, ['ملاحظات']) || ""
+                    };
+                });
+
+                try {
+                    await set(ref(db, "MD/customers"), grouped);
+                    Swal.fire("نجاح", "تم التحديث بنجاح", "success");
+                    loadDataFromFirebase();
+                } catch (err) { Swal.fire("خطأ", err.message, "error"); }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        window.loadDataFromFirebase = async function () {
+            const grid = document.getElementById("cardsGrid");
+            grid.innerHTML = "جاري جلب البيانات...";
+            try {
+                const snapshot = await get(ref(db, "MD/customers"));
+                if (snapshot.exists()) {
+                    allCustomers = snapshot.val();
+                    updateStats();
+                    renderCards();
+                } else {
+                    allCustomers = {};
+                    grid.innerHTML = "لا توجد بيانات";
+                    updateStats(true);
+                }
+            } catch (e) { grid.innerHTML = "خطأ في الاتصال"; }
+        };
+
+        function updateStats(isEmpty = false) {
+            if (isEmpty) {
+                document.getElementById("count-customers").innerText = "0";
+                document.getElementById("count-meters").innerText = "0";
+                return;
+            }
+            const keys = Object.keys(allCustomers);
+            let totalM = 0;
+            keys.forEach(id => totalM += Object.keys(allCustomers[id].meters || {}).length);
+            document.getElementById("count-customers").innerText = keys.length;
+            document.getElementById("count-meters").innerText = totalM;
+            document.getElementById("last-update").innerText = new Date().toLocaleTimeString('ar-EG');
+        }
+
+        window.deleteAllData = async function () {
+            const result = await Swal.fire({
+                title: 'حذف كلي؟',
+                text: "سيتم مسح كل شيء!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                confirmButtonText: 'احذف القاعدة'
+            });
+            if (result.isConfirmed) {
+                await remove(ref(db, "MD/customers"));
+                loadDataFromFirebase();
+            }
+        };
+
+        // --- وظيفة حذف المشترك بالكامل ---
+        window.deleteCustomer = async function (cID) {
+            const result = await Swal.fire({
+                title: 'حذف مشترك؟',
+                text: `هل تريد حذف ${allCustomers[cID].metername} وجميع عداداته؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'نعم، احذف الكل'
+            });
+            if (result.isConfirmed) {
+                await remove(ref(db, `MD/customers/${cID}`));
+                loadDataFromFirebase();
+            }
+        };
+
+        function renderCards() {
+            const grid = document.getElementById("cardsGrid");
+            grid.innerHTML = "";
+            for (let id in allCustomers) {
+                const c = allCustomers[id];
+                const meters = c.meters || {};
+                const card = document.createElement("div");
+                card.className = "grouped-card";
+                card.innerHTML = `
+                    <div class="card-header-main" onclick="fillCustomerEdit('${id}')">
+                        <div>
+                            <span class="customer-title">👤 ${c.metername}</span>
+                            <div class="merged-info-grid">
+                                <div class="info-item">🏗️ القطاع: ${c.keta3}</div>
+                                <div class="info-item">📐 الهندسة: ${c.handsa}</div>
+                                <div class="info-item">📊 معامل القدرة: ${c.power_factor}</div>
+                                <div class="info-item">⚖️ أقصى حمل: ${c.max_load}</div>
+                                <div class="info-item">📅 تاريخ اخر مرور: ${c.passing_date}</div>
+                                <div class="info-item">🔢 عدد العدادات: ${Object.keys(meters).length}</div>
+                            </div>
+                        </div>
+                        <button class="delete-customer-btn" onclick="event.stopPropagation(); deleteCustomer('${id}')">🗑️ حذف المشترك</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="sub-records-table">
+                            <thead><tr>
+                                <th>رقم العداد</th><th>ك وات</th><th>ك فار</th><th>محول جهد</th><th>محول تيار</th><th>الثابت</th><th>المكان</th><th>النوع</th><th>الرفع</th><th>التركيب</th><th>الأطلاق</th><th>ملاحظات</th><th>حذف</th>
+                            </tr></thead>
+                            <tbody>
+                                ${Object.keys(meters).map(mKey => `
+                                    <tr onclick="fillMeterEdit('${id}', '${mKey}')">
+                                        <td><b>${meters[mKey].meternumber}</b></td>
+                                        <td>${meters[mKey].kwh_reading}</td>
+                                        <td>${meters[mKey].kvarh_reading}</td>
+                                        <td>${meters[mKey].vt_ratio}</td>
+                                        <td>${meters[mKey].ct_ratio}</td>
+                                        <td>${meters[mKey].constant}</td>
+                                        <td>${meters[mKey].location}</td>
+                                        <td>${meters[mKey].metertype}</td>
+                                        <td>${meters[mKey].inspection_date}</td>
+                                        <td>${meters[mKey].fix_date}</td>
+                                        <td>${meters[mKey].power_date}</td>
+                                        <td>${meters[mKey].meternotes}</td>
+                                        <td class="delete-btn" onclick="event.stopPropagation(); deleteMeter('${id}', '${mKey}')">🗑️</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        let editIDs = { cID: null, mKey: null };
+
+        window.fillCustomerEdit = function (id) {
+            clearForm();
+            editIDs.cID = id;
+            const c = allCustomers[id];
+            if (!c) {
+                Swal.fire("خطأ", "بيانات المشترك غير موجودة", "error");
+                return;
+            }
+            document.getElementById("mname").value = c.metername || "";
+            document.getElementById("keta3").value = c.keta3 || "";
+            document.getElementById("handsa").value = c.handsa || "";
+            document.getElementById("power_factor").value = c.power_factor || "";
+            document.getElementById("max_load").value = c.max_load || "";
+            document.getElementById("passing_date").value = c.passing_date || "";
+            // show customer-only view and make fixed fields editable for update
+            document.getElementById("variableSection").style.display = "none";
+            document.querySelectorAll("#fixedSection input, #fixedSection textarea").forEach(i => i.disabled = false);
+            document.getElementById("updateAllBtn").disabled = false;
+            document.getElementById("customerModeTag").style.display = "block";
+            document.getElementById("updateAllBtn").style.display = "block";
+            document.getElementById("saveBtn").style.display = "none";
+        };
+
+        window.fillMeterEdit = function (cID, mKey) {
+            clearForm();
+            editIDs = { cID: cID, mKey: mKey };
+            const c = allCustomers[cID];
+            if (!c) {
+                Swal.fire("خطأ", "بيانات المشترك غير موجودة", "error");
+                return;
+            }
+            const m = c.meters[mKey];
+            if (!m) {
+                Swal.fire("خطأ", "بيانات العداد غير موجودة", "error");
+                return;
+            }
+            document.getElementById("mname").value = c.metername || "";
+            document.getElementById("keta3").value = c.keta3 || "";
+            document.getElementById("handsa").value = c.handsa || "";
+            document.getElementById("power_factor").value = c.power_factor || "";
+            document.getElementById("max_load").value = c.max_load || "";
+            document.getElementById("passing_date").value = c.passing_date || "";
+            document.getElementById("mno").value = m.meternumber || "";
+
+            document.getElementById("kwh_reading").value = m.kwh_reading || "";
+            document.getElementById("kvarh_reading").value = m.kvarh_reading || "";
+            document.getElementById("vt_ratio").value = m.vt_ratio || "";
+            document.getElementById("ct_ratio").value = m.ct_ratio || "";
+            document.getElementById("constant").value = m.constant || "";
+            document.getElementById("location").value = m.location || "";
+            document.getElementById("mtype").value = m.metertype || "";
+            document.getElementById("inspection_date").value = m.inspection_date || "";
+            document.getElementById("fix_date").value = m.fix_date || "";
+            document.getElementById("power_date").value = m.power_date || "";
+            document.getElementById("notes").value = m.meternotes || "";
+            // disable fixed fields only, keep variable fields editable
+            document.querySelectorAll("#fixedSection input, #fixedSection textarea").forEach(i => i.disabled = true);
+            document.querySelectorAll("#variableSection input, #variableSection textarea").forEach(i => i.disabled = false);
+            document.getElementById("variableSection").style.display = "block";
+            // ensure save is enabled so variable data can be updated
+            document.getElementById("saveBtn").disabled = false;
+            document.getElementById("meterModeTag").style.display = "block";
+        };
+
+        window.quickSave = async function () {
+            const mNoRaw = document.getElementById("mno").value.trim();
+            if (!mNoRaw || !editIDs.cID) return Swal.fire("تنبيه", "يجب اختيار مشترك وتحديد رقم العداد", "warning");
+            const finalMKey = editIDs.mKey || sanitizeKey(mNoRaw);
+            const meterData = {
+                meternumber: mNoRaw,
+                kwh_reading: document.getElementById("kwh_reading").value,
+                kvarh_reading: document.getElementById("kvarh_reading").value,
+                vt_ratio: document.getElementById("vt_ratio").value,
+                ct_ratio: document.getElementById("ct_ratio").value,
+                constant: document.getElementById("constant").value,
+                location: document.getElementById("location").value,
+                metertype: document.getElementById("mtype").value,
+                inspection_date: document.getElementById("inspection_date").value,
+                fix_date: document.getElementById("fix_date").value,
+                power_date: document.getElementById("power_date").value,
+                meternotes: document.getElementById("notes").value
+            };
+            try {
+                await update(ref(db, `MD/customers/${editIDs.cID}/meters/${finalMKey}`), meterData);
+                Swal.fire("تم", "تم الحفظ بنجاح", "success");
+                loadDataFromFirebase();
+                clearForm();
+            } catch (error) {
+                console.error("خطأ في الحفظ:", error);
+                Swal.fire("خطأ", "فشل الحفظ: " + error.message, "error");
+            }
+        };
+
+        window.deleteMeter = async function (cID, mKey) {
+            const result = await Swal.fire({
+                title: 'حذف العداد؟',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'نعم، احذف'
+            });
+            if (result.isConfirmed) {
+                await remove(ref(db, `MD/customers/${cID}/meters/${mKey}`));
+                loadDataFromFirebase();
+            }
+        };
+
+        window.updateCustomerData = async function () {
+            if (!editIDs.cID) {
+                Swal.fire("تنبيه", "لم يتم تحديد مشترك", "warning");
+                return;
+            }
+            const mname = document.getElementById("mname").value;
+            const oldCID = editIDs.cID;
+            const newCID = sanitizeKey(mname);
+            
+            const updatedInfo = {
+                metername: mname,
+                name: mname,
+                keta3: document.getElementById("keta3").value,
+                handsa: document.getElementById("handsa").value,
+                power_factor: document.getElementById("power_factor").value,
+                max_load: document.getElementById("max_load").value,
+                passing_date: document.getElementById("passing_date").value
+            };
+            
+            try {
+                // If name changed (different key), move data to new key
+                if (oldCID !== newCID) {
+                    const oldData = await get(ref(db, `MD/customers/${oldCID}`));
+                    if (oldData.exists()) {
+                        const fullData = { ...oldData.val(), ...updatedInfo };
+                        // Create new record with updated name
+                        await set(ref(db, `MD/customers/${newCID}`), fullData);
+                        // Delete old record
+                        await remove(ref(db, `MD/customers/${oldCID}`));
+                        editIDs.cID = newCID;
+                    }
+                } else {
+                    // Name didn't change, just update existing record
+                    await update(ref(db, `MD/customers/${oldCID}`), updatedInfo);
+                }
+                
+                Swal.fire("تم", "تم تحديث البيانات بنجاح", "success");
+                clearForm();
+                loadDataFromFirebase();
+            } catch (error) {
+                console.error("خطأ في التحديث:", error);
+                Swal.fire("خطأ", "فشل التحديث: " + error.message, "error");
+            }
+        };
+
+        window.clearForm = function () {
+            editIDs = { cID: null, mKey: null };
+            document.querySelectorAll("input, textarea").forEach(i => { i.value = ""; i.disabled = false; });
+            document.getElementById("variableSection").style.display = "block";
+            document.getElementById("customerModeTag").style.display = "none";
+            document.getElementById("meterModeTag").style.display = "none";
+            document.getElementById("updateAllBtn").style.display = "none";
+            document.getElementById("saveBtn").style.display = "block";
+            // re-enable action buttons
+            document.getElementById("updateAllBtn").disabled = false;
+            document.getElementById("saveBtn").disabled = false;
+        };
+
+        document.getElementById("searchInput").addEventListener("input", function (e) {
+            const term = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll(".grouped-card");
+            cards.forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(term) ? "block" : "none";
+            });
+        });
+
+        loadDataFromFirebase();
+    </script>
+</body>
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
 </html>
