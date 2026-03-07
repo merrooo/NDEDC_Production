@@ -1,0 +1,2159 @@
+<<<<<<< HEAD
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>لوحة التقارير الذكية · نظام الإدارة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --accent: #2563eb;
+            --secondary: #0f172a;
+            --success: #0d9488;
+            --warning: #b45309;
+            --danger: #b91c1c;
+            --light-bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #eef2f6;
+            margin: 0;
+            padding: 16px;
+            direction: rtl;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            flex-grow: 1;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .side-panel {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: var(--shadow-md);
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .panel-header i {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 2.2rem;
+        }
+
+        .panel-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin: 8px 0 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .filter-group {
+            background: #f8fafc;
+            padding: 12px 10px;
+            border-radius: 18px;
+            margin-bottom: 4px;
+            border: 1px solid var(--border-light);
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: block;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ml-1 {
+            margin-right: 0.25rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 14px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: white;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn {
+            padding: 12px 12px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 700;
+            width: 100%;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
+            background: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-search {
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 12px -6px var(--primary);
+        }
+
+        .btn-search:hover {
+            background: #1e3bbf;
+            transform: translateY(-2px);
+        }
+
+        .btn-delay {
+            background: #ffedd5;
+            color: var(--warning);
+            border: 1px solid #fed7aa;
+        }
+
+        .btn-delay:hover {
+            background: #fed7aa;
+            color: #7a3e0e;
+        }
+
+        .btn-excel {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .btn-excel:hover {
+            background: #bae6fd;
+        }
+
+        .content-panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg);
+            border-radius: 28px;
+            padding: 20px 20px 16px;
+            box-shadow: var(--shadow-md);
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .report-header {
+            color: var(--secondary);
+            margin: 0 0 16px 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            padding-right: 6px;
+        }
+
+        .report-header i {
+            color: var(--primary-light);
+            background: #e0f2fe;
+            padding: 8px;
+            border-radius: 16px;
+        }
+
+        .table-container {
+            flex-grow: 1;
+            overflow: auto;
+            border-radius: 20px;
+            background: #fbfdff;
+            border: 1px solid var(--border-light);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1400px;
+            white-space: nowrap;
+        }
+
+        .grouped-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .grouped-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header-main {
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+        }
+
+        .customer-title {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+
+        .merged-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .info-item {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .sub-records-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .sub-records-table thead {
+            background: #f0f4fa;
+            position: sticky;
+            top: 0;
+        }
+
+        .sub-records-table th {
+            padding: 8px;
+            text-align: center;
+            color: var(--secondary);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .sub-records-table tbody tr {
+            border-bottom: 1px solid var(--border-light);
+            transition: background 0.1s;
+        }
+
+        .sub-records-table tbody tr:hover {
+            background: #ecf3fe;
+            cursor: pointer;
+        }
+
+        .sub-records-table td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #eef2f6;
+            border-radius: 12px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #b9c7da;
+            border-radius: 12px;
+            border: 2px solid #eef2f6;
+        }
+
+        .table-container {
+            -ms-overflow-style: auto;
+            scrollbar-color: #b9c7da #eef2f6;
+        }
+
+        .dashboard-bottom::-webkit-scrollbar {
+            height: 5px;
+        }
+
+        .modern-dropdown {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .dropdown-btn {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+
+        .dropdown-btn:hover {
+            background: var(--accent);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 2000;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: 0.2s;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: #f4f7f6;
+            color: var(--accent);
+            padding-right: 25px;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+        #exportBtn {
+            display: none;
+        }
+
+        #masterTable {
+            display: none;
+        }
+
+        .date-cell { font-weight: 500 }
+        .customer-cell { font-weight: 700; color: #0f172a }
+        .meter-badge { background: #e9f0fc; padding: 2px 8px; border-radius: 40px; font-family: monospace }
+        .kwh-cell { color: var(--success); font-weight: 700 }
+        .kvarh-cell { color: var(--primary); font-weight: 700 }
+
+        .form-section { margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--border-light); display: none; }
+        .form-section.active { display: block; }
+        .form-section h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary); margin-bottom: 10px; }
+        .form-input-group { margin-bottom: 10px; }
+        .form-input-group label { display: block; font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px; }
+        .form-input-group input,
+        .form-input-group textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 0.8rem; }
+        .form-row-flex { display: flex; gap: 8px; }
+        .form-row-flex .form-input-group { flex: 1; }
+        #fixedSection, #variableSection { display: none; }
+        #fixedSection.active, #variableSection.active { display: block; }
+
+        /* Statistics Dashboard Styles */
+        .dashboard-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow-y: auto;
+            min-height: 80px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            min-width: 80px;
+            flex: 0 0 auto;
+            border-top: 2px solid var(--primary);
+        }
+
+        .stat-card small {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .stat-card strong {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-card-primary {
+            border-top-color: var(--primary);
+            background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+        }
+
+        .stat-card-primary strong {
+            color: var(--primary);
+        }
+
+        .stat-card-success {
+            border-top-color: var(--success);
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+
+        .stat-card-success strong {
+            color: var(--success);
+        }
+
+        .stat-card-warning {
+            border-top-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+
+        .stat-card-warning strong {
+            color: var(--warning);
+        }
+    </style>
+</head>
+
+    <div class="main-layout">
+        <aside class="side-panel">
+            <div class="modern-dropdown">
+                <button class="dropdown-btn" id="dropdownBtn">
+                    <span><i class="fas fa-compass"></i> اختر وجهتك للانتقال</span>
+                    <span id="arrow">&#9662;</span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" data-page="MD.html"><i class="fas fa-database"></i> بيانات كبار المشتركين
+                    </div>
+                    <div class="dropdown-item" data-page="MD_Add.html"><i class="fas fa-user-plus"></i> إضافة مشترك جديد
+                    </div>
+                    <div class="dropdown-item" data-page="MD_Pass.html"><i class="fas fa-clipboard-check"></i> تسجيل
+                        مرور ميداني</div>
+                    <div class="dropdown-item" data-page="MD_Pass_Dashboard.html"><i class="fas fa-chart-line"></i>
+                        تقرير المرور العام</div>
+                    <div class="dropdown-item" data-page="index.html"><i class="fas fa-calendar-alt"></i> الصفحة
+                        الرئيسية</div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const btn = document.getElementById('dropdownBtn');
+                    const menu = document.getElementById('dropdownMenu');
+
+                    // 1. فتح وإغلاق القائمة عند الضغط على الزر
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation(); // منع انتقال الضغطة للعناصر الأب
+                        menu.classList.toggle('show');
+                    });
+
+                    // 2. التنقل بين الصفحات عند الضغط على أي خيار
+                    const items = document.querySelectorAll('.dropdown-item');
+                    items.forEach(item => {
+                        item.addEventListener('click', function () {
+                            const page = this.getAttribute('data-page');
+                            if (page) {
+                                window.location.href = page;
+                            }
+                        });
+                    });
+
+                    // 3. إغلاق القائمة تلقائياً إذا ضغطت في أي مكان خارجها
+                    window.addEventListener('click', function () {
+                        if (menu.classList.contains('show')) {
+                            menu.classList.remove('show');
+                        }
+                    });
+                });
+            </script>
+
+
+            <div class="panel-header">
+                <i class="fas fa-chart-pie"></i>
+                <h3>عناصر البحث</h3>
+            </div>
+
+            <div class="filter-group">
+                <label class="form-label"><i class="far fa-calendar-alt ml-1"></i> من تاريخ</label>
+                <input type="date" id="date_from" class="form-input" value="2026-02-01" title="تاريخ البداية" placeholder="اختر تاريخ البداية">
+
+                <label class="form-label"><i class="far fa-calendar-check ml-1"></i> إلى تاريخ</label>
+                <input type="date" id="date_to" class="form-input" value="2026-08-01" title="تاريخ النهاية" placeholder="اختر تاريخ النهاية">
+            </div>
+
+            <label class="form-label"><i class="fas fa-layer-group ml-1"></i> القطاع</label>
+            <select id="filter_keta3" class="form-input" title="اختر القطاع">
+                <option value="">الكل</option>
+            </select>
+
+            <label class="form-label"><i class="fas fa-draw-polygon ml-1"></i> الهندسة</label>
+            <select id="filter_handsa" class="form-input" title="اختر الهندسة">
+                <option value="">الكل</option>
+            </select>
+
+            <label class="form-label"><i class="fas fa-search ml-1"></i> بحث سريع</label>
+            <input type="text" id="filter_general" class="form-input" placeholder="اسم المشترك / كود العداد...">
+
+            <button class="btn btn-search" id="btnSearch"><i class="fas fa-sliders-h"></i>العدادات التى تم المرور
+                عليها</button>
+            <button class="btn btn-delay" id="btnDelayed"><i class="fas fa-hourglass-end"></i>العدادات التى لم يتم
+                المرور عليها</button>
+                <button class="btn btn-excel" onclick="exportData()" id="exportBtn"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
+
+            <!-- Record Details Form -->
+            <div class="form-section" id="detailsForm">
+                <h3>بيانات السجل</h3>
+                <div id="fixedSection" class="active">
+                    <div class="form-input-group"><label>اسم المشترك</label><input id="detail_mname"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>القطاع</label><input id="detail_keta3"></div>
+                        <div class="form-input-group"><label>الهندسة</label><input id="detail_handsa"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>معامل القدرة (PF)</label><input id="detail_power_factor"></div>
+                        <div class="form-input-group"><label>أقصى حمل</label><input id="detail_max_load"></div>
+                    </div>
+                    <div class="form-input-group"><label>تاريخ اخر المرور</label><input type="date" id="detail_passing_date"></div>
+                </div>
+
+                <div id="variableSection" class="active">
+                    <hr>
+                    <div class="form-input-group"><label>رقم العداد (Key)</label><input id="detail_mno"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>تاريخ الرفع</label><input type="date" id="detail_inspection_date"></div>
+                        <div class="form-input-group"><label>تاريخ التركيب</label><input type="date" id="detail_fix_date"></div>
+                    </div>
+                    <div class="form-input-group"><label>تاريخ الإطلاق</label><input type="date" id="detail_power_date"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>kWh</label><input id="detail_kwh_reading"></div>
+                        <div class="form-input-group"><label>kVARh</label><input id="detail_kvarh_reading"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>VT Ratio</label><input id="detail_vt_ratio"></div>
+                        <div class="form-input-group"><label>CT Ratio</label><input id="detail_ct_ratio"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>الثابت</label><input id="detail_constant"></div>
+                        <div class="form-input-group"><label>المكان</label><input id="detail_location"></div>
+                    </div>
+                    <div class="form-input-group"><label>نوع العداد</label><input id="detail_mtype"></div>
+                    <div class="form-input-group"><label>الملاحظات</label><textarea id="detail_notes" rows="2"></textarea></div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="content-panel">
+            <div class="report-header">
+                <i class="fas fa-file-alt"></i>
+                <span>لوحة التقارير الذكية · إحصائيات دقيقة</span>
+            </div>
+
+            <div class="table-container" id="results-container">
+                <div class="empty-state">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>قم بتحديد فترة والضغط على "عرض التقرير"</p>
+                </div>
+            </div>
+
+            <div class="dashboard-bottom" id="dash-scroll">
+                <div class="stat-card stat-card-primary">
+                    <small>إجمالي القراءات</small>
+                    <strong id="total_val">0</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- جدول خفي للتصدير (master) -->
+    <table id="masterTable">
+        <thead>
+            <tr>
+                <th>تاريخ المرور</th>
+                <th>اسم المشترك</th>
+                <th>رقم العداد</th>
+                <th>القطاع</th>
+                <th>الهندسة</th>
+                <th>أقصى حمل</th>
+                <th>معامل القدرة</th>
+                <th>القراءة كيلوات ساعة</th>
+                <th>القراءة كيلو فار ساعة</th>
+                <th>الملاحظات</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let passingData = {};
+
+        async function init() {
+            const snap = await get(ref(db, 'MD_Pass'));
+            if (snap.exists()) {
+                passingData = snap.val();
+                const kSet = new Set(), hSet = new Set();
+                
+                // Load from MD_Pass data
+                for (let id in passingData) {
+                    for (let d in passingData[id]) {
+                        const v = passingData[id][d];
+                        if (v.keta3) kSet.add(v.keta3);
+                        if (v.handsa) hSet.add(v.handsa);
+                    }
+                }
+                
+                // Also load from MD/customers to include all possible sectors and engineering divisions
+                try {
+                    const customerSnap = await get(ref(db, 'MD/customers'));
+                    if (customerSnap.exists()) {
+                        const customers = customerSnap.val();
+                        for (let custId in customers) {
+                            const c = customers[custId];
+                            if (c.keta3) kSet.add(c.keta3);
+                            if (c.handsa) hSet.add(c.handsa);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("فشل تحميل بيانات القطاع والهندسة من MD/customers:", e);
+                }
+                
+                const kSel = document.getElementById('filter_keta3');
+                const hSel = document.getElementById('filter_handsa');
+                kSel.innerHTML = '<option value="">الكل</option>';
+                hSel.innerHTML = '<option value="">الكل</option>';
+                [...kSet].sort().forEach(k => kSel.innerHTML += `<option value="${k}">${k}</option>`);
+                [...hSet].sort().forEach(h => hSel.innerHTML += `<option value="${h}">${h}</option>`);
+            } else {
+                console.warn("لا توجد بيانات في MD_Pass");
+            }
+        }
+
+        window.exportData = function () {
+            const wb = XLSX.utils.table_to_book(document.getElementById("masterTable"));
+            XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        };
+
+        // Parse many common date formats robustly (ISO, DD/MM/YYYY, MM/DD/YYYY, timestamps)
+        function parseDateFlexible(raw) {
+            if (!raw && raw !== 0) return null;
+            const s = String(raw).trim();
+            // numeric timestamp
+            if (/^\d+$/.test(s)) {
+                const n = Number(s);
+                return n > 1e12 ? new Date(n) : new Date(n * 1000);
+            }
+
+            // ISO-like (YYYY-MM-DD or YYYY/MM/DD)
+            if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) {
+                const parts = s.includes('-') ? s.split('-') : s.split('/');
+                const y = Number(parts[0]), m = Number(parts[1]) - 1, d = Number(parts[2]);
+                const dt = new Date(y, m, d);
+                if (!isNaN(dt)) return dt;
+            }
+
+            // Common slash formats like DD/MM/YYYY or MM/DD/YYYY
+            if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+                const parts = s.split('/').map(p => Number(p));
+                let d, m, y;
+                // prefer DD/MM/YYYY (common in many locales)
+                if (parts[0] > 12) {
+                    d = parts[0]; m = parts[1] - 1; y = parts[2];
+                } else if (parts[1] > 12) {
+                    // must be MM/DD/YYYY
+                    d = parts[1]; m = parts[0] - 1; y = parts[2];
+                } else {
+                    // ambiguous — assume DD/MM/YYYY
+                    d = parts[0]; m = parts[1] - 1; y = parts[2];
+                }
+                if (y < 100) y += 2000;
+                const dt = new Date(y, m, d);
+                if (!isNaN(dt)) return dt;
+            }
+
+            // Fallback to Date constructor
+            const dt = new Date(s);
+            return isNaN(dt) ? null : dt;
+        }
+
+        async function runReport(isDelayed) {
+            const start = document.getElementById('date_from').value;
+            const end = document.getElementById('date_to').value;
+            const fK = document.getElementById('filter_keta3').value;
+            const fH = document.getElementById('filter_handsa').value;
+            const fG = document.getElementById('filter_general').value.trim().toLowerCase();
+
+            // allow empty dates to mean "all"
+            const hasStart = !!start;
+            const hasEnd = !!end;
+
+            let rows = '';            // للعرض في الجدول الرئيسي
+            let masterRows = '';       // للتصدير مع تجميع العملاء
+            let stats = { keta3: {}, handsa: {} };
+            let detailCount = 0;
+
+            // تجميع البيانات للتصدير بشكل منظم
+            let exportGroups = [];
+
+            // Parse start/end dates ONCE outside the loop
+            const startDateObj = hasStart ? parseDateFlexible(start) : null;
+            const endDateObj = hasEnd ? parseDateFlexible(end) : null;
+            if (endDateObj) endDateObj.setHours(23, 59, 59, 999);
+
+            let allDates = [];
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    allDates.push(dateKey);
+                }
+            }
+            if (isDelayed) {
+                // debug: console.log('Delayed mode - All dates in DB:', allDates.sort(), 'Start date filter:', start);
+            }
+
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    const v = passingData[subID][dateKey];
+                    // determine record date (prefer explicit passing_date if present)
+                    let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                    let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
+
+                    if (!recordDate) {
+                        // if we can't parse the date, skip this record to avoid incorrect filtering
+                        continue;
+                    }
+
+                    let match = false;
+                    if (isDelayed) {
+                        // Delayed: show ONLY records BEFORE start date (within any end date if set)
+                        if (startDateObj) {
+                            match = recordDate < startDateObj;
+                            // If end date is also set, records must be before start AND on or before end
+                            if (match && endDateObj) {
+                                match = recordDate <= endDateObj;
+                            }
+                        }
+                        // If no start date, show nothing
+                    } else {
+                        // Normal: show records within date range
+                        if (!startDateObj && !endDateObj) {
+                            match = true;
+                        } else {
+                            const s = startDateObj || new Date('0000-01-01');
+                            const e = endDateObj || new Date('9999-12-31');
+                            match = recordDate >= s && recordDate <= e;
+                        }
+                    }
+
+                    if (match) {
+                        if (fK && v.keta3 !== fK) continue;
+                        if (fH && v.handsa !== fH) continue;
+
+=======
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>لوحة التقارير الذكية · نظام الإدارة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --accent: #2563eb;
+            --secondary: #0f172a;
+            --success: #0d9488;
+            --warning: #b45309;
+            --danger: #b91c1c;
+            --light-bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #eef2f6;
+            margin: 0;
+            padding: 16px;
+            direction: rtl;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            flex-grow: 1;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .side-panel {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: var(--shadow-md);
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .panel-header i {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 2.2rem;
+        }
+
+        .panel-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin: 8px 0 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .filter-group {
+            background: #f8fafc;
+            padding: 12px 10px;
+            border-radius: 18px;
+            margin-bottom: 4px;
+            border: 1px solid var(--border-light);
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: block;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ml-1 {
+            margin-right: 0.25rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 14px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: white;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn {
+            padding: 12px 12px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 700;
+            width: 100%;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
+            background: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-search {
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 12px -6px var(--primary);
+        }
+
+        .btn-search:hover {
+            background: #1e3bbf;
+            transform: translateY(-2px);
+        }
+
+        .btn-delay {
+            background: #ffedd5;
+            color: var(--warning);
+            border: 1px solid #fed7aa;
+        }
+
+        .btn-delay:hover {
+            background: #fed7aa;
+            color: #7a3e0e;
+        }
+
+        .btn-excel {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .btn-excel:hover {
+            background: #bae6fd;
+        }
+
+        .content-panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg);
+            border-radius: 28px;
+            padding: 20px 20px 16px;
+            box-shadow: var(--shadow-md);
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .report-header {
+            color: var(--secondary);
+            margin: 0 0 16px 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            padding-right: 6px;
+        }
+
+        .report-header i {
+            color: var(--primary-light);
+            background: #e0f2fe;
+            padding: 8px;
+            border-radius: 16px;
+        }
+
+        .table-container {
+            flex-grow: 1;
+            overflow: auto;
+            border-radius: 20px;
+            background: #fbfdff;
+            border: 1px solid var(--border-light);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1400px;
+            white-space: nowrap;
+        }
+
+        .grouped-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .grouped-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header-main {
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+        }
+
+        .customer-title {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+
+        .merged-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .info-item {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .sub-records-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .sub-records-table thead {
+            background: #f0f4fa;
+            position: sticky;
+            top: 0;
+        }
+
+        .sub-records-table th {
+            padding: 8px;
+            text-align: center;
+            color: var(--secondary);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .sub-records-table tbody tr {
+            border-bottom: 1px solid var(--border-light);
+            transition: background 0.1s;
+        }
+
+        .sub-records-table tbody tr:hover {
+            background: #ecf3fe;
+            cursor: pointer;
+        }
+
+        .sub-records-table td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #eef2f6;
+            border-radius: 12px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #b9c7da;
+            border-radius: 12px;
+            border: 2px solid #eef2f6;
+        }
+
+        .table-container {
+            -ms-overflow-style: auto;
+            scrollbar-color: #b9c7da #eef2f6;
+        }
+
+        .dashboard-bottom::-webkit-scrollbar {
+            height: 5px;
+        }
+
+        .modern-dropdown {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .dropdown-btn {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+
+        .dropdown-btn:hover {
+            background: var(--accent);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 2000;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: 0.2s;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: #f4f7f6;
+            color: var(--accent);
+            padding-right: 25px;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+        #exportBtn {
+            display: none;
+        }
+
+        #masterTable {
+            display: none;
+        }
+
+        .date-cell { font-weight: 500 }
+        .customer-cell { font-weight: 700; color: #0f172a }
+        .meter-badge { background: #e9f0fc; padding: 2px 8px; border-radius: 40px; font-family: monospace }
+        .kwh-cell { color: var(--success); font-weight: 700 }
+        .kvarh-cell { color: var(--primary); font-weight: 700 }
+
+        .form-section { margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--border-light); display: none; }
+        .form-section.active { display: block; }
+        .form-section h3 { font-size: 0.9rem; font-weight: 700; color: var(--secondary); margin-bottom: 10px; }
+        .form-input-group { margin-bottom: 10px; }
+        .form-input-group label { display: block; font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px; }
+        .form-input-group input,
+        .form-input-group textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 0.8rem; }
+        .form-row-flex { display: flex; gap: 8px; }
+        .form-row-flex .form-input-group { flex: 1; }
+        #fixedSection, #variableSection { display: none; }
+        #fixedSection.active, #variableSection.active { display: block; }
+
+        /* Statistics Dashboard Styles */
+        .dashboard-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow-y: auto;
+            min-height: 80px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            min-width: 80px;
+            flex: 0 0 auto;
+            border-top: 2px solid var(--primary);
+        }
+
+        .stat-card small {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .stat-card strong {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-card-primary {
+            border-top-color: var(--primary);
+            background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+        }
+
+        .stat-card-primary strong {
+            color: var(--primary);
+        }
+
+        .stat-card-success {
+            border-top-color: var(--success);
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+
+        .stat-card-success strong {
+            color: var(--success);
+        }
+
+        .stat-card-warning {
+            border-top-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+
+        .stat-card-warning strong {
+            color: var(--warning);
+        }
+    </style>
+</head>
+
+    <div class="main-layout">
+        <aside class="side-panel">
+            <div class="modern-dropdown">
+                <button class="dropdown-btn" id="dropdownBtn">
+                    <span><i class="fas fa-compass"></i> اختر وجهتك للانتقال</span>
+                    <span id="arrow">&#9662;</span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" data-page="MD.html"><i class="fas fa-database"></i> بيانات كبار المشتركين
+                    </div>
+                    <div class="dropdown-item" data-page="MD_Add.html"><i class="fas fa-user-plus"></i> إضافة مشترك جديد
+                    </div>
+                    <div class="dropdown-item" data-page="MD_Pass.html"><i class="fas fa-clipboard-check"></i> تسجيل
+                        مرور ميداني</div>
+                    <div class="dropdown-item" data-page="MD_Pass_Dashboard.html"><i class="fas fa-chart-line"></i>
+                        تقرير المرور العام</div>
+                    <div class="dropdown-item" data-page="index.html"><i class="fas fa-calendar-alt"></i> الصفحة
+                        الرئيسية</div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const btn = document.getElementById('dropdownBtn');
+                    const menu = document.getElementById('dropdownMenu');
+
+                    // 1. فتح وإغلاق القائمة عند الضغط على الزر
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation(); // منع انتقال الضغطة للعناصر الأب
+                        menu.classList.toggle('show');
+                    });
+
+                    // 2. التنقل بين الصفحات عند الضغط على أي خيار
+                    const items = document.querySelectorAll('.dropdown-item');
+                    items.forEach(item => {
+                        item.addEventListener('click', function () {
+                            const page = this.getAttribute('data-page');
+                            if (page) {
+                                window.location.href = page;
+                            }
+                        });
+                    });
+
+                    // 3. إغلاق القائمة تلقائياً إذا ضغطت في أي مكان خارجها
+                    window.addEventListener('click', function () {
+                        if (menu.classList.contains('show')) {
+                            menu.classList.remove('show');
+                        }
+                    });
+                });
+            </script>
+
+
+            <div class="panel-header">
+                <i class="fas fa-chart-pie"></i>
+                <h3>عناصر البحث</h3>
+            </div>
+
+            <div class="filter-group">
+                <label class="form-label"><i class="far fa-calendar-alt ml-1"></i> من تاريخ</label>
+                <input type="date" id="date_from" class="form-input" value="2026-02-01" title="تاريخ البداية" placeholder="اختر تاريخ البداية">
+
+                <label class="form-label"><i class="far fa-calendar-check ml-1"></i> إلى تاريخ</label>
+                <input type="date" id="date_to" class="form-input" value="2026-08-01" title="تاريخ النهاية" placeholder="اختر تاريخ النهاية">
+            </div>
+
+            <label class="form-label"><i class="fas fa-layer-group ml-1"></i> القطاع</label>
+            <select id="filter_keta3" class="form-input" title="اختر القطاع">
+                <option value="">الكل</option>
+            </select>
+
+            <label class="form-label"><i class="fas fa-draw-polygon ml-1"></i> الهندسة</label>
+            <select id="filter_handsa" class="form-input" title="اختر الهندسة">
+                <option value="">الكل</option>
+            </select>
+
+            <label class="form-label"><i class="fas fa-search ml-1"></i> بحث سريع</label>
+            <input type="text" id="filter_general" class="form-input" placeholder="اسم المشترك / كود العداد...">
+
+            <button class="btn btn-search" id="btnSearch"><i class="fas fa-sliders-h"></i>العدادات التى تم المرور
+                عليها</button>
+            <button class="btn btn-delay" id="btnDelayed"><i class="fas fa-hourglass-end"></i>العدادات التى لم يتم
+                المرور عليها</button>
+                <button class="btn btn-excel" onclick="exportData()" id="exportBtn"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
+
+            <!-- Record Details Form -->
+            <div class="form-section" id="detailsForm">
+                <h3>بيانات السجل</h3>
+                <div id="fixedSection" class="active">
+                    <div class="form-input-group"><label>اسم المشترك</label><input id="detail_mname"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>القطاع</label><input id="detail_keta3"></div>
+                        <div class="form-input-group"><label>الهندسة</label><input id="detail_handsa"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>معامل القدرة (PF)</label><input id="detail_power_factor"></div>
+                        <div class="form-input-group"><label>أقصى حمل</label><input id="detail_max_load"></div>
+                    </div>
+                    <div class="form-input-group"><label>تاريخ اخر المرور</label><input type="date" id="detail_passing_date"></div>
+                </div>
+
+                <div id="variableSection" class="active">
+                    <hr>
+                    <div class="form-input-group"><label>رقم العداد (Key)</label><input id="detail_mno"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>تاريخ الرفع</label><input type="date" id="detail_inspection_date"></div>
+                        <div class="form-input-group"><label>تاريخ التركيب</label><input type="date" id="detail_fix_date"></div>
+                    </div>
+                    <div class="form-input-group"><label>تاريخ الإطلاق</label><input type="date" id="detail_power_date"></div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>kWh</label><input id="detail_kwh_reading"></div>
+                        <div class="form-input-group"><label>kVARh</label><input id="detail_kvarh_reading"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>VT Ratio</label><input id="detail_vt_ratio"></div>
+                        <div class="form-input-group"><label>CT Ratio</label><input id="detail_ct_ratio"></div>
+                    </div>
+                    <div class="form-row-flex">
+                        <div class="form-input-group"><label>الثابت</label><input id="detail_constant"></div>
+                        <div class="form-input-group"><label>المكان</label><input id="detail_location"></div>
+                    </div>
+                    <div class="form-input-group"><label>نوع العداد</label><input id="detail_mtype"></div>
+                    <div class="form-input-group"><label>الملاحظات</label><textarea id="detail_notes" rows="2"></textarea></div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="content-panel">
+            <div class="report-header">
+                <i class="fas fa-file-alt"></i>
+                <span>لوحة التقارير الذكية · إحصائيات دقيقة</span>
+            </div>
+
+            <div class="table-container" id="results-container">
+                <div class="empty-state">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>قم بتحديد فترة والضغط على "عرض التقرير"</p>
+                </div>
+            </div>
+
+            <div class="dashboard-bottom" id="dash-scroll">
+                <div class="stat-card stat-card-primary">
+                    <small>إجمالي القراءات</small>
+                    <strong id="total_val">0</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- جدول خفي للتصدير (master) -->
+    <table id="masterTable">
+        <thead>
+            <tr>
+                <th>تاريخ المرور</th>
+                <th>اسم المشترك</th>
+                <th>رقم العداد</th>
+                <th>القطاع</th>
+                <th>الهندسة</th>
+                <th>أقصى حمل</th>
+                <th>معامل القدرة</th>
+                <th>القراءة كيلوات ساعة</th>
+                <th>القراءة كيلو فار ساعة</th>
+                <th>الملاحظات</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let passingData = {};
+
+        async function init() {
+            const snap = await get(ref(db, 'MD_Pass'));
+            if (snap.exists()) {
+                passingData = snap.val();
+                const kSet = new Set(), hSet = new Set();
+                
+                // Load from MD_Pass data
+                for (let id in passingData) {
+                    for (let d in passingData[id]) {
+                        const v = passingData[id][d];
+                        if (v.keta3) kSet.add(v.keta3);
+                        if (v.handsa) hSet.add(v.handsa);
+                    }
+                }
+                
+                // Also load from MD/customers to include all possible sectors and engineering divisions
+                try {
+                    const customerSnap = await get(ref(db, 'MD/customers'));
+                    if (customerSnap.exists()) {
+                        const customers = customerSnap.val();
+                        for (let custId in customers) {
+                            const c = customers[custId];
+                            if (c.keta3) kSet.add(c.keta3);
+                            if (c.handsa) hSet.add(c.handsa);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("فشل تحميل بيانات القطاع والهندسة من MD/customers:", e);
+                }
+                
+                const kSel = document.getElementById('filter_keta3');
+                const hSel = document.getElementById('filter_handsa');
+                kSel.innerHTML = '<option value="">الكل</option>';
+                hSel.innerHTML = '<option value="">الكل</option>';
+                [...kSet].sort().forEach(k => kSel.innerHTML += `<option value="${k}">${k}</option>`);
+                [...hSet].sort().forEach(h => hSel.innerHTML += `<option value="${h}">${h}</option>`);
+            } else {
+                console.warn("لا توجد بيانات في MD_Pass");
+            }
+        }
+
+        window.exportData = function () {
+            const wb = XLSX.utils.table_to_book(document.getElementById("masterTable"));
+            XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        };
+
+        // Parse many common date formats robustly (ISO, DD/MM/YYYY, MM/DD/YYYY, timestamps)
+        function parseDateFlexible(raw) {
+            if (!raw && raw !== 0) return null;
+            const s = String(raw).trim();
+            // numeric timestamp
+            if (/^\d+$/.test(s)) {
+                const n = Number(s);
+                return n > 1e12 ? new Date(n) : new Date(n * 1000);
+            }
+
+            // ISO-like (YYYY-MM-DD or YYYY/MM/DD)
+            if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) {
+                const parts = s.includes('-') ? s.split('-') : s.split('/');
+                const y = Number(parts[0]), m = Number(parts[1]) - 1, d = Number(parts[2]);
+                const dt = new Date(y, m, d);
+                if (!isNaN(dt)) return dt;
+            }
+
+            // Common slash formats like DD/MM/YYYY or MM/DD/YYYY
+            if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+                const parts = s.split('/').map(p => Number(p));
+                let d, m, y;
+                // prefer DD/MM/YYYY (common in many locales)
+                if (parts[0] > 12) {
+                    d = parts[0]; m = parts[1] - 1; y = parts[2];
+                } else if (parts[1] > 12) {
+                    // must be MM/DD/YYYY
+                    d = parts[1]; m = parts[0] - 1; y = parts[2];
+                } else {
+                    // ambiguous — assume DD/MM/YYYY
+                    d = parts[0]; m = parts[1] - 1; y = parts[2];
+                }
+                if (y < 100) y += 2000;
+                const dt = new Date(y, m, d);
+                if (!isNaN(dt)) return dt;
+            }
+
+            // Fallback to Date constructor
+            const dt = new Date(s);
+            return isNaN(dt) ? null : dt;
+        }
+
+        async function runReport(isDelayed) {
+            const start = document.getElementById('date_from').value;
+            const end = document.getElementById('date_to').value;
+            const fK = document.getElementById('filter_keta3').value;
+            const fH = document.getElementById('filter_handsa').value;
+            const fG = document.getElementById('filter_general').value.trim().toLowerCase();
+
+            // allow empty dates to mean "all"
+            const hasStart = !!start;
+            const hasEnd = !!end;
+
+            let rows = '';            // للعرض في الجدول الرئيسي
+            let masterRows = '';       // للتصدير مع تجميع العملاء
+            let stats = { keta3: {}, handsa: {} };
+            let detailCount = 0;
+
+            // تجميع البيانات للتصدير بشكل منظم
+            let exportGroups = [];
+
+            // Parse start/end dates ONCE outside the loop
+            const startDateObj = hasStart ? parseDateFlexible(start) : null;
+            const endDateObj = hasEnd ? parseDateFlexible(end) : null;
+            if (endDateObj) endDateObj.setHours(23, 59, 59, 999);
+
+            let allDates = [];
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    allDates.push(dateKey);
+                }
+            }
+            if (isDelayed) {
+                // debug: console.log('Delayed mode - All dates in DB:', allDates.sort(), 'Start date filter:', start);
+            }
+
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    const v = passingData[subID][dateKey];
+                    // determine record date (prefer explicit passing_date if present)
+                    let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                    let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
+
+                    if (!recordDate) {
+                        // if we can't parse the date, skip this record to avoid incorrect filtering
+                        continue;
+                    }
+
+                    let match = false;
+                    if (isDelayed) {
+                        // Delayed: show ONLY records BEFORE start date (within any end date if set)
+                        if (startDateObj) {
+                            match = recordDate < startDateObj;
+                            // If end date is also set, records must be before start AND on or before end
+                            if (match && endDateObj) {
+                                match = recordDate <= endDateObj;
+                            }
+                        }
+                        // If no start date, show nothing
+                    } else {
+                        // Normal: show records within date range
+                        if (!startDateObj && !endDateObj) {
+                            match = true;
+                        } else {
+                            const s = startDateObj || new Date('0000-01-01');
+                            const e = endDateObj || new Date('9999-12-31');
+                            match = recordDate >= s && recordDate <= e;
+                        }
+                    }
+
+                    if (match) {
+                        if (fK && v.keta3 !== fK) continue;
+                        if (fH && v.handsa !== fH) continue;
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+                        let generalMatch = false;
+                        const baseSearchStr = `${v.metername || ''} ${v.keta3 || ''} ${v.handsa || ''}`.toLowerCase();
+                        if (baseSearchStr.includes(fG) || fG === '') {
+                            generalMatch = true;
+                        } else if (v.readings) {
+                            for (let rKey in v.readings) {
+                                const r = v.readings[rKey];
+                                const searchStr = `${baseSearchStr} ${r.meternumber || ''}`.toLowerCase();
+                                if (searchStr.includes(fG)) {
+                                    generalMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (fG !== '' && !generalMatch) continue;
+<<<<<<< HEAD
+
+                        stats.keta3[v.keta3] = (stats.keta3[v.keta3] || 0) + 1;
+                        stats.handsa[v.handsa] = (stats.handsa[v.handsa] || 0) + 1;
+
+                        if (v.readings) {
+                            const readingsArray = Object.values(v.readings);
+
+                            // إضافة صفوف للجدول الرئيسي (بدون تجميع)
+                            readingsArray.forEach(r => {
+                                detailCount++;
+                                rows += `<tr>
+                                    <td class="date-cell">${dateKey}</td>
+                                    <td class="customer-cell">${v.metername || subID}</td>
+                                    <td><span class="meter-badge">${r.meternumber || '-'}</span></td>
+                                    <td>${v.keta3 || '-'}</td>
+                                    <td>${v.handsa || '-'}</td>
+                                    <td class="kwh-cell">${r.kwh != null ? r.kwh : '0'}</td>
+                                    <td class="kvarh-cell">${r.kvarh != null ? r.kvarh : '0'}</td>
+                                    <td class="col-notes">${r.note ? r.note.substring(0, 60) : '-'}</td>
+                                </tr>`;
+                            });
+
+                            // تجميع بيانات التصدير - نضيف صف رئيسي للمشترك ثم كل العدادات تحته
+                            exportGroups.push({
+                                date: dateKey,
+                                customerName: v.metername || subID,
+                                customerId: subID,
+                                keta3: v.keta3 || '-',
+                                handsa: v.handsa || '-',
+                                maxLoad: v.max_load != null ? v.max_load : '-',
+                                powerFactor: v.power_factor != null ? v.power_factor : '-',
+                                readings: readingsArray
+                            });
+                        }
+                    }
+                }
+            }
+
+            // بناء masterRows بشكل منظم مع صف رئيسي لكل مشروع وعدادات متعددة تحته
+            exportGroups.forEach(group => {
+                // صف رأس العميل (يظهر مرة واحدة لكل مشترك/تاريخ)
+                masterRows += `<tr class="customer-header-export">`;
+                masterRows += `<td class="customer-header-export">${group.date}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-name">${group.customerName}</td>`;
+                masterRows += `<td class="customer-header-export">----- القيم المشتركة -----</td>`;
+                masterRows += `<td class="customer-header-export">${group.keta3}</td>`;
+                masterRows += `<td class="customer-header-export">${group.handsa}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-value">${group.maxLoad}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-value">${group.powerFactor}</td>`;
+                masterRows += `<td class="customer-header-export">-----</td>`;
+                masterRows += `<td class="customer-header-export">-----</td>`;
+                masterRows += `<td class="customer-header-export">قيم العدادات أدناه</td>`;
+                masterRows += `</tr>`;
+
+                // صفوف العدادات (قراءات متعددة لهذا المشترك)
+                group.readings.forEach(r => {
+                    masterRows += `<tr>
+                        <td></td>
+                        <td></td>
+                        <td>${r.meternumber || '-'}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>${r.kwh != null ? r.kwh : '0'}</td>
+                        <td>${r.kvarh != null ? r.kvarh : '0'}</td>
+                        <td>${r.note || '-'}</td>
+                    </tr>`;
+                });
+
+                // صف فاصل اختياري
+                masterRows += `<tr><td colspan="10" class="separator-divider"></td></tr>`;
+            });
+
+=======
+
+                        stats.keta3[v.keta3] = (stats.keta3[v.keta3] || 0) + 1;
+                        stats.handsa[v.handsa] = (stats.handsa[v.handsa] || 0) + 1;
+
+                        if (v.readings) {
+                            const readingsArray = Object.values(v.readings);
+
+                            // إضافة صفوف للجدول الرئيسي (بدون تجميع)
+                            readingsArray.forEach(r => {
+                                detailCount++;
+                                rows += `<tr>
+                                    <td class="date-cell">${dateKey}</td>
+                                    <td class="customer-cell">${v.metername || subID}</td>
+                                    <td><span class="meter-badge">${r.meternumber || '-'}</span></td>
+                                    <td>${v.keta3 || '-'}</td>
+                                    <td>${v.handsa || '-'}</td>
+                                    <td class="kwh-cell">${r.kwh != null ? r.kwh : '0'}</td>
+                                    <td class="kvarh-cell">${r.kvarh != null ? r.kvarh : '0'}</td>
+                                    <td class="col-notes">${r.note ? r.note.substring(0, 60) : '-'}</td>
+                                </tr>`;
+                            });
+
+                            // تجميع بيانات التصدير - نضيف صف رئيسي للمشترك ثم كل العدادات تحته
+                            exportGroups.push({
+                                date: dateKey,
+                                customerName: v.metername || subID,
+                                customerId: subID,
+                                keta3: v.keta3 || '-',
+                                handsa: v.handsa || '-',
+                                maxLoad: v.max_load != null ? v.max_load : '-',
+                                powerFactor: v.power_factor != null ? v.power_factor : '-',
+                                readings: readingsArray
+                            });
+                        }
+                    }
+                }
+            }
+
+            // بناء masterRows بشكل منظم مع صف رئيسي لكل مشروع وعدادات متعددة تحته
+            exportGroups.forEach(group => {
+                // صف رأس العميل (يظهر مرة واحدة لكل مشترك/تاريخ)
+                masterRows += `<tr class="customer-header-export">`;
+                masterRows += `<td class="customer-header-export">${group.date}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-name">${group.customerName}</td>`;
+                masterRows += `<td class="customer-header-export">----- القيم المشتركة -----</td>`;
+                masterRows += `<td class="customer-header-export">${group.keta3}</td>`;
+                masterRows += `<td class="customer-header-export">${group.handsa}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-value">${group.maxLoad}</td>`;
+                masterRows += `<td class="customer-header-export customer-header-export-value">${group.powerFactor}</td>`;
+                masterRows += `<td class="customer-header-export">-----</td>`;
+                masterRows += `<td class="customer-header-export">-----</td>`;
+                masterRows += `<td class="customer-header-export">قيم العدادات أدناه</td>`;
+                masterRows += `</tr>`;
+
+                // صفوف العدادات (قراءات متعددة لهذا المشترك)
+                group.readings.forEach(r => {
+                    masterRows += `<tr>
+                        <td></td>
+                        <td></td>
+                        <td>${r.meternumber || '-'}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>${r.kwh != null ? r.kwh : '0'}</td>
+                        <td>${r.kvarh != null ? r.kvarh : '0'}</td>
+                        <td>${r.note || '-'}</td>
+                    </tr>`;
+                });
+
+                // صف فاصل اختياري
+                masterRows += `<tr><td colspan="10" class="separator-divider"></td></tr>`;
+            });
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+            renderUI(rows, masterRows, detailCount, stats, isDelayed, startDateObj, endDateObj, fK, fH, fG);
+        }
+
+        function renderUI(rows, masterRows, detailCount, stats, isDelayed, startDateObj, endDateObj, fK, fH, fG) {
+            // Group data by customer - ONLY use filtered data
+            const customerGroups = {};
+<<<<<<< HEAD
+            
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    const v = passingData[subID][dateKey];
+                    let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                    let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
+
+                    if (!recordDate) continue;
+
+                    // Apply same date filtering as runReport
+                    let match = false;
+                    if (isDelayed) {
+                        if (startDateObj) {
+                            match = recordDate < startDateObj;
+                            if (match && endDateObj) {
+                                match = recordDate <= endDateObj;
+                            }
+                        }
+                    } else {
+                        if (!startDateObj && !endDateObj) {
+                            match = true;
+                        } else {
+                            const s = startDateObj || new Date('0000-01-01');
+                            const e = endDateObj || new Date('9999-12-31');
+                            match = recordDate >= s && recordDate <= e;
+                        }
+                    }
+
+=======
+            
+            for (let subID in passingData) {
+                for (let dateKey in passingData[subID]) {
+                    const v = passingData[subID][dateKey];
+                    let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                    let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
+
+                    if (!recordDate) continue;
+
+                    // Apply same date filtering as runReport
+                    let match = false;
+                    if (isDelayed) {
+                        if (startDateObj) {
+                            match = recordDate < startDateObj;
+                            if (match && endDateObj) {
+                                match = recordDate <= endDateObj;
+                            }
+                        }
+                    } else {
+                        if (!startDateObj && !endDateObj) {
+                            match = true;
+                        } else {
+                            const s = startDateObj || new Date('0000-01-01');
+                            const e = endDateObj || new Date('9999-12-31');
+                            match = recordDate >= s && recordDate <= e;
+                        }
+                    }
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+                    if (!match) continue;
+                    if (fK && v.keta3 !== fK) continue;
+                    if (fH && v.handsa !== fH) continue;
+
+                    let generalMatch = false;
+                    const baseSearchStr = `${v.metername || ''} ${v.keta3 || ''} ${v.handsa || ''}`.toLowerCase();
+                    if (baseSearchStr.includes(fG) || fG === '') {
+                        generalMatch = true;
+                    } else if (v.readings) {
+                        for (let rKey in v.readings) {
+                            const r = v.readings[rKey];
+                            const searchStr = `${baseSearchStr} ${r.meternumber || ''}`.toLowerCase();
+                            if (searchStr.includes(fG)) {
+                                generalMatch = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (fG !== '' && !generalMatch) continue;
+
+                    if (!customerGroups[subID]) {
+<<<<<<< HEAD
+                        customerGroups[subID] = {
+                            customerId: subID,
+                            metername: v.metername || subID,
+                            keta3: v.keta3 || '-',
+                            handsa: v.handsa || '-',
+                            power_factor: v.power_factor || '-',
+                            max_load: v.max_load || '-',
+                            passing_date: v.passing_date || '-',
+                            records: []
+                        };
+                    }
+                    if (v.readings) {
+                        customerGroups[subID].records.push({
+                            dateKey,
+                            readings: Object.values(v.readings)
+                        });
+                    }
+                }
+            }
+
+            document.getElementById('total_val').innerText = detailCount;
+            const dash = document.getElementById('dash-scroll');
+
+            while (dash.children.length > 1) {
+                dash.removeChild(dash.lastChild);
+            }
+
+            Object.keys(stats.keta3).forEach(k => {
+                if (k && k !== '') {
+                    dash.innerHTML += `<div class="stat-card stat-card-success"><small>قطاع ${k}</small><strong>${stats.keta3[k]}</strong></div>`;
+                }
+            });
+
+            Object.keys(stats.handsa).forEach(h => {
+                if (h && h !== '') {
+                    dash.innerHTML += `<div class="stat-card stat-card-warning"><small>هندسة ${h}</small><strong>${stats.handsa[h]}</strong></div>`;
+                }
+            });
+
+            const container = document.getElementById('results-container');
+            if (detailCount > 0) {
+                let cardsHtml = '';
+                Object.keys(customerGroups).forEach(customerId => {
+                    const customer = customerGroups[customerId];
+                    const recordsTable = customer.records.map(rec => {
+                        return `<tr class="date-group-header"><td colspan="8" style="background: #f0f4fa; font-weight: bold; padding: 10px;">📅 ${rec.dateKey}</td></tr>` +
+                            rec.readings.map(r => `<tr onclick="showRecordDetail({date: '${rec.dateKey}', metername: '${customer.metername}', meternumber: '${r.meternumber || ''}', keta3: '${customer.keta3}', handsa: '${customer.handsa}', kwh: '${r.kwh || ''}', kvarh: '${r.kvarh || ''}', note: '${r.note || ''}'})">
+                                <td class="date-cell">${rec.dateKey}</td>
+                                <td class="customer-cell">${customer.metername}</td>
+                                <td><span class="meter-badge">${r.meternumber || '-'}</span></td>
+                                <td>${customer.keta3}</td>
+                                <td>${customer.handsa}</td>
+                                <td class="kwh-cell">${r.kwh != null ? r.kwh : '0'}</td>
+                                <td class="kvarh-cell">${r.kvarh != null ? r.kvarh : '0'}</td>
+                                <td class="col-notes">${r.note ? r.note.substring(0, 60) : '-'}</td>
+                            </tr>`).join('');
+                    }).join('');
+
+                    cardsHtml += `
+                        <div class="grouped-card">
+                            <div class="card-header-main">
+                                <div>
+                                    <span class="customer-title">👤 ${customer.metername}</span>
+                                    <div class="merged-info-grid">
+                                        <div class="info-item">🏗️ القطاع: ${customer.keta3}</div>
+                                        <div class="info-item">📐 الهندسة: ${customer.handsa}</div>
+                                        <div class="info-item">📊 معامل القدرة: ${customer.power_factor}</div>
+                                        <div class="info-item">⚖️ أقصى حمل: ${customer.max_load}</div>
+                                        <div class="info-item">📅 تاريخ اخر مرور: ${customer.records.length > 0 ? customer.records[customer.records.length - 1].dateKey : '-'}</div>
+                                        <div class="info-item">📈 عدد العدادات: ${new Set(customer.records.flatMap(rec => rec.readings.map(r => r.meternumber))).size}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="sub-records-table">
+                                    <thead><tr>
+                                        <th>تاريخ اخر مرور:</th><th>اسم المشترك</th><th>رقم العداد</th><th>القطاع</th><th>الهندسة</th><th>القراءة كيلو وات ساعة</th><th>القراءة كيلو فار ساعة</th><th>الملاحظات</th>
+                                    </tr></thead>
+                                    <tbody>${recordsTable}</tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                });
+
+                container.innerHTML = cardsHtml;
+                document.querySelector("#masterTable tbody").innerHTML = masterRows;
+                document.getElementById('exportBtn').style.display = 'flex';
+            } else {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد قراءات متطابقة مع معايير البحث</p></div>`;
+                document.getElementById('exportBtn').style.display = 'none';
+            }
+        }
+
+        document.getElementById('btnSearch').onclick = () => runReport(false);
+        document.getElementById('btnDelayed').onclick = () => runReport(true);
+        document.getElementById('filter_general').addEventListener('input', () => runReport(false));
+        document.getElementById('filter_keta3').addEventListener('change', () => runReport(false));
+        document.getElementById('filter_handsa').addEventListener('change', () => runReport(false));
+        init();
+    </script>
+</body>
+
+=======
+                        customerGroups[subID] = {
+                            customerId: subID,
+                            metername: v.metername || subID,
+                            keta3: v.keta3 || '-',
+                            handsa: v.handsa || '-',
+                            power_factor: v.power_factor || '-',
+                            max_load: v.max_load || '-',
+                            passing_date: v.passing_date || '-',
+                            records: []
+                        };
+                    }
+                    if (v.readings) {
+                        customerGroups[subID].records.push({
+                            dateKey,
+                            readings: Object.values(v.readings)
+                        });
+                    }
+                }
+            }
+
+            document.getElementById('total_val').innerText = detailCount;
+            const dash = document.getElementById('dash-scroll');
+
+            while (dash.children.length > 1) {
+                dash.removeChild(dash.lastChild);
+            }
+
+            Object.keys(stats.keta3).forEach(k => {
+                if (k && k !== '') {
+                    dash.innerHTML += `<div class="stat-card stat-card-success"><small>قطاع ${k}</small><strong>${stats.keta3[k]}</strong></div>`;
+                }
+            });
+
+            Object.keys(stats.handsa).forEach(h => {
+                if (h && h !== '') {
+                    dash.innerHTML += `<div class="stat-card stat-card-warning"><small>هندسة ${h}</small><strong>${stats.handsa[h]}</strong></div>`;
+                }
+            });
+
+            const container = document.getElementById('results-container');
+            if (detailCount > 0) {
+                let cardsHtml = '';
+                Object.keys(customerGroups).forEach(customerId => {
+                    const customer = customerGroups[customerId];
+                    const recordsTable = customer.records.map(rec => {
+                        return `<tr class="date-group-header"><td colspan="8" style="background: #f0f4fa; font-weight: bold; padding: 10px;">📅 ${rec.dateKey}</td></tr>` +
+                            rec.readings.map(r => `<tr onclick="showRecordDetail({date: '${rec.dateKey}', metername: '${customer.metername}', meternumber: '${r.meternumber || ''}', keta3: '${customer.keta3}', handsa: '${customer.handsa}', kwh: '${r.kwh || ''}', kvarh: '${r.kvarh || ''}', note: '${r.note || ''}'})">
+                                <td class="date-cell">${rec.dateKey}</td>
+                                <td class="customer-cell">${customer.metername}</td>
+                                <td><span class="meter-badge">${r.meternumber || '-'}</span></td>
+                                <td>${customer.keta3}</td>
+                                <td>${customer.handsa}</td>
+                                <td class="kwh-cell">${r.kwh != null ? r.kwh : '0'}</td>
+                                <td class="kvarh-cell">${r.kvarh != null ? r.kvarh : '0'}</td>
+                                <td class="col-notes">${r.note ? r.note.substring(0, 60) : '-'}</td>
+                            </tr>`).join('');
+                    }).join('');
+
+                    cardsHtml += `
+                        <div class="grouped-card">
+                            <div class="card-header-main">
+                                <div>
+                                    <span class="customer-title">👤 ${customer.metername}</span>
+                                    <div class="merged-info-grid">
+                                        <div class="info-item">🏗️ القطاع: ${customer.keta3}</div>
+                                        <div class="info-item">📐 الهندسة: ${customer.handsa}</div>
+                                        <div class="info-item">📊 معامل القدرة: ${customer.power_factor}</div>
+                                        <div class="info-item">⚖️ أقصى حمل: ${customer.max_load}</div>
+                                        <div class="info-item">📅 تاريخ اخر مرور: ${customer.records.length > 0 ? customer.records[customer.records.length - 1].dateKey : '-'}</div>
+                                        <div class="info-item">📈 عدد العدادات: ${new Set(customer.records.flatMap(rec => rec.readings.map(r => r.meternumber))).size}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="sub-records-table">
+                                    <thead><tr>
+                                        <th>تاريخ اخر مرور:</th><th>اسم المشترك</th><th>رقم العداد</th><th>القطاع</th><th>الهندسة</th><th>القراءة كيلو وات ساعة</th><th>القراءة كيلو فار ساعة</th><th>الملاحظات</th>
+                                    </tr></thead>
+                                    <tbody>${recordsTable}</tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                });
+
+                container.innerHTML = cardsHtml;
+                document.querySelector("#masterTable tbody").innerHTML = masterRows;
+                document.getElementById('exportBtn').style.display = 'flex';
+            } else {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد قراءات متطابقة مع معايير البحث</p></div>`;
+                document.getElementById('exportBtn').style.display = 'none';
+            }
+        }
+
+        document.getElementById('btnSearch').onclick = () => runReport(false);
+        document.getElementById('btnDelayed').onclick = () => runReport(true);
+        document.getElementById('filter_general').addEventListener('input', () => runReport(false));
+        document.getElementById('filter_keta3').addEventListener('change', () => runReport(false));
+        document.getElementById('filter_handsa').addEventListener('change', () => runReport(false));
+        init();
+    </script>
+</body>
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+</html>

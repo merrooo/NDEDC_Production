@@ -1,0 +1,1015 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>إدارة عدادات السويدي</title>
+  <link rel="stylesheet" href="Sewedy_Maint.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="entry-card">
+      <div class="header-section">
+        <div class="header-flex">
+          <button class="btn-home" onclick="window.location.href = 'index.html'">
+            ⬅️ الرئيسية
+          </button>
+          <button class="btn-excel-top" onclick="window.promptPassword()">
+            📥 رفع Excel
+          </button>
+        </div>
+        <h2>إضافة عدادات السويدي للصيانة</h2>
+        <input type="file" id="excelFile" accept=".xls,.xlsx" hidden />
+        <p>إدخال البيانات (الرقم والتاريخ)</p>
+      </div>
+
+      <div class="inputs-grid">
+        <div class="input-field">
+          <label>رقم العداد</label>
+          <input type="number" id="pNumberInput" class="custom-input" placeholder="أدخل الرقم هنا" />
+        </div>
+        <div class="input-field">
+          <label>تاريخ الصيانة / الإدخال</label>
+          <input type="date" id="pDateInput" class="custom-input" />
+        </div>
+      </div>
+
+      <div class="main-btns-group">
+        <button class="btn btn-save" onclick="window.quickSave()">
+          💾 إضافة وحفظ
+        </button>
+        <button class="btn btn-view" onclick="window.showDataModal()">
+          👁️ عرض البيانات
+        </button>
+      </div>
+    </div>
+
+    <template id="tableTemplate">
+      <div class="modal-content-wrapper">
+        <div class="table-controls">
+          <span class="count-badge">إجمالي السجلات: <b id="rowCount">0</b></span>
+          <button class="btn-export" onclick="window.exportExcel()">
+            📊 تصدير Excel
+          </button>
+        </div>
+
+        <div class="advanced-search">
+          <input type="number" id="mSearchMeter" class="custom-input" placeholder="🔍 بحث برقم العداد..."
+            onkeyup="window.applyFilters()" />
+          <div class="date-range-container">
+            <div class="date-group">
+              <label>من:</label>
+              <input type="date" id="dateFrom" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+            <div class="date-group">
+              <label>إلى:</label>
+              <input type="date" id="dateTo" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-table-container">
+          <table id="fullTable">
+            <thead>
+              <tr>
+                <th>رقم العداد</th>
+                <th>تاريخ الصيانة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="modalBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        set,
+        remove,
+        update,
+      } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
+        authDomain: "ndedc-meter-calib.firebaseapp.com",
+        databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
+        projectId: "ndedc-meter-calib",
+        storageBucket: "ndedc-meter-calib.appspot.com",
+        messagingSenderId: "185425429190",
+        appId: "1:185425429190:web:dce85f29eea55ad9f54dc7",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const numInp = document.getElementById("pNumberInput");
+      const dateInp = document.getElementById("pDateInput");
+      const fileInp = document.getElementById("excelFile");
+      let allData = {};
+
+      dateInp.value = new Date().toISOString().split("T")[0];
+
+      // --- وظيفة رفع ملف Excel ---
+      fileInp.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+          Swal.fire({
+            title: "جاري الرفع...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            for (const row of json) {
+              // يفترض أن الأعمدة تسمى "رقم العداد" و "تاريخ الصيانة" أو أول عمودين
+              const meterNo = String(
+                row["رقم العداد"] || Object.values(row)[0],
+              ).trim();
+              const mDate = row["تاريخ الصيانة"] || Object.values(row)[1];
+
+              if (meterNo) {
+                await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+                  meterno: meterNo,
+                  date: mDate || new Date().toISOString().split("T")[0],
+                });
+              }
+            }
+            Swal.fire("تم بنجاح", `تم استيراد ${json.length} سجل`, "success");
+            fileInp.value = "";
+          } catch (err) {
+            Swal.fire("خطأ", "حدث خطأ أثناء الرفع: " + err.message, "error");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      window.quickSave = async function () {
+        const meterNo = numInp.value.trim();
+        const entryDate = dateInp.value;
+        if (!meterNo || !entryDate)
+          return Swal.fire("تنبيه", "يرجى إدخال البيانات", "warning");
+
+        try {
+          await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+            meterno: meterNo,
+            date: entryDate,
+          });
+          numInp.value = "";
+          Swal.fire({
+            icon: "success",
+            title: "تم الحفظ",
+            toast: true,
+            position: "top-end",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (e) {
+          Swal.fire("خطأ", e.message, "error");
+        }
+      };
+
+      window.showDataModal = async function () {
+        Swal.fire({
+          title: "سجل عدادات الصيانة",
+          html: document.getElementById("tableTemplate").innerHTML,
+          customClass: { popup: "swal-modal-large" },
+          showConfirmButton: false,
+          didOpen: () => {
+            window.loadModalData();
+          },
+        });
+      };
+
+      window.loadModalData = async function () {
+        const snap = await get(ref(db, "Sewedy_Maint"));
+        allData = snap.exists() ? snap.val() : {};
+        window.applyFilters();
+      };
+
+      window.applyFilters = function () {
+        const searchMeter = document.getElementById("mSearchMeter").value;
+        const from = document.getElementById("dateFrom").value;
+        const to = document.getElementById("dateTo").value;
+        const b = document.getElementById("modalBody");
+        const rowCountDisp = document.getElementById("rowCount");
+        b.innerHTML = "";
+        let count = 0;
+
+        Object.keys(allData).forEach((key) => {
+          const item = allData[key];
+          const matchMeter =
+            !searchMeter || item.meterno.includes(searchMeter);
+          const matchFrom = !from || item.date >= from;
+          const matchTo = !to || item.date <= to;
+
+          if (matchMeter && matchFrom && matchTo) {
+            count++;
+            const r = b.insertRow();
+            r.innerHTML = `
+                            <td>${item.meterno}</td>
+                            <td>${item.date}</td>
+                            <td>
+                                <button class="btn-edit" onclick="window.editRow('${key}', '${item.date}')">✏️</button>
+                                <button class="btn-delete" onclick="window.deleteRow('${key}')">🗑️</button>
+                            </td>`;
+          }
+        });
+        if (rowCountDisp) rowCountDisp.innerText = count;
+      };
+
+      window.editRow = async function (meterId, currentDate) {
+        const { value: formValues } = await Swal.fire({
+          title: `تعديل بيانات العداد`,
+          html: `<div style="text-align:right; font-family:'Cairo'">
+                            <label>رقم العداد:</label>
+                            <input id="swal-input-id" class="swal2-input" type="number" value="${meterId}">
+                            <label>التاريخ الجديد:</label>
+                            <input id="swal-input-date" class="swal2-input" type="date" value="${currentDate}">
+                           </div>`,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: "حفظ التعديلات",
+          cancelButtonText: "إلغاء",
+          preConfirm: () => ({
+            newId: document.getElementById("swal-input-id").value.trim(),
+            newDate: document.getElementById("swal-input-date").value,
+          }),
+        });
+
+        if (formValues) {
+          const { newId, newDate } = formValues;
+          if (!newId || !newDate)
+            return Swal.fire("تنبيه", "البيانات ناقصة", "warning");
+
+          try {
+            if (newId !== meterId) {
+              await set(ref(db, `Sewedy_Maint/${newId}`), {
+                meterno: newId,
+                date: newDate,
+              });
+              await remove(ref(db, `Sewedy_Maint/${meterId}`));
+            } else {
+              await update(ref(db, `Sewedy_Maint/${meterId}`), {
+                date: newDate,
+              });
+            }
+            window.loadModalData();
+            Swal.fire({
+              icon: "success",
+              title: "تم التحديث",
+              toast: true,
+              position: "top-end",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (e) {
+            Swal.fire("خطأ", e.message, "error");
+          }
+        }
+      };
+
+      window.deleteRow = async function (meterId) {
+        const conf = await Swal.fire({
+          title: "حذف سجل؟",
+          text: `العداد رقم ${meterId}`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "حذف",
+          cancelButtonText: "إلغاء",
+        });
+        if (conf.isConfirmed) {
+          await remove(ref(db, `Sewedy_Maint/${meterId}`));
+          window.loadModalData();
+        }
+      };
+
+      window.promptPassword = () => {
+        Swal.fire({ title: "كلمة مرور النظام", input: "password" }).then(
+          (r) => {
+            if (r.value === "1") document.getElementById("excelFile").click();
+            else if (r.value)
+              Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+          },
+        );
+      };
+
+      window.exportExcel = () => {
+        const rows = document.querySelectorAll("#modalBody tr");
+        if (rows.length === 0)
+          return Swal.fire("تنبيه", "لا توجد بيانات للتصدير", "info");
+
+        const exportData = [["رقم العداد", "تاريخ الصيانة"]];
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          exportData.push([cells[0].innerText, cells[1].innerText]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "البيانات");
+        XLSX.writeFile(
+          wb,
+          `سجل_صيانة_السويدي_${new Date().toISOString().split("T")[0]}.xlsx`,
+        );
+      };
+    </script>
+  </div>
+</body>
+
+=======
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>إدارة عدادات السويدي</title>
+  <link rel="stylesheet" href="Sewedy_Maint.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="entry-card">
+      <div class="header-section">
+        <div class="header-flex">
+          <button class="btn-home" onclick="window.location.href = 'index.html'">
+            ⬅️ الرئيسية
+          </button>
+          <button class="btn-excel-top" onclick="window.promptPassword()">
+            📥 رفع Excel
+          </button>
+        </div>
+        <h2>إضافة عدادات السويدي للصيانة</h2>
+        <input type="file" id="excelFile" accept=".xls,.xlsx" hidden />
+        <p>إدخال البيانات (الرقم والتاريخ)</p>
+      </div>
+
+      <div class="inputs-grid">
+        <div class="input-field">
+          <label>رقم العداد</label>
+          <input type="number" id="pNumberInput" class="custom-input" placeholder="أدخل الرقم هنا" />
+        </div>
+        <div class="input-field">
+          <label>تاريخ الصيانة / الإدخال</label>
+          <input type="date" id="pDateInput" class="custom-input" />
+        </div>
+      </div>
+
+      <div class="main-btns-group">
+        <button class="btn btn-save" onclick="window.quickSave()">
+          💾 إضافة وحفظ
+        </button>
+        <button class="btn btn-view" onclick="window.showDataModal()">
+          👁️ عرض البيانات
+        </button>
+      </div>
+    </div>
+
+    <template id="tableTemplate">
+      <div class="modal-content-wrapper">
+        <div class="table-controls">
+          <span class="count-badge">إجمالي السجلات: <b id="rowCount">0</b></span>
+          <button class="btn-export" onclick="window.exportExcel()">
+            📊 تصدير Excel
+          </button>
+        </div>
+
+        <div class="advanced-search">
+          <input type="number" id="mSearchMeter" class="custom-input" placeholder="🔍 بحث برقم العداد..."
+            onkeyup="window.applyFilters()" />
+          <div class="date-range-container">
+            <div class="date-group">
+              <label>من:</label>
+              <input type="date" id="dateFrom" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+            <div class="date-group">
+              <label>إلى:</label>
+              <input type="date" id="dateTo" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-table-container">
+          <table id="fullTable">
+            <thead>
+              <tr>
+                <th>رقم العداد</th>
+                <th>تاريخ الصيانة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="modalBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        set,
+        remove,
+        update,
+      } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
+        authDomain: "ndedc-meter-calib.firebaseapp.com",
+        databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
+        projectId: "ndedc-meter-calib",
+        storageBucket: "ndedc-meter-calib.appspot.com",
+        messagingSenderId: "185425429190",
+        appId: "1:185425429190:web:dce85f29eea55ad9f54dc7",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const numInp = document.getElementById("pNumberInput");
+      const dateInp = document.getElementById("pDateInput");
+      const fileInp = document.getElementById("excelFile");
+      let allData = {};
+
+      dateInp.value = new Date().toISOString().split("T")[0];
+
+      // --- وظيفة رفع ملف Excel ---
+      fileInp.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+          Swal.fire({
+            title: "جاري الرفع...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            for (const row of json) {
+              // يفترض أن الأعمدة تسمى "رقم العداد" و "تاريخ الصيانة" أو أول عمودين
+              const meterNo = String(
+                row["رقم العداد"] || Object.values(row)[0],
+              ).trim();
+              const mDate = row["تاريخ الصيانة"] || Object.values(row)[1];
+
+              if (meterNo) {
+                await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+                  meterno: meterNo,
+                  date: mDate || new Date().toISOString().split("T")[0],
+                });
+              }
+            }
+            Swal.fire("تم بنجاح", `تم استيراد ${json.length} سجل`, "success");
+            fileInp.value = "";
+          } catch (err) {
+            Swal.fire("خطأ", "حدث خطأ أثناء الرفع: " + err.message, "error");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      window.quickSave = async function () {
+        const meterNo = numInp.value.trim();
+        const entryDate = dateInp.value;
+        if (!meterNo || !entryDate)
+          return Swal.fire("تنبيه", "يرجى إدخال البيانات", "warning");
+
+        try {
+          await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+            meterno: meterNo,
+            date: entryDate,
+          });
+          numInp.value = "";
+          Swal.fire({
+            icon: "success",
+            title: "تم الحفظ",
+            toast: true,
+            position: "top-end",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (e) {
+          Swal.fire("خطأ", e.message, "error");
+        }
+      };
+
+      window.showDataModal = async function () {
+        Swal.fire({
+          title: "سجل عدادات الصيانة",
+          html: document.getElementById("tableTemplate").innerHTML,
+          customClass: { popup: "swal-modal-large" },
+          showConfirmButton: false,
+          didOpen: () => {
+            window.loadModalData();
+          },
+        });
+      };
+
+      window.loadModalData = async function () {
+        const snap = await get(ref(db, "Sewedy_Maint"));
+        allData = snap.exists() ? snap.val() : {};
+        window.applyFilters();
+      };
+
+      window.applyFilters = function () {
+        const searchMeter = document.getElementById("mSearchMeter").value;
+        const from = document.getElementById("dateFrom").value;
+        const to = document.getElementById("dateTo").value;
+        const b = document.getElementById("modalBody");
+        const rowCountDisp = document.getElementById("rowCount");
+        b.innerHTML = "";
+        let count = 0;
+
+        Object.keys(allData).forEach((key) => {
+          const item = allData[key];
+          const matchMeter =
+            !searchMeter || item.meterno.includes(searchMeter);
+          const matchFrom = !from || item.date >= from;
+          const matchTo = !to || item.date <= to;
+
+          if (matchMeter && matchFrom && matchTo) {
+            count++;
+            const r = b.insertRow();
+            r.innerHTML = `
+                            <td>${item.meterno}</td>
+                            <td>${item.date}</td>
+                            <td>
+                                <button class="btn-edit" onclick="window.editRow('${key}', '${item.date}')">✏️</button>
+                                <button class="btn-delete" onclick="window.deleteRow('${key}')">🗑️</button>
+                            </td>`;
+          }
+        });
+        if (rowCountDisp) rowCountDisp.innerText = count;
+      };
+
+      window.editRow = async function (meterId, currentDate) {
+        const { value: formValues } = await Swal.fire({
+          title: `تعديل بيانات العداد`,
+          html: `<div style="text-align:right; font-family:'Cairo'">
+                            <label>رقم العداد:</label>
+                            <input id="swal-input-id" class="swal2-input" type="number" value="${meterId}">
+                            <label>التاريخ الجديد:</label>
+                            <input id="swal-input-date" class="swal2-input" type="date" value="${currentDate}">
+                           </div>`,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: "حفظ التعديلات",
+          cancelButtonText: "إلغاء",
+          preConfirm: () => ({
+            newId: document.getElementById("swal-input-id").value.trim(),
+            newDate: document.getElementById("swal-input-date").value,
+          }),
+        });
+
+        if (formValues) {
+          const { newId, newDate } = formValues;
+          if (!newId || !newDate)
+            return Swal.fire("تنبيه", "البيانات ناقصة", "warning");
+
+          try {
+            if (newId !== meterId) {
+              await set(ref(db, `Sewedy_Maint/${newId}`), {
+                meterno: newId,
+                date: newDate,
+              });
+              await remove(ref(db, `Sewedy_Maint/${meterId}`));
+            } else {
+              await update(ref(db, `Sewedy_Maint/${meterId}`), {
+                date: newDate,
+              });
+            }
+            window.loadModalData();
+            Swal.fire({
+              icon: "success",
+              title: "تم التحديث",
+              toast: true,
+              position: "top-end",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (e) {
+            Swal.fire("خطأ", e.message, "error");
+          }
+        }
+      };
+
+      window.deleteRow = async function (meterId) {
+        const conf = await Swal.fire({
+          title: "حذف سجل؟",
+          text: `العداد رقم ${meterId}`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "حذف",
+          cancelButtonText: "إلغاء",
+        });
+        if (conf.isConfirmed) {
+          await remove(ref(db, `Sewedy_Maint/${meterId}`));
+          window.loadModalData();
+        }
+      };
+
+      window.promptPassword = () => {
+        Swal.fire({ title: "كلمة مرور النظام", input: "password" }).then(
+          (r) => {
+            if (r.value === "1") document.getElementById("excelFile").click();
+            else if (r.value)
+              Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+          },
+        );
+      };
+
+      window.exportExcel = () => {
+        const rows = document.querySelectorAll("#modalBody tr");
+        if (rows.length === 0)
+          return Swal.fire("تنبيه", "لا توجد بيانات للتصدير", "info");
+
+        const exportData = [["رقم العداد", "تاريخ الصيانة"]];
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          exportData.push([cells[0].innerText, cells[1].innerText]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "البيانات");
+        XLSX.writeFile(
+          wb,
+          `سجل_صيانة_السويدي_${new Date().toISOString().split("T")[0]}.xlsx`,
+        );
+      };
+    </script>
+  </div>
+</body>
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+=======
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>إدارة عدادات السويدي</title>
+  <link rel="stylesheet" href="Sewedy_Maint.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="entry-card">
+      <div class="header-section">
+        <div class="header-flex">
+          <button class="btn-home" onclick="window.location.href = 'index.html'">
+            ⬅️ الرئيسية
+          </button>
+          <button class="btn-excel-top" onclick="window.promptPassword()">
+            📥 رفع Excel
+          </button>
+        </div>
+        <h2>إضافة عدادات السويدي للصيانة</h2>
+        <input type="file" id="excelFile" accept=".xls,.xlsx" hidden />
+        <p>إدخال البيانات (الرقم والتاريخ)</p>
+      </div>
+
+      <div class="inputs-grid">
+        <div class="input-field">
+          <label>رقم العداد</label>
+          <input type="number" id="pNumberInput" class="custom-input" placeholder="أدخل الرقم هنا" />
+        </div>
+        <div class="input-field">
+          <label>تاريخ الصيانة / الإدخال</label>
+          <input type="date" id="pDateInput" class="custom-input" />
+        </div>
+      </div>
+
+      <div class="main-btns-group">
+        <button class="btn btn-save" onclick="window.quickSave()">
+          💾 إضافة وحفظ
+        </button>
+        <button class="btn btn-view" onclick="window.showDataModal()">
+          👁️ عرض البيانات
+        </button>
+      </div>
+    </div>
+
+    <template id="tableTemplate">
+      <div class="modal-content-wrapper">
+        <div class="table-controls">
+          <span class="count-badge">إجمالي السجلات: <b id="rowCount">0</b></span>
+          <button class="btn-export" onclick="window.exportExcel()">
+            📊 تصدير Excel
+          </button>
+        </div>
+
+        <div class="advanced-search">
+          <input type="number" id="mSearchMeter" class="custom-input" placeholder="🔍 بحث برقم العداد..."
+            onkeyup="window.applyFilters()" />
+          <div class="date-range-container">
+            <div class="date-group">
+              <label>من:</label>
+              <input type="date" id="dateFrom" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+            <div class="date-group">
+              <label>إلى:</label>
+              <input type="date" id="dateTo" class="custom-input-sm" onchange="window.applyFilters()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-table-container">
+          <table id="fullTable">
+            <thead>
+              <tr>
+                <th>رقم العداد</th>
+                <th>تاريخ الصيانة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="modalBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        set,
+        remove,
+        update,
+      } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
+        authDomain: "ndedc-meter-calib.firebaseapp.com",
+        databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
+        projectId: "ndedc-meter-calib",
+        storageBucket: "ndedc-meter-calib.appspot.com",
+        messagingSenderId: "185425429190",
+        appId: "1:185425429190:web:dce85f29eea55ad9f54dc7",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const numInp = document.getElementById("pNumberInput");
+      const dateInp = document.getElementById("pDateInput");
+      const fileInp = document.getElementById("excelFile");
+      let allData = {};
+
+      dateInp.value = new Date().toISOString().split("T")[0];
+
+      // --- وظيفة رفع ملف Excel ---
+      fileInp.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+          Swal.fire({
+            title: "جاري الرفع...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            for (const row of json) {
+              // يفترض أن الأعمدة تسمى "رقم العداد" و "تاريخ الصيانة" أو أول عمودين
+              const meterNo = String(
+                row["رقم العداد"] || Object.values(row)[0],
+              ).trim();
+              const mDate = row["تاريخ الصيانة"] || Object.values(row)[1];
+
+              if (meterNo) {
+                await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+                  meterno: meterNo,
+                  date: mDate || new Date().toISOString().split("T")[0],
+                });
+              }
+            }
+            Swal.fire("تم بنجاح", `تم استيراد ${json.length} سجل`, "success");
+            fileInp.value = "";
+          } catch (err) {
+            Swal.fire("خطأ", "حدث خطأ أثناء الرفع: " + err.message, "error");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      window.quickSave = async function () {
+        const meterNo = numInp.value.trim();
+        const entryDate = dateInp.value;
+        if (!meterNo || !entryDate)
+          return Swal.fire("تنبيه", "يرجى إدخال البيانات", "warning");
+
+        try {
+          await set(ref(db, `Sewedy_Maint/${meterNo}`), {
+            meterno: meterNo,
+            date: entryDate,
+          });
+          numInp.value = "";
+          Swal.fire({
+            icon: "success",
+            title: "تم الحفظ",
+            toast: true,
+            position: "top-end",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (e) {
+          Swal.fire("خطأ", e.message, "error");
+        }
+      };
+
+      window.showDataModal = async function () {
+        Swal.fire({
+          title: "سجل عدادات الصيانة",
+          html: document.getElementById("tableTemplate").innerHTML,
+          customClass: { popup: "swal-modal-large" },
+          showConfirmButton: false,
+          didOpen: () => {
+            window.loadModalData();
+          },
+        });
+      };
+
+      window.loadModalData = async function () {
+        const snap = await get(ref(db, "Sewedy_Maint"));
+        allData = snap.exists() ? snap.val() : {};
+        window.applyFilters();
+      };
+
+      window.applyFilters = function () {
+        const searchMeter = document.getElementById("mSearchMeter").value;
+        const from = document.getElementById("dateFrom").value;
+        const to = document.getElementById("dateTo").value;
+        const b = document.getElementById("modalBody");
+        const rowCountDisp = document.getElementById("rowCount");
+        b.innerHTML = "";
+        let count = 0;
+
+        Object.keys(allData).forEach((key) => {
+          const item = allData[key];
+          const matchMeter =
+            !searchMeter || item.meterno.includes(searchMeter);
+          const matchFrom = !from || item.date >= from;
+          const matchTo = !to || item.date <= to;
+
+          if (matchMeter && matchFrom && matchTo) {
+            count++;
+            const r = b.insertRow();
+            r.innerHTML = `
+                            <td>${item.meterno}</td>
+                            <td>${item.date}</td>
+                            <td>
+                                <button class="btn-edit" onclick="window.editRow('${key}', '${item.date}')">✏️</button>
+                                <button class="btn-delete" onclick="window.deleteRow('${key}')">🗑️</button>
+                            </td>`;
+          }
+        });
+        if (rowCountDisp) rowCountDisp.innerText = count;
+      };
+
+      window.editRow = async function (meterId, currentDate) {
+        const { value: formValues } = await Swal.fire({
+          title: `تعديل بيانات العداد`,
+          html: `<div style="text-align:right; font-family:'Cairo'">
+                            <label>رقم العداد:</label>
+                            <input id="swal-input-id" class="swal2-input" type="number" value="${meterId}">
+                            <label>التاريخ الجديد:</label>
+                            <input id="swal-input-date" class="swal2-input" type="date" value="${currentDate}">
+                           </div>`,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: "حفظ التعديلات",
+          cancelButtonText: "إلغاء",
+          preConfirm: () => ({
+            newId: document.getElementById("swal-input-id").value.trim(),
+            newDate: document.getElementById("swal-input-date").value,
+          }),
+        });
+
+        if (formValues) {
+          const { newId, newDate } = formValues;
+          if (!newId || !newDate)
+            return Swal.fire("تنبيه", "البيانات ناقصة", "warning");
+
+          try {
+            if (newId !== meterId) {
+              await set(ref(db, `Sewedy_Maint/${newId}`), {
+                meterno: newId,
+                date: newDate,
+              });
+              await remove(ref(db, `Sewedy_Maint/${meterId}`));
+            } else {
+              await update(ref(db, `Sewedy_Maint/${meterId}`), {
+                date: newDate,
+              });
+            }
+            window.loadModalData();
+            Swal.fire({
+              icon: "success",
+              title: "تم التحديث",
+              toast: true,
+              position: "top-end",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (e) {
+            Swal.fire("خطأ", e.message, "error");
+          }
+        }
+      };
+
+      window.deleteRow = async function (meterId) {
+        const conf = await Swal.fire({
+          title: "حذف سجل؟",
+          text: `العداد رقم ${meterId}`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "حذف",
+          cancelButtonText: "إلغاء",
+        });
+        if (conf.isConfirmed) {
+          await remove(ref(db, `Sewedy_Maint/${meterId}`));
+          window.loadModalData();
+        }
+      };
+
+      window.promptPassword = () => {
+        Swal.fire({ title: "كلمة مرور النظام", input: "password" }).then(
+          (r) => {
+            if (r.value === "1") document.getElementById("excelFile").click();
+            else if (r.value)
+              Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+          },
+        );
+      };
+
+      window.exportExcel = () => {
+        const rows = document.querySelectorAll("#modalBody tr");
+        if (rows.length === 0)
+          return Swal.fire("تنبيه", "لا توجد بيانات للتصدير", "info");
+
+        const exportData = [["رقم العداد", "تاريخ الصيانة"]];
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          exportData.push([cells[0].innerText, cells[1].innerText]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "البيانات");
+        XLSX.writeFile(
+          wb,
+          `سجل_صيانة_السويدي_${new Date().toISOString().split("T")[0]}.xlsx`,
+        );
+      };
+    </script>
+  </div>
+</body>
+
+>>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
+</html>
