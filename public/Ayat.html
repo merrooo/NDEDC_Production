@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <!doctype html>
 <html lang="ar" dir="rtl">
 
@@ -158,6 +157,10 @@
           <span id="duplicateCount" style="color: #dc3545; margin-right: 20px; display: none;">
             🔴 <b id="duplicateNum">0</b> أرقام مكررة
           </span>
+          <button id="showDuplicatesBtn" class="btn-warning" onclick="window.showDuplicateNumbers()"
+            style="display: none; background: #fd7e14; color: white; border: none; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+            عرض الأرقام المكررة
+          </button>
         </div>
         <div class="controls-right">
           <button class="btn-excel" onclick="window.exportExcel()">
@@ -608,1155 +611,63 @@
       }
     };
 
-    // --- 7. Show Data Modal ---
-    window.showData = async () => {
-      Swal.fire({
-        title: "📋 سجل البيانات",
-        html: document.getElementById("tableTemplate").innerHTML,
-        width: "98%",
-        heightAuto: false,
-        showConfirmButton: false,
-        showCloseButton: true,
-        allowOutsideClick: false,
-        didOpen: () => {
-          loadDataForModal();
-        }
-      });
-    };
-
-    // --- 8. Load data for modal ---
-    async function loadDataForModal() {
-      try {
-        const snap = await get(ref(db, "Ayat/meterdata"));
-
-        if (!snap.exists()) {
-          allData = [];
-          filteredData = [];
-          updateTableUI([]);
-          return;
-        }
-
-        const data = snap.val();
-        allData = Array.isArray(data) ? data : Object.values(data);
-
-        filteredData = allData.map((d, i) => ({
-          ...d,
-          __idx: i,
-          __originalIndex: i
-        }));
-
-        filteredData.sort((a, b) => {
-          const dateA = parseDateForSort(a.calibrationdate);
-          const dateB = parseDateForSort(b.calibrationdate);
-          return dateB - dateA;
-        });
-
-        currentPage = 1;
-        renderPage();
-      } catch (error) {
-        console.error("Error loading data:", error);
-        Swal.fire("خطأ", "حدث خطأ في تحميل البيانات", "error");
-      }
-    }
-
-    function parseDateForSort(dateStr) {
-      if (!dateStr) return new Date(0);
-      const parts = dateStr.split("-");
-      if (parts.length === 3) {
-        if (parts[0].length === 2) {
-          return new Date(parts[2], parts[1] - 1, parts[0]);
-        } else {
-          return new Date(parts[0], parts[1] - 1, parts[2]);
-        }
-      }
-      return new Date(dateStr);
-    }
-
-    function renderPage() {
-      const body = document.getElementById("modalBody");
-      if (!body) return;
-
-      body.innerHTML = "";
-
-      if (filteredData.length === 0) {
-        body.innerHTML = `
-          <tr>
-            <td colspan="11" style="text-align: center; padding: 40px;">
-              <div style="color: #6c757d; font-size: 16px;">
-                📭 لا توجد بيانات
-              </div>
-            </td>
-          </tr>`;
-        updateTableUI([]);
-        return;
-      }
-
-      const start = (currentPage - 1) * itemsPerPage;
-      const pageItems = filteredData.slice(start, start + itemsPerPage);
-
-      const meterNumberCounts = {};
-      filteredData.forEach(item => {
-        if (item.meternumber) {
-          const cleanNum = String(item.meternumber).trim();
-          if (cleanNum) {
-            meterNumberCounts[cleanNum] = (meterNumberCounts[cleanNum] || 0) + 1;
-          }
-        }
-      });
-
-      body.innerHTML = pageItems.map((d, idx) => {
-        const isDuplicate = meterNumberCounts[String(d.meternumber || '').trim()] > 1;
-        const rowClass = isDuplicate ? 'duplicate-row' : '';
-        const filteredIndex = start + idx;
-
-        return `
-          <tr class="${rowClass}" data-idx="${filteredIndex}">
-            <td class="row-index">${start + idx + 1}</td>
-            <td>${d.keta3 || ""}</td>
-            <td>${d.handsa || ""}</td>
-            <td>${d.calibrationdate || ""}</td>
-            <td>${d.metername || ""}</td>
-            <td>${d.metercode || ""}</td>
-            <td>${d.nashattype || ""}</td>
-            <td>${d.metertype || ""}</td>
-            <td><strong>${d.meternumber || ""}</strong>${isDuplicate ? ' 🔴' : ''}</td>
-            <td>${d.metermunip || ""}</td>
-            <td class="action-buttons">
-              <button class="btn-edit" onclick="window.editRow(${filteredIndex})" title="تعديل">✏️</button>
-              <button class="btn-del" onclick="window.deleteRow(${filteredIndex})" title="حذف">🗑</button>
-            </td>
-          </tr>`;
-      }).join("");
-
-      updateTableUI(pageItems);
-    }
-
-    function updateTableUI(pageItems) {
-      document.getElementById("rowCount").innerText = filteredData.length;
-
-      const duplicateCount = countDuplicates();
-      const duplicateSpan = document.getElementById("duplicateCount");
-      const duplicateNum = document.getElementById("duplicateNum");
-
-      if (duplicateCount > 0) {
-        duplicateSpan.style.display = "inline";
-        duplicateNum.innerText = duplicateCount;
-      } else {
-        duplicateSpan.style.display = "none";
-      }
-
-      updatePaginationControls();
-    }
-
-    function countDuplicates() {
-      const meterNumbers = filteredData
-        .map(item => String(item.meternumber || '').trim())
-        .filter(num => num);
+    // --- Show duplicate numbers in a list ---
+    window.showDuplicateNumbers = () => {
+      const meterNumbers = filteredData.map(item => String(item.meternumber || '').trim()).filter(num => num);
 
       const counts = {};
       meterNumbers.forEach(num => {
         counts[num] = (counts[num] || 0) + 1;
       });
 
-      return Object.values(counts).filter(count => count > 1).length;
-    }
+      const duplicates = Object.entries(counts)
+        .filter(([num, count]) => count > 1)
+        .map(([num, count]) => ({ num, count }));
 
-    function updatePaginationControls() {
-      const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
-      const pageInfo = document.getElementById("pageInfo");
-      const prevBtn = document.getElementById("prevBtn");
-      const nextBtn = document.getElementById("nextBtn");
-
-      if (pageInfo) pageInfo.textContent = `الصفحة ${currentPage} من ${totalPages}`;
-      if (prevBtn) prevBtn.disabled = currentPage === 1;
-      if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
-    }
-
-    window.nextPage = () => {
-      const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderPage();
-      }
-    };
-
-    window.prevPage = () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderPage();
-      }
-    };
-
-    // --- 9. Filter Function ---
-    window.filterTable = () => {
-      const filters = {
-        keta3: document.getElementById("f0").value,
-        handsa: document.getElementById("f1").value,
-        dateFrom: document.getElementById("f2").value,
-        dateTo: document.getElementById("f3").value,
-        name: document.getElementById("f4").value.toLowerCase(),
-        code: document.getElementById("f5").value.toLowerCase(),
-        nashat: document.getElementById("f6").value,
-        mType: document.getElementById("f7").value,
-        mNo: document.getElementById("f8").value.toLowerCase(),
-        munip: document.getElementById("f9").value.toLowerCase(),
-      };
-
-      filteredData = allData.map((d, i) => ({
-        ...d,
-        __idx: i,
-        __originalIndex: i
-      })).filter((d) => {
-        let dateMatch = true;
-        if (filters.dateFrom || filters.dateTo) {
-          const rowDate = parseDateForSort(d.calibrationdate || "");
-
-          if (filters.dateFrom) {
-            const fromDate = new Date(filters.dateFrom);
-            if (rowDate < fromDate) dateMatch = false;
-          }
-
-          if (filters.dateTo && dateMatch) {
-            const toDate = new Date(filters.dateTo);
-            toDate.setHours(23, 59, 59, 999);
-            if (rowDate > toDate) dateMatch = false;
-          }
-        }
-
-        return (
-          (filters.keta3 === "" || d.keta3 === filters.keta3) &&
-          (filters.handsa === "" || d.handsa === filters.handsa) &&
-          dateMatch &&
-          (d.metername || "").toLowerCase().includes(filters.name) &&
-          (d.metercode || "").toLowerCase().includes(filters.code) &&
-          (filters.nashat === "" || d.nashattype === filters.nashat) &&
-          (filters.mType === "" || d.metertype === filters.mType) &&
-          (d.meternumber || "").toLowerCase().includes(filters.mNo) &&
-          (d.metermunip || "").toLowerCase().includes(filters.munip)
-        );
-      });
-
-      currentPage = 1;
-      renderPage();
-    };
-
-    // Clear filters
-    window.clearFilters = () => {
-      ['f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      window.filterTable();
-    };
-
-    // --- 10. Excel Exports & Import ---
-    window.exportExcel = () => {
-      if (!filteredData || filteredData.length === 0) {
-        return Swal.fire("تنبيه", "لا توجد بيانات لتصديرها", "warning");
+      if (duplicates.length === 0) {
+        Swal.fire("لا توجد مكررات", "لا توجد أرقام عدادات مكررة في البيانات المعروضة", "info");
+        return;
       }
 
-      const exportData = [
-        ["م", "القطاع", "الهندسة", "تاريخ الفحص", "اسم المشترك", "كود المشترك", "النشاط", "نوع العداد", "رقم العداد", "نتيجة الفحص"]
-      ];
+      let html = `
+        <div dir="rtl" style="text-align: right; max-height: 400px; overflow-y: auto;">
+          <h4 style="color: #dc3545; margin-bottom: 15px;">🔴 الأرقام المكررة (${duplicates.length})</h4>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f8f9fa;">
+                <th style="padding: 8px; border: 1px solid #dee2e6;">رقم العداد</th>
+                <th style="padding: 8px; border: 1px solid #dee2e6;">عدد التكرارات</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
 
-      filteredData.forEach((d, i) => {
-        exportData.push([
-          i + 1,
-          d.keta3 || "",
-          d.handsa || "",
-          d.calibrationdate || "",
-          d.metername || "",
-          d.metercode || "",
-          d.nashattype || "",
-          d.metertype || "",
-          d.meternumber || "",
-          d.metermunip || ""
-        ]);
+      duplicates.sort((a, b) => b.count - a.count).forEach(({ num, count }) => {
+        html += `
+          <tr>
+            <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold;">${num}</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
+              <span style="background: ${count > 2 ? '#dc3545' : '#fd7e14'}; color: white; padding: 3px 8px; border-radius: 12px;">
+                ${count}
+              </span>
+            </td>
+          </tr>
+        `;
       });
 
-      const ws = XLSX.utils.aoa_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "بيانات التلاعبات");
-
-      const date = new Date().toLocaleDateString('ar-EG').replace(/\//g, '-');
-      XLSX.writeFile(wb, `سجل_التلاعبات_${date}.xlsx`);
-
-      Swal.fire("تم التصدير", `تم تصدير ${filteredData.length} سجل`, "success");
-    };
-
-    window.promptPassword = () => {
-      Swal.fire({
-        title: "كلمة مرور النظام",
-        input: "password",
-        inputPlaceholder: "أدخل كلمة المرور",
-        showCancelButton: true,
-        confirmButtonText: "دخول",
-        cancelButtonText: "إلغاء"
-      }).then((r) => {
-        if (r.value === "1") {
-          document.getElementById("excelFile").click();
-        } else if (r.value) {
-          Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
-        }
-      });
-    };
-
-    // --- 11. Excel Upload Function - FIXED VERSION ---
-    document.getElementById("excelFile").addEventListener("change", async function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const loadingSwal = Swal.fire({
-        title: 'جاري معالجة الملف...',
-        html: 'يرجى الانتظار أثناء قراءة الملف',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      try {
-        const reader = new FileReader();
-
-        reader.onload = async function (event) {
-          try {
-            const data = new Uint8Array(event.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-              defval: "",
-              raw: false,
-              dateNF: 'yyyy-mm-dd'
-            });
-
-            if (!jsonData || jsonData.length === 0) {
-              await loadingSwal.close();
-              Swal.fire("تنبيه", "الملف فارغ أو لا يحتوي على بيانات", "warning");
-              document.getElementById("excelFile").value = "";
-              return;
-            }
-
-            const snap = await get(ref(db, "Ayat/meterdata"));
-            let currentList = [];
-            if (snap.exists()) {
-              const data = snap.val();
-              currentList = Array.isArray(data) ? data : Object.values(data);
-            }
-
-            const cleanMeterNumber = (val) => {
-              if (val === null || val === undefined || val === "") return "";
-              return String(val).replace(/\D/g, '').trim();
-            };
-
-            const getValue = (row, colNames) => {
-              for (const col of colNames) {
-                if (row[col] !== undefined && row[col] !== null && row[col] !== "") {
-                  return String(row[col]).trim();
-                }
-              }
-              return "";
-            };
-
-            const meterNoCols = ["رقم العداد", "meternumber", "Meter No", "meter_no", "رقم", "العداد", "meter"];
-            const nameCols = ["اسم المشترك", "metername", "Name", "اسم", "المشترك"];
-            const codeCols = ["كود المشترك", "metercode", "Code", "كود"];
-            const sectorCols = ["القطاع", "keta3", "Sector", "المنطقة"];
-            const handsaCols = ["الهندسة", "handsa", "Engineering", "المهندسية"];
-            const dateCols = ["تاريخ الفحص", "calibrationdate", "Date", "التاريخ", "تاريخ"];
-            const typeCols = ["نوع العداد", "metertype", "Type", "النوع"];
-            const nashatCols = ["النشاط", "nashattype", "Activity", "نوع النشاط"];
-            const resultCols = ["نتيجة الفحص", "metermunip", "Result", "النتيجة", "التلاعب"];
-
-            const newData = [];
-            const duplicates = [];
-            const fileDuplicates = new Set();
-            const seenInFile = new Set();
-
-            const existingNumbers = new Set();
-            currentList.forEach(item => {
-              if (item && item.meternumber) {
-                const cleanNum = cleanMeterNumber(item.meternumber);
-                if (cleanNum) existingNumbers.add(cleanNum);
-              }
-            });
-
-            for (let i = 0; i < jsonData.length; i++) {
-              const row = jsonData[i];
-
-              const rawMeterNo = getValue(row, meterNoCols);
-              const cleanedMeterNo = cleanMeterNumber(rawMeterNo);
-
-              if (!cleanedMeterNo) continue;
-
-              if (seenInFile.has(cleanedMeterNo)) {
-                fileDuplicates.add(cleanedMeterNo);
-                continue;
-              }
-              seenInFile.add(cleanedMeterNo);
-
-              if (existingNumbers.has(cleanedMeterNo)) {
-                duplicates.push({
-                  row: i + 2,
-                  meterNo: cleanedMeterNo,
-                  name: getValue(row, nameCols) || "بدون اسم"
-                });
-                continue;
-              }
-
-              const newRecord = {
-                keta3: getValue(row, sectorCols) || "",
-                handsa: getValue(row, handsaCols) || "",
-                calibrationdate: getValue(row, dateCols) || "",
-                metername: getValue(row, nameCols) || "",
-                metercode: getValue(row, codeCols) || "",
-                nashattype: getValue(row, nashatCols) || "",
-                metertype: getValue(row, typeCols) || "",
-                meternumber: cleanedMeterNo,
-                metermunip: getValue(row, resultCols) || ""
-              };
-
-              Object.keys(newRecord).forEach(key => {
-                if (newRecord[key] === undefined || newRecord[key] === null) {
-                  newRecord[key] = "";
-                }
-                newRecord[key] = String(newRecord[key]).trim();
-              });
-
-              newData.push(newRecord);
-              existingNumbers.add(cleanedMeterNo);
-            }
-
-            let addedCount = 0;
-            if (newData.length > 0) {
-              const updatedList = [...currentList, ...newData];
-              await set(ref(db, "Ayat/meterdata"), updatedList);
-              addedCount = newData.length;
-            }
-
-            await loadingSwal.close();
-
-            let resultHtml = `<div dir="rtl" style="text-align: right;">`;
-
-            if (addedCount > 0) {
-              resultHtml += `
-                <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c3e6cb;">
-                  <h5 style="color: #155724; margin: 0 0 10px 0; font-size: 18px;">✅ تمت الإضافة بنجاح</h5>
-                  <p style="font-size: 20px; font-weight: bold; color: #155724; margin: 0;">تم إضافة ${addedCount} عداد جديد</p>
-                </div>`;
-            } else {
-              resultHtml += `
-                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeaa7;">
-                  <h5 style="color: #856404; margin: 0 0 10px 0; font-size: 18px;">⚠️ لم تتم إضافة بيانات جديدة</h5>
-                  <p style="margin: 0;">جميع البيانات إما مكررة أو غير صالحة</p>
-                </div>`;
-            }
-
-            if (duplicates.length > 0 || fileDuplicates.size > 0) {
-              resultHtml += `<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #e9ecef;">`;
-
-              if (duplicates.length > 0) {
-                resultHtml += `<p style="color: #dc3545; margin: 0 0 10px 0; font-weight: bold;">❌ ${duplicates.length} عداد موجود مسبقاً في النظام</p>`;
-              }
-
-              if (fileDuplicates.size > 0) {
-                resultHtml += `<p style="color: #fd7e14; margin: 0; font-weight: bold;">🔁 ${fileDuplicates.size} عداد مكرر داخل الملف</p>`;
-              }
-
-              resultHtml += `</div>`;
-            }
-
-            resultHtml += `</div>`;
-
-            Swal.fire({
-              icon: addedCount > 0 ? "success" : "info",
-              title: addedCount > 0 ? "تمت المعالجة بنجاح" : "ملاحظة",
-              html: resultHtml,
-              confirmButtonText: "حسناً",
-              width: 500,
-              didClose: () => {
-                try {
-                  const swalContainer = document.querySelector('.swal2-container');
-                  if (swalContainer && swalContainer.style.display !== 'none') {
-                    loadDataForModal();
-                  }
-                } catch (refreshError) {
-                  console.log("Could not refresh modal");
-                }
-              }
-            });
-
-          } catch (error) {
-            await loadingSwal.close();
-            console.error("Error processing data:", error);
-            Swal.fire("خطأ", `حدث خطأ في معالجة البيانات: ${error.message}`, "error");
-          }
-
-          document.getElementById("excelFile").value = "";
-        };
-
-        reader.onerror = async function () {
-          await loadingSwal.close();
-          Swal.fire("خطأ", "حدث خطأ في قراءة الملف", "error");
-          document.getElementById("excelFile").value = "";
-        };
-
-        reader.readAsArrayBuffer(file);
-
-      } catch (error) {
-        await loadingSwal.close();
-        console.error("Error uploading file:", error);
-        Swal.fire("خطأ", "حدث خطأ في رفع الملف", "error");
-        document.getElementById("excelFile").value = "";
-      }
-    });
-
-    // --- 12. Dynamic Options ---
-    window.checkNewOption = async (el) => {
-      if (el.value === "ADD_NEW") {
-        const { value: val } = await Swal.fire({
-          title: "إضافة نوع جديد",
-          input: "text",
-          inputPlaceholder: "اكتب النوع الجديد هنا...",
-          showCancelButton: true,
-          confirmButtonText: "إضافة",
-          cancelButtonText: "إلغاء"
-        });
-
-        if (val && val.trim()) {
-          const opt = new Option(val, val);
-          el.add(opt, el.options[el.options.length - 1]);
-          el.value = val;
-        } else {
-          el.value = "";
-        }
-      }
-    };
-
-    // --- Dark Mode ---
-    window.toggleDarkMode = (on) => {
-      document.body.classList.toggle('dark-mode', !!on);
-      localStorage.setItem('darkMode', on ? '1' : '0');
-    };
-
-    (function () {
-      const on = localStorage.getItem('darkMode') === '1';
-      const cb = document.getElementById('darkToggle');
-      if (cb) cb.checked = on;
-      document.body.classList.toggle('dark-mode', on);
-    })();
-  </script>
-</body>
-
-=======
-<!doctype html>
-<html lang="ar" dir="rtl">
-
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>نظام إدارة تسجيل - التلاعبات</title>
-
-  <link rel="stylesheet" href="Ayat.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-
-<body>
-
-  <label class="dark-toggle" onclick="document.body.classList.toggle('dark-mode')">
-    <span class="icon">🌙</span>
-    <div class="switch"></div>
-    <span class="icon">☀️</span>
-  </label>
-
-  <button class="btn-view" onclick="window.location.href='index.html'">
-    ⬅️ الصفحة الرئيسية
-  </button>
-
-  <div class="entry-card">
-    <h2>⚡ تسجيل بيانات عداد - التلاعبات</h2>
-
-    <button class="btn-excel" id="uploadBtn" onclick="window.promptPassword()">
-      📥 رفع Excel
-    </button>
-    <input type="file" id="excelFile" accept=".xls,.xlsx" hidden />
-
-    <div class="inputs-grid">
-      <select id="keta3" aria-label="القطاع">
-        <option value="">القطاع</option>
-        <option>دمياط</option>
-        <option>شمال الدقهلية</option>
-        <option>جنوب الدقهلية</option>
-        <option>كفر الشيخ</option>
-      </select>
-
-      <select id="handsa" aria-label="الهندسة">
-        <option value="">الهندسة</option>
-        <option>هندسة شمال دمياط</option>
-        <option>هندسة جنوب دمياط</option>
-        <option>هندسة عزبة البرج</option>
-        <option>هندسة كفر سعد</option>
-        <option>هندسة كفر البطيخ</option>
-        <option>هندسة راس البر</option>
-        <option>هندسة دمياط الجديدة</option>
-        <option>هندسة الزرقا</option>
-        <option>هندسة فارسكور</option>
-        <option>هندسة الروضة</option>
-        <option>هندسة الشعراء</option>
-        <option>هندسة مدينة شربين</option>
-        <option>هندسة قري شربين</option>
-        <option>هندسة دكرنس</option>
-        <option>هندسة جمصة</option>
-        <option>هندسة قري بلقاس</option>
-        <option>هندسة مدينة بلقاس</option>
-        <option>هندسة الستاموني</option>
-        <option>هندسة بني عبيد</option>
-        <option>هندسة منية النصر</option>
-        <option>هندسة ميت سلسيل</option>
-        <option>هندسة الجمالية</option>
-        <option>هندسة قري المنزلة</option>
-        <option>هندسة مدينة المنزلة</option>
-        <option>هندسة المطرية</option>
-        <option>هندسة شرق المنصورة</option>
-        <option>هندسة غرب المنصورة</option>
-        <option>هندسة طلخا</option>
-        <option>هندسة نبروه</option>
-        <option>هندسة قري المنصورة 1</option>
-        <option>هندسة قري المنصورة 2</option>
-        <option>هندسة اجا</option>
-        <option>هندسة مدينة السنبلاوين</option>
-        <option>هندسة قري السنبلاوين</option>
-        <option>هندسة تمي الامديد</option>
-        <option>هندسة مدينة ميت غمر</option>
-        <option>هندسة قري ميت غمر</option>
-        <option>هندسة كوم النور</option>
-        <option>هندسة مدينة كفر الشيخ</option>
-        <option>هندسة غرب كفر الشيخ</option>
-        <option>هندسة شرق كفر الشيخ</option>
-        <option>هندسة قلين</option>
-        <option>هندسة قرى سيدي سالم</option>
-        <option>هندسة مدينة سيدي سالم</option>
-        <option>هندسة الرياض</option>
-        <option>هندسة مدينة دسوق</option>
-        <option>هندسة قرى شمال دسوق</option>
-        <option>هندسة قرى جنوب دسوق</option>
-        <option>هندسة فوه</option>
-        <option>هندسة مطوبس</option>
-        <option>هندسة مدينة الحامول</option>
-        <option>هندسة قرى الحامول</option>
-        <option>هندسة بيلا</option>
-        <option>هندسة بلطيم</option>
-        <option>هندسة برج البرلس</option>
-      </select>
-
-      <select id="nashattype" onchange="window.checkNewOption(this)" aria-label="نوع النشاط">
-        <option value="">نوع النشاط</option>
-        <option>منزلي</option>
-        <option>تجاري</option>
-        <option>قوى محركة</option>
-        <option>كودي مخالف</option>
-        <option>ري</option>
-        <option>مزارع</option>
-        <option>مساجد</option>
-        <option>استثمار صناعة</option>
-        <option>كبار</option>
-        <option>مصالح حكومية</option>
-        <option>مصالح حكوميه اخري</option>
-        <option value="ADD_NEW" class="add-new-option">
-          ➕ إضافة نوع جديد...
-        </option>
-      </select>
-
-      <select id="mtype" onchange="window.checkNewOption(this)" aria-label="نوع العداد">
-        <option value="">اختر نوع العداد</option>
-        <option>اسكرا احادي</option>
-        <option>المصريه احادي</option>
-        <option>جلوبال ثلاثى مباشر</option>
-        <option>جلوبال احادي</option>
-        <option>جلوبال ثلاثى غير مباشر</option>
-        <option value="ADD_NEW" class="add-new-option">
-          ➕ إضافة نوع جديد...
-        </option>
-      </select>
-
-      <input id="mno" placeholder="رقم العداد" />
-      <input type="date" class="calib_date" id="calib_date" />
-      <input id="mname" placeholder="اسم المشترك" />
-      <input id="mco" placeholder="كود المشترك" />
-
-      <div class="full-width-container">
-        <textarea id="munip" placeholder="نتيجة الفحص"></textarea>
-      </div>
-    </div>
-
-    <br />
-    <button class="btn-save" id="saveBtn" onclick="window.quickSave()">
-      💾 حفظ
-    </button>
-    <button class="btn-view" id="viewBtn" onclick="window.showData()">
-      👁 عرض
-    </button>
-  </div>
-
-  <template id="tableTemplate">
-    <div dir="rtl" class="data-modal-container">
-      <div class="table-controls">
-        <div class="controls-left">
-          <span>إجمالي السجلات: <b id="rowCount">0</b></span>
-          <span id="duplicateCount" style="color: #dc3545; margin-right: 20px; display: none;">
-            🔴 <b id="duplicateNum">0</b> أرقام مكررة
-          </span>
-        </div>
-        <div class="controls-right">
-          <button class="btn-excel" onclick="window.exportExcel()">
-            📊 تصدير Excel
-          </button>
-          <button class="btn-refresh" onclick="window.loadDataForModal()">
-            🔄 تحديث
-          </button>
-          <button class="btn-clear-filters" onclick="window.clearFilters()">
-            ❌ مسح الفلاتر
-          </button>
-        </div>
-      </div>
-
-      <div class="table-container">
-        <table id="dataTable">
-          <thead>
-            <tr>
-              <th>م</th>
-              <th>القطاع</th>
-              <th>الهندسة</th>
-              <th>تاريخ الفحص</th>
-              <th>اسم المشترك</th>
-              <th>كود المشترك</th>
-              <th>النشاط</th>
-              <th>نوع العداد</th>
-              <th>رقم العداد</th>
-              <th>نتيجة الفحص</th>
-              <th>إجراء</th>
-            </tr>
-            <!-- صف الفلاتر -->
-            <tr class="filter-row">
-              <th>-</th>
-              <th>
-                <select id="f0" class="filter-select" onchange="window.filterTable()" aria-label="فلتر القطاع">
-                  <option value="">الكل</option>
-                  <option>دمياط</option>
-                  <option>شمال الدقهلية</option>
-                  <option>جنوب الدقهلية</option>
-                  <option>كفر الشيخ</option>
-                </select>
-              </th>
-              <th>
-                <select id="f1" class="filter-select" onchange="window.filterTable()" aria-label="فلتر الهندسة">
-                  <option value="">الكل</option>
-                  <option>هندسة شمال دمياط</option>
-                  <option>هندسة جنوب دمياط</option>
-                  <option>هندسة عزبة البرج</option>
-                  <option>هندسة كفر سعد</option>
-                  <option>هندسة كفر البطيخ</option>
-                  <option>هندسة راس البر</option>
-                  <option>هندسة دمياط الجديدة</option>
-                  <option>هندسة الزرقا</option>
-                  <option>هندسة فارسكور</option>
-                  <option>هندسة الروضة</option>
-                  <option>هندسة الشعراء</option>
-                  <option>هندسة مدينة شربين</option>
-                  <option>هندسة قري شربين</option>
-                  <option>هندسة دكرنس</option>
-                  <option>هندسة جمصة</option>
-                  <option>هندسة قري بلقاس</option>
-                  <option>هندسة مدينة بلقاس</option>
-                  <option>هندسة الستاموني</option>
-                  <option>هندسة بني عبيد</option>
-                  <option>هندسة منية النصر</option>
-                  <option>هندسة ميت سلسيل</option>
-                  <option>هندسة الجمالية</option>
-                  <option>هندسة قري المنزلة</option>
-                  <option>هندسة مدينة المنزلة</option>
-                  <option>هندسة المطرية</option>
-                  <option>هندسة شرق المنصورة</option>
-                  <option>هندسة غرب المنصورة</option>
-                  <option>هندسة طلخا</option>
-                  <option>هندسة نبروه</option>
-                  <option>هندسة قري المنصورة 1</option>
-                  <option>هندسة قري المنصورة 2</option>
-                  <option>هندسة اجا</option>
-                  <option>هندسة مدينة السنبلاوين</option>
-                  <option>هندسة قري السنبلاوين</option>
-                  <option>هندسة تمي الامديد</option>
-                  <option>هندسة مدينة ميت غمر</option>
-                  <option>هندسة قري ميت غمر</option>
-                  <option>هندسة كوم النور</option>
-                  <option>هندسة مدينة كفر الشيخ</option>
-                  <option>هندسة غرب كفر الشيخ</option>
-                  <option>هندسة شرق كفر الشيخ</option>
-                  <option>هندسة قلين</option>
-                  <option>هندسة قرى سيدي سالم</option>
-                  <option>هندسة مدينة سيدي سالم</option>
-                  <option>هندسة الرياض</option>
-                  <option>هندسة مدينة دسوق</option>
-                  <option>هندسة قرى شمال دسوق</option>
-                  <option>هندسة قرى جنوب دسوق</option>
-                  <option>هندسة فوه</option>
-                  <option>هندسة مطوبس</option>
-                  <option>هندسة مدينة الحامول</option>
-                  <option>هندسة قرى الحامول</option>
-                  <option>هندسة بيلا</option>
-                  <option>هندسة بلطيم</option>
-                  <option>هندسة برج البرلس</option>
-                </select>
-              </th>
-              <th class="filter-date-col">
-                <div class="date-filter-container">
-                  <input type="date" id="f2" class="filter-input" onchange="window.filterTable()" title="التاريخ من" />
-                  <input type="date" id="f3" class="filter-input" onchange="window.filterTable()" title="التاريخ إلى" />
-                </div>
-              </th>
-              <th>
-                <input type="text" id="f4" class="filter-input" placeholder="🔍" onkeyup="window.filterTable()" />
-              </th>
-              <th>
-                <input type="text" id="f5" class="filter-input" placeholder="🔍" onkeyup="window.filterTable()" />
-              </th>
-              <th>
-                <select id="f6" class="filter-select" onchange="window.filterTable()" aria-label="فلتر النشاط">
-                  <option value="">الكل</option>
-                  <option>منزلي</option>
-                  <option>تجاري</option>
-                  <option>قوى محركة</option>
-                  <option>كودي مخالف</option>
-                  <option>ري</option>
-                  <option>مزارع</option>
-                  <option>مساجد</option>
-                  <option>استثمار صناعة</option>
-                  <option>كبار</option>
-                  <option>مصالح حكومية</option>
-                  <option>مصالح حكوميه اخري</option>
-                </select>
-              </th>
-              <th>
-                <select id="f7" class="filter-select" onchange="window.filterTable()" aria-label="فلتر نوع العداد">
-                  <option value="">الكل</option>
-                  <option>اسكرا احادي</option>
-                  <option>المصريه احادي</option>
-                  <option>جلوبال ثلاثى مباشر</option>
-                  <option>جلوبال احادي</option>
-                  <option>جلوبال ثلاثى غير مباشر</option>
-                </select>
-              </th>
-              <th>
-                <input type="text" id="f8" class="filter-input" placeholder="🔍" onkeyup="window.filterTable()" />
-              </th>
-              <th>
-                <input type="text" id="f9" class="filter-input" placeholder="🔍" onkeyup="window.filterTable()" />
-              </th>
-              <th>-</th>
-            </tr>
-          </thead>
-          <tbody id="modalBody"></tbody>
+      html += `
+          </tbody>
         </table>
-      </div>
+        </div>
+      `;
 
-      <div class="pagination-controls">
-        <button id="prevBtn" class="btn-pagination" onclick="window.prevPage()" disabled>
-          ⬅️ السابق
-        </button>
-        <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
-        <button id="nextBtn" class="btn-pagination" onclick="window.nextPage()" disabled>
-          التالي ➡️
-        </button>
-      </div>
-    </div>
-  </template>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      get,
-      set,
-    } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
-
-    // --- 1. Firebase Initialization ---
-    const app = initializeApp({
-      apiKey: "AIzaSyCTSWDR3IvFpzp8UARsClrpwbRtTwr12jA",
-      databaseURL: "https://ndedc-meter-calib-default-rtdb.firebaseio.com",
-    });
-    const db = getDatabase(app);
-    let currentEditIndex = null;
-    let currentEditOriginalIndex = null;
-
-    // Pagination & data state
-    let allData = [];
-    let filteredData = [];
-    let currentPage = 1;
-    const itemsPerPage = 20;
-
-    // --- 2. Helper: Clear Form & Reset UI ---
-    window.resetUI = () => {
-      currentEditIndex = null;
-      currentEditOriginalIndex = null;
-      const saveBtn = document.getElementById("saveBtn");
-      saveBtn.innerHTML = "💾 حفظ";
-      saveBtn.style.background = "";
-      document.querySelectorAll("input, select, textarea").forEach((el) => {
-        if (el.id !== "keta3" && el.id !== "handsa") {
-          el.value = "";
-        }
+      Swal.fire({
+        title: "الأرقام المكررة",
+        html: html,
+        icon: "warning",
+        width: 500,
+        confirmButtonText: "حسناً"
       });
-    };
-
-    // --- 3. Helper: Collect Data from Form ---
-    const getFormData = () => {
-      return {
-        keta3: document.getElementById("keta3").value,
-        handsa: document.getElementById("handsa").value,
-        calibrationdate: document.getElementById("calib_date").value,
-        metername: document.getElementById("mname").value.trim(),
-        metercode: document.getElementById("mco").value.trim(),
-        nashattype: document.getElementById("nashattype").value,
-        metertype: document.getElementById("mtype").value,
-        meternumber: document.getElementById("mno").value.trim(),
-        metermunip: document.getElementById("munip").value.trim(),
-      };
-    };
-
-    // --- 4. Main Function: Save or Update ---
-    window.quickSave = async () => {
-      const saveBtn = document.getElementById("saveBtn");
-      const fields = getFormData();
-      const isAllFilled = Object.values(fields).every((val) => val !== "");
-      if (!isAllFilled) {
-        return Swal.fire("تنبيه", "يرجى ملء جميع الحقول المطلوبة", "warning");
-      }
-
-      saveBtn.disabled = true;
-      const originalBtnText = saveBtn.innerHTML;
-      saveBtn.innerHTML = "⌛ جاري المعالجة...";
-
-      try {
-        const snap = await get(ref(db, "Ayat/meterdata"));
-        let list = snap.exists() ? snap.val() : [];
-        if (!Array.isArray(list)) {
-          list = [];
-        }
-
-        // Check for duplicate meter number (excluding current edited item)
-        const existingNumbers = new Set();
-        list.forEach((item, index) => {
-          if (item && item.meternumber && index !== currentEditOriginalIndex) {
-            const cleanNum = String(item.meternumber).replace(/\D/g, '').trim();
-            if (cleanNum) existingNumbers.add(cleanNum);
-          }
-        });
-
-        const cleanedMeterNo = String(fields.meternumber).replace(/\D/g, '').trim();
-
-        if (existingNumbers.has(cleanedMeterNo) && currentEditOriginalIndex === null) {
-          const confirmDup = await Swal.fire({
-            title: "تنبيه: رقم العداد مكرر",
-            text: `رقم العداد (${cleanedMeterNo}) موجود بالفعل في النظام. هل تريد الاستمرار؟`,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "نعم، حفظ",
-            cancelButtonText: "إلغاء",
-          });
-          if (!confirmDup.isConfirmed) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalBtnText;
-            return;
-          }
-        }
-
-        let dateVal = fields.calibrationdate;
-        if (dateVal.includes("-") && dateVal.split("-")[0].length === 4) {
-          const [y, m, d] = dateVal.split("-");
-          dateVal = `${d}-${m}-${y}`;
-        }
-
-        const finalData = { ...fields, calibrationdate: dateVal };
-
-        // Clean data before saving
-        Object.keys(finalData).forEach(key => {
-          if (finalData[key] === undefined || finalData[key] === null) {
-            finalData[key] = "";
-          }
-          finalData[key] = String(finalData[key]).trim();
-        });
-
-        if (currentEditOriginalIndex !== null && currentEditOriginalIndex >= 0 && currentEditOriginalIndex < list.length) {
-          // تحديث سجل موجود
-          list[currentEditOriginalIndex] = finalData;
-        } else {
-          // إضافة سجل جديد
-          list.push(finalData);
-        }
-
-        await set(ref(db, "Ayat/meterdata"), list);
-        window.resetUI();
-
-        // Refresh modal if it's open
-        try {
-          const swalContainer = document.querySelector('.swal2-container');
-          if (swalContainer && swalContainer.style.display !== 'none') {
-            await loadDataForModal();
-          }
-        } catch (refreshError) {
-          console.log("Could not refresh modal, might be closed");
-        }
-
-        Swal.fire("تم بنجاح", "تم حفظ وتحديث البيانات في القاعدة", "success");
-      } catch (error) {
-        console.error("Error in quickSave:", error);
-        Swal.fire("خطأ", "حدث خطأ أثناء الاتصال بقاعدة البيانات", "error");
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = "💾 حفظ";
-      }
-    };
-
-    // --- 5. Action: Edit Row ---
-    window.editRow = async (filteredIndex) => {
-      try {
-        if (filteredIndex < 0 || filteredIndex >= filteredData.length) {
-          Swal.fire("خطأ", "السجل غير موجود", "error");
-          return;
-        }
-
-        const item = filteredData[filteredIndex];
-
-        const originalIndex = item.__originalIndex !== undefined ? item.__originalIndex : filteredIndex;
-
-        const snap = await get(ref(db, "Ayat/meterdata"));
-        if (!snap.exists()) {
-          Swal.fire("خطأ", "لا توجد بيانات", "error");
-          return;
-        }
-
-        const allDataFromDB = snap.val();
-        const list = Array.isArray(allDataFromDB) ? allDataFromDB : Object.values(allDataFromDB);
-
-        if (originalIndex < 0 || originalIndex >= list.length) {
-          Swal.fire("خطأ", "السجل غير موجود في قاعدة البيانات", "error");
-          return;
-        }
-
-        const d = list[originalIndex];
-
-        let formattedForInput = "";
-        if (d.calibrationdate && d.calibrationdate.includes("-")) {
-          const parts = d.calibrationdate.split("-");
-          if (parts.length === 3) {
-            if (parts[0].length === 2) {
-              formattedForInput = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            } else {
-              formattedForInput = d.calibrationdate;
-            }
-          } else {
-            formattedForInput = d.calibrationdate;
-          }
-        }
-
-        document.getElementById("keta3").value = d.keta3 || "";
-        document.getElementById("handsa").value = d.handsa || "";
-        document.getElementById("calib_date").value = formattedForInput;
-        document.getElementById("mname").value = d.metername || "";
-        document.getElementById("mno").value = d.meternumber || "";
-        document.getElementById("mco").value = d.metercode || "";
-        document.getElementById("nashattype").value = d.nashattype || "";
-        document.getElementById("mtype").value = d.metertype || "";
-        document.getElementById("munip").value = d.metermunip || "";
-
-        currentEditOriginalIndex = originalIndex;
-        currentEditIndex = filteredIndex;
-
-        const saveBtn = document.getElementById("saveBtn");
-        saveBtn.innerHTML = "🔄 تحديث البيانات";
-        saveBtn.style.background = "linear-gradient(135deg, #f39c12, #e67e22)";
-
-        try {
-          const swalContainer = document.querySelector('.swal2-container');
-          if (swalContainer && swalContainer.style.display !== 'none') {
-            Swal.close();
-          }
-        } catch (closeError) {
-          console.log("Could not close modal, might already be closed");
-        }
-
-        window.scrollTo({ top: 0, behavior: "smooth" });
-
-        Swal.fire({
-          title: "جاهز للتعديل",
-          text: "تم تحميل بيانات السجل للنموذج. قم بإجراء التعديلات المطلوبة ثم اضغط على زر 'تحديث البيانات'",
-          icon: "info",
-          confirmButtonText: "حسناً",
-          timer: 3000,
-          timerProgressBar: true
-        });
-
-      } catch (error) {
-        console.error("Error in editRow:", error);
-        Swal.fire("خطأ", "حدث خطأ في تحميل البيانات للتعديل", "error");
-      }
-    };
-
-    // --- 6. Action: Delete Row ---
-    window.deleteRow = async (filteredIndex) => {
-      try {
-        if (filteredIndex < 0 || filteredIndex >= filteredData.length) {
-          Swal.fire("خطأ", "السجل غير موجود", "error");
-          return;
-        }
-
-        const item = filteredData[filteredIndex];
-        const originalIndex = item.__originalIndex !== undefined ? item.__originalIndex : filteredIndex;
-
-        const confirmDel = await Swal.fire({
-          title: "حذف السجل؟",
-          html: `هل أنت متأكد من رغبتك في حذف هذا السجل؟<br><br>
-                 <strong>رقم العداد:</strong> ${item.meternumber || 'غير معروف'}<br>
-                 <strong>اسم المشترك:</strong> ${item.metername || 'غير معروف'}`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#d33",
-          confirmButtonText: "نعم، احذف",
-          cancelButtonText: "إلغاء"
-        });
-
-        if (confirmDel.isConfirmed) {
-          const snap = await get(ref(db, "Ayat/meterdata"));
-          let list = snap.val();
-          if (!Array.isArray(list)) {
-            list = Object.values(list);
-          }
-
-          if (originalIndex < 0 || originalIndex >= list.length) {
-            Swal.fire("خطأ", "السجل غير موجود في قاعدة البيانات", "error");
-            return;
-          }
-
-          const deletedItem = list[originalIndex];
-          list.splice(originalIndex, 1);
-          await set(ref(db, "Ayat/meterdata"), list);
-
-          if (currentEditOriginalIndex === originalIndex) {
-            window.resetUI();
-          }
-
-          await loadDataForModal();
-
-          Swal.fire("تم الحذف", `تم حذف عداد رقم ${deletedItem.meternumber || 'غير معروف'}`, "success");
-        }
-      } catch (error) {
-        console.error("Error in deleteRow:", error);
-        Swal.fire("خطأ", "حدث خطأ أثناء الحذف", "error");
-      }
     };
 
     // --- 7. Show Data Modal ---
@@ -1885,21 +796,25 @@
     function updateTableUI(pageItems) {
       document.getElementById("rowCount").innerText = filteredData.length;
 
-      const duplicateCount = countDuplicates();
+      const duplicateInfo = getDuplicateNumbersList();
+      const duplicateCount = duplicateInfo.count;
       const duplicateSpan = document.getElementById("duplicateCount");
       const duplicateNum = document.getElementById("duplicateNum");
+      const showBtn = document.getElementById("showDuplicatesBtn");
 
       if (duplicateCount > 0) {
         duplicateSpan.style.display = "inline";
         duplicateNum.innerText = duplicateCount;
+        if (showBtn) showBtn.style.display = "inline-block";
       } else {
         duplicateSpan.style.display = "none";
+        if (showBtn) showBtn.style.display = "none";
       }
 
       updatePaginationControls();
     }
 
-    function countDuplicates() {
+    function getDuplicateNumbersList() {
       const meterNumbers = filteredData
         .map(item => String(item.meternumber || '').trim())
         .filter(num => num);
@@ -1909,7 +824,18 @@
         counts[num] = (counts[num] || 0) + 1;
       });
 
-      return Object.values(counts).filter(count => count > 1).length;
+      const duplicates = Object.entries(counts)
+        .filter(([num, count]) => count > 1)
+        .map(([num, count]) => ({ num, count }));
+
+      return {
+        count: duplicates.length,
+        list: duplicates
+      };
+    }
+
+    function countDuplicates() {
+      return getDuplicateNumbersList().count;
     }
 
     function updatePaginationControls() {
@@ -2188,6 +1114,56 @@
 
             await loadingSwal.close();
 
+            // Build duplicate details HTML
+            let duplicateDetailsHtml = "";
+            if (duplicates.length > 0 || fileDuplicates.size > 0) {
+              duplicateDetailsHtml = `<div style="margin-top: 15px; max-height: 200px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 5px; padding: 10px;">`;
+
+              if (duplicates.length > 0) {
+                duplicateDetailsHtml += `
+                  <h5 style="color: #dc3545; margin: 0 0 10px 0;">📋 الأرقام الموجودة مسبقاً في النظام (${duplicates.length})</h5>
+                  <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <thead>
+                      <tr style="background: #f8f9fa;">
+                        <th style="padding: 5px; border: 1px solid #dee2e6;">رقم العداد</th>
+                        <th style="padding: 5px; border: 1px solid #dee2e6;">اسم المشترك</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                `;
+
+                duplicates.slice(0, 10).forEach(dup => {
+                  duplicateDetailsHtml += `
+                    <tr>
+                      <td style="padding: 5px; border: 1px solid #dee2e6; font-weight: bold;">${dup.meterNo}</td>
+                      <td style="padding: 5px; border: 1px solid #dee2e6;">${dup.name}</td>
+                    </tr>
+                  `;
+                });
+
+                if (duplicates.length > 10) {
+                  duplicateDetailsHtml += `<tr><td colspan="2" style="padding: 5px; color: #6c757d; text-align: center;">...و ${duplicates.length - 10} أخرى</td></tr>`;
+                }
+
+                duplicateDetailsHtml += `</tbody></table>`;
+              }
+
+              if (fileDuplicates.size > 0) {
+                if (duplicates.length > 0) duplicateDetailsHtml += `<hr style="margin: 15px 0;">`;
+                duplicateDetailsHtml += `
+                  <h5 style="color: #fd7e14; margin: 0 0 10px 0;">🔁 مكررات داخل الملف (${fileDuplicates.size})</h5>
+                  <div style="font-size: 12px;">
+                    ${Array.from(fileDuplicates).slice(0, 10).map(num =>
+                  `<span style="display: inline-block; background: #fff3cd; color: #856404; padding: 2px 6px; margin: 2px; border-radius: 3px;">${num}</span>`
+                ).join('')}
+                    ${fileDuplicates.size > 10 ? `<span style="color: #6c757d;"> ...و ${fileDuplicates.size - 10} أخرى</span>` : ''}
+                  </div>
+                `;
+              }
+
+              duplicateDetailsHtml += `</div>`;
+            }
+
             let resultHtml = `<div dir="rtl" style="text-align: right;">`;
 
             if (addedCount > 0) {
@@ -2216,6 +1192,7 @@
               }
 
               resultHtml += `</div>`;
+              resultHtml += duplicateDetailsHtml;
             }
 
             resultHtml += `</div>`;
@@ -2225,7 +1202,7 @@
               title: addedCount > 0 ? "تمت المعالجة بنجاح" : "ملاحظة",
               html: resultHtml,
               confirmButtonText: "حسناً",
-              width: 500,
+              width: 600,
               didClose: () => {
                 try {
                   const swalContainer = document.querySelector('.swal2-container');
@@ -2292,7 +1269,7 @@
     };
 
     (function () {
-      const on = localStorage.getItem('darkMode') === '1';
+      const on = localStorage.getItem('darkMode') === '0';
       const cb = document.getElementById('darkToggle');
       if (cb) cb.checked = on;
       document.body.classList.toggle('dark-mode', on);
@@ -2300,5 +1277,4 @@
   </script>
 </body>
 
->>>>>>> 3ae901fffe47ad7c2a27de73906a53f5945092b3
 </html>
