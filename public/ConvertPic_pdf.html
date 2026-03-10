@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Toggle Crop PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121212;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .editor-box {
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 15px;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #canvas-container {
+            position: relative;
+            margin-top: 15px;
+            border: 1px solid #444;
+            background: #000;
+            cursor: default;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .btns {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-toggle {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-toggle.active {
+            background: #e67e22;
+            border: 2px solid white;
+        }
+
+        .btn-view {
+            background: #555;
+            color: white;
+        }
+
+        .btn-pdf {
+            background: #27ae60;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        p.status {
+            font-size: 0.9em;
+            color: #aaa;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="editor-box">
+        <h2>Advanced PDF Converter</h2>
+
+        <input type="file" id="imageInput" accept="image/*">
+
+        <div id="canvas-container">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+
+        <p id="statusMsg" class="status">ارفع الصورة</p>
+
+        <div class="btns">
+            <button id="toggleBtn" class="btn-toggle" disabled>قص الصورة</button>
+            <button id="viewBtn" class="btn-view" disabled>معاينة</button>
+            <button id="downloadBtn" class="btn-pdf" disabled>تنزيل PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        let img = new Image();
+        let points = [];
+        let draggingIndex = null;
+        let isCropEnabled = false;
+
+        imageInput.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (f) => { img.src = f.target.result; };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            // Default points
+            const w = img.width; const h = img.height;
+            points = [
+                { x: w * 0.1, y: h * 0.1 }, { x: w * 0.9, y: h * 0.1 },
+                { x: w * 0.9, y: h * 0.9 }, { x: w * 0.1, y: h * 0.9 }
+            ];
+            render();
+            toggleBtn.disabled = false;
+            document.getElementById('viewBtn').disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+            statusMsg.innerText = "Image Loaded. Crop Tool is OFF.";
+        };
+
+        toggleBtn.onclick = () => {
+            isCropEnabled = !isCropEnabled;
+            toggleBtn.innerText = isCropEnabled ? "الغاء التحديد" : "تفعيل التحديد";
+            toggleBtn.classList.toggle('active', isCropEnabled);
+            statusMsg.innerText = isCropEnabled ? "Adjust yellow corners to crop." : "Full image will be saved.";
+            canvas.style.cursor = isCropEnabled ? "crosshair" : "default";
+            render();
+        };
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            if (isCropEnabled) {
+                ctx.strokeStyle = "#ffff00";
+                ctx.lineWidth = Math.max(4, img.width / 200);
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                points.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.closePath();
+                ctx.stroke();
+
+                points.forEach(p => {
+                    ctx.fillStyle = "#ffff00";
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = "black";
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, img.width / 60, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+            }
+        }
+
+        // Interaction logic (only active when isCropEnabled)
+        canvas.onmousedown = (e) => {
+            if (!isCropEnabled) return;
+            const rect = canvas.getBoundingClientRect();
+            const scale = canvas.width / rect.width;
+            const mx = (e.clientX - rect.left) * scale;
+            const my = (e.clientY - rect.top) * scale;
+            points.forEach((p, i) => {
+                if (Math.hypot(p.x - mx, p.y - my) < img.width / 25) draggingIndex = i;
+            });
+        };
+
+        window.onmousemove = (e) => {
+            if (draggingIndex === null) return;
+            const rect = canvas.getBoundingClientRect();
+            const scale = canvas.width / rect.width;
+            points[draggingIndex].x = (e.clientX - rect.left) * scale;
+            points[draggingIndex].y = (e.clientY - rect.top) * scale;
+            render();
+        };
+
+        window.onmouseup = () => draggingIndex = null;
+
+        function generatePDF(action) {
+            let finalW, finalH, finalData;
+
+            if (isCropEnabled) {
+                const minX = Math.min(...points.map(p => p.x));
+                const minY = Math.min(...points.map(p => p.y));
+                const maxX = Math.max(...points.map(p => p.x));
+                const maxY = Math.max(...points.map(p => p.y));
+                finalW = maxX - minX;
+                finalH = maxY - minY;
+
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = finalW;
+                cropCanvas.height = finalH;
+                const cCtx = cropCanvas.getContext('2d');
+
+                cCtx.beginPath();
+                cCtx.moveTo(points[0].x - minX, points[0].y - minY);
+                points.forEach(p => cCtx.lineTo(p.x - minX, p.y - minY));
+                cCtx.closePath();
+                cCtx.clip();
+                cCtx.drawImage(img, -minX, -minY);
+                finalData = cropCanvas.toDataURL('image/png');
+            } else {
+                finalW = img.width;
+                finalH = img.height;
+                finalData = img.src;
+            }
+
+            const pdf = new jsPDF({
+                orientation: finalW > finalH ? 'l' : 'p',
+                unit: 'px',
+                format: [finalW, finalH]
+            });
+
+            pdf.addImage(finalData, 'PNG', 0, 0, finalW, finalH);
+
+            if (action === 'view') window.open(pdf.output('bloburl'), '_blank');
+            else pdf.save("document.pdf");
+        }
+
+        document.getElementById('viewBtn').onclick = () => generatePDF('view');
+        document.getElementById('downloadBtn').onclick = () => generatePDF('download');
+
+    </script>
+</body>
+
+</html>
