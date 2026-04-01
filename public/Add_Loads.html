@@ -3,270 +3,70 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Load Manager - Professional Edit</title>
-    <link rel="stylesheet" href="Add_Loads.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>إدارة الأحمال | Power Manager Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+    <link rel="stylesheet" href="Add_Loads.css">
 </head>
 
 <body>
-
-    <label class="dark-toggle" title="تبديل الوضع الداكن"
-        style="position: fixed; top: 20px; left: 20px; cursor: pointer;">
-        <input id="darkToggle" type="checkbox" oninput="window.toggleDarkMode(this.checked)">
-        🌙
-    </label>
-
-    <div class="app-container">
-        <div class="entry-card">
-            <div class="header-section header-flex">
-                <h2>⚡ نظام اضافة الأحمال</h2>
-                <button class="btn" style="background: #95a5a6; color: white;"
-                    onclick="window.location.href='index.html'">
-                    ⬅️ الرئيسية
+    <div class="app">
+        <div class="logo-section">
+            <h2><i class="fas fa-microchip"></i> اضافة احمال</h2>
+            <div class="header-actions">
+                <button class="btn-home" onclick="window.location.href='index.html'">
+                    <i class="fas fa-home"></i> الرئيسية
                 </button>
-            </div>
-            <p style="text-align: center; margin-bottom: 20px;">أدخال ألأحمال والقدرات بالوات</p>
-
-            <div class="inputs-grid">
-                <input type="text" id="pName" class="custom-input" placeholder="وصف نوع الحمل">
-                <input type="number" id="pWatt" class="custom-input" placeholder="Watts القدرة بالوات">
-                <input type="number" id="pHP" class="custom-input" placeholder="HP القدرة بالحصان">
-            </div>
-
-            <div class="main-btns-group">
-                <button class="btn btn-save" onclick="window.quickSave()">💾 إضافة وحفظ</button>
-                <button class="btn btn-import" onclick="document.getElementById('excelInput').click()">📥 استيراد
-                    Excel</button>
-                <button class="btn btn-view" onclick="window.showDataModal()">👁️ عرض وتعديل البيانات</button>
-
-                <input type="file" id="excelInput" style="display:none" accept=".xlsx, .xls"
-                    onchange="window.importExcel(this)">
             </div>
         </div>
 
-        <template id="tableTemplate">
-            <div style="text-align: right; direction: rtl; width: 100%;">
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="mSearch" class="custom-input" placeholder="🔍 ابحث عن جهاز محدد..."
-                        onkeyup="window.filterModal()">
-                    <button class="btn" onclick="window.exportToExcel()"
-                        style="background: #27ae60; color: white; white-space: nowrap;">📊 تحميل Excel</button>
-                </div>
-
-                <div class="modal-table-container" style="overflow-x: auto;">
-                    <table id="fullTable">
-                        <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="width: 40%;">وصف نوع الحمل</th>
-                                <th style="width: 20%;">Watts الوات</th>
-                                <th style="width: 20%;">HP الحصان</th>
-                                <th style="width: 20%;">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modalBody"></tbody>
-                    </table>
-                </div>
-
-                <div class="pagination-controls">
-                    <button id="prevBtn" class="btn" onclick="window.prevPage()">⬅️ السابق</button>
-                    <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
-                    <button id="nextBtn" class="btn" onclick="window.nextPage()">التالي ➡️</button>
-                </div>
+        <div class="main-content">
+            <div class="section-title">
+                <i class="fas fa-list"></i> البحث والأضافة
             </div>
-        </template>
 
-        <script type="module">
-            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-            import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+            <div class="search-bar">
+                <input type="text" id="searchLoad" class="search-input" placeholder="🔍 ابحث عن حمل... (مكيف، محرك، مضخة...)" onkeyup="window.filterLoads()">
+                <button class="btn-add-load" onclick="window.showAddLoadModal()">
+                    <i class="fas fa-plus-circle"></i> إضافة حمل جديد
+                </button>
+                <button class="btn-excel" onclick="document.getElementById('excelInput').click()">
+                    <i class="fas fa-file-excel"></i> استيراد Excel
+                </button>
+                <button class="btn-excel" onclick="window.exportToExcel()">
+                    <i class="fas fa-download"></i> تصدير Excel
+                </button>
+                <input type="file" id="excelInput" style="display:none" accept=".xlsx, .xls" onchange="window.importExcel(this)">
+            </div>
 
-            const firebaseConfig = {
-                apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-                authDomain: "production1-ae85.firebaseapp.com",
-                projectId: "production1-ae85",
-                storageBucket: "production1-ae85.firebasestorage.app",
-                messagingSenderId: "490438031865",
-                appId: "1:490438031865:web:a4a69335989f30cd13a528",
-                measurementId: "G-W3TZ1EKWWN"
-            };
-
-            const app = initializeApp(firebaseConfig);
-            const db = getDatabase(app);
-
-            let allLoads = [];
-            let filteredLoads = [];
-            let currentPage = 1;
-            const itemsPerPage = 5;
-
-            const w = document.getElementById('pWatt'), h = document.getElementById('pHP');
-            w.oninput = () => h.value = w.value ? (w.value / 746).toFixed(3) : "";
-            h.oninput = () => w.value = h.value ? (h.value * 746).toFixed(3) : "";
-
-            // --- 1. Export Function ---
-            window.exportToExcel = function () {
-                if (allLoads.length === 0) return Swal.showValidationMessage('لا توجد بيانات لتصديرها');
-                const data = allLoads.map(l => ({
-                    "وصف نوع الحمل": l.item,
-                    "القدرة بالوات": l.watts,
-                    "القدرة بالحصان": l.hp
-                }));
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "الأحمال");
-                XLSX.writeFile(wb, "Loads_Data.xlsx");
-            };
-
-            // --- 2. Import Function ---
-            window.importExcel = function (input) {
-                const file = input.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-                    const newItems = jsonData.map(row => ({
-                        item: row["وصف نوع الحمل"] || row["item"] || "غير معروف",
-                        watts: row["القدرة بالوات"] || row["watts"] || 0,
-                        hp: row["القدرة بالحصان"] || row["hp"] || 0
-                    }));
-
-                    const snap = await get(ref(db, 'Current_Load_Schedule'));
-                    let current = (snap.exists() && snap.val().loads) ? snap.val().loads : [];
-                    const combined = [...current, ...newItems];
-                    await set(ref(db, 'Current_Load_Schedule'), { loads: combined });
-
-                    Swal.fire('نجاح', `تم استيراد ${newItems.length} بنجاح`, 'success');
-                    input.value = "";
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            // --- Core Logic ---
-            window.quickSave = async function () {
-                const name = document.getElementById('pName');
-                if (!name.value || !w.value) return Swal.fire('تنبيه', 'برجاء إكمال البيانات', 'warning');
-                const snap = await get(ref(db, 'Current_Load_Schedule'));
-                let loads = (snap.exists() && snap.val().loads) ? snap.val().loads : [];
-                loads.push({ item: name.value, watts: w.value, hp: h.value });
-                await set(ref(db, 'Current_Load_Schedule'), { loads });
-                name.value = ""; w.value = ""; h.value = "";
-                Swal.fire({ icon: 'success', title: 'تم الحفظ', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
-            };
-
-            window.showDataModal = async function () {
-                const snap = await get(ref(db, 'Current_Load_Schedule'));
-                allLoads = (snap.exists() && snap.val().loads) ? snap.val().loads : [];
-                filteredLoads = allLoads.map((l, i) => ({ ...l, __idx: i }));
-                currentPage = 1;
-
-                Swal.fire({
-                    title: 'قاعدة البيانات المحفوظة',
-                    html: document.getElementById('tableTemplate').innerHTML,
-                    customClass: { popup: 'swal-modal-large' },
-                    showConfirmButton: true, confirmButtonText: 'إغلاق',
-                    showDenyButton: true, denyButtonText: '🗑️ حذف المحدّد',
-                    didOpen: () => { window.loadModalData(filteredLoads); }
-                });
-                Swal.getDenyButton().onclick = (e) => { e.preventDefault(); window.deleteItem(); };
-            };
-
-            window.loadModalData = function (loads) {
-                const b = document.getElementById('modalBody');
-                if (!b) return;
-                b.innerHTML = "";
-                const start = (currentPage - 1) * itemsPerPage;
-                const pageItems = loads.slice(start, start + itemsPerPage);
-
-                pageItems.forEach((l) => {
-                    const r = b.insertRow();
-                    r.dataset.idx = l.__idx;
-                    r.innerHTML = `
-                        <td>${l.item}</td>
-                        <td>${l.watts}</td>
-                        <td>${l.hp}</td>
-                        <td>
-                            <button class="edit-btn" onclick="window.enableEdit(this)">✏️</button>
-                            <button class="save-row-btn" onclick="window.saveEdit(this)">✅</button>
-                        </td>`;
-                    r.onclick = function () {
-                        document.querySelectorAll('.selected-row').forEach(row => row.classList.remove('selected-row'));
-                        this.classList.add('selected-row');
-                    };
-                });
-                window.updatePaginationControls();
-            };
-
-            window.enableEdit = function (btn) {
-                const row = btn.closest('tr');
-                const cells = row.cells;
-                cells[0].innerHTML = `<input type="text" class="edit-mode-input" value="${cells[0].innerText}">`;
-                cells[1].innerHTML = `<input type="number" class="edit-mode-input w-edit" value="${cells[1].innerText}">`;
-                cells[2].innerHTML = `<input type="number" class="edit-mode-input h-edit" value="${cells[2].innerText}">`;
-                btn.style.display = 'none';
-                row.querySelector('.save-row-btn').style.display = 'inline-block';
-            };
-
-            window.saveEdit = async function (btn) {
-                const row = btn.closest('tr');
-                const inputs = row.querySelectorAll('input');
-                const idx = Number(row.dataset.idx);
-
-                const updated = { item: inputs[0].value, watts: inputs[1].value, hp: inputs[2].value };
-                allLoads[idx] = updated;
-
-                await set(ref(db, 'Current_Load_Schedule'), { loads: allLoads });
-                filteredLoads[filteredLoads.findIndex(f => f.__idx === idx)] = { ...updated, __idx: idx };
-
-                window.loadModalData(filteredLoads);
-                Swal.showValidationMessage('تم التحديث بنجاح ✅');
-                setTimeout(() => Swal.resetValidationMessage(), 1500);
-            };
-
-            window.deleteItem = async function () {
-                const sel = document.querySelector('.selected-row');
-                if (!sel) return Swal.showValidationMessage('يرجى تحديد صف');
-                allLoads.splice(Number(sel.dataset.idx), 1);
-                await set(ref(db, 'Current_Load_Schedule'), { loads: allLoads });
-                filteredLoads = allLoads.map((l, i) => ({ ...l, __idx: i }));
-                window.loadModalData(filteredLoads);
-            };
-
-            window.filterModal = function () {
-                const term = document.getElementById('mSearch').value.toLowerCase();
-                filteredLoads = allLoads.map((l, i) => ({ ...l, __idx: i }))
-                    .filter(l => l.item.toLowerCase().includes(term));
-                currentPage = 1;
-                window.loadModalData(filteredLoads);
-            };
-
-            window.updatePaginationControls = function () {
-                const total = Math.ceil(filteredLoads.length / itemsPerPage);
-                document.getElementById('pageInfo').textContent = `صفحة ${currentPage} من ${total || 1}`;
-                document.getElementById('prevBtn').disabled = currentPage === 1;
-                document.getElementById('nextBtn').disabled = currentPage >= total;
-            };
-
-            window.nextPage = () => { currentPage++; window.loadModalData(filteredLoads); };
-            window.prevPage = () => { currentPage--; window.loadModalData(filteredLoads); };
-        </script>
-
-        <script>
-            window.toggleDarkMode = (on) => {
-                document.body.classList.toggle('dark-mode', !!on);
-                localStorage.setItem('darkMode', on ? '1' : '0');
-            };
-            if (localStorage.getItem('darkMode') === '1') {
-                document.body.classList.add('dark-mode');
-                document.getElementById('darkToggle').checked = true;
-            }
-        </script>
+            <div class="loads-table-container">
+                <table id="loadsTable">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>وصف الحمل</th>
+                            <th>Watts (W)</th>
+                            <th>HP (حصان)</th>
+                            <th>Amp (A)</th>
+                            <th>نوع المصدر</th>
+                            <th>الفولت (V)</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loadsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center;">لا توجد أحمال مضافة بعد</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <script type="module" src="Add_Loads.js"></script>
 </body>
 
 </html>
