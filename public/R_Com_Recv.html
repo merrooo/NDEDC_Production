@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تقرير العدادات المجهزة للأرسال للصيانة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-blue: #065192;
+      --primary-green: #27ae60;
+      --bg: #065192;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #1e293b;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    .container-fluid {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .header-card {
+      background: var(--card-bg);
+      padding: 15px 25px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--border);
+    }
+
+    .search-input,
+    .filter-select {
+      height: 45px;
+      padding: 0 15px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      font-family: inherit;
+      background: #f8fafc;
+      transition: 0.3s;
+    }
+
+    .search-input {
+      flex: 2;
+      min-width: 200px;
+    }
+
+    .filter-select {
+      flex: 1;
+      min-width: 150px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .search-input:focus,
+    .filter-select:focus {
+      border-color: var(--primary-blue);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(6, 81, 146, 0.1);
+    }
+
+    .btn-refresh-top {
+      height: 45px;
+      background: var(--primary-green);
+      color: white;
+      border: none;
+      padding: 0 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .table-container {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 2800px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: #f8fafc;
+    }
+
+    th {
+      padding: 15px 10px;
+      color: var(--primary-blue);
+      font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      position: sticky;
+      right: 0;
+      z-index: 20;
+      background: #f8fafc;
+      border-left: 2px solid var(--border);
+    }
+
+    td:first-child {
+      background: #ffffff;
+      font-weight: 800;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    tr:hover td {
+      background-color: #f8fbff;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .table-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allData = [];
+
+    async function loadData() {
+      Swal.fire({
+        title: "جاري استخراج البيانات...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const snapshot = await get(ref(db, "db_Undermaint"));
+        if (snapshot.exists()) {
+          const tempArray = [];
+          snapshot.forEach((child) => {
+            const val = child.val();
+            tempArray.push({
+              // تحويل رقم العداد لنص فوراً لضمان عمل البحث البرمجي
+              m_no: String(val.m_no || val.MNO || child.key),
+              m_total: val.m_total || "-",
+              m_curr: val.m_curr || "-",
+              m_rem: val.m_rem || "-",
+              m_max: val.m_max || "-",
+              m_debt: val.m_debt || "-",
+              m_term_cov: val.m_term_cov || "-",
+              m_meter_cov: val.m_meter_cov || "-",
+              m_reverse: val.m_reverse || "-",
+              m_notes: val.m_notes || "-",
+              YEAR: val.YEAR || "-",
+              MPower: val.MPower || "-",
+              Mtype: val.Mtype || "-",
+              Connection: val.Connection || "-",
+              Keta3: val.Keta3 || "-",
+              Handsa: val.Handsa || "-",
+              Removingfor: val.Removingfor || "-",
+              Uploaddate: val.Uploaddate || "-",
+              Mremovingfor: val.Mremovingfor || "-",
+              Enter_Maint_Date: val.Enter_Maint_Date || "-",
+              Notes: val.Notes || "-",
+              original_source: val.original_source || "إدخال يدوي",
+            });
+          });
+          allData = tempArray;
+          renderTable(allData);
+          Swal.close();
+        } else {
+          Swal.fire("تنبيه", "قاعدة البيانات فارغة", "info");
+        }
+      } catch (e) {
+        Swal.fire("خطأ", "فشل جلب البيانات", "error");
+      }
+    }
+
+    window.renderTable = (data) => {
+      const tbody = document.getElementById("mainTbody");
+      tbody.innerHTML = data
+        .map((item) => {
+          const sourceColor =
+            item.original_source === "صيانة_جديدة" ? "#0891b2" : "#64748b";
+          return `
+            <tr>
+              <td>${item.m_no}</td>
+              <td>${item.m_total}</td>
+              <td>${item.m_curr}</td>
+              <td style="color: #2563eb; font-weight: bold; background: #eff6ff;">${item.m_rem}</td>
+              <td>${item.m_max}</td>
+              <td>${item.m_debt}</td>
+              <td>${item.m_term_cov}</td>
+              <td>${item.m_meter_cov}</td>
+              <td>${item.m_reverse}</td>
+              <td>${item.m_notes}</td>
+              <td>${item.YEAR}</td>
+              <td>${item.MPower}</td>
+              <td>${item.Mtype}</td>
+              <td>${item.Connection}</td>
+              <td>${item.Keta3}</td>
+              <td>${item.Handsa}</td>
+              <td>${item.Removingfor}</td>
+              <td>${item.Uploaddate}</td>
+              <td>${item.Mremovingfor}</td>
+              <td>${item.Enter_Maint_Date}</td>
+              <td>${item.Notes}</td>
+              <td>
+                <span class="status-badge" style="background: ${sourceColor}20; color: ${sourceColor}">
+                  ${item.original_source}
+                </span>
+              </td>
+              <td><span style="color:orange; font-weight:bold;">بانتظار الصيانة</span></td>
+            </tr>
+          `;
+        })
+        .join("");
+    };
+
+    // دالة الفلترة الموحدة (تعمل مع البحث والمنسدل معاً)
+    window.applyFilters = () => {
+      const searchInput = document
+        .getElementById("searchInput")
+        .value.trim()
+        .toLowerCase();
+      const statusSelect = document.getElementById("statusFilter").value;
+
+      const filtered = allData.filter((item) => {
+        const matchesSearch = item.m_no.toLowerCase().includes(searchInput);
+        const matchesStatus =
+          statusSelect === "all" || item.original_source === statusSelect;
+
+        return matchesSearch && matchesStatus;
+      });
+
+      renderTable(filtered);
+    };
+
+    window.onload = loadData;
+    window.handleRefresh = () => location.reload();
+  </script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="header-card"
+      style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 20px; background: #fff; border-bottom: 2px solid #eee;">
+
+      <h2 style="margin: 0; color: #000000; font-size: 18px; white-space: nowrap;">
+        العدادات المجهزة
+      </h2>
+
+      <input type="text" id="searchInput" class="search-input" oninput="applyFilters()"
+        placeholder="🔍 ابحث برقم العداد..."
+        style="flex: 1; max-width: 400px; padding: 8px 15px; border: 1px solid #ddd; border-radius: 5px; outline: none;" />
+
+      <select id="statusFilter" class="filter-select" onchange="applyFilters()"
+        style="padding: 8px; border: 1px solid #ddd; border-radius: 5px; cursor: pointer;">
+        <option value="all">📁 جميع الحالات</option>
+        <option value="صيانة_جديدة">صيانة جديدة</option>
+        <option value="صيانة_متكررة">صيانة متكررة</option>
+      </select>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="btn-refresh-top" onclick="handleRefresh()"
+          style="padding: 8px 15px; cursor: pointer; white-space: nowrap;">
+          تحديث 🔄
+        </button>
+
+        <a href="index.html" style="text-decoration: none;">
+          <button class="btn"
+            style="background-color: #0c63b9; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+            🏠 الرئيسية
+          </button>
+        </a>
+      </div>
+    </div>
+
+    <div class="table-container" style="margin-top: 15px; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f8f9fa;">
+            <th>رقم العداد</th>
+            <th>الاستهلاك الكلي</th>
+            <th>الاستهلاك الحالي</th>
+            <th>المتبقي (جنية)</th>
+            <th>أقصى حمل</th>
+            <th>المديونية</th>
+            <th>غطاء الروزاتة</th>
+            <th>غطاء العداد</th>
+            <th>الرجوع عكس</th>
+            <th>ملاحظات الصيانة</th>
+            <th>سنة الصنع</th>
+            <th>القدرة</th>
+            <th>نوع العداد</th>
+            <th>التوصيل</th>
+            <th>القطاع</th>
+            <th>الهندسة</th>
+            <th>سبب الرفع</th>
+            <th>تاريخ الرفع</th>
+            <th>تقرير الهندسة</th>
+            <th>تاريخ الدخول</th>
+            <th>ملاحظات الدخول</th>
+            <th>المصدر</th>
+            <th>موقف الصيانة</th>
+          </tr>
+        </thead>
+        <tbody id="mainTbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ar">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>نظام صيانة العدادات - الأرشفة والتقارير</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Cairo", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #f4f7f9;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    #pdf-report-header {
+      display: none;
+      border-bottom: 2px solid #065192;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+    }
+
+    .pdf-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pdf-title {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #065192;
+    }
+
+    .pdf-info-text {
+      font-size: 10pt;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .sidebar,
+    .controls-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .search-filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    select,
+    input[type="text"],
+    input[type="date"] {
+      width: 100%;
+      height: 38px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background-color: #fff5e6;
+      font-size: 13px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      transition: 0.3s;
+    }
+
+    #btnexcell {
+      background: #16a085;
+    }
+
+    #dlt_btn {
+      background: linear-gradient(135deg, #065192, #00f2fe);
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .table-wrapper {
+      background: white;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid #eee;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    th {
+      background: #cbd3da;
+      color: #000;
+      padding: 10px;
+      font-size: 12px;
+      border: 1px solid #eee;
+    }
+
+    td {
+      padding: 8px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      font-size: 11px;
+    }
+
+    @media print {
+      .hide-for-pdf {
+        display: none !important;
+      }
+
+      #pdf-report-header {
+        display: block !important;
+      }
+
+      body {
+        background: white;
+        padding: 0;
+        margin: 0;
+      }
+
+      th {
+        font-size: 9px !important;
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+      }
+
+      td {
+        font-size: 8px !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="capture-area">
+    <div id="pdf-report-header">
+      <div class="pdf-header-row">
+        <div class="pdf-info-text">
+          <strong>وزارة الكهرباء والطاقة المتجددة</strong><br />
+          <strong>شركة شمال الدلتا لتوزيع الكهرباء</strong><br />
+          <span id="pdf-date-out">التاريخ: </span>
+        </div>
+        <div class="pdf-title">تقرير تسليم صيانة العدادات</div>
+        <div class="pdf-info-text" style="text-align: left">
+          <span id="pdf-rec-out">المستلم: </span><br />
+          <span id="pdf-id-out">رقم البطاقة: </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hide-for-pdf">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <input type="date" id="printtDate" readonly
+          style="background: none; border: none; font-weight: bold; width: auto;" />
+        <h2 style="color: #065192">تسيلم تقارير عدادات الصيانة(الشركة)</h2>
+      </div>
+
+      <div class="sidebar">
+        <div class="search-filters">
+          <select id="mtype">
+            <option value="">النوع ▾</option>
+          </select>
+          <select id="mconn">
+            <option value="">التوصيل ▾</option>
+          </select>
+          <select id="keta3">
+            <option value="">القطاع ▾</option>
+          </select>
+          <select id="handsa">
+            <option value="">الهندسة ▾</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="controls-card">
+        <div class="btn-group">
+          <button id="btnexcell">تصدير Excel</button>
+          <button id="dlt_btn">اعتماد التسليم + الأرشفة المتكررة</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid #eee;">
+          <input type="checkbox" id="chkbx" />
+          <label style="font-size: 13px; font-weight: bold;">بيانات المستلم:</label>
+          <input id="reciver" type="text" placeholder="اسم المستلم" disabled style="flex: 2" />
+          <input id="betaka" type="text" placeholder="رقم البطاقة" disabled style="flex: 1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>رقم العداد</th>
+            <th>النوع</th>
+            <th>التوصيل</th>
+            <th>القطاع</th>
+            <th>الهندسة</th>
+            <th>سنة الصنع</th>
+            <th>تاريخ الدخول</th>
+            <th>النتيجة</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+    import { getDatabase, ref, get, set, remove, push } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let allData = [];
+
+    // --- Load Data from Firebase ---
+    async function loadData() {
+      const tbody = document.querySelector("#dataTable tbody");
+      tbody.innerHTML = "<tr><td colspan='8'>جاري التحميل...</td></tr>";
+      try {
+        const snapshot = await get(ref(db, "Delta_Meters_Data"));
+        if (snapshot.exists()) {
+          allData = Object.entries(snapshot.val()).map(([key, val]) => ({
+            ...val,
+            MNO: val.m_no || val.MNO || key,
+            // Ensure YEAR is available for the logic later
+            YEAR: val.YEAR || val.year || "0"
+          }));
+          renderTable(allData);
+          populateFilters();
+        } else {
+          tbody.innerHTML = "<tr><td colspan='8'>لا توجد بيانات حالياً.</td></tr>";
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    // --- Render Table to UI ---
+    function renderTable(data) {
+      document.querySelector("#dataTable tbody").innerHTML = data.map(d => `
+                <tr>
+                    <td>${d.MNO}</td>
+                    <td>${d.Mtype || d.m_type || "-"}</td>
+                    <td>${d.Connection || d.m_connection || "-"}</td>
+                    <td>${d.Keta3 || d.m_keta3 || "-"}</td>
+                    <td>${d.Handsa || d.m_handsa || "-"}</td>
+                    <td>${d.YEAR || d.year || "-"}</td>
+                    <td>${d.Enter_Maint_Date || d.m_date || "-"}</td>
+                    <td>${d.Mremovingfor || d.m_notes || "تم الفحص بنجاح"}</td>
+                </tr>
+            `).join("");
+    }
+
+    // --- Filter Logic ---
+    function populateFilters() {
+      const keys = { mtype: "Mtype", mconn: "Connection", keta3: "Keta3", handsa: "Handsa" };
+      Object.keys(keys).forEach(id => {
+        const unique = [...new Set(allData.map(i => i[keys[id]]).filter(v => v))];
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = `<option value="">الكل ▾</option>` + unique.map(v => `<option value="${v}">${v}</option>`).join("");
+          el.onchange = applyFilters;
+        }
+      });
+    }
+
+    function applyFilters() {
+      const f = {
+        Mtype: document.getElementById("mtype").value,
+        Connection: document.getElementById("mconn").value,
+        Keta3: document.getElementById("keta3").value,
+        Handsa: document.getElementById("handsa").value,
+      };
+      const filtered = allData.filter(i =>
+        (!f.Mtype || i.Mtype === f.Mtype) &&
+        (!f.Connection || i.Connection === f.Connection) &&
+        (!f.Keta3 || i.Keta3 === f.Keta3) &&
+        (!f.Handsa || i.Handsa === f.Handsa)
+      );
+      renderTable(filtered);
+    }
+
+    // --- Main Execution Logic (The Delete/Transfer Button) ---
+    document.getElementById("dlt_btn").addEventListener("click", async () => {
+      const rec = document.getElementById("reciver").value.trim();
+      const idNum = document.getElementById("betaka").value.trim();
+      const dateVal = document.getElementById("printtDate").value;
+
+      if (!document.getElementById("chkbx").checked || !rec) {
+        return alert("يرجى إدخال اسم المستلم وتفعيل الخيار أولاً.");
+      }
+
+      if (allData.length === 0) return;
+
+      // UI feedback for PDF
+      document.getElementById("pdf-date-out").innerText = "التاريخ: " + dateVal;
+      document.getElementById("pdf-rec-out").innerText = "المستلم: " + rec;
+      document.getElementById("pdf-id-out").innerText = "رقم البطاقة: " + idNum;
+
+      const hideElems = document.querySelectorAll(".hide-for-pdf");
+      hideElems.forEach(el => el.style.display = "none");
+      document.getElementById("pdf-report-header").style.display = "block";
+
+      try {
+        // 1. Export PDF
+        const opt = {
+          margin: [5, 5, 5, 5],
+          filename: `Maintenance_Report_${dateVal}.pdf`,
+          html2canvas: { scale: 3, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+        };
+        await html2pdf().set(opt).from(document.getElementById("capture-area")).save();
+
+        // 2. Archive and Conditional Transfer Loop
+        const currentYear = new Date().getFullYear();
+
+        for (const item of allData) {
+          // Archive in Receiver Table
+          await set(push(ref(db, `Reciever_Maint`)), {
+            ...item,
+            Rec_Name: rec,
+            Rec_ID: idNum,
+            Final_Date: dateVal,
+          });
+
+          // Archive in Historical Technical Table
+          await set(push(ref(db, `Archive_Maint_Meters_Data`)), {
+            m_no: item.MNO,
+            Timestamp: item.Timestamp || item.timestamp || " ",
+            m_cover: item.m_meter_cov || "0",
+            m_curr_cons: item.m_curr || "0",
+            m_debt: item.m_debt || "0",
+            m_max_amp: item.m_max || "0",
+            m_notes: item.m_notes || "0",
+            m_rem_money: item.m_rem || "0",
+            m_reverse: item.m_reverse || "0",
+            m_term_cov: item.m_term_cov || "0",
+            m_total: item.m_total || "0",
+            archived_at: dateVal,
+            receiver_name: rec
+          });
+
+          // --- CONDITION: If meter is less than 6 years old, move to db_Out_off ---
+          const manufactureYear = parseInt(item.YEAR || item.year);
+          if (manufactureYear && (currentYear - manufactureYear) < 10) {
+            await set(ref(db, `db_Out_off/${item.MNO}`), {
+              otherdata: { ...item },
+              Transfer_Reason: "Age less than 10 years",
+              Action_Date: dateVal
+            });
+          }
+
+          // --- Final Step: Delete from Delta_Meters_Data ---
+          await remove(ref(db, `Delta_Meters_Data/${item.MNO}`));
+        }
+
+        alert("تم الأرشفة، نقل العدادات الحديثة (أقل من 10 سنوات)، وتصفية القائمة بنجاح.");
+        location.reload();
+
+      } catch (e) {
+        alert("خطأ: " + e.message);
+        hideElems.forEach(el => el.style.display = "block");
+        document.getElementById("pdf-report-header").style.display = "none";
+      }
+    });
+
+    // Other UI Handlers
+    document.getElementById("chkbx").onchange = (e) => {
+      document.getElementById("reciver").disabled = !e.target.checked;
+      document.getElementById("betaka").disabled = !e.target.checked;
+    };
+
+    document.getElementById("btnexcell").onclick = () => {
+      XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById("dataTable")), "Report.xlsx");
+    };
+
+    document.getElementById("printtDate").value = new Date().toISOString().split("T")[0];
+    loadData();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>استعلام صيانة العدادات</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="GR1_Maint.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+</head>
+
+<body>
+  <main class="app">
+    <div class="right-side">
+      <section class="table-top-section" style="padding: 10px; background: #fff; border-bottom: 2px solid #eee;">
+        <div class="table-header"
+          style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="index.html" style="text-decoration: none; margin-right: 10px;">
+              <button class="btn"
+                style="background-color: #0c63b9; color: white; border: none; padding: 7px 15px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px;">
+                🏠 الرئيسية
+              </button>
+            </a>
+            <ion-icon name="search-circle-outline" style="font-size: 28px; color: #065192"></ion-icon>
+            <span style="font-weight: bold; color: #333; white-space: nowrap;">لوحة نتائج الاستعلام</span>
+
+          </div>
+
+          <div class="table-header-controls"
+            style="display: flex; gap: 10px; flex: 1; justify-content: flex-end; align-items: center;">
+            <input id="searchInput" placeholder="🔍 بحث سريع برقم العداد داخل النتائج..."
+              style="padding: 8px 15px; border: 1px solid #ddd; border-radius: 5px; flex: 1; max-width: 600px; outline: none; font-size: 14px;" />
+
+            <button id="exportBtn"
+              style="white-space: nowrap; padding: 8px 15px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+              <ion-icon name="download-outline"></ion-icon> Excel
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="table-wrapper" style="margin-top: 15px;">
+        <div class="table-container"
+          style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+          <table id="dataTable" style="width: 100%; border-collapse: collapse; text-align: center;">
+            <thead>
+              <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="padding: 12px;">م</th>
+                <th style="padding: 12px;">رقم العداد</th>
+                <th style="padding: 12px;">النوع</th>
+                <th style="padding: 12px;">القطاع</th>
+                <th style="padding: 12px;">الهندسة</th>
+                <th style="padding: 12px;">الحالة</th>
+                <th style="padding: 12px;">تاريخ الدخول</th>
+                <th style="padding: 12px;">تقرير الفحص</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="row-counter-dashboard">
+        <div class="dashboard-card">
+          <h3>إجمالي العدادات</h3>
+          <span id="rowCountValue">0</span>
+        </div>
+      </div>
+
+      <div class="scroll-buttons">
+        <button id="scrollUp" class="scroll-btn" title="أعلى">
+          <ion-icon name="chevron-up-outline"></ion-icon>
+        </button>
+        <button id="scrollDown" class="scroll-btn" title="أسفل">
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="left-side">
+      <section class="glass">
+        <div class="header-top">
+          <div class="logo">
+            <ion-icon name="filter-outline" style="font-size: 30px"></ion-icon>
+          </div>
+          <div>
+            وزارة الكهرباء والطاقة المتجددة<br />
+            الشركة القابضة لكهرباء مصر<br />
+            شركة شمال الدلتا لتوزيع الكهرباء
+          </div>
+        </div>
+
+        <h1 class="title-main">الإدارة العامة لأنظمة العدادات الحديثة</h1>
+        <h1 class="title-main">البحث عن تسجيل صيانة عداد</h1>
+        <div class="form-grid">
+          <label style="font-size: 12px; margin-bottom: -5px">رقم العداد</label>
+          <input id="filterMno" placeholder="ابحث برقم العداد مباشرة..." />
+
+          <label style="font-size: 12px; margin-bottom: -5px">القطاع</label>
+          <select id="filterKeta3">
+            <option value="">كل القطاعات</option>
+            <option>دمياط</option>
+            <option>شمال-الدقهلية</option>
+            <option>جنوب-الدقهلية</option>
+            <option>كفر الشيخ</option>
+          </select>
+
+          <label style="font-size: 12px; margin-bottom: -5px">الهندسة</label>
+          <select id="filterHandsa">
+            <option value="">كل الهندسات</option>
+            <option>هندسة شمال دمياط</option>
+            <option>هندسة جنوب دمياط</option>
+            <option>هندسة عزبة البرج</option>
+            <option>هندسة كفر سعد</option>
+            <option>هندسة كفر البطيخ</option>
+            <option>هندسة راس البر</option>
+            <option>هندسة دمياط الجديدة</option>
+            <option>هندسة الزرقا</option>
+            <option>هندسة فارسكور</option>
+            <option>هندسة الروضة</option>
+            <option>هندسة الشعراء</option>
+            <option>هندسة مدينة شربين</option>
+            <option>هندسة قري شربين</option>
+            <option>هندسة دكرنس</option>
+            <option>هندسة جمصة</option>
+            <option>هندسة قري بلقاس</option>
+            <option>هندسة مدينة بلقاس</option>
+            <option>هندسة بني عبيد</option>
+            <option>هندسة منية النصر</option>
+            <option>هندسة ميت سلسيل</option>
+            <option>هندسة الجمالية</option>
+            <option>هندسة قري المنزلة</option>
+            <option>هندسة مدينة المنزلة</option>
+            <option>هندسة المطرية</option>
+            <option>هندسة شرق المنصورة</option>
+            <option>هندسة غرب المنصورة</option>
+            <option>هندسة طلخا</option>
+            <option>هندسة نبروه</option>
+            <option>هندسة قري المنصورة 1</option>
+            <option>هندسة قري المنصورة 2</option>
+            <option>هندسة اجا</option>
+            <option>هندسة مدينة السنبلاوين</option>
+            <option>هندسة قري السنبلاوين</option>
+            <option>هندسة تمي الامديد</option>
+            <option>هندسة مدينة ميت غمر</option>
+            <option>هندسة قري ميت غمر</option>
+            <option>هندسة كوم النور</option>
+            <option>هندسة مدينة كفر الشيخ</option>
+            <option>هندسة غرب كفر الشيخ</option>
+            <option>هندسة شرق كفر الشيخ</option>
+            <option>هندسة قلين</option>
+            <option>هندسة قرى سيدي سالم</option>
+            <option>هندسة مدينة سيدي سالم</option>
+            <option>هندسة الرياض</option>
+            <option>هندسة مدينة دسوق</option>
+            <option>هندسة قرى شمال دسوق</option>
+            <option>هندسة قرى جنوب دسوق</option>
+            <option>هندسة فوه</option>
+            <option>هندسة مطوبس</option>
+            <option>هندسة مدينة الحامول</option>
+            <option>هندسة قرى الحامول</option>
+            <option>هندسة بيلا</option>
+            <option>هندسة بلطيم</option>
+            <option>هندسة برج البرلس</option>
+          </select>
+
+          <label style="font-size: 12px; margin-bottom: -5px">نوع العداد</label>
+          <select id="filterMtype">
+            <option value="">كل الأنواع</option>
+            <option value="">▾ اختر نوع العداد</option>
+            <option>جلوبال-مسبق</option>
+            <option>سويدى-مسبق</option>
+            <option>المصرية-مسبق</option>
+            <option>اسكرا-مسبق</option>
+            <option>جيزة باور-مسبق</option>
+            <option>رقمى</option>
+            <option>عدادات-ذكية</option>
+          </select>
+
+          <label style="font-size: 12px; margin-bottom: -5px">حالة التسجيل</label>
+          <select id="filterCondition">
+            <option value="">الكل</option>
+            <option value="db_Maintain">صيانة_جديدة</option>
+            <option value="db_Repeated">صيانة_متكررة</option>
+          </select>
+        </div>
+
+        <div class="buttons">
+          <button id="clearBtn" class="secondary">تفريغ الفلاتر</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let masterData = [];
+
+    async function fetchCombinedData() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML =
+        "<tr><td colspan='8'>جاري مزامنة قواعد البيانات...</td></tr>";
+
+      try {
+        const [maintSnap, repeatSnap] = await Promise.all([
+          get(ref(db, "db_Maintain")),
+          get(ref(db, "db_Repeated")),
+        ]);
+
+        masterData = [];
+        const process = (snap, source) => {
+          if (snap.exists()) {
+            snap.forEach((child) => {
+              const d = child.val().otherdata || {};
+              masterData.push({ ...d, source: source });
+            });
+          }
+        };
+
+        process(maintSnap, "db_Maintain");
+        process(repeatSnap, "db_Repeated");
+
+        applyFilters();
+      } catch (error) {
+        tbody.innerHTML =
+          "<tr><td colspan='8' style='color:red'>خطأ في الاتصال بالسيرفر</td></tr>";
+      }
+    }
+
+    function applyFilters() {
+      // جلب القيم الحالية من المدخلات
+      const searchVal = document
+        .getElementById("searchInput")
+        .value.toLowerCase();
+      const mnoVal = document.getElementById("filterMno").value.toLowerCase();
+      const keta3Val = document.getElementById("filterKeta3").value;
+      const handsaVal = document.getElementById("filterHandsa").value; // البحث بالاختيار الدقيق
+      const mtypeVal = document.getElementById("filterMtype").value;
+      const conditionVal = document.getElementById("filterCondition").value;
+
+      const filtered = masterData.filter((d) => {
+        return (
+          (d.MNO || "").toLowerCase().includes(searchVal) &&
+          (d.MNO || "").toLowerCase().includes(mnoVal) &&
+          (keta3Val === "" || d.Keta3 === keta3Val) &&
+          (handsaVal === "" || d.Handsa === handsaVal) &&
+          (mtypeVal === "" || d.Mtype === mtypeVal) &&
+          (conditionVal === "" || d.source === conditionVal)
+        );
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      data.forEach((d, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td style="font-weight:700">${d.MNO || ""}</td>
+            <td>${d.Mtype || ""}</td>
+            <td>${d.Keta3 || ""}</td>
+            <td>${d.Handsa || ""}</td>
+            <td><span class="status" style="background:${d.source === "db_Repeated" ? "#e74c3c" : "#4facfe"}">
+                ${d.source === "db_Repeated" ? "مكرر" : "جديد"}
+            </span></td>
+            <td>${d.Enter_Maint_Date || ""}</td>
+            <td title="${d.Mremovingfor || ""}">${d.Mremovingfor || ""}</td>
+          `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById("rowCountValue").textContent = data.length;
+    }
+
+    // --- الربط التلقائي للأحداث (On Input & On Change) ---
+
+    // التغيير في حقول البحث النصية
+    document
+      .getElementById("searchInput")
+      .addEventListener("input", applyFilters);
+    document
+      .getElementById("filterMno")
+      .addEventListener("input", applyFilters);
+
+    // التغيير في القوائم المنسدلة (Selected Index)
+    document
+      .getElementById("filterKeta3")
+      .addEventListener("change", applyFilters);
+    document
+      .getElementById("filterHandsa")
+      .addEventListener("change", applyFilters);
+    document
+      .getElementById("filterMtype")
+      .addEventListener("change", applyFilters);
+    document
+      .getElementById("filterCondition")
+      .addEventListener("change", applyFilters);
+
+    document.getElementById("clearBtn").onclick = () => {
+      document
+        .querySelectorAll(".left-side input, .left-side select")
+        .forEach((i) => (i.value = ""));
+      applyFilters();
+    };
+
+    document.getElementById("exportBtn").onclick = () => {
+      const ws = XLSX.utils.table_to_sheet(
+        document.getElementById("dataTable"),
+      );
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Search_Results");
+      XLSX.writeFile(wb, "Maintenance_Search.xlsx");
+    };
+
+    document.getElementById("scrollUp").onclick = () =>
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("scrollDown").onclick = () =>
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+
+    fetchCombinedData();
+  </script>
+</body>
+
+</html>

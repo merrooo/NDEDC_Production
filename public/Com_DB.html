@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>قاعدة بيانات صيانة العدادات | NDEDC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Cairo", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #ebedf0, #ffffff);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 1700px;
+      padding: 20px;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 20px;
+      height: fit-content;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      position: sticky;
+      top: 20px;
+    }
+
+    .logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #065192, #00f2fe);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .dashboard-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      margin: 15px 0;
+      border-bottom: 4px solid #4caf50;
+    }
+
+    .dashboard-card span {
+      font-size: 28px;
+      font-weight: bold;
+      color: #065192;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background-color: bisque !important;
+      margin-bottom: 10px;
+      outline: none;
+    }
+
+    #searchInput {
+      background: linear-gradient(135deg, #ffffff, #ecea7b) !important;
+      border: 2px solid #4facfe;
+      height: 50px;
+      font-weight: bold;
+    }
+
+    .table-wrapper {
+      background: linear-gradient(135deg, #065192, #00f2fe);
+      border-radius: 15px;
+      padding: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      height: 82vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-container {
+      overflow: auto;
+      background: #fff;
+      border-radius: 10px;
+      height: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1300px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #065192;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 12px;
+      font-size: 13px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      color: #333;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+
+    tbody tr:hover {
+      background-color: #eef3ff;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: 0.3s;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+    }
+
+    .secondary {
+      background: #7498a1;
+    }
+
+    .warning {
+      background: #f39c12;
+    }
+
+    body.dark-mode {
+      background: #0f1419;
+    }
+
+    body.dark-mode .glass {
+      background: rgba(30, 40, 50, 0.8);
+      color: white;
+    }
+
+    body.dark-mode .table-container {
+      background: #1a1f2e;
+    }
+
+    body.dark-mode td {
+      color: #dbeafe;
+      border-color: #2d3748;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .glass {
+        position: relative;
+        top: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="left-side">
+      <div class="glass">
+        <div class="logo">ND</div>
+        <h2 style="font-size: 18px; color: #065192">قاعدة بيانات الصيانة</h2>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px">
+          شركة شمال الدلتا لتوزيع الكهرباء
+        </p>
+
+        <a href="index.html" style="text-decoration: none;">
+          <button class="secondary"
+            style="background: #0c63b9; color: #333; border: 1px solid #ddd; margin-bottom: 15px;">
+            🏠 الصفحة الرئيسية
+          </button>
+        </a>
+
+        <div class="dashboard-card">
+          <p style="font-size: 13px; color: #666">إجمالي الوحدات </p>
+          <span id="counterText">0</span>
+        </div>
+
+        <button class="primary" onclick="refreshData()">
+          🔄 تحديث البيانات
+        </button>
+        <button class="warning" onclick="document.getElementById('excelInput').click()">
+          📥 استيراد من ملف Excel
+        </button>
+        <input type="file" id="excelInput" style="display: none" accept=".xlsx, .xls" />
+        <button class="secondary" onclick="exportToExcel()">
+          📊 تصدير البيانات الحالية
+        </button>
+        <button class="secondary" style="background: #333" onclick="document.body.classList.toggle('dark-mode')">
+          🌙 الوضع الليلي
+        </button>
+
+        <div style="
+              margin-top: 20px;
+              border-top: 2px solid #eee;
+              padding-top: 15px;
+            ">
+          <label style="font-size: 13px; font-weight: bold; color: #444">بحث برقم العداد:</label>
+          <input type="text" id="searchInput" placeholder="اكتب رقم العداد..." oninput="handleSearch(this.value)" />
+        </div>
+        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 11px; font-weight: bold;">من تاريخ:</label>
+            <input type="date" id="dateFrom" onchange="applyFilters()" style="height: 35px; font-size: 11px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: bold;">إلى تاريخ:</label>
+            <input type="date" id="dateTo" onchange="applyFilters()" style="height: 35px; font-size: 11px;">
+          </div>
+        </div>
+        <button class="secondary" style="background: #e74c3c; font-size: 11px; padding: 5px;"
+          onclick="clearDateFilters()">
+          ❌ مسح فلاتر التاريخ
+        </button>
+      </div>
+    </div>
+
+    <div class="right-side">
+      <div class="table-wrapper">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>رقم العداد</th>
+                <th>تاريخ الصيانة</th>
+                <th>غطاء الروزاتة</th>
+                <th>غطاء العداد</th>
+                <th>الرجوع عكس</th>
+                <th>المديونية</th>
+                <th>أقصى حمل (A)</th>
+                <th>المتبقي بالجنيه</th>
+                <th>الاستهلاك الحالي</th>
+                <th>الاستهلاك الكلي</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="10" style="padding: 50px; color: #999">
+                  بانتظار جلب البيانات...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+          ">
+        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(-1)">
+          السابق
+        </button>
+        <span id="pageInfo" style="font-weight: bold; color: #065192">صفحة 1</span>
+        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(1)">
+          التالي
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+      storageBucket: "production1-ae85.firebasestorage.app",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const rowsPerPage = 25;
+
+    // دالة جلب البيانات من 
+    window.refreshData = async function () {
+      Swal.fire({
+        title: "جاري الاتصال ...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const snapshot = await get(ref(db, "Archive_Maint_Meters_Data"));
+        if (snapshot.exists()) {
+          allData = Object.values(snapshot.val());
+          filteredData = [...allData];
+          renderTable();
+          Swal.close();
+        } else {
+          allData = [];
+          filteredData = [];
+          renderTable();
+          Swal.fire("تنبيه", "لا توجد بيانات مسجلة في  حالياً", "info");
+        }
+      } catch (err) {
+        Swal.fire("خطأ", "فشل جلب البيانات: " + err.message, "error");
+      }
+    };
+
+    // دالة عرض الجدول المحدثة لمعالجة شكل التاريخ
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+      const start = (currentPage - 1) * rowsPerPage;
+      const pageData = filteredData.slice(start, start + rowsPerPage);
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="padding:40px">لا توجد سجلات مطابقة</td></tr>';
+      }
+
+      pageData.forEach((item) => {
+        // تنسيق التاريخ للعرض فقط (أخذ الجزء قبل حرف T)
+        const displayDate = item.Timestamp ? item.Timestamp.split('T')[0] : "-";
+
+        tbody.innerHTML += `<tr>
+                    <td style="font-weight:bold; color:#065192">${item.m_no}</td>
+                    <td>${displayDate}</td>
+                    <td>${item.m_rosas || "-"}</td>
+                    <td>${item.m_cover || "-"}</td>
+                    <td>${item.m_reverse || "-"}</td>
+                    <td>${item.m_debt || "0"}</td>
+                    <td>${item.m_max_amp || "0"}</td>
+                    <td>${item.m_rem_money || "0"}</td>
+                    <td>${item.m_curr_cons || "0"}</td>
+                    <td>${item.m_total_cons || "0"}</td>
+                    <td style="color:#666">${item.m_notes || "-"}</td>
+                </tr>`;
+      });
+      document.getElementById("counterText").innerText = filteredData.length;
+      document.getElementById("pageInfo").innerText =
+        `صفحة ${currentPage} من ${Math.ceil(filteredData.length / rowsPerPage) || 1}`;
+    }
+
+    // --- نظام الفلترة المدمج (بحث بالرقم + التاريخ) ---
+    window.applyFilters = () => {
+      const searchVal = document.getElementById("searchInput").value.trim();
+      const dateFrom = document.getElementById("dateFrom")?.value; // yyyy-mm-dd
+      const dateTo = document.getElementById("dateTo")?.value;     // yyyy-mm-dd
+
+      filteredData = allData.filter((item) => {
+        // 1. فلترة رقم العداد
+        const matchesSearch = item.m_no?.toString().includes(searchVal);
+
+        // 2. فلترة التاريخ
+        let matchesDate = true;
+        if (item.Timestamp) {
+          const itemDate = item.Timestamp.split("T")[0]; // استخراج yyyy-mm-dd من 
+          if (dateFrom && itemDate < dateFrom) matchesDate = false;
+          if (dateTo && itemDate > dateTo) matchesDate = false;
+        } else if (dateFrom || dateTo) {
+          matchesDate = false; // إذا كان هناك فلتر تاريخ والعداد ليس له تاريخ
+        }
+
+        return matchesSearch && matchesDate;
+      });
+
+      currentPage = 1;
+      renderTable();
+    };
+
+    // استبدال دالة handleSearch القديمة لتستخدم الفلتر الجديد
+    window.handleSearch = (val) => {
+      window.applyFilters();
+    };
+
+    // دالة لمسح فلاتر التاريخ
+    window.clearDateFilters = () => {
+      if (document.getElementById("dateFrom")) document.getElementById("dateFrom").value = "";
+      if (document.getElementById("dateTo")) document.getElementById("dateTo").value = "";
+      window.applyFilters();
+    };
+
+    // التنقل
+    window.changePage = (dir) => {
+      const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+      if (currentPage + dir >= 1 && currentPage + dir <= totalPages) {
+        currentPage += dir;
+        renderTable();
+      }
+    };
+
+    // التصدير
+    window.exportToExcel = () => {
+      const ws = XLSX.utils.json_to_sheet(filteredData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Archive");
+      XLSX.writeFile(wb, "NDEDC_Meters_Archive.xlsx");
+    };
+
+    // نظام الاستيراد
+    document.getElementById("excelInput").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const workbook = XLSX.read(evt.target.result, { type: "binary" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet);
+
+          if (json.length === 0) {
+            Swal.fire("تنبيه", "الملف فارغ!", "warning");
+            return;
+          }
+
+          Swal.fire({
+            title: "جاري معالجة الملف...",
+            html: "تم رفع <b>0</b> من " + json.length,
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          let count = 0;
+          for (let row of json) {
+            const find = (names) => {
+              const key = Object.keys(row).find((k) =>
+                names.includes(k.trim().replace(/ة/g, "ه").replace(/أ/g, "ا"))
+              );
+              return key ? row[key] : "";
+            };
+
+            const m_id = find(["رقم العداد", "رقم عداد"])?.toString().trim();
+
+            if (m_id) {
+              await set(ref(db, `Archive_Maint_Meters_Data/${m_id}`), {
+                m_no: m_id,
+                Timestamp: new Date().toISOString(), // إضافة التاريخ عند الاستيراد
+                m_rosas: find(["غطاء الروزاتة", "غطاء الروزاته", "الروزاتة"])?.toString() || "",
+                m_cover: find(["غطاء العداد", "غطاء عداد"])?.toString() || "",
+                m_reverse: find(["الرجوع عكس", "رجوع عكسي"])?.toString() || "",
+                m_debt: find(["المديونية", "مديونية"])?.toString() || "0",
+                m_max_amp: find(["اقصى حمل أمبير", "الامبير"])?.toString() || "0",
+                m_rem_money: find(["المتبقي بالجنيه", "المتبقي"])?.toString() || "0",
+                m_curr_cons: find(["الاستهلاك الحالي", "استهلاك حالي"])?.toString() || "0",
+                m_total_cons: find(["الاستهلاك الكلي", "استهلاك كلي"])?.toString() || "0",
+                m_notes: find(["ملاحظات", "ملاحظه"])?.toString() || "",
+              });
+              count++;
+              Swal.getHtmlContainer().querySelector("b").textContent = count;
+            }
+          }
+
+          if (count > 0) {
+            await Swal.fire("نجاح", `تم استيراد ${count} عداد بنجاح`, "success");
+            refreshData();
+          }
+        } catch (error) {
+          Swal.fire("خطأ", "حدث خطأ في القراءة: " + error.message, "error");
+        }
+        e.target.value = "";
+      };
+      reader.readAsBinaryString(file);
+    });
+
+    window.onload = refreshData;
+  </script>
+</body>
+
+</html>

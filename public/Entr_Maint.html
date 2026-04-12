@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل دخول عدادات – الصيانة | نظام إدارة متكامل</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    body {
+      background: #eef2f7;
+      padding: 20px;
+    }
+
+    .app {
+      display: flex;
+      gap: 25px;
+      flex-wrap: wrap;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .right-side {
+      flex: 2;
+      min-width: 300px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .left-side {
+      flex: 1.2;
+      min-width: 350px;
+    }
+
+    .glass {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #0c63b9;
+    }
+
+    .logo {
+      background: #0c63b9;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 28px;
+    }
+
+    .title-main {
+      font-size: 16px;
+      color: #0c63b9;
+      margin: 8px 0;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-right: 4px;
+    }
+
+    .form-group label i {
+      margin-left: 4px;
+      color: #0c63b9;
+    }
+
+    .form-grid input,
+    .form-grid select,
+    .form-grid textarea {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: 0.2s;
+      width: 100%;
+    }
+
+    .form-grid input:focus,
+    .form-grid select:focus {
+      border-color: #0c63b9;
+      box-shadow: 0 0 0 2px rgba(12, 99, 185, 0.1);
+    }
+
+    .form-grid textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .primary {
+      background: #0c63b9;
+      color: white;
+    }
+
+    .primary:hover {
+      background: #0a53a0;
+      transform: translateY(-1px);
+    }
+
+    .warning {
+      background: #ffc107;
+      color: #000;
+    }
+
+    .warning:hover {
+      background: #e0a800;
+    }
+
+    .secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .secondary:hover {
+      background: #5a6268;
+    }
+
+    .danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .danger:hover {
+      background: #c82333;
+    }
+
+    .btn-save {
+      background: #0c63b9;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      font-size: 13px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      background: #0c63b9;
+      color: white;
+      padding: 10px 6px;
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 8px 5px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #1e293b;
+      cursor: pointer;
+    }
+
+    tr:hover td {
+      background: #f1f9ff;
+    }
+
+    .selected-row {
+      background: #e0f0ff !important;
+      border-right: 3px solid #0c63b9;
+    }
+
+    .status-badge {
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .status-new {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .status-repeated {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-archive {
+      background: #e0d4f5;
+      color: #6b3fa0;
+    }
+
+    .dashboard-card {
+      background: #f8fafc;
+      margin: 12px 15px;
+      padding: 10px 18px;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #e2e8f0;
+    }
+
+    .scroll-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      padding: 8px 15px;
+    }
+
+    .scroll-btn {
+      background: #0c63b9;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[readonly] {
+      background-color: #e9ecef;
+    }
+
+    .info-badge {
+      background: #fef3c7;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+
+      .left-side {
+        min-width: 280px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <div class="right-side">
+      <section class="table-top-section" style="padding: 12px 15px; background: #fff; border-bottom: 1px solid #eee;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <ion-icon name="list-outline" style="font-size: 22px; color: #0c63b9;"></ion-icon>
+            <button id="homeBtn" class="btn-save">🏠 الرئيسية</button>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <input id="searchInput" placeholder="🔍 بحث برقم العداد..."
+              style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 8px; width: 220px; font-size: 13px;" />
+            <button id="exportBtn"
+              style="background: #27ae60; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px;">
+              <ion-icon name="download-outline"></ion-icon> تصدير
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-wrapper">
+        <div class="table-container">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>رقم العداد</th>
+                <th>سنة الصنع</th>
+                <th>القدرة</th>
+                <th>نوع العداد</th>
+                <th>نوع التوصيل</th>
+                <th>القطاع</th>
+                <th>الهندسة</th>
+                <th>سبب الرفع</th>
+                <th>تاريخ الرفع</th>
+                <th>تقرير الهندسة</th>
+                <th>تاريخ دخول الصيانة</th>
+                <th>ملاحظات</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="14" style="text-align:center;">جاري تحميل البيانات...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="dashboard-card">
+        <h3 style="font-size: 14px;">📊 عدد السجلات</h3>
+        <span id="rowCountValue" style="font-size: 22px; font-weight: bold;">0</span>
+      </div>
+      <div class="scroll-buttons">
+        <button id="scrollUp" class="scroll-btn"><ion-icon name="chevron-up-outline"></ion-icon></button>
+        <button id="scrollDown" class="scroll-btn"><ion-icon name="chevron-down-outline"></ion-icon></button>
+      </div>
+    </div>
+
+    <div class="left-side">
+      <div class="glass">
+        <div class="header-top">
+          <div class="logo"><ion-icon name="construct-outline"></ion-icon></div>
+          <div style="font-size: 12px;">وزارة الكهرباء والطاقة المتجددة<br />شركة شمال الدلتا لتوزيع الكهرباء</div>
+        </div>
+        <h1 class="title-main">الإدارة العامة لأنظمة العدادات الحديثة</h1>
+        <h3 style="margin-bottom: 12px; font-size: 16px;">تسجيل صيانة عداد</h3>
+
+        <div class="info-badge">
+          ✅ العدادات التي مضى على صنعها 6 سنوات فأكثر تُرسل مباشرة إلى <strong></strong> (أرشيف التكهين)
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label><ion-icon name="cash-outline"></ion-icon> رقم العداد *</label>
+            <input id="mno" placeholder="أدخل رقم العداد" />
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="calendar-outline"></ion-icon> سنة الصنع *</label>
+            <input id="year" placeholder="مثال: 2023" />
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="flash-outline"></ion-icon> قوة العداد</label>
+            <input id="mpower" placeholder="مثال: 10 أمبير" />
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="grid-outline"></ion-icon> نوع العداد</label>
+            <select id="mtype">
+              <option value="">▾ اختر نوع العداد</option>
+              <option>جلوبال-مسبق</option>
+              <option>سويدى-مسبق</option>
+              <option>المصرية-مسبق</option>
+              <option>اسكرا-مسبق</option>
+              <option>جيزة باور-مسبق</option>
+              <option>رقمى</option>
+              <option>عدادات-ذكية</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="swap-horizontal-outline"></ion-icon> نوع التوصيل</label>
+            <select id="mconn">
+              <option value="">▾ اختر نوع التوصيل</option>
+              <option>أحادى</option>
+              <option>ثلاثى-مباشر</option>
+              <option>ثلاثى-غير مباشر</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="business-outline"></ion-icon> القطاع</label>
+            <select id="keta3">
+              <option value="">▾ اختر القطاع</option>
+              <option>دمياط</option>
+              <option>شمال-الدقهلية</option>
+              <option>جنوب-الدقهلية</option>
+              <option>كفر الشيخ</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label><ion-icon name="location-outline"></ion-icon> الهندسة</label>
+            <select id="handsa">
+              <option value="">▾ اختر الهندسة</option>
+              <option>هندسة شمال دمياط</option>
+              <option>هندسة جنوب دمياط</option>
+              <option>هندسة كفر سعد</option>
+              <option>هندسة المنصورة</option>
+              <option>هندسة دكرنس</option>
+              <option>هندسة طلخا</option>
+              <option>هندسة مدينة كفر الشيخ</option>
+              <option>هندسة دسوق</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="alert-circle-outline"></ion-icon> سبب الرفع</label>
+            <select id="removingfor">
+              <option value="">▾ اختر سبب الرفع</option>
+              <option>الفحص</option>
+              <option>الصيانة</option>
+              <option>الهدم والبناء</option>
+              <option>تصفية مشترك</option>
+              <option>زيادة قدرة</option>
+              <option>احلال رباعي</option>
+              <option>تنازل</option>
+              <option>خطة احلال</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><ion-icon name="calendar-outline"></ion-icon> تاريخ الرفع</label>
+            <input type="date" id="uploaddate" />
+          </div>
+          <div class="form-group full-width">
+            <label><ion-icon name="document-text-outline"></ion-icon> تقرير فحص الهندسة</label>
+            <select id="mremovingfor">
+              <option value="">▾ اختر تقرير الهندسة</option>
+              <option>عطل بالبطارية - ارسال للشركة الموردة</option>
+              <option>العداد لا يعمل - ارسال للشركة الموردة</option>
+              <option>تلف بجسم العداد - ارسال للشركة الموردة</option>
+              <option>العداد لا يقبل الشحن - ارسال للشركة الموردة</option>
+              <option>الشاشة عاطلة - ارسال للشركة الموردة</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label><ion-icon name="create-outline"></ion-icon> ملاحظات</label>
+            <textarea id="notes" placeholder="أدخل أي ملاحظات إضافية..."></textarea>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="saveBtn" class="primary"><ion-icon name="save-outline"></ion-icon> حفظ</button>
+          <button id="editBtn" class="warning"><ion-icon name="create-outline"></ion-icon> تعديل</button>
+          <button id="clearBtn" class="secondary"><ion-icon name="refresh-outline"></ion-icon> تفريغ</button>
+          <button id="deleteBtn" class="danger"><ion-icon name="trash-outline"></ion-icon> حذف</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, get, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // تعريف قواعد البيانات
+    const MAINTAIN_ROOT = "db_Maintain";
+    const REPEATED_ROOT = "db_Repeated";
+    const ARCHIVE_TAKHEEN = "Archive_Takheen";  // ✅ الوجهة الصحيحة للعدادات القديمة
+
+    const el = (id) => document.getElementById(id);
+    let currentEditingKey = null;
+    let currentEditingPath = null;
+
+    const today = new Date().toISOString().split('T')[0];
+    el("uploaddate").value = today;
+
+    // دالة تحديد الوجهة بناءً على عمر العداد
+    async function determineTargetAndStatus(mno, yearVal) {
+      const currentYear = new Date().getFullYear();
+      let mYear = parseInt(yearVal);
+      if (isNaN(mYear)) mYear = 0;
+      const age = currentYear - mYear;
+
+      // ✅ إذا كان العمر 6 سنوات أو أكثر → يذهب إلى Archive_Takheen
+      if (age > 6) {
+        return {
+          targetRoot: ARCHIVE_TAKHEEN,
+          status: "تم التكهين (قديم)",
+          message: `✅ تم نقل العداد إلى أرشيف التكهين (عمره ${age} سنة)`
+        };
+      } else {
+        return {
+          targetRoot: MAINTAIN_ROOT,
+          status: "صيانة جديدة",
+          message: `تم التسجيل كصيانة جديدة (عمر العداد ${age} سنة)`
+        };
+      }
+    }
+
+    async function saveData() {
+      const mno = el("mno").value.trim();
+      const yearVal = el("year").value.trim();
+      if (!mno) return Swal.fire("تنبيه", "رقم العداد مطلوب", "warning");
+      if (!yearVal) return Swal.fire("تنبيه", "سنة الصنع مطلوبة", "warning");
+
+      Swal.fire({ title: "جاري الحفظ...", didOpen: () => Swal.showLoading() });
+
+      try {
+        const { targetRoot, status, message } = await determineTargetAndStatus(mno, yearVal);
+
+        const meterData = {
+          MNO: mno,
+          YEAR: parseInt(yearVal) || 0,
+          MPower: el("mpower").value,
+          Mtype: el("mtype").value,
+          Connection: el("mconn").value,
+          Keta3: el("keta3").value,
+          Handsa: el("handsa").value,
+          Removingfor: el("removingfor").value,
+          Mremovingfor: el("mremovingfor").value,
+          Uploaddate: el("uploaddate").value,
+          Enter_Maint_Date: today,
+          Notes: el("notes").value,
+          Status: status,
+          Timestamp: new Date().toISOString(),
+          // حقول إضافية للأرشيف
+          ArchivedAt: targetRoot === ARCHIVE_TAKHEEN ? new Date().toISOString() : "",
+          Takheenfor: targetRoot === ARCHIVE_TAKHEEN ? "التقادم (أكثر من 6 سنوات)" : "",
+          Takheendate: targetRoot === ARCHIVE_TAKHEEN ? today : ""
+        };
+
+        // ✅ حفظ البيانات في المسار المناسب
+        await set(ref(db, `${targetRoot}/${mno}`), { otherdata: meterData });
+
+        Swal.fire("تم الحفظ", message, "success");
+        await loadAllData();
+        clearForm();
+      } catch (e) {
+        Swal.fire("خطأ", e.message, "error");
+      }
+    }
+
+    async function loadAllData(searchText = "") {
+      const tbody = el("tableBody");
+      tbody.innerHTML = "<tr><td colspan='14' style='text-align:center;'>⏳ جاري التحميل...</td></tr>";
+
+      try {
+        const roots = [MAINTAIN_ROOT, REPEATED_ROOT];
+        let allRecords = [];
+
+        for (const rootPath of roots) {
+          const snapshot = await get(ref(db, rootPath));
+          if (snapshot.exists()) {
+            const dataObj = snapshot.val();
+            for (const [key, value] of Object.entries(dataObj)) {
+              const recordData = value.otherdata || value;
+              allRecords.push({
+                ...recordData,
+                _key: key,
+                _root: rootPath,
+                MNO: recordData.MNO || ""
+              });
+            }
+          }
+        }
+
+        if (searchText) {
+          allRecords = allRecords.filter(rec => rec.MNO && rec.MNO.toString().includes(searchText));
+        }
+
+        allRecords.sort((a, b) => (b.Timestamp || "").localeCompare(a.Timestamp || ""));
+
+        tbody.innerHTML = "";
+        if (allRecords.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='14' style='text-align:center;'>📭 لا توجد بيانات حالياً</td></tr>";
+          el("rowCountValue").textContent = "0";
+          return;
+        }
+
+        let serial = 1;
+        for (const rec of allRecords) {
+          let statusClass = "";
+          let statusText = "";
+
+          if (rec._root === MAINTAIN_ROOT) {
+            statusClass = "status-new";
+            statusText = rec.Status || "صيانة جديدة";
+          } else if (rec._root === REPEATED_ROOT) {
+            statusClass = "status-repeated";
+            statusText = rec.Status || "صيانة متكررة";
+          } 
+
+          const row = tbody.insertRow();
+          row.setAttribute("data-key", rec._key);
+          row.setAttribute("data-root", rec._root);
+          row.innerHTML = `
+            <td>${serial++}</td>
+            <td>${rec.MNO || ""}</td>
+            <td>${rec.YEAR || ""}</td>
+            <td>${rec.MPower || ""}</td>
+            <td>${rec.Mtype || ""}</td>
+            <td>${rec.Connection || ""}</td>
+            <td>${rec.Keta3 || ""}</td>
+            <td>${rec.Handsa || ""}</td>
+            <td>${rec.Removingfor || ""}</td>
+            <td>${rec.Uploaddate || ""}</td>
+            <td>${rec.Mremovingfor || ""}</td>
+            <td>${rec.Enter_Maint_Date || ""}</td>
+            <td>${rec.Notes || ""}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+          `;
+          row.addEventListener("click", () => {
+            document.querySelectorAll("#tableBody tr").forEach(r => r.classList.remove("selected-row"));
+            row.classList.add("selected-row");
+            fillForm(rec, rec._key, rec._root);
+          });
+        }
+
+        el("rowCountValue").textContent = allRecords.length;
+      } catch (error) {
+        console.error("خطأ في التحميل:", error);
+        tbody.innerHTML = "<tr><td colspan='14' style='color:red;'>⚠️ خطأ في تحميل البيانات</td></tr>";
+      }
+    }
+
+    function fillForm(record, key, rootPath) {
+      currentEditingKey = key;
+      currentEditingPath = rootPath;
+      el("mno").value = record.MNO || "";
+      el("mno").readOnly = true;
+      el("mno").style.backgroundColor = "#e9ecef";
+      el("year").value = record.YEAR || "";
+      el("mpower").value = record.MPower || "";
+      el("mtype").value = record.Mtype || "";
+      el("mconn").value = record.Connection || "";
+      el("keta3").value = record.Keta3 || "";
+      el("handsa").value = record.Handsa || "";
+      el("removingfor").value = record.Removingfor || "";
+      el("mremovingfor").value = record.Mremovingfor || "";
+      el("uploaddate").value = record.Uploaddate || today;
+      el("notes").value = record.Notes || "";
+    }
+
+    async function editData() {
+      if (!currentEditingKey || !currentEditingPath) {
+        return Swal.fire("تنبيه", "اختر سجلاً من الجدول أولاً", "warning");
+      }
+
+      const updatedData = {
+        YEAR: el("year").value,
+        MPower: el("mpower").value,
+        Mtype: el("mtype").value,
+        Connection: el("mconn").value,
+        Keta3: el("keta3").value,
+        Handsa: el("handsa").value,
+        Removingfor: el("removingfor").value,
+        Mremovingfor: el("mremovingfor").value,
+        Uploaddate: el("uploaddate").value,
+        Notes: el("notes").value,
+        Timestamp: new Date().toISOString(),
+        MNO: el("mno").value
+      };
+
+      await update(ref(db, `${currentEditingPath}/${currentEditingKey}`), { otherdata: updatedData });
+      Swal.fire("تم", "تم التعديل بنجاح", "success");
+      await loadAllData();
+      clearForm();
+    }
+
+    async function deleteData() {
+      if (!currentEditingKey || !currentEditingPath) {
+        return Swal.fire("تنبيه", "اختر سجلاً للحذف", "warning");
+      }
+      const result = await Swal.fire({ title: "تأكيد الحذف", text: "هل أنت متأكد؟", icon: "warning", showCancelButton: true });
+      if (result.isConfirmed) {
+        await remove(ref(db, `${currentEditingPath}/${currentEditingKey}`));
+        Swal.fire("تم الحذف", "", "success");
+        await loadAllData();
+        clearForm();
+      }
+    }
+
+    function clearForm() {
+      currentEditingKey = null;
+      currentEditingPath = null;
+      el("mno").value = "";
+      el("mno").readOnly = false;
+      el("mno").style.backgroundColor = "";
+      el("year").value = "";
+      el("mpower").value = "";
+      el("mtype").value = "";
+      el("mconn").value = "";
+      el("keta3").value = "";
+      el("handsa").value = "";
+      el("removingfor").value = "";
+      el("mremovingfor").value = "";
+      el("uploaddate").value = today;
+      el("notes").value = "";
+      document.querySelectorAll("#tableBody tr").forEach(r => r.classList.remove("selected-row"));
+    }
+
+    function exportToExcel() {
+      const rows = document.querySelectorAll("#tableBody tr");
+      if (rows.length === 0 || (rows.length === 1 && rows[0].innerText.includes("لا توجد"))) {
+        return Swal.fire("تنبيه", "لا توجد بيانات للتصدير", "info");
+      }
+      let csvContent = "\uFEFFم,رقم العداد,سنة الصنع,القدرة,نوع العداد,نوع التوصيل,القطاع,الهندسة,سبب الرفع,تاريخ الرفع,تقرير الهندسة,تاريخ دخول الصيانة,ملاحظات,الحالة\n";
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length >= 14 && !cells[0].innerText.includes("لا توجد")) {
+          const rowData = Array.from(cells).map(cell => `"${cell.innerText.replace(/"/g, '""')}"`).join(",");
+          csvContent += rowData + "\n";
+        }
+      });
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `صيانة_عدادات_${new Date().toISOString().slice(0, 19)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      Swal.fire("تم التصدير", "تم حفظ الملف", "success");
+    }
+
+    const scrollContainer = document.querySelector(".table-container");
+    el("scrollUp").onclick = () => scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    el("scrollDown").onclick = () => scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" });
+
+    el("saveBtn").onclick = saveData;
+    el("editBtn").onclick = editData;
+    el("clearBtn").onclick = clearForm;
+    el("deleteBtn").onclick = deleteData;
+    el("exportBtn").onclick = exportToExcel;
+    el("homeBtn").onclick = () => { clearForm(); loadAllData(); };
+    el("searchInput").oninput = (e) => loadAllData(e.target.value.trim());
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadAllData();
+    });
+  </script>
+</body>
+
+</html>

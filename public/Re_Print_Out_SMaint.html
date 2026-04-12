@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>نظام صيانة العدادات - التقرير الفني</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* General Styles */
+      * {
+        box-sizing: border-box;
+        font-family: "Cairo", sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #f0f2f5;
+        direction: rtl;
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      /* UI Elements */
+      .sidebar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 210mm;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-box {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+      }
+
+      .table-container {
+        background: white;
+        border-radius: 8px;
+        overflow-x: auto;
+        max-height: 250px;
+        border: 1px solid #eee;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        border: 1px solid #eee;
+        padding: 10px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #065192;
+        color: white;
+      }
+
+      tr.highlight {
+        background-color: #d1eaff !important;
+      }
+
+      tr:hover {
+        cursor: pointer;
+        background-color: #f1f1f1;
+      }
+
+      .Print_btn {
+        background: #27ae60;
+        color: white;
+        border: none;
+        padding: 15px 50px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+      }
+
+      /* Report Card - Screen View */
+      .card_1 {
+        background: white;
+        padding: 15mm;
+        width: 210mm;
+        min-height: 297mm;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+      }
+
+      .container-logo {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #065192;
+        padding-bottom: 15px;
+      }
+
+      .header-logo-img {
+        width: 80px;
+        height: auto;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .inputs-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .label_1 {
+        font-size: 12px;
+        margin-bottom: 4px;
+        color: #555;
+        font-weight: 700;
+        display: block;
+      }
+
+      .text_name_1 {
+        width: 100%;
+        height: 36px;
+        padding: 8px;
+        border: 1px solid #bdc3c7;
+        font-size: 13px;
+        background: #fff;
+        border-radius: 4px;
+      }
+
+      .report-editable {
+        width: 100%;
+        min-height: 220px;
+        padding: 15px;
+        border: 1px dashed #065192;
+        font-size: 14px;
+        line-height: 1.8;
+        background: #fdfdfd;
+        outline: none;
+        margin-top: 10px;
+      }
+
+      .signature-section {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+
+      .sig-box {
+        width: 200px;
+        text-align: center;
+      }
+
+      .sig-line {
+        border-top: 2px solid #333;
+        margin-top: 35px;
+      }
+
+      /* PRINT SETTINGS - FIXED FOR SINGLE PAGE & ALIGNMENT */
+      @media print {
+        @page {
+          size: A4;
+          margin: 10mm; /* Small margin to prevent content being cut */
+        }
+
+        body {
+          background: white !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          display: block !important;
+          width: 100% !important;
+        }
+
+        .sidebar,
+        .Print_btn {
+          display: none !important;
+        }
+
+        .card_1 {
+          box-shadow: none !important;
+          border: none !important;
+          margin: 0 !important;
+          padding: 0 !important; /* Let @page margin handle it */
+          width: 100% !important;
+          min-height: auto !important; /* CRITICAL: Allows content to fit one page */
+          float: right !important;
+          position: relative;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .text_name_1 {
+          border: 1px solid #333 !important;
+        }
+
+        /* Ensure editable area shows border in print */
+        .report-editable {
+          border: 1px solid #ccc !important;
+          min-height: 150px !important; /* Shrink if necessary to fit */
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h3>🏠 أرشيف العدادات</h3>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-box"
+        placeholder="🔍 ابحث برقم العداد..."
+      />
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>رقم العداد</th>
+              <th>النوع</th>
+              <th>التوصيل</th>
+              <th>سنة الصنع</th>
+              <th>الأمبير</th>
+              <th>تاريخ الرفع</th>
+              <th>سبب الرفع</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="7">جاري التحميل...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="Print_btn" onclick="window.print()">
+      💾 طباعة التقرير / حفظ PDF
+    </button>
+
+    <div class="card_1" id="report-card">
+      <div class="container-logo">
+        <div>
+          <img
+            src="https://via.placeholder.com/80x40?text=LOGO"
+            alt="Logo"
+            class="header-logo-img"
+          />
+          <p style="font-size: 12px">التاريخ: <span id="displayDate"></span></p>
+          <p
+            style="
+              font-weight: bold;
+              color: #065192;
+              margin-top: 5px;
+              font-size: 13px;
+            "
+          >
+            السادة شركة: ............................................
+          </p>
+        </div>
+        <h2
+          style="
+            color: #065192;
+            border: 2px solid #065192;
+            padding: 6px 15px;
+            border-radius: 4px;
+            font-size: 16px;
+          "
+        >
+          تقرير فحص عداد
+        </h2>
+        <div style="width: 80px"></div>
+      </div>
+
+      <div class="inputs-grid">
+        <div>
+          <label class="label_1">رقم العداد</label>
+          <input type="text" readonly class="text_name_1" id="mno" />
+        </div>
+        <div>
+          <label class="label_1">نوع العداد</label>
+          <input type="text" readonly class="text_name_1" id="mtype" />
+        </div>
+        <div>
+          <label class="label_1">نوع التوصيل</label>
+          <input type="text" readonly class="text_name_1" id="mconn" />
+        </div>
+        <div>
+          <label class="label_1">سنة الصنع</label>
+          <input type="text" readonly class="text_name_1" id="year" />
+        </div>
+        <div>
+          <label class="label_1">قدرة العداد</label>
+          <input type="text" readonly class="text_name_1" id="mpower" />
+        </div>
+        <div>
+          <label class="label_1">سبب الرفع</label>
+          <input type="text" readonly class="text_name_1" id="removingfor" />
+        </div>
+        <div>
+          <label class="label_1">تاريخ الرفع</label>
+          <input type="text" readonly class="text_name_1" id="uploaddate" />
+        </div>
+        <div>
+          <label class="label_1">تاريخ دخول الصيانة</label>
+          <input type="text" readonly class="text_name_1" id="enter_date" />
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px">
+        <label class="label_1">تقرير الهندسة :</label>
+        <input
+          type="text"
+          readonly
+          class="text_name_1"
+          id="mremovingfor"
+          style="width: 100%"
+        />
+      </div>
+
+      <div>
+        <label class="label_1" style="color: #e67e22; font-size: 13px"
+          >🧾 نتيجة الفحص :</label
+        >
+        <div id="m_report" class="report-editable" contenteditable="true">
+          <br />
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <div class="sig-box">
+          <p style="font-weight: bold; font-size: 13px">القائم بالفحص</p>
+          <div class="sig-line"></div>
+        </div>
+        <div class="sig-box">
+          <p style="font-weight: bold; font-size: 13px">يعتمد </p>
+          <div class="sig-line"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        onValue,
+      } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+        authDomain: "production1-ae85.firebaseapp.com",
+        projectId: "production1-ae85",
+        storageBucket: "production1-ae85.firebasestorage.app",
+        messagingSenderId: "490438031865",
+        appId: "1:490438031865:web:a4a69335989f30cd13a528",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      function loadData() {
+        const tableBody = document.getElementById("tableBody");
+        onValue(ref(db, "Archive_Maint"), (snapshot) => {
+          if (snapshot.exists()) {
+            tableBody.innerHTML = "";
+            const data = snapshot.val();
+            Object.keys(data).forEach((id) => {
+              const d = data[id];
+              const row = document.createElement("tr");
+              row.innerHTML = `<td>${d.MNO || id}</td><td>${d.Mtype || ""}</td><td>${d.Connection || ""}</td><td>${d.YEAR || ""}</td><td>${d.MPower || ""}</td><td>${d.Uploaddate || ""}</td><td>${d.Removingfor || ""}</td>`;
+              row.onclick = () => {
+                document
+                  .querySelectorAll("tr")
+                  .forEach((r) => r.classList.remove("highlight"));
+                row.classList.add("highlight");
+                document.getElementById("mno").value = d.MNO || id;
+                document.getElementById("mtype").value = d.Mtype || "";
+                document.getElementById("mconn").value = d.Connection || "";
+                document.getElementById("year").value = d.YEAR || "";
+                document.getElementById("mpower").value = d.MPower || "";
+                document.getElementById("uploaddate").value =
+                  d.Uploaddate || "";
+                document.getElementById("removingfor").value =
+                  d.Removingfor || "";
+                document.getElementById("mremovingfor").value =
+                  d.Mremovingfor || "";
+                document.getElementById("enter_date").value =
+                  d.Enter_Maint_Date || "";
+                document
+                  .getElementById("report-card")
+                  .scrollIntoView({ behavior: "smooth" });
+              };
+              tableBody.appendChild(row);
+            });
+          }
+        });
+      }
+
+      window.onload = () => {
+        loadData();
+        document.getElementById("displayDate").innerText =
+          new Date().toLocaleDateString("ar-EG");
+      };
+
+      document.getElementById("searchInput").onkeyup = function () {
+        let filter = this.value.toUpperCase();
+        let tr = document
+          .getElementById("tableBody")
+          .getElementsByTagName("tr");
+        for (let i = 0; i < tr.length; i++) {
+          let td = tr[i].getElementsByTagName("td")[0];
+          if (td) {
+            let txtValue = td.textContent || td.innerText;
+            tr[i].style.display =
+              txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+          }
+        }
+      };
+    </script>
+  </body>
+</html>

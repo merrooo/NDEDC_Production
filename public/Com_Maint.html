@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> استلام عدادات - الصيانة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #000000;
+      /* تم التغيير من ffffff إلى 000000 */
+      --bg: #065192;
+      --card-bg: #292323;
+      --text-main: #000000;
+      --border: #e2e8f0;
+      --accent: #f59e0b;
+      --excel: #166534;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text-main);
+    }
+
+    .container-fluid {
+      width: 100%;
+      max-width: 1600px;
+      /* Optional: caps width for ultra-wide screens */
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Section */
+    .header-card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      border: 1px solid var(--border);
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    }
+
+    /* Table Container */
+    .table-container {
+      flex: 1;
+      background: rgb(255, 255, 255);
+      border-radius: 12px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 2200px;
+      /* Reduced slightly for better fit */
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    th {
+      background: #ffffff;
+      padding: 15px 10px;
+      color: #065192;
+      border-bottom: 2px solid var(--border);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      font-size: 14px;
+      background: white;
+    }
+
+    tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    /* Inputs inside Table */
+    .edit-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      text-align: center;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .edit-input:focus {
+      border-color: var(--primary);
+      background-color: #f0fdfa;
+      outline: none;
+    }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-save {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-bulk {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-excel {
+      background: var(--excel);
+      color: white;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .header-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
+      remove,
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const PATHS = {
+      SOURCE: "db_Undermaint",
+      TARGET1: "Delta_Meters_Data",
+      TARGET2: "Archive_Maint",
+    };
+    const requiredInputs = [
+      "m_total",
+      "m_curr",
+      "m_rem",
+      "m_max",
+      "m_debt",
+      "m_term_cov",
+      "m_meter_cov",
+      "m_reverse",
+    ];
+    const AUTH_PASS = "1";
+
+    let allData = [];
+    let filteredData = [];
+
+    async function loadData() {
+      Swal.fire({
+        title: "جاري التحميل...",
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const snap = await get(ref(db, PATHS.SOURCE));
+        const combined = [];
+        if (snap.exists()) {
+          snap.forEach((c) => {
+            const val = c.val();
+            const inner = val.otherdata || {};
+            combined.push({
+              ...val,
+              ...inner,
+              m_no: inner.MNO || val.m_no || c.key,
+            });
+          });
+        }
+        allData = combined;
+        filteredData = combined;
+        renderTable(filteredData);
+        Swal.close();
+      } catch (e) {
+        Swal.fire("خطأ", e.message, "error");
+      }
+    }
+
+    window.renderTable = (data) => {
+      const tbody = document.getElementById("mainTbody");
+      tbody.innerHTML = "";
+      data.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><b>${item.m_no}</b></td>
+            ${requiredInputs
+            .map(
+              (f) => `
+            <td><input class="edit-input" oninput="updateLocalData('${item.m_no}', '${f}', this.value)" value="${item[f] || ""}"></td>`,
+            )
+            .join("")}
+            <td><input class="edit-input" oninput="updateLocalData('${item.m_no}', 'm_notes', this.value)" value="${item.m_notes || item.Notes || ""}"></td>
+            <td>${item.YEAR || "-"}</td>
+            <td>${item.MPower || "-"}</td>
+            <td>${item.Mtype || "-"}</td>
+            <td>${item.Connection || "-"}</td>
+            <td>${item.Keta3 || "-"}</td>
+            <td>${item.Handsa || "-"}</td>
+            <td>${item.Removingfor || "-"}</td>
+            <td>${item.Uploaddate || "-"}</td>
+            <td>${item.Mremovingfor || "-"}</td>
+            <td>${item.Enter_Maint_Date || "-"}</td>
+            <td>${item.Notes || "-"}</td>
+            <td>${item.original_source || "-"}</td>
+
+            <td><button class="btn btn-save" onclick="exportProcess('${item.m_no}')">تسليم</button></td>
+          `;
+        tbody.appendChild(tr);
+      });
+    };
+
+    window.updateLocalData = (mno, field, value) => {
+      const item = allData.find((d) => d.m_no === mno);
+      if (item) item[field] = value;
+    };
+
+    window.exportToExcel = () => {
+      const excelData = filteredData.map((item) => ({
+        "رقم العداد": item.m_no,
+        "الاستهلاك الكلي": item.m_total || "",
+        "الاستهلاك الحالي": item.m_curr || "",
+        المتبقي: item.m_rem || "",
+        المديونية: item.m_debt || "",
+        الملاحظات: item.m_notes || item.Notes || "",
+        الهندسة: item.Handsa || "",
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "العدادات");
+      worksheet["!dir"] = "rtl";
+      XLSX.writeFile(
+        workbook,
+        `كشف_تسليم_${new Date().toLocaleDateString("ar-EG")}.xlsx`,
+      );
+    };
+
+    window.exportThenBulkTransfer = async () => {
+      if (filteredData.length === 0) return;
+
+      // رسالة التحذير (Warning Message)
+      const { value: confirm } = await Swal.fire({
+        title: "⚠️ تحذير ترحيل وحذف نهائي",
+        html: `أنت على وشك ترحيل عدد <b>(${filteredData.length})</b> عداد.<br><br>
+                 <span style="color:red; font-weight:bold;">تنبيه: سيتم تحميل ملف إكسيل أولاً ثم حذف البيانات تماماً من قائمة الصيانة الحالية.</span>`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc2626",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: "نعم، تصدير وترحيل الكل",
+        cancelButtonText: "تراجع",
+      });
+
+      if (confirm) {
+        const { value: password } = await Swal.fire({
+          title: "تأكيد بكلمة المرور",
+          input: "password",
+          inputLabel: "أدخل كلمة السر لإتمام الحذف والترحيل",
+          showCancelButton: true,
+        });
+
+        if (password === AUTH_PASS) {
+          try {
+            // 1. التصدير
+            exportToExcel();
+
+            // 2. الترحيل والحذف
+            Swal.fire({
+              title: "جاري العمل...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+            });
+            for (const item of filteredData) {
+              await set(ref(db, `${PATHS.TARGET1}/${item.m_no}`), item);
+              await set(ref(db, `${PATHS.TARGET2}/${item.m_no}`), item);
+              await remove(ref(db, `${PATHS.SOURCE}/${item.m_no}`));
+            }
+            Swal.fire("تم بنجاح", "تم حفظ الملف وتفريغ القائمة", "success");
+            loadData();
+          } catch (e) {
+            Swal.fire("خطأ", e.message, "error");
+          }
+        } else if (password !== undefined) {
+          Swal.fire("خطأ", "كلمة المرور خاطئة", "error");
+        }
+      }
+    };
+
+    window.exportProcess = async (mno) => {
+      const { value: password } = await Swal.fire({
+        title: "تأكيد التسليم",
+        input: "password",
+        showCancelButton: true,
+      });
+      if (password === AUTH_PASS) {
+        const item = allData.find((d) => d.m_no === mno);
+        try {
+          await set(ref(db, `${PATHS.TARGET1}/${mno}`), item);
+          await set(ref(db, `${PATHS.TARGET2}/${mno}`), item);
+          await remove(ref(db, `${PATHS.SOURCE}/${mno}`));
+          Swal.fire("تم", "تم التسليم بنجاح", "success");
+          loadData();
+        } catch (e) {
+          Swal.fire("خطأ", e.message, "error");
+        }
+      }
+    };
+
+    window.onload = loadData;
+    document.getElementById("search").addEventListener("input", (e) => {
+      const v = e.TARGET1.value.toLowerCase();
+      const i = e.TARGET2.value.toLowerCase();
+      filteredData = allData.filter((d) => d.m_no.toLowerCase().includes(v));
+      renderTable(filteredData);
+    });
+  </script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="header-card">
+      <h2 style="margin: 0; color: var(--primary-dark); font-size: 18px">
+        العدادات المستلمة من الصيانة
+      </h2>
+
+      <input type="text" id="search" class="search-input" placeholder="ابحث برقم العداد..." />
+
+      <button class="btn btn-bulk" onclick="exportThenBulkTransfer()">
+        تصدير وتسليم الكل 🚀
+      </button>
+
+      <button class="btn btn-save" onclick="location.reload()">
+        تحديث 🔄
+      </button>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="index.html" style="text-decoration: none;">
+          <button class="btn" style="background-color: #0c63b9; color: white;">
+            🏠 الرئيسية
+          </button>
+        </a>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>رقم العداد</th>
+            <th>الاستهلاك الكلي</th>
+            <th>الاستهلاك الحالي</th>
+            <th>المتبقي (جنية)</th>
+            <th>أقصى حمل (KW)</th>
+            <th>المديونية</th>
+            <th>غطاء الروزاتة</th>
+            <th>غطاء العداد</th>
+            <th>الرجوع عكس</th>
+            <th>ملاحظات الصيانة</th>
+            <th>سنة الصنع</th>
+            <th>القدرة</th>
+            <th>نوع العداد</th>
+            <th>نوع التوصيل</th>
+            <th>القطاع</th>
+            <th>الهندسة</th>
+            <th>سبب الرفع</th>
+            <th>تاريخ الرفع</th>
+            <th>تقرير الهندسة</th>
+            <th>تاريخ الدخول</th>
+            <th>ملاحظات الدخول</th>
+            <th>الحالة</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody id="mainTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تجهيز العدادات - للصيانة (الشركة المصنعة)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-blue: #065192;
+      --primary-green: #27ae60;
+      --bg: #065192;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #1e293b;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    .container-fluid {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* --- Top Header Card --- */
+    .header-card {
+      background: var(--card-bg);
+      padding: 15px 25px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      border: 1px solid var(--border);
+    }
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary-blue);
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      font-family: inherit;
+      background: #f8fafc;
+      transition: 0.3s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary-blue);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(6, 81, 146, 0.1);
+    }
+
+    /* --- Table Management --- */
+    .table-container {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 3000px;
+      /* Wider to accommodate all columns */
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: #f8fafc;
+    }
+
+    th {
+      padding: 15px 10px;
+      color: var(--primary-blue);
+      font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    /* Sticky First Column (Meter Number) */
+    th:first-child,
+    td:first-child {
+      position: sticky;
+      right: 0;
+      z-index: 20;
+      background: #f8fafc;
+      border-left: 2px solid var(--border);
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+    }
+
+    td:first-child {
+      background: #ffffff;
+      font-weight: 800;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: center;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background-color: #f8fbff;
+    }
+
+    /* --- Custom Badge & Inputs --- */
+    .source-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e0f2fe;
+      color: #0369a1;
+      display: block;
+      margin-top: 4px;
+    }
+
+    .edit-input {
+      width: 100%;
+      padding: 8px;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 6px;
+      text-align: center;
+      font-family: inherit;
+      background: #f1f5f9;
+      transition: 0.2s;
+    }
+
+    .edit-input:focus {
+      background: #fff;
+      border-color: var(--primary-blue);
+      outline: none;
+    }
+
+    /* --- Buttons --- */
+    .btn-save {
+      background: var(--primary-green);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: inherit;
+      transition: 0.3s;
+    }
+
+    .btn-save:hover:not(:disabled) {
+      background: #219150;
+      transform: translateY(-1px);
+    }
+
+    .btn-save:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .btn-refresh {
+      background: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Custom Scrollbar */
+    .table-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
+      remove,
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const PATHS = {
+      MAINTAIN: "db_Maintain",
+      REPEATED: "db_Repeated",
+      UNDERMAINT: "db_Undermaint",
+    };
+    const requiredFields = [
+      "m_total",
+      "m_curr",
+      "m_rem",
+      "m_max",
+      "m_debt",
+      "m_term_cov",
+      "m_meter_cov",
+      "m_reverse",
+    ];
+    let allData = [];
+
+    async function loadData() {
+      Swal.fire({
+        title: "جاري استخراج البيانات...",
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const [snapM, snapR] = await Promise.all([
+          get(ref(db, PATHS.MAINTAIN)),
+          get(ref(db, PATHS.REPEATED)),
+        ]);
+
+        const combined = {};
+        const process = (snap, sourceName) => {
+          if (snap.exists()) {
+            snap.forEach((c) => {
+              const val = c.val();
+              // دمج البيانات من المستوى الأعلى ومن داخل otherdata بشكل مسطح تماماً
+              const inner = val.otherdata || {};
+              const mno = inner.MNO || val.m_no || c.key;
+
+              combined[mno] = {
+                ...val, // أي بيانات في المستوى الأول
+                ...inner, // بيانات otherdata تطغى وتفكك المجلد
+                m_no: mno,
+                original_source: sourceName,
+              };
+            });
+          }
+        };
+
+        process(snapM, "صيانة_جديدة");
+        process(snapR, "صيانة_متكررة");
+
+        allData = Object.values(combined);
+        renderTable(allData);
+        Swal.close();
+      } catch (e) {
+        Swal.fire("خطأ", e.message, "error");
+      }
+    }
+
+    window.renderTable = (data) => {
+      const tbody = document.getElementById("mainTbody");
+      tbody.innerHTML = "";
+      data.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><b>${item.m_no}</b><span class="source-badge">${item.original_source}</span></td>
+            
+            ${requiredFields.map((f) => `<td><input class="edit-input" data-idx="${idx}" data-field="${f}" value="${item[f] || ""}" oninput="validateRow(${idx})"></td>`).join("")}
+            <td><input class="edit-input" data-idx="${idx}" data-field="m_notes" value="${item.Notes || item.m_notes || ""}"></td>
+            
+            <td>${item.YEAR || "-"}</td>
+            <td>${item.MPower || "-"}</td>
+            <td>${item.Mtype || "-"}</td>
+            <td>${item.Connection || "-"}</td>
+            <td>${item.Keta3 || "-"}</td>
+            <td>${item.Handsa || "-"}</td>
+            <td>${item.Removingfor || "-"}</td>
+            <td>${item.Uploaddate || "-"}</td>
+            <td>${item.Mremovingfor || "-"}</td>
+            <td>${item.Enter_Maint_Date || "-"}</td>
+            <td>${item.Notes || "-"}</td>
+            <td>${item.original_source || "-"}</td>
+            
+            <td><span style="color:orange; font-weight:bold;">بانتظار الأرسال للصيانة</span></td>
+            <td><button id="btn-move-${idx}" class="btn-save" disabled onclick="moveToUnderMaint('${item.m_no}', ${idx})">نقل</button></td>
+          `;
+        tbody.appendChild(tr);
+        validateRow(idx);
+      });
+    };
+
+    window.validateRow = (idx) => {
+      const inputs = document.querySelectorAll(
+        `.edit-input[data-idx="${idx}"]`,
+      );
+      let ok = true;
+      inputs.forEach((i) => {
+        if (requiredFields.includes(i.dataset.field) && i.value.trim() === "")
+          ok = false;
+      });
+      const btn = document.getElementById(`btn-move-${idx}`);
+      if (btn) btn.disabled = !ok;
+    };
+
+    window.moveToUnderMaint = async (mno, idx) => {
+      const inputs = document.querySelectorAll(
+        `.edit-input[data-idx="${idx}"]`,
+      );
+      const rowData = { ...allData[idx] };
+      inputs.forEach((i) => (rowData[i.dataset.field] = i.value));
+
+      try {
+        Swal.fire({
+          title: "جاري النقل...",
+          didOpen: () => Swal.showLoading(),
+        });
+        // تأكد من مسح reference الـ otherdata القديم عند النقل لجعل الداتابيز نظيفة
+        if (rowData.otherdata) delete rowData.otherdata;
+
+        await set(ref(db, `${PATHS.UNDERMAINT}/${mno}`), rowData);
+        await Promise.all([
+          remove(ref(db, `${PATHS.MAINTAIN}/${mno}`)),
+          remove(ref(db, `${PATHS.REPEATED}/${mno}`)),
+        ]);
+        Swal.fire("تم بنجاح", "تم نقل العداد لقائمة الصيانة", "success");
+        allData = allData.filter((d) => d.m_no !== mno);
+        renderTable(allData);
+      } catch (e) {
+        Swal.fire("خطأ", e.message, "error");
+      }
+    };
+
+    window.onload = loadData;
+  </script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="header-card">
+      <h2 style="margin: 0; color: var(--primary-dark); font-size: 18px">
+        استلام العدادات من شركة شمال الدلتا
+      </h2>
+
+      <input type="text" id="searchInput" class="search-input"
+        oninput="renderTable(allData.filter((d) => d.m_no.includes(this.value)))" placeholder="بحث برقم العداد..." />
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="btn-save" onclick="location.reload()">تحديث 🔄</button>
+
+        <a href="index.html" style="text-decoration: none;">
+          <button class="btn-save" style="background-color: #0c63b9; color: white; border: none;">
+            🏠 الرئيسية
+          </button>
+        </a>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>رقم العداد</th>
+            <th>الاستهلاك الكلي</th>
+            <th>الاستهلاك الحالي</th>
+            <th>المتبقي (جنية)</th>
+            <th>أقصى حمل (KW)</th>
+            <th>المديونية</th>
+            <th>غطاء الروزاتة</th>
+            <th>غطاء العداد</th>
+            <th>الرجوع عكس</th>
+            <th>ملاحظات الصيانة</th>
+            <th>سنة الصنع</th>
+            <th>القدرة</th>
+            <th>نوع العداد</th>
+            <th>نوع التوصيل</th>
+            <th>القطاع</th>
+            <th>الهندسة</th>
+            <th>سبب الرفع</th>
+            <th>تاريخ الرفع</th>
+            <th>تقرير الهندسة</th>
+            <th>تاريخ الدخول</th>
+            <th>ملاحظات الدخول</th>
+            <th>موقف الصيانة</th>
+            <th>الحالة</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody id="mainTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+
+</html>
