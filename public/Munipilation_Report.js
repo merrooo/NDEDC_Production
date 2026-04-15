@@ -1,31 +1,27 @@
 // Firebase Configuration
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
 import {
-  getDatabase,
-  ref,
-  get,
-  set,
-  update,
-  remove,
+    getDatabase,
+    ref,
+    get,
+    set,
+    remove,
 } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-  authDomain: "production1-ae85.firebaseapp.com",
-  projectId: "production1-ae85",
-  storageBucket: "production1-ae85.firebasestorage.app",
-  messagingSenderId: "490438031865",
-  appId: "1:490438031865:web:a4a69335989f30cd13a528",
-  measurementId: "G-W3TZ1EKWWN",
+    apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+    authDomain: "production1-ae85.firebaseapp.com",
+    projectId: "production1-ae85",
+    storageBucket: "production1-ae85.firebasestorage.app",
+    messagingSenderId: "490438031865",
+    appId: "1:490438031865:web:a4a69335989f30cd13a528",
+    measurementId: "G-W3TZ1EKWWN",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // Global Variables
-let selectedFiles = [];
-let isEditMode = false;
-let editKey = null;
 let isLoading = false;
 
 // DOM Elements
@@ -34,1145 +30,1131 @@ const mnoInput = document.getElementById("mno");
 const mcoInput = document.getElementById("mco");
 const notesInput = document.getElementById("notes");
 const tableBody = document.getElementById("tableBody");
-const photoInput = document.getElementById("photoInput");
-const frontPhotoGrid = document.getElementById("frontPhotoGrid");
+const totalKWSpan = document.getElementById("totalKW");
+const totalHPSpan = document.getElementById("totalHP");
+const totalAmpsSpan = document.getElementById("totalAmps");
 const phaseMode = document.getElementById("phase_mode");
+const countInput = document.getElementById("count");
 const pfInput = document.getElementById("newItemPF");
 const ampInput = document.getElementById("newItemA");
 const wattInput = document.getElementById("newItemW");
 const hpInput = document.getElementById("newItemHP");
 const loadNameInput = document.getElementById("newItemName");
 const btnSave = document.getElementById("btnSave");
-const btnSearch = document.getElementById("searchMainBtn");
 const btnReport = document.getElementById("reportMainBtn");
-const photoTriggerBtn = document.getElementById("photoTriggerBtn");
 const btnAddLoad = document.getElementById("btnAddLoad");
+const resetBtn = document.getElementById("resetBtn");
 
-// ========== Loading Overlay Functions ==========
+// Store photos per load
+let loadPhotos = {};
 
-// Show loading overlay with simplified message
+// ========== Loading Functions ==========
 function showLoading(message = "جاري المعالجة...") {
-  if (isLoading) return;
-  isLoading = true;
+    if (isLoading) return;
+    isLoading = true;
 
-  // Disable all buttons and inputs
-  const allButtons = [
-    btnSave,
-    btnSearch,
-    btnReport,
-    photoTriggerBtn,
-    btnAddLoad,
-  ];
-  const allInputs = [
-    mnameInput,
-    mnoInput,
-    mcoInput,
-    notesInput,
-    phaseMode,
-    pfInput,
-    ampInput,
-    wattInput,
-    hpInput,
-    loadNameInput,
-  ];
+    const allButtons = [btnSave, btnReport, btnAddLoad, resetBtn];
+    const allInputs = [mnameInput, mnoInput, mcoInput, notesInput, phaseMode, countInput, pfInput, ampInput, wattInput, hpInput, loadNameInput];
 
-  allButtons.forEach((btn) => {
-    if (btn) {
-      btn.disabled = true;
-      btn.style.opacity = "0.6";
-      btn.style.cursor = "not-allowed";
-    }
-  });
+    allButtons.forEach(btn => { if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; } });
+    allInputs.forEach(input => { if (input) { input.disabled = true; input.style.opacity = "0.6"; } });
 
-  allInputs.forEach((input) => {
-    if (input) {
-      input.disabled = true;
-      input.style.opacity = "0.6";
-      input.style.cursor = "not-allowed";
-    }
-  });
-
-  // Disable photo deletion buttons
-  document.querySelectorAll(".del-photo").forEach((btn) => {
-    btn.style.pointerEvents = "none";
-    btn.style.opacity = "0.5";
-  });
-
-  // Show SweetAlert loading
-  Swal.fire({
-    title: message,
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    allowEnterKey: false,
-    didOpen: () => {
-      Swal.showLoading();
-    },
-    backdrop: true,
-    showConfirmButton: false,
-  });
+    Swal.fire({
+        title: message,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); },
+        showConfirmButton: false,
+        backdrop: true
+    });
 }
 
-// Hide loading overlay
 function hideLoading() {
-  if (!isLoading) return;
-  isLoading = false;
+    if (!isLoading) return;
+    isLoading = false;
 
-  // Enable all buttons and inputs
-  const allButtons = [
-    btnSave,
-    btnSearch,
-    btnReport,
-    photoTriggerBtn,
-    btnAddLoad,
-  ];
-  const allInputs = [
-    mnameInput,
-    mnoInput,
-    mcoInput,
-    notesInput,
-    phaseMode,
-    pfInput,
-    ampInput,
-    wattInput,
-    hpInput,
-    loadNameInput,
-  ];
+    const allButtons = [btnSave, btnReport, btnAddLoad, resetBtn];
+    const allInputs = [mnameInput, mnoInput, mcoInput, notesInput, phaseMode, countInput, pfInput, ampInput, wattInput, hpInput, loadNameInput];
 
-  allButtons.forEach((btn) => {
-    if (btn) {
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      btn.style.cursor = "pointer";
+    allButtons.forEach(btn => { if (btn) { btn.disabled = false; btn.style.opacity = "1"; } });
+    allInputs.forEach(input => { if (input) { input.disabled = false; input.style.opacity = "1"; } });
+
+    Swal.close();
+}
+
+// ========== Electrical Calculation Functions ==========
+function calculateWattsAndHpFromAmps(amps, pf, mode) {
+    const V = mode === "3" ? 380 : 220;
+    const factor = mode === "3" ? Math.sqrt(3) : 1;
+    const watts = factor * V * amps * pf;
+    const hp = watts / 746;
+    return { watts, hp };
+}
+
+function calculateAmpsAndHpFromWatts(watts, pf, mode) {
+    const V = mode === "3" ? 380 : 220;
+    const factor = mode === "3" ? Math.sqrt(3) : 1;
+    const amps = watts / (factor * V * pf);
+    const hp = watts / 746;
+    return { amps, hp };
+}
+
+function calculateWattsAndAmpsFromHp(hp, pf, mode) {
+    const watts = hp * 746;
+    const V = mode === "3" ? 380 : 220;
+    const factor = mode === "3" ? Math.sqrt(3) : 1;
+    const amps = watts / (factor * V * pf);
+    return { watts, amps };
+}
+
+// Update input fields based on which one changed
+function updateFromWatts() {
+    let watts = parseFloat(wattInput.value) || 0;
+    let pf = parseFloat(pfInput.value) || 0.92;
+    let mode = phaseMode.value;
+    if (pf <= 0) pf = 0.92;
+
+    if (watts > 0) {
+        const { amps, hp } = calculateAmpsAndHpFromWatts(watts, pf, mode);
+        hpInput.value = hp.toFixed(3);
+        ampInput.value = amps.toFixed(2);
+    } else {
+        hpInput.value = "";
+        ampInput.value = "";
     }
-  });
-
-  allInputs.forEach((input) => {
-    if (input) {
-      input.disabled = false;
-      input.style.opacity = "1";
-      input.style.cursor = "text";
-    }
-  });
-
-  // Enable photo deletion buttons
-  document.querySelectorAll(".del-photo").forEach((btn) => {
-    btn.style.pointerEvents = "auto";
-    btn.style.opacity = "1";
-  });
-
-  // Close SweetAlert if it's still open
-  Swal.close();
-}
-
-// ========== HIGH COMPRESSION Image Processing ==========
-
-async function highCompressImage(file, loadDescription = "", meterNumber = "") {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-
-        let width = img.width;
-        let height = img.height;
-        const maxDimension = 600;
-
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          } else {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        let quality = 0.6;
-        let base64 = canvas.toDataURL("image/jpeg", quality);
-        const targetSize = 80 * 1024;
-
-        while (base64.length > targetSize && quality > 0.25) {
-          quality -= 0.05;
-          base64 = canvas.toDataURL("image/jpeg", quality);
-        }
-
-        const timestamp = Date.now();
-        const safeDescription = loadDescription.replace(
-          /[^a-zA-Z0-9\u0600-\u06FF]/g,
-          "_",
-        );
-        const fileName = meterNumber
-          ? `${meterNumber}_${safeDescription}_${timestamp}.jpg`
-          : `${safeDescription}_${timestamp}.jpg`;
-
-        console.log(
-          `📸 ${file.name}: ${(file.size / 1024).toFixed(1)}KB → ${(base64.length / 1024).toFixed(1)}KB`,
-        );
-
-        resolve({
-          base64: base64,
-          fileName: fileName,
-          originalName: file.name,
-          originalSize: file.size,
-          compressedSize: base64.length,
-          dimensions: `${width}x${height}`,
-          quality: quality,
-          uploadDate: new Date().toISOString(),
-          loadDescription: loadDescription || "بدون وصف",
-          meterNumber: meterNumber,
-        });
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function processImagesFast(filesWithDescriptions, meterNumber) {
-  const processedImages = [];
-  const errors = [];
-
-  const batchSize = 3;
-  for (let i = 0; i < filesWithDescriptions.length; i += batchSize) {
-    const batch = filesWithDescriptions.slice(i, i + batchSize);
-    const batchPromises = batch.map(async (item) => {
-      try {
-        const { file, description } = item;
-        const optimized = await highCompressImage(
-          file,
-          description,
-          meterNumber,
-        );
-        return { success: true, data: optimized };
-      } catch (error) {
-        return { success: false, error, file: item.file.name };
-      }
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-
-    batchResults.forEach((result) => {
-      if (result.success) {
-        processedImages.push(result.data);
-      } else {
-        errors.push({ file: result.file, error: result.error.message });
-      }
-    });
-  }
-
-  return { processedImages, errors };
-}
-
-// ========== Electrical Logic ==========
-function updateFromWatt() {
-  let watts = parseFloat(wattInput.value) || 0;
-  let pf = parseFloat(pfInput.value) || 0.8;
-  let mode = phaseMode.value;
-  let V = mode === "3" ? 380 : 220;
-  let factor = mode === "3" ? Math.sqrt(3) : 1;
-  if (pf <= 0) pf = 0.8;
-  let amps = watts / (factor * V * pf);
-  let hpVal = watts / 746;
-  hpInput.value = hpVal.toFixed(3);
-  ampInput.value = amps.toFixed(2);
 }
 
 function updateFromHP() {
-  let hpVal = parseFloat(hpInput.value) || 0;
-  let watts = hpVal * 746;
-  wattInput.value = watts.toFixed(0);
-  updateFromWatt();
+    let hpVal = parseFloat(hpInput.value) || 0;
+    let pf = parseFloat(pfInput.value) || 0.92;
+    let mode = phaseMode.value;
+    if (pf <= 0) pf = 0.92;
+
+    if (hpVal > 0) {
+        const { watts, amps } = calculateWattsAndAmpsFromHp(hpVal, pf, mode);
+        wattInput.value = watts.toFixed(0);
+        ampInput.value = amps.toFixed(2);
+    } else {
+        wattInput.value = "";
+        ampInput.value = "";
+    }
 }
 
-function updateFromAmpere() {
-  let amps = parseFloat(ampInput.value) || 0;
-  let pf = parseFloat(pfInput.value) || 0.8;
-  let mode = phaseMode.value;
-  let V = mode === "3" ? 380 : 220;
-  let factor = mode === "3" ? Math.sqrt(3) : 1;
-  let watts = factor * V * amps * pf;
-  wattInput.value = watts.toFixed(0);
-  let hpVal = watts / 746;
-  hpInput.value = hpVal.toFixed(3);
+function updateFromAmps() {
+    let amps = parseFloat(ampInput.value) || 0;
+    let pf = parseFloat(pfInput.value) || 0.92;
+    let mode = phaseMode.value;
+    if (pf <= 0) pf = 0.92;
+
+    if (amps > 0) {
+        const { watts, hp } = calculateWattsAndHpFromAmps(amps, pf, mode);
+        wattInput.value = watts.toFixed(0);
+        hpInput.value = hp.toFixed(3);
+    } else {
+        wattInput.value = "";
+        hpInput.value = "";
+    }
 }
 
-wattInput.addEventListener("input", updateFromWatt);
+// Event listeners for real-time calculation
+wattInput.addEventListener("input", updateFromWatts);
 hpInput.addEventListener("input", updateFromHP);
-ampInput.addEventListener("input", updateFromAmpere);
+ampInput.addEventListener("input", updateFromAmps);
 phaseMode.addEventListener("change", () => {
-  if (wattInput.value) updateFromWatt();
-  else if (ampInput.value) updateFromAmpere();
+    if (wattInput.value && parseFloat(wattInput.value) > 0) updateFromWatts();
+    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateFromAmps();
+    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateFromHP();
 });
-pfInput.addEventListener("input", () => {
-  if (wattInput.value) updateFromWatt();
-  else if (ampInput.value) updateFromAmpere();
+pfInput.addEventListener("change", () => {
+    if (wattInput.value && parseFloat(wattInput.value) > 0) updateFromWatts();
+    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateFromAmps();
+    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateFromHP();
 });
 
-// ========== Photo Handling ==========
-photoTriggerBtn.onclick = () => photoInput.click();
+// ========== Calculate Row Totals ==========
+function calculateRowTotals(count, watts, hp, amps) {
+    const totalWatts = (watts || 0) * (count || 1);
+    const totalHP = (hp || 0) * (count || 1);
+    const totalAmps = (amps || 0) * (count || 1);
+    const totalKW = totalWatts / 1000;
+    return { totalWatts, totalHP, totalAmps, totalKW };
+}
 
-photoInput.onchange = async (e) => {
-  const loads = getCurrentLoads();
+// ========== Update Total Calculations ==========
+function updateTotals() {
+    let totalKW = 0;
+    let totalHP = 0;
+    let totalAmps = 0;
 
-  if (loads.length === 0) {
-    Swal.fire("تنبيه", "الرجاء إضافة أحمال أولاً قبل رفع الصور", "warning");
-    photoInput.value = "";
-    return;
-  }
+    for (let row of tableBody.rows) {
+        const kwCell = row.cells[5];
+        const hpCell = row.cells[6];
+        const ampsCell = row.cells[4];
 
-  for (const file of Array.from(e.target.files)) {
-    const loadOptions = loads.map((load, idx) => ({
-      name: load.item,
-      index: idx,
-    }));
+        if (kwCell && kwCell.innerText) totalKW += parseFloat(kwCell.innerText) || 0;
+        if (hpCell && hpCell.innerText) totalHP += parseFloat(hpCell.innerText) || 0;
+        if (ampsCell && ampsCell.innerText) totalAmps += parseFloat(ampsCell.innerText) || 0;
+    }
 
-    const result = await Swal.fire({
-      title: `اختر الحمولة للصورة: ${file.name}`,
-      html: `
-        <div style="text-align: right; max-height: 400px; overflow-y: auto;">
-          ${loadOptions
-            .map(
-              (load) => `
-            <div class="load-option" data-load="${load.name}" style="
-              padding: 12px;
-              margin: 8px 0;
-              border: 1px solid #ddd;
-              border-radius: 8px;
-              cursor: pointer;
-              transition: all 0.2s;
-              background: white;
-            ">
-              <strong>${escapeHtml(load.name)}</strong>
-            </div>
-          `,
-            )
-            .join("")}
-          <div class="load-option" data-load="new" style="
-            padding: 12px;
-            margin: 8px 0;
-            border: 2px dashed var(--accent);
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            background: #f0f9ff;
-          ">
-            ➕ إضافة حمولة جديدة
-          </div>
-        </div>
-      `,
-      showConfirmButton: false,
-      showCancelButton: true,
-      cancelButtonText: "إلغاء",
-      width: "500px",
-      didOpen: () => {
-        document.querySelectorAll(".load-option").forEach((option) => {
-          option.onclick = async () => {
-            const loadName = option.getAttribute("data-load");
-            if (loadName === "new") {
-              const { value: newLoadName } = await Swal.fire({
-                title: "إضافة حمولة جديدة",
-                input: "text",
-                inputPlaceholder: "أدخل اسم الحمولة",
-                showCancelButton: true,
-                confirmButtonText: "إضافة",
-                cancelButtonText: "إلغاء",
-              });
+    totalKWSpan.innerText = totalKW.toFixed(2);
+    totalHPSpan.innerText = totalHP.toFixed(2);
+    totalAmpsSpan.innerText = totalAmps.toFixed(2);
+}
 
-              if (newLoadName) {
-                const newRow = tableBody.insertRow();
-                newRow.insertCell(0).innerText = newLoadName;
-                newRow.insertCell(1).innerText = "0";
-                newRow.insertCell(2).innerText = "0";
-                newRow.insertCell(3).innerText = "0";
-                const delCell = newRow.insertCell(4);
-                delCell.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                delCell.className = "btn-delete-row";
-                delCell.onclick = () => newRow.remove();
+// ========== Update Photo Preview in Row ==========
+function updatePhotoPreview(row, loadName) {
+    const photos = loadPhotos[loadName] || [];
+    const photoCell = row.cells[7];
 
-                addPhotoWithLoad(file, newLoadName);
-                Swal.close();
-              }
-            } else {
-              addPhotoWithLoad(file, loadName);
-              Swal.close();
-            }
-          };
+    if (photos.length > 0) {
+        let thumbsHtml = '<div class="photo-preview">';
+        photos.slice(0, 3).forEach((photo, idx) => {
+            thumbsHtml += `<img src="${photo}" class="photo-thumb" onclick="event.stopPropagation(); window.enlargeImage('${photo}')" title="صورة ${idx + 1}">`;
         });
-      },
-    });
-
-    if (result.dismiss === Swal.DismissReason.cancel) {
-      continue;
+        if (photos.length > 3) {
+            thumbsHtml += `<span style="font-size:9px; color:#666;">+${photos.length - 3}</span>`;
+        }
+        thumbsHtml += '</div>';
+        photoCell.innerHTML = thumbsHtml;
+    } else {
+        photoCell.innerHTML = '<span style="color:#aaa; font-size:9px;">لا صور</span>';
     }
-  }
-  photoInput.value = "";
-};
-
-function addPhotoWithLoad(file, description) {
-  selectedFiles.push({
-    file: file,
-    description: description,
-    id: Date.now() + "_" + Math.random(),
-  });
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const div = document.createElement("div");
-    div.className = "photo-box";
-    div.setAttribute(
-      "data-photo-id",
-      selectedFiles[selectedFiles.length - 1].id,
-    );
-    div.innerHTML = `
-      <img src="${ev.target.result}" alt="preview" onclick="previewImage('${ev.target.result}', '${description.replace(/'/g, "\\'")}')">
-      <div class="photo-label">${escapeHtml(description)}</div>
-      <div class="del-photo" onclick="removePhoto(this)">✕</div>
-    `;
-    frontPhotoGrid.appendChild(div);
-  };
-  reader.readAsDataURL(file);
 }
-
-function getCurrentLoads() {
-  const loads = [];
-  for (let row of tableBody.rows) {
-    const description = row.cells[0].innerText.trim();
-    const watts = parseFloat(row.cells[1].innerText) || 0;
-    const hp = parseFloat(row.cells[2].innerText) || 0;
-    const amp = parseFloat(row.cells[3].innerText) || 0;
-
-    if (description && (watts > 0 || hp > 0 || amp > 0)) {
-      loads.push({
-        item: description,
-        watts: watts.toString(),
-        hp: hp.toString(),
-        amp: amp.toString(),
-      });
-    }
-  }
-  return loads;
-}
-
-window.removePhoto = (el) => {
-  const boxDiv = el.parentElement;
-  const photoId = boxDiv.getAttribute("data-photo-id");
-  if (photoId) {
-    const index = selectedFiles.findIndex((f) => f.id === photoId);
-    if (index !== -1) selectedFiles.splice(index, 1);
-  }
-  boxDiv.remove();
-};
-
-window.previewImage = (imageSrc, description) => {
-  Swal.fire({
-    title: description || "معاينة الصورة",
-    html: `
-      <img src="${imageSrc}" style="max-width: 100%; max-height: 80vh; border-radius: 8px; cursor: pointer;" onclick="window.open('${imageSrc}', '_blank')">
-      <div style="margin-top: 15px;">
-        <button onclick="downloadImage('${imageSrc}')" class="swal2-confirm swal2-styled" style="background: #2c9cd4;">
-          <i class="fas fa-download"></i> تحميل الصورة
-        </button>
-      </div>
-    `,
-    showConfirmButton: true,
-    confirmButtonText: "إغلاق",
-    width: "auto",
-    padding: "20px",
-  });
-};
-
-window.downloadImage = (imageSrc) => {
-  const link = document.createElement("a");
-  link.href = imageSrc;
-  link.download = "image.jpg";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
 
 // ========== Add Load Row ==========
-btnAddLoad.onclick = async () => {
-  if (isLoading) return;
+function addLoadToTable(description, count, wattsPerUnit, hpPerUnit, ampsPerUnit) {
+    const { totalWatts, totalHP, totalAmps, totalKW } = calculateRowTotals(count, wattsPerUnit, hpPerUnit, ampsPerUnit);
 
-  const desc = loadNameInput.value.trim();
-  const watts = wattInput.value;
-  const hp = hpInput.value;
-  const amps = ampInput.value;
+    const row = tableBody.insertRow();
+    row.insertCell(0).innerText = description;
+    row.insertCell(1).innerText = count;
+    row.insertCell(2).innerText = wattsPerUnit || 0;
+    row.insertCell(3).innerText = hpPerUnit ? hpPerUnit.toFixed(3) : 0;
+    row.insertCell(4).innerText = totalAmps.toFixed(2);
+    row.insertCell(5).innerText = totalKW.toFixed(3);
+    row.insertCell(6).innerText = totalHP.toFixed(3);
 
-  if (!desc) {
-    Swal.fire("تنبيه", "يرجى إدخال وصف الحمل", "warning");
-    return;
-  }
-  if ((!watts || watts === "0") && (!amps || amps === "0")) {
-    Swal.fire("تنبيه", "أدخل الوات أو الأمبير (لا يمكن أن يكون صفر)", "info");
-    return;
-  }
+    const photoCell = row.insertCell(7);
+    photoCell.style.minWidth = "65px";
+    updatePhotoPreview(row, description);
 
-  const row = tableBody.insertRow();
-  row.insertCell(0).innerText = desc;
-  row.insertCell(1).innerText = watts || "0";
-  row.insertCell(2).innerText = hp || "0";
-  row.insertCell(3).innerText = amps || "0";
-  const delCell = row.insertCell(4);
-  delCell.innerHTML = '<i class="fas fa-trash-alt"></i>';
-  delCell.className = "btn-delete-row";
-  delCell.onclick = () => row.remove();
+    const actionCell = row.insertCell(8);
+    actionCell.style.whiteSpace = "nowrap";
+    actionCell.innerHTML = `
+        <button class="btn-camera-row" style="background:#2c9cd4; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-camera"></i>
+        </button>
+        <button class="btn-delete-row" style="background:#e1573c; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    `;
 
-  loadNameInput.value = "";
-  wattInput.value = "";
-  hpInput.value = "";
-  ampInput.value = "";
+    const cameraBtn = actionCell.querySelector('.btn-camera-row');
+    const delBtn = actionCell.querySelector('.btn-delete-row');
 
-  const uploadPhoto = await Swal.fire({
-    title: "هل تريد إضافة صورة لهذا الحمل؟",
-    text: desc,
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "نعم، أضف صورة",
-    cancelButtonText: "لا، شكراً",
-  });
+    cameraBtn.onclick = () => uploadPhotoForLoad(description, row);
+    delBtn.onclick = () => {
+        delete loadPhotos[description];
+        row.remove();
+        updateTotals();
+    };
 
-  if (uploadPhoto.isConfirmed) {
+    updateTotals();
+}
+
+// Upload photo for specific load
+async function uploadPhotoForLoad(loadName, row) {
+    if (isLoading) return;
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.onchange = (e) => {
-      if (e.target.files[0]) {
-        addPhotoWithLoad(e.target.files[0], desc);
-      }
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showLoading(`جاري رفع ${files.length} صورة...`);
+
+        const newPhotos = [];
+        for (const file of files) {
+            const base64 = await compressImage(file);
+            newPhotos.push(base64);
+        }
+
+        if (!loadPhotos[loadName]) loadPhotos[loadName] = [];
+        loadPhotos[loadName] = [...loadPhotos[loadName], ...newPhotos];
+
+        updatePhotoPreview(row, loadName);
+
+        hideLoading();
+        await Swal.fire("تم الرفع", `تم إضافة ${newPhotos.length} صورة للحمل "${loadName}"`, "success", { timer: 1500, showConfirmButton: false });
     };
+
     input.click();
-  }
+}
+
+// Compress image
+async function compressImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+                const maxDimension = 600;
+
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = (height * maxDimension) / width;
+                        width = maxDimension;
+                    } else {
+                        width = (width * maxDimension) / height;
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                let quality = 0.7;
+                let base64 = canvas.toDataURL("image/jpeg", quality);
+
+                resolve(base64);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Enlarge image function
+window.enlargeImage = (imageSrc) => {
+    Swal.fire({
+        imageUrl: imageSrc,
+        imageAlt: "الصورة",
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: "auto",
+        background: "rgba(0,0,0,0.9)",
+        imageWidth: "80%",
+        imageHeight: "auto"
+    });
 };
+
+btnAddLoad.onclick = () => {
+    if (isLoading) return;
+
+    const description = loadNameInput.value.trim();
+    const count = parseInt(countInput.value) || 1;
+    const watts = parseFloat(wattInput.value) || 0;
+    const hp = parseFloat(hpInput.value) || 0;
+    const amps = parseFloat(ampInput.value) || 0;
+
+    if (!description) {
+        Swal.fire("تنبيه", "يرجى إدخال وصف الحمل", "warning");
+        return;
+    }
+
+    if (watts === 0 && amps === 0 && hp === 0) {
+        Swal.fire("تنبيه", "أدخل الوات أو الأمبير أو الحصان", "info");
+        return;
+    }
+
+    addLoadToTable(description, count, watts, hp, amps);
+
+    loadNameInput.value = "";
+    countInput.value = "1";
+    wattInput.value = "";
+    hpInput.value = "";
+    ampInput.value = "";
+};
+
+// ========== Get Current Loads for Saving ==========
+function getCurrentLoads() {
+    const loads = [];
+    for (let row of tableBody.rows) {
+        loads.push({
+            item: row.cells[0].innerText,
+            count: row.cells[1].innerText,
+            watts: row.cells[2].innerText,
+            hp: row.cells[3].innerText,
+            amps: row.cells[4].innerText,
+            totalKW: row.cells[5].innerText,
+            totalHP: row.cells[6].innerText
+        });
+    }
+    return loads;
+}
 
 // ========== Save to Firebase ==========
 btnSave.onclick = async () => {
-  if (isLoading) return;
+    if (isLoading) return;
 
-  const code = mcoInput.value.trim();
-  const meterNo = mnoInput.value.trim();
+    const meterNo = mnoInput.value.trim();
+    const name = mnameInput.value.trim();
+    const code = mcoInput.value.trim();
 
-  if (!code) {
-    Swal.fire("خطأ", "كود المشترك (ID) مطلوب", "error");
-    return;
-  }
+    if (!meterNo) {
+        await Swal.fire("خطأ", "رقم العداد مطلوب", "error");
+        return;
+    }
 
-  showLoading(isEditMode ? "جاري التحديث..." : "جاري الحفظ...");
+    if (!name) {
+        await Swal.fire("خطأ", "اسم المشترك مطلوب", "error");
+        return;
+    }
 
-  try {
-    const loads = getCurrentLoads();
-    let photoData = [];
+    showLoading("جاري الحفظ...");
 
-    if (selectedFiles.length > 0) {
-      const newFiles = selectedFiles.filter((f) => !f.isExisting);
-      if (newFiles.length > 0) {
-        const { processedImages, errors } = await processImagesFast(
-          newFiles,
-          meterNo,
-        );
-        photoData = processedImages;
-
-        if (errors.length > 0) {
-          hideLoading();
-          Swal.fire({
-            title: "تنبيه",
-            html: `تم ضغط ${processedImages.length} صورة بنجاح<br>فشل: ${errors.length}`,
-            icon: "warning",
-          });
-          showLoading(isEditMode ? "جاري التحديث..." : "جاري الحفظ...");
+    try {
+        const loads = getCurrentLoads();
+        
+        // Calculate totals
+        let totalKW = 0, totalHP = 0, totalAmps = 0;
+        for (const load of loads) {
+            totalKW += parseFloat(load.totalKW) || 0;
+            totalHP += parseFloat(load.totalHP) || 0;
+            totalAmps += (parseFloat(load.amps) || 0) * (parseFloat(load.count) || 1);
         }
-      }
 
-      const existingPhotos = selectedFiles
-        .filter((f) => f.isExisting)
-        .map((f) => f.photoData);
-      photoData = [...existingPhotos, ...photoData];
+        const dataToSave = {
+            name: name,
+            meter_no: meterNo,
+            code: code || "",
+            description: notesInput.value || "",
+            loads: loads,
+            photos: loadPhotos,
+            totalKW: totalKW.toFixed(2),
+            totalHP: totalHP.toFixed(2),
+            totalAmps: totalAmps.toFixed(2),
+            lastUpdated: new Date().toISOString(),
+        };
+
+        await set(ref(db, `Munipilation/${meterNo}`), dataToSave);
+
+        hideLoading();
+        await Swal.fire({ title: "تم الحفظ", text: "تم حفظ البيانات بنجاح", icon: "success", timer: 1500, showConfirmButton: false });
+    } catch (e) {
+        hideLoading();
+        await Swal.fire("خطأ", e.message, "error");
     }
-
-    const totalSizeKB = (
-      photoData.reduce((sum, img) => sum + (img.compressedSize || 0), 0) / 1024
-    ).toFixed(1);
-
-    const dataToSave = {
-      name: mnameInput.value,
-      meter_no: meterNo,
-      description: notesInput.value,
-      loads: loads,
-      photos: photoData,
-      photoCount: photoData.length,
-      totalImagesSizeKB: totalSizeKB,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    if (isEditMode && editKey) {
-      await update(ref(db, "Munipilation/" + editKey), dataToSave);
-      isEditMode = false;
-      editKey = null;
-    } else {
-      await set(ref(db, "Munipilation/" + code), dataToSave);
-    }
-
-    hideLoading();
-    Swal.fire({
-      title: "تم الحفظ",
-      text: `تم حفظ ${photoData.length} صورة`,
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    }).then(() => {
-      resetForm();
-    });
-  } catch (e) {
-    hideLoading();
-    Swal.fire("خطأ", e.message, "error");
-  }
 };
 
 function resetForm() {
-  mnameInput.value = "";
-  mnoInput.value = "";
-  mcoInput.value = "";
-  notesInput.value = "";
-  tableBody.innerHTML = "";
-  frontPhotoGrid.innerHTML = "";
-  selectedFiles = [];
-  isEditMode = false;
-  editKey = null;
-  btnSave.innerHTML = '<i class="fas fa-save"></i> حفظ البيانات';
+    mnameInput.value = "";
+    mnoInput.value = "";
+    mcoInput.value = "";
+    notesInput.value = "";
+    tableBody.innerHTML = "";
+    loadPhotos = {};
+    updateTotals();
 }
 
-// ========== Search & Redirect to Main Page for Editing ==========
-btnSearch.onclick = () => {
-  if (isLoading) return;
+// ========== Load Data to Main Form ==========
+async function loadDataToMainForm(meterNo) {
+    try {
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
 
-  Swal.fire({
-    title: "البحث عن مشترك",
-    html: `
-      <input type="text" id="searchMeterEdit" class="swal2-input" placeholder="رقم العداد..." style="width:90%">
-      <div id="searchResultsEdit" style="margin-top:15px; max-height:300px; overflow-y:auto;"></div>
-    `,
-    showConfirmButton: false,
-    width: "700px",
-  });
+        if (data) {
+            resetForm();
 
-  const searchInput = document.getElementById("searchMeterEdit");
-  if (searchInput) {
-    searchInput.addEventListener("keyup", async (e) => {
-      const term = e.target.value;
-      if (term.length < 1) return;
-      const snap = await get(ref(db, "Munipilation"));
-      const resultsDiv = document.getElementById("searchResultsEdit");
-      resultsDiv.innerHTML = "";
-      snap.forEach((child) => {
-        const data = child.val();
-        if (data.meter_no && data.meter_no.includes(term)) {
-          const div = document.createElement("div");
-          div.className = "search-row";
-          div.innerHTML = `
-            <span><strong>${escapeHtml(data.name)}</strong> | ${escapeHtml(data.meter_no)}</span>
-            <button onclick="loadDataForEdit('${child.key}')" style="background:#2c9cd4;">تعديل</button>
-          `;
-          resultsDiv.appendChild(div);
+            mnameInput.value = data.name || "";
+            mnoInput.value = data.meter_no || "";
+            mcoInput.value = data.code || "";
+            notesInput.value = data.description || "";
+
+            if (data.loads && Array.isArray(data.loads) && data.loads.length > 0) {
+                for (const load of data.loads) {
+                    addLoadToTable(
+                        load.item,
+                        parseFloat(load.count) || 1,
+                        parseFloat(load.watts) || 0,
+                        parseFloat(load.hp) || 0,
+                        parseFloat(load.amps) || 0
+                    );
+                }
+                updateTotals();
+            }
+
+            if (data.photos && typeof data.photos === 'object') {
+                loadPhotos = JSON.parse(JSON.stringify(data.photos));
+                for (let i = 0; i < tableBody.rows.length; i++) {
+                    const row = tableBody.rows[i];
+                    const loadName = row.cells[0].innerText;
+                    updatePhotoPreview(row, loadName);
+                }
+            }
         }
-      });
-    });
-  }
-};
-
-window.loadDataForEdit = async (key) => {
-  if (isLoading) return;
-
-  Swal.close();
-  showLoading("جاري التحميل...");
-
-  try {
-    const snap = await get(ref(db, "Munipilation/" + key));
-    const data = snap.val();
-
-    if (data) {
-      resetForm();
-
-      isEditMode = true;
-      editKey = key;
-      btnSave.innerHTML = '<i class="fas fa-save"></i> تحديث';
-
-      mnameInput.value = data.name || "";
-      mnoInput.value = data.meter_no || "";
-      mcoInput.value = key;
-      notesInput.value = data.description || "";
-
-      if (data.loads && data.loads.length > 0) {
-        data.loads.forEach((load) => {
-          const row = tableBody.insertRow();
-          row.insertCell(0).innerText = load.item || "";
-          row.insertCell(1).innerText = load.watts || "0";
-          row.insertCell(2).innerText = load.hp || "0";
-          row.insertCell(3).innerText = load.amp || "0";
-          const delCell = row.insertCell(4);
-          delCell.innerHTML = '<i class="fas fa-trash-alt"></i>';
-          delCell.className = "btn-delete-row";
-          delCell.onclick = () => row.remove();
-        });
-      }
-
-      if (data.photos && data.photos.length > 0) {
-        selectedFiles = [];
-        frontPhotoGrid.innerHTML = "";
-
-        data.photos.forEach((photo, index) => {
-          const photoBase64 = photo.base64 || "";
-          const photoDescription = photo.loadDescription || "بدون وصف";
-          const photoFileName = photo.fileName || `image_${index}`;
-
-          const div = document.createElement("div");
-          div.className = "photo-box";
-          div.innerHTML = `
-            <img src="${photoBase64}" alt="preview" onclick="previewImage('${photoBase64}', '${escapeHtml(photoDescription)}')">
-            <div class="photo-label">${escapeHtml(photoDescription)}</div>
-            <div class="del-photo" onclick="removeExistingPhoto('${key}', ${index})">✕</div>
-          `;
-          frontPhotoGrid.appendChild(div);
-
-          selectedFiles.push({
-            id: photoFileName,
-            isExisting: true,
-            photoData: photo,
-          });
-        });
-      }
-
-      hideLoading();
-      Swal.fire({
-        title: "تم",
-        text: "البيانات جاهزة للتعديل",
-        icon: "success",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-    } else {
-      hideLoading();
-      Swal.fire("خطأ", "لم يتم العثور على البيانات", "error");
+        return data;
+    } catch (error) {
+        console.error("Error loading to main form:", error);
+        return null;
     }
-  } catch (error) {
-    hideLoading();
-    console.error("Error loading data:", error);
-    Swal.fire("خطأ", "فشل تحميل البيانات", "error");
-  }
-};
+}
 
-window.removeExistingPhoto = async (key, photoIndex) => {
-  if (isLoading) return;
-
-  const result = await Swal.fire({
-    title: "تأكيد الحذف",
-    text: "هل أنت متأكد من حذف هذه الصورة؟",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "حذف",
-    cancelButtonText: "إلغاء",
-  });
-
-  if (result.isConfirmed) {
-    showLoading("جاري الحذف...");
+// ========== View Full Record ==========
+window.viewFullRecord = async (meterNo) => {
+    showLoading("جاري التحميل...");
 
     try {
-      const snap = await get(ref(db, "Munipilation/" + key));
-      const data = snap.val();
-
-      if (data && data.photos && data.photos[photoIndex]) {
-        data.photos.splice(photoIndex, 1);
-
-        await update(ref(db, "Munipilation/" + key), {
-          photos: data.photos,
-          photoCount: data.photos.length,
-          totalImagesSizeKB: (
-            data.photos.reduce(
-              (sum, img) => sum + (img.compressedSize || 0),
-              0,
-            ) / 1024
-          ).toFixed(1),
-          lastUpdated: new Date().toISOString(),
-        });
-
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
         hideLoading();
-        Swal.fire("تم الحذف", "", "success", {
-          timer: 1000,
-          showConfirmButton: false,
-        }).then(() => {
-          loadDataForEdit(key);
-        });
-      } else {
-        hideLoading();
-        Swal.fire("خطأ", "الصورة غير موجودة", "error");
-      }
-    } catch (error) {
-      hideLoading();
-      Swal.fire("خطأ", "فشل حذف الصورة", "error");
-    }
-  }
-};
 
-// ========== Report with Lightbox Preview ==========
-btnReport.onclick = () => {
-  if (isLoading) return;
-
-  Swal.fire({
-    title: "عرض التقارير",
-    html: `
-      <input type="text" id="reportSearch" class="swal2-input" placeholder="بحث برقم العداد..." style="width:90%">
-      <div id="reportResultsList" style="margin-top:15px; max-height:450px; overflow-y:auto;"></div>
-    `,
-    showConfirmButton: true,
-    confirmButtonText: "إغلاق",
-    showCancelButton: false,
-    width: "800px",
-    allowOutsideClick: false,
-  });
-
-  const searchInput = document.getElementById("reportSearch");
-  if (searchInput) {
-    searchInput.addEventListener("keyup", async (e) => {
-      const term = e.target.value;
-      if (term.length < 1) return;
-      const snap = await get(ref(db, "Munipilation"));
-      const resultsDiv = document.getElementById("reportResultsList");
-      resultsDiv.innerHTML = "";
-      snap.forEach((child) => {
-        const data = child.val();
-        if (data.meter_no && data.meter_no.includes(term)) {
-          const div = document.createElement("div");
-          div.className = "search-row";
-          div.style.flexDirection = "column";
-          div.style.alignItems = "stretch";
-          div.style.gap = "12px";
-
-          const photosByLoad = {};
-          if (data.photos && data.photos.length > 0) {
-            data.photos.forEach((photo) => {
-              const loadDesc = photo.loadDescription || "صور عامة";
-              if (!photosByLoad[loadDesc]) {
-                photosByLoad[loadDesc] = [];
-              }
-              photosByLoad[loadDesc].push(photo);
-            });
-          }
-
-          let photosHtml = "";
-          if (Object.keys(photosByLoad).length > 0) {
-            for (const [loadDesc, photos] of Object.entries(photosByLoad)) {
-              photosHtml += `<div style="margin-top: 15px;"><strong>📸 ${escapeHtml(loadDesc)} (${photos.length}):</strong></div>`;
-              photosHtml +=
-                '<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:5px;">';
-              photos.forEach((photo) => {
-                const imageSrc = photo.base64 || "";
-                const sizeKB = (photo.compressedSize / 1024).toFixed(1);
-                photosHtml += `
-                  <div style="border:1px solid #ddd; border-radius:8px; padding:8px; width:120px; text-align:center; position: relative;">
-                    <img src="${imageSrc}" style="width:100px; height:80px; object-fit:cover; border-radius:5px; cursor:pointer;" 
-                         onclick="openLightbox('${imageSrc}', '${escapeHtml(photo.loadDescription || "صورة")}')">
-                    <div style="font-size:9px; color:#666; margin-top:5px;">${sizeKB}KB</div>
-                  </div>
-                `;
-              });
-              photosHtml += "</div>";
-            }
-          } else {
-            photosHtml = '<div style="color:#888;">📷 لا توجد صور</div>';
-          }
-
-          div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span><strong>${escapeHtml(data.name)}</strong> | ${escapeHtml(data.meter_no)} | ${data.photoCount || 0} صورة</span>
-              <button onclick="exportToExcel('${child.key}')" style="background:#2c9cd4;"><i class="fas fa-file-excel"></i> Excel</button>
-            </div>
-            ${photosHtml}
-          `;
-          resultsDiv.appendChild(div);
+        if (!data) {
+            await Swal.fire("خطأ", "لم يتم العثور على البيانات", "error");
+            return;
         }
-      });
-    });
-  }
-};
 
-// Lightbox function for report modal - keeps the report open
-window.openLightbox = (imageSrc, description) => {
-  const lightbox = document.createElement("div");
-  lightbox.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.9);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  `;
+        let loadsHtml = `
+            <div style="overflow-x:auto; margin-bottom:20px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead><tr style="background:#0b2b40; color:white;">
+                        <th style="padding:8px;">وصف الحمل</th>
+                        <th style="padding:8px;">العدد</th>
+                        <th style="padding:8px;">وات</th>
+                        <th style="padding:8px;">حصان</th>
+                        <th style="padding:8px;">أمبير</th>
+                        <th style="padding:8px;">إجمالي ك.وات</th>
+                        <th style="padding:8px;">إجمالي حصان</th>
+                        <th style="padding:8px;">الصور</th>
+                    </tr></thead><tbody>
+        `;
 
-  lightbox.onclick = () => {
-    document.body.removeChild(lightbox);
-  };
+        const photos = data.photos || {};
 
-  const imgContainer = document.createElement("div");
-  imgContainer.style.cssText = `
-    max-width: 90%;
-    max-height: 90%;
-    text-align: center;
-    position: relative;
-  `;
+        if (data.loads && Array.isArray(data.loads) && data.loads.length > 0) {
+            data.loads.forEach(load => {
+                const loadPhotosList = photos[load.item] || [];
+                let photosHtml = '<div style="display:flex; gap:5px; flex-wrap:wrap;">';
+                loadPhotosList.slice(0, 2).forEach(photo => {
+                    photosHtml += `<img src="${photo}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="window.enlargeImage('${photo}')">`;
+                });
+                if (loadPhotosList.length > 2) photosHtml += `<span style="font-size:10px;">+${loadPhotosList.length - 2}</span>`;
+                photosHtml += '</div>';
 
-  const img = document.createElement("img");
-  img.src = imageSrc;
-  img.style.cssText = `
-    max-width: 100%;
-    max-height: 85vh;
-    border-radius: 8px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-  `;
+                loadsHtml += `<tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:6px;">${escapeHtml(load.item)}</td>
+                    <td style="padding:6px;">${load.count || 1}</td>
+                    <td style="padding:6px;">${load.watts || 0}</td>
+                    <td style="padding:6px;">${load.hp || 0}</td>
+                    <td style="padding:6px;">${load.amps || 0}</td>
+                    <td style="padding:6px;">${load.totalKW || 0}</td>
+                    <td style="padding:6px;">${load.totalHP || 0}</td>
+                    <td style="padding:6px;">${photosHtml}</td>
+                 </tr>`;
+            });
+        }
 
-  const caption = document.createElement("div");
-  caption.style.cssText = `
-    color: white;
-    margin-top: 15px;
-    font-size: 14px;
-    text-align: center;
-  `;
-  caption.innerHTML = description || "معاينة الصورة";
+        loadsHtml += `<tfoot><tr style="background:#eef2f5; font-weight:bold;">
+            <td colspan="5">الإجمالي</td>
+            <td>${data.totalKW || 0}</td>
+            <td>${data.totalHP || 0}</td>
+            <td>${data.totalAmps || 0} A</td>
+         </tr></tfoot></table></div>`;
 
-  const closeBtn = document.createElement("button");
-  closeBtn.innerHTML = "✕";
-  closeBtn.style.cssText = `
-    position: absolute;
-    top: -40px;
-    right: -40px;
-    background: #e1573c;
-    color: white;
-    border: none;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  `;
-  closeBtn.onclick = (e) => {
-    e.stopPropagation();
-    document.body.removeChild(lightbox);
-  };
-
-  const downloadBtn = document.createElement("button");
-  downloadBtn.innerHTML = '<i class="fas fa-download"></i> تحميل';
-  downloadBtn.style.cssText = `
-    margin-top: 15px;
-    background: #2c9cd4;
-    color: white;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  `;
-  downloadBtn.onclick = (e) => {
-    e.stopPropagation();
-    const link = document.createElement("a");
-    link.href = imageSrc;
-    link.download = "image.jpg";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  imgContainer.appendChild(img);
-  imgContainer.appendChild(caption);
-  imgContainer.appendChild(downloadBtn);
-  imgContainer.appendChild(closeBtn);
-  lightbox.appendChild(imgContainer);
-  document.body.appendChild(lightbox);
-};
-
-window.exportToExcel = async (key) => {
-  if (isLoading) return;
-
-  const snap = await get(ref(db, "Munipilation/" + key));
-  const data = snap.val();
-  if (!data) return;
-
-  const rows = [
-    ["تقرير المشترك", ""],
-    ["الاسم", data.name || ""],
-    ["رقم العداد", data.meter_no || ""],
-    ["الكود", key],
-    ["الملاحظات", data.description || ""],
-    ["عدد الصور", data.photoCount || 0],
-    ["حجم الصور", `${data.totalImagesSizeKB || 0}KB`],
-    [],
-    ["الأحمال", "", "", ""],
-    ["وصف الحمل", "واط", "حصان", "أمبير"],
-  ];
-
-  (data.loads || []).forEach((load) => {
-    rows.push([
-      load.item || "",
-      load.watts || "0",
-      load.hp || "0",
-      load.amp || "0",
-    ]);
-  });
-
-  if (data.photos && data.photos.length > 0) {
-    rows.push([], ["الصور المرفقة حسب الحمولة", "", "", ""]);
-    const photosByLoad = {};
-    data.photos.forEach((photo) => {
-      const loadDesc = photo.loadDescription || "صور عامة";
-      if (!photosByLoad[loadDesc]) {
-        photosByLoad[loadDesc] = [];
-      }
-      photosByLoad[loadDesc].push(photo);
-    });
-
-    for (const [loadDesc, photos] of Object.entries(photosByLoad)) {
-      rows.push([`الحمولة: ${loadDesc}`, "", "", ""]);
-      photos.forEach((photo, idx) => {
-        rows.push([
-          `  صورة ${idx + 1}: ${photo.fileName || "صورة"}`,
-          `الحجم: ${(photo.compressedSize / 1024).toFixed(1)}KB`,
-          `الأبعاد: ${photo.dimensions || "غير محدد"}`,
-          `الجودة: ${Math.round(photo.quality * 100)}%`,
-        ]);
-      });
-      rows.push([]);
+        await Swal.fire({
+            title: `📋 بيانات المشترك: ${escapeHtml(data.name)}`,
+            html: `<div style="text-align:right; max-height:550px; overflow-y:auto;">
+                <p><strong>رقم العداد:</strong> ${escapeHtml(data.meter_no || "-")}</p>
+                <p><strong>كود المشترك:</strong> ${escapeHtml(data.code || "-")}</p>
+                <p><strong>الملاحظات:</strong> ${escapeHtml(data.description || "-")}</p>
+                ${loadsHtml}
+            </div>`,
+            width: "1100px",
+            showConfirmButton: true,
+            confirmButtonText: "إغلاق",
+        });
+    } catch (error) {
+        hideLoading();
+        await Swal.fire("خطأ", "فشل تحميل البيانات", "error");
     }
-  }
+};
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "تقرير");
-  XLSX.writeFile(wb, `تقرير_${data.meter_no || key}.xlsx`);
-  Swal.fire("تم التصدير", "تم إنشاء ملف Excel", "success", {
-    timer: 1500,
-    showConfirmButton: false,
-  });
+// ========== Calculate Edit Row Total (for edit modal) - Auto calculation like main page ==========
+function calculateEditRowTotal(row) {
+    const count = parseFloat(row.querySelector('.edit-count')?.value) || 1;
+    let watts = parseFloat(row.querySelector('.edit-watts')?.value) || 0;
+    let hp = parseFloat(row.querySelector('.edit-hp')?.value) || 0;
+    let amps = parseFloat(row.querySelector('.edit-amps')?.value) || 0;
+
+    const pf = 0.92;
+    const mode = "3";
+    const V = mode === "3" ? 380 : 220;
+    const factor = mode === "3" ? Math.sqrt(3) : 1;
+
+    // Auto-calculate based on which field was edited (same logic as main page)
+    // Check which field has a value and calculate the others
+    if (watts > 0 && (hp === 0 || amps === 0)) {
+        // Calculate from watts
+        if (hp === 0) {
+            const calculatedHp = watts / 746;
+            row.querySelector('.edit-hp').value = calculatedHp.toFixed(3);
+            hp = calculatedHp;
+        }
+        if (amps === 0) {
+            const calculatedAmps = watts / (factor * V * pf);
+            row.querySelector('.edit-amps').value = calculatedAmps.toFixed(2);
+            amps = calculatedAmps;
+        }
+    } else if (hp > 0 && (watts === 0 || amps === 0)) {
+        // Calculate from HP
+        if (watts === 0) {
+            const calculatedWatts = hp * 746;
+            row.querySelector('.edit-watts').value = calculatedWatts.toFixed(0);
+            watts = calculatedWatts;
+        }
+        if (amps === 0) {
+            const calculatedWatts = hp * 746;
+            const calculatedAmps = calculatedWatts / (factor * V * pf);
+            row.querySelector('.edit-amps').value = calculatedAmps.toFixed(2);
+            amps = calculatedAmps;
+        }
+    } else if (amps > 0 && (watts === 0 || hp === 0)) {
+        // Calculate from Amps
+        const calculatedWatts = factor * V * amps * pf;
+        const calculatedHp = calculatedWatts / 746;
+        if (watts === 0) {
+            row.querySelector('.edit-watts').value = calculatedWatts.toFixed(0);
+            watts = calculatedWatts;
+        }
+        if (hp === 0) {
+            row.querySelector('.edit-hp').value = calculatedHp.toFixed(3);
+            hp = calculatedHp;
+        }
+    }
+
+    // Calculate totals
+    const totalWatts = watts * count;
+    const totalHP = hp * count;
+    const totalKW = totalWatts / 1000;
+
+    const totalKwCell = row.querySelector('.total-kw');
+    const totalHpCell = row.querySelector('.total-hp');
+    if (totalKwCell) totalKwCell.innerText = totalKW.toFixed(3);
+    if (totalHpCell) totalHpCell.innerText = totalHP.toFixed(3);
+}
+
+// ========== Edit Full Record ==========
+window.editFullRecord = async (meterNo) => {
+    showLoading("جاري التحميل...");
+
+    try {
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
+        hideLoading();
+
+        if (!data) {
+            await Swal.fire("خطأ", "لم يتم العثور على البيانات", "error");
+            return;
+        }
+
+        const currentPhotos = data.photos || {};
+
+        let editHtml = `
+            <div style="margin-bottom:20px;">
+                <h4 style="margin-bottom:10px;">بيانات المشترك</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; font-size:12px; margin-bottom:5px;">اسم المشترك</label>
+                        <input type="text" id="editName" value="${escapeHtml(data.name || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; margin-bottom:5px;">رقم العداد</label>
+                        <input type="text" id="editMeterNo" value="${escapeHtml(data.meter_no || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; margin-bottom:5px;">كود المشترك</label>
+                        <input type="text" id="editCode" value="${escapeHtml(data.code || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; margin-bottom:5px;">ملاحظات إضافية</label>
+                        <input type="text" id="editNotes" value="${escapeHtml(data.description || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
+                    </div>
+                </div>
+                <h4 style="margin-bottom:10px;">قائمة الأحمال</h4>
+                <div style="max-height:400px; overflow-y:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead>
+                            <tr style="background:#0b2b40; color:white; position:sticky; top:0;">
+                                <th style="padding:6px;">وصف الحمل</th>
+                                <th style="padding:6px;">العدد</th>
+                                <th style="padding:6px;">وات</th>
+                                <th style="padding:6px;">حصان</th>
+                                <th style="padding:6px;">أمبير</th>
+                                <th style="padding:6px;">إجمالي ك.وات</th>
+                                <th style="padding:6px;">إجمالي حصان</th>
+                                <th style="padding:6px;">الصور</th>
+                                <th style="padding:6px;">حذف</th>
+                             </tr>
+                        </thead>
+                        <tbody id="editTableBody">
+        `;
+
+        if (data.loads && Array.isArray(data.loads)) {
+            data.loads.forEach((load, idx) => {
+                const loadPhotosList = currentPhotos[load.item] || [];
+                let photosHtml = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
+                loadPhotosList.forEach((photo, pIdx) => {
+                    photosHtml += `
+                        <div style="position:relative; display:inline-block;">
+                            <img src="${photo}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="window.enlargeImage('${photo}')">
+                            <button onclick="window.removePhotoFromEdit('${meterNo}', '${escapeHtml(load.item)}', ${pIdx})" style="position:absolute; top:-4px; right:-4px; background:#e1573c; color:white; border:none; border-radius:50%; width:14px; height:14px; font-size:9px; cursor:pointer;">✕</button>
+                        </div>
+                    `;
+                });
+                photosHtml += `<button onclick="window.addPhotoToEdit('${meterNo}', '${escapeHtml(load.item)}')" style="background:#2c9cd4; color:white; border:none; padding:2px 5px; border-radius:10px; font-size:9px; margin-top:3px; cursor:pointer;"><i class="fas fa-plus"></i> إضافة</button>`;
+
+                editHtml += `
+                    <tr data-loadname="${escapeHtml(load.item)}" data-idx="${idx}">
+                        <td style="padding:4px;"><strong>${escapeHtml(load.item)}</strong></td>
+                        <td style="padding:4px;"><input type="number" class="edit-count" value="${load.count || 1}" style="width:55px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
+                        <td style="padding:4px;"><input type="number" class="edit-watts" value="${load.watts || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
+                        <td style="padding:4px;"><input type="number" class="edit-hp" value="${load.hp || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
+                        <td style="padding:4px;"><input type="number" class="edit-amps" value="${load.amps || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
+                        <td class="total-kw" style="padding:4px; font-size:11px;">${load.totalKW || 0}</td>
+                        <td class="total-hp" style="padding:4px; font-size:11px;">${load.totalHP || 0}</td>
+                        <td style="padding:4px; min-width:90px;">${photosHtml}</td>
+                        <td style="padding:4px;"><button onclick="window.removeEditRow(this, '${meterNo}', '${escapeHtml(load.item)}')" style="background:#e1573c; color:white; border:none; padding:2px 6px; border-radius:10px; cursor:pointer; font-size:9px;">✕</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        editHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        const result = await Swal.fire({
+            title: `تعديل البيانات - ${escapeHtml(data.name)}`,
+            html: editHtml,
+            width: "1200px",
+            showConfirmButton: true,
+            showCancelButton: true,
+            confirmButtonText: "حفظ التعديلات",
+            cancelButtonText: "إلغاء",
+            preConfirm: async () => {
+                return await saveFullEditedData(meterNo);
+            }
+        });
+
+        if (result.isConfirmed && result.value !== false) {
+            // Success already handled
+        }
+
+        // Add event listeners for auto-calculation after modal is open
+        setTimeout(() => {
+            const editTableBody = document.getElementById('editTableBody');
+            if (editTableBody) {
+                const inputs = editTableBody.querySelectorAll('.edit-count, .edit-watts, .edit-hp, .edit-amps');
+                inputs.forEach(input => {
+                    input.addEventListener('input', function () {
+                        const row = this.closest('tr');
+                        calculateEditRowTotal(row);
+                    });
+                });
+                // Initialize all row totals
+                editTableBody.querySelectorAll('tr').forEach(row => {
+                    calculateEditRowTotal(row);
+                });
+            }
+        }, 100);
+
+    } catch (error) {
+        hideLoading();
+        await Swal.fire("خطأ", "فشل تحميل البيانات", "error");
+    }
+};
+
+// Remove edit row and its photos
+window.removeEditRow = async (btn, meterNo, loadName) => {
+    const result = await Swal.fire({
+        title: "تأكيد الحذف",
+        text: `هل أنت متأكد من حذف الحمل "${loadName}" وجميع صوره؟`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "نعم، حذف",
+        cancelButtonText: "إلغاء",
+        confirmButtonColor: "#e1573c"
+    });
+
+    if (result.isConfirmed) {
+        const row = btn.closest('tr');
+
+        try {
+            const snap = await get(ref(db, `Munipilation/${meterNo}`));
+            const data = snap.val();
+            if (data && data.photos && data.photos[loadName]) {
+                delete data.photos[loadName];
+                await set(ref(db, `Munipilation/${meterNo}`), data);
+            }
+        } catch (error) {
+            console.error("Error removing photos:", error);
+        }
+
+        if (row) row.remove();
+        await Swal.fire("تم الحذف", `تم حذف الحمل "${loadName}"`, "success", { timer: 1500, showConfirmButton: false });
+    }
+};
+
+// Remove photo from edit
+window.removePhotoFromEdit = async (meterNo, loadName, photoIndex) => {
+    const result = await Swal.fire({
+        title: "تأكيد الحذف",
+        text: "هل أنت متأكد من حذف هذه الصورة؟",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "حذف",
+        cancelButtonText: "إلغاء"
+    });
+
+    if (result.isConfirmed) {
+        showLoading("جاري الحذف...");
+        try {
+            const snap = await get(ref(db, `Munipilation/${meterNo}`));
+            const data = snap.val();
+            if (data && data.photos && data.photos[loadName]) {
+                data.photos[loadName].splice(photoIndex, 1);
+                if (data.photos[loadName].length === 0) {
+                    delete data.photos[loadName];
+                }
+                await set(ref(db, `Munipilation/${meterNo}`), data);
+                hideLoading();
+                await Swal.fire("تم الحذف", "", "success", { timer: 1000, showConfirmButton: false });
+                await window.editFullRecord(meterNo);
+            } else {
+                hideLoading();
+            }
+        } catch (error) {
+            hideLoading();
+            await Swal.fire("خطأ", "فشل حذف الصورة", "error");
+        }
+    }
+};
+
+// Add photo to edit
+window.addPhotoToEdit = async (meterNo, loadName) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showLoading(`جاري رفع ${files.length} صورة...`);
+
+        const newPhotos = [];
+        for (const file of files) {
+            const base64 = await compressImage(file);
+            newPhotos.push(base64);
+        }
+
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
+        if (!data.photos) data.photos = {};
+        if (!data.photos[loadName]) data.photos[loadName] = [];
+        data.photos[loadName] = [...data.photos[loadName], ...newPhotos];
+        await set(ref(db, `Munipilation/${meterNo}`), data);
+
+        hideLoading();
+        await Swal.fire("تم الرفع", `تم إضافة ${newPhotos.length} صورة`, "success", { timer: 1500, showConfirmButton: false });
+        await window.editFullRecord(meterNo);
+    };
+
+    input.click();
+};
+
+// Save full edited data - preserves photos structure correctly
+async function saveFullEditedData(meterNo) {
+    showLoading("جاري الحفظ...");
+
+    try {
+        const newName = document.getElementById('editName')?.value || "";
+        const newMeterNo = document.getElementById('editMeterNo')?.value || "";
+        const newCode = document.getElementById('editCode')?.value || "";
+        const newDescription = document.getElementById('editNotes')?.value || "";
+
+        const rows = document.querySelectorAll('#editTableBody tr');
+        const loads = [];
+        let totalKWSum = 0;
+        let totalHPSum = 0;
+        let totalAmpsSum = 0;
+
+        // Get existing photos from Firebase to preserve them
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const currentData = snap.val();
+        let photos = currentData?.photos || {};
+
+        for (const row of rows) {
+            const item = row.cells[0]?.innerText?.trim();
+            if (!item) continue;
+
+            const count = parseFloat(row.querySelector('.edit-count')?.value) || 1;
+            const watts = parseFloat(row.querySelector('.edit-watts')?.value) || 0;
+            const hp = parseFloat(row.querySelector('.edit-hp')?.value) || 0;
+            const amps = parseFloat(row.querySelector('.edit-amps')?.value) || 0;
+
+            const totalWatts = watts * count;
+            const totalHP = hp * count;
+            const totalAmpsLoad = amps * count;
+            const totalKW = totalWatts / 1000;
+
+            totalKWSum += totalKW;
+            totalHPSum += totalHP;
+            totalAmpsSum += totalAmpsLoad;
+
+            loads.push({
+                item: item,
+                count: count.toString(),
+                watts: watts.toString(),
+                hp: hp.toString(),
+                amps: amps.toString(),
+                totalKW: totalKW.toFixed(3),
+                totalHP: totalHP.toFixed(3)
+            });
+
+            // If photos for this load don't exist in photos object, create empty array
+            if (!photos[item]) {
+                photos[item] = [];
+            }
+        }
+
+        // Remove photos for loads that no longer exist
+        const existingLoadNames = loads.map(l => l.item);
+        Object.keys(photos).forEach(photoKey => {
+            if (!existingLoadNames.includes(photoKey)) {
+                delete photos[photoKey];
+            }
+        });
+
+        const dataToSave = {
+            name: newName,
+            meter_no: newMeterNo,
+            code: newCode || "",
+            description: newDescription || "",
+            loads: loads,
+            photos: photos,
+            totalKW: totalKWSum.toFixed(2),
+            totalHP: totalHPSum.toFixed(2),
+            totalAmps: totalAmpsSum.toFixed(2),
+            lastUpdated: new Date().toISOString(),
+        };
+
+        await set(ref(db, `Munipilation/${newMeterNo}`), dataToSave);
+
+        if (newMeterNo !== meterNo) {
+            await remove(ref(db, `Munipilation/${meterNo}`));
+        }
+
+        hideLoading();
+        await Swal.fire("تم الحفظ", "تم تحديث البيانات بنجاح", "success", { timer: 1500, showConfirmButton: false });
+
+        await loadDataToMainForm(newMeterNo);
+        return true;
+
+    } catch (error) {
+        hideLoading();
+        await Swal.fire("خطأ", "فشل حفظ التعديلات: " + error.message, "error");
+        return false;
+    }
+}
+
+// ========== Report ==========
+btnReport.onclick = async () => {
+    if (isLoading) return;
+
+    showLoading("جاري التحميل...");
+
+    try {
+        const snapshot = await get(ref(db, "Munipilation"));
+        const data = snapshot.val();
+        hideLoading();
+
+        if (!data || Object.keys(data).length === 0) {
+            await Swal.fire("لا توجد بيانات", "لا يوجد مشتركين", "info");
+            return;
+        }
+
+        const records = Object.entries(data).map(([key, val]) => ({ key, ...val }));
+
+        await Swal.fire({
+            title: "التقارير - إدارة المشتركين",
+            html: `
+                <input type="text" id="reportSearchInput" class="swal2-input" placeholder="بحث بالاسم أو رقم العداد..." style="width:90%">
+                <div id="reportRecordsList" style="margin-top:15px; max-height:450px; overflow-y:auto;"></div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: "إغلاق",
+            width: "800px",
+            didOpen: () => {
+                const searchInput = document.getElementById("reportSearchInput");
+                const container = document.getElementById("reportRecordsList");
+
+                function renderList(searchTerm = "") {
+                    const filtered = records.filter(r =>
+                        (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                        (r.meter_no && r.meter_no.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+
+                    if (filtered.length === 0) {
+                        container.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">لا توجد نتائج</div>';
+                        return;
+                    }
+
+                    container.innerHTML = filtered.map(r => `
+                        <div style="border:1px solid #ddd; border-radius:10px; padding:10px; margin:8px 0; background:white;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <div>
+                                    <strong>${escapeHtml(r.name)}</strong><br>
+                                    <small>رقم العداد: ${escapeHtml(r.meter_no)} | كود: ${escapeHtml(r.code || '-')}</small>
+                                </div>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button onclick="window.viewFullRecord('${r.key}')" style="background:#f4b942; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
+                                        <i class="fas fa-eye"></i> عرض
+                                    </button>
+                                    <button onclick="window.editFullRecord('${r.key}')" style="background:#2e8b57; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </button>
+                                    <button onclick="window.exportToExcel('${r.key}')" style="background:#2c9cd4; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </button>
+                                    <button onclick="window.deleteRecord('${r.key}')" style="background:#e1573c; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+
+                if (searchInput) {
+                    searchInput.addEventListener("input", (e) => renderList(e.target.value));
+                }
+                renderList("");
+            }
+        });
+    } catch (error) {
+        hideLoading();
+        await Swal.fire("خطأ", "فشل تحميل البيانات", "error");
+    }
+};
+
+// Delete record
+window.deleteRecord = async (meterNo) => {
+    const result = await Swal.fire({
+        title: "تأكيد الحذف",
+        text: "هل أنت متأكد من حذف هذا المشترك؟",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "نعم، حذف",
+        cancelButtonText: "إلغاء",
+        confirmButtonColor: "#e1573c"
+    });
+
+    if (result.isConfirmed) {
+        showLoading("جاري الحذف...");
+        try {
+            await remove(ref(db, `Munipilation/${meterNo}`));
+            hideLoading();
+            await Swal.fire("تم الحذف", "تم حذف المشترك بنجاح", "success", { timer: 1500, showConfirmButton: false });
+            btnReport.click();
+        } catch (error) {
+            hideLoading();
+            await Swal.fire("خطأ", "فشل الحذف", "error");
+        }
+    }
+};
+
+// Export to Excel
+window.exportToExcel = async (meterNo) => {
+    showLoading("جاري التصدير...");
+
+    try {
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
+
+        if (!data) {
+            hideLoading();
+            await Swal.fire("خطأ", "لم يتم العثور على البيانات", "error");
+            return;
+        }
+
+        const rows = [
+            ["تقرير بيان الأحمال الكهربائية", "", "", "", "", "", ""],
+            [`الاسم: ${data.name || ""}`, "", "", "", "", "", ""],
+            [`رقم العداد: ${data.meter_no || ""}`, "", "", "", "", "", ""],
+            [`كود المشترك: ${data.code || ""}`, "", "", "", "", "", ""],
+            [`الوصف: ${data.description || ""}`, "", "", "", "", "", ""],
+            [`آخر تحديث: ${new Date().toLocaleDateString("ar-EG")}`, "", "", "", "", "", ""],
+            ["", "", "", "", "", "", ""],
+            ["الأحمال", "العدد", "وات", "حصان", "أمبير", "إجمالي ك.وات", "إجمالي حصان"],
+        ];
+
+        (data.loads || []).forEach((load) => {
+            rows.push([
+                load.item || "",
+                load.count || "1",
+                load.watts || "0",
+                load.hp || "0",
+                load.amps || "0",
+                load.totalKW || "0",
+                load.totalHP || "0"
+            ]);
+        });
+
+        rows.push(["الإجمالي", "", "", "", "", data.totalKW || "0.00", data.totalHP || "0.00"]);
+        rows.push([], ["ملاحظة: الصور محفوظة في قاعدة البيانات", "", "", "", "", ""]);
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 25 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "الأحمال");
+        XLSX.writeFile(wb, `تقرير_${data.meter_no || meterNo}.xlsx`);
+
+        hideLoading();
+        await Swal.fire("تم التصدير", "تم إنشاء ملف Excel", "success", { timer: 1500, showConfirmButton: false });
+    } catch (error) {
+        hideLoading();
+        await Swal.fire("خطأ", "فشل التصدير", "error");
+    }
+};
+
+// Reset form
+resetBtn.onclick = () => {
+    Swal.fire({
+        title: "إعادة تعيين النموذج",
+        text: "سيتم مسح جميع البيانات المدخلة. هل أنت متأكد؟",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "نعم، إعادة تعيين",
+        cancelButtonText: "إلغاء"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetForm();
+            Swal.fire("تم", "تم مسح النموذج", "success", { timer: 1000, showConfirmButton: false });
+        }
+    });
 };
 
 function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(/[&<>]/g, function (m) {
-    if (m === "&") return "&amp;";
-    if (m === "<") return "&lt;";
-    if (m === ">") return "&gt;";
-    return m;
-  });
+    if (!str) return "";
+    return str.replace(/[&<>]/g, function (m) {
+        if (m === "&") return "&amp;";
+        if (m === "<") return "&lt;";
+        if (m === ">") return "&gt;";
+        return m;
+    });
 }
-
-// Add CSS
-const style = document.createElement("style");
-style.textContent = `
-  .photo-box {
-    position: relative;
-    display: inline-block;
-    margin: 5px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 5px;
-    background: #f9f9f9;
-    width: 120px;
-  }
-  .photo-box img {
-    width: 100%;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: transform 0.2s;
-  }
-  .photo-box img:hover {
-    transform: scale(1.02);
-  }
-  .photo-label {
-    font-size: 10px;
-    text-align: center;
-    margin-top: 5px;
-    color: #555;
-    word-break: break-word;
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .del-photo {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    background: #e1573c;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    transition: all 0.2s;
-    cursor: pointer;
-    font-weight: bold;
-    z-index: 10;
-  }
-  .del-photo:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-  }
-  .search-row {
-    padding: 12px;
-    border: 1px solid #ddd;
-    margin: 8px 0;
-    border-radius: 8px;
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .edit-table-input {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  .btn-delete-row {
-    cursor: pointer;
-    color: #e1573c;
-    text-align: center;
-  }
-  .load-option:hover {
-    background: #f0f9ff !important;
-    border-color: var(--accent) !important;
-    transform: translateX(-5px);
-  }
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  input:disabled, select:disabled, textarea:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background-color: #f5f5f5;
-  }
-`;
-document.head.appendChild(style);
 
 console.log("✅ Application loaded successfully!");
