@@ -1132,7 +1132,7 @@ window.exportToExcel = async (meterNo) => {
         ws['!cols'] = [{ wch: 25 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "الأحمال");
-        XLSX.writeFile(wb, `تقرير_${data.meter_no || meterNo}.xlsx`);
+        XLSX.writeFile(wb, `تقرير أحمال المشترك-${data.name || name}-${data.meter_no || meterNo}.xlsx`);
 
         hideLoading();
         await Swal.fire("تم التصدير", "تم إنشاء ملف Excel", "success", { timer: 1500, showConfirmButton: false });
