@@ -3,419 +3,255 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>نظام تسجيل دخول العدادات - Smart Qabda</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes" />
+    <title>نظام تسجيل العدادات - Smart Qabda</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="Ayat.css" />
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-        }
-
-        /* تنسيق الهيدر الثابت وخانات البحث */
-        .table-container {
-            max-height: 70vh;
-            overflow-y: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            position: relative;
-        }
-
-        thead th {
-            position: sticky;
-            top: 0;
-            background-color: #0f766e;
-            color: white;
-            z-index: 20;
-            padding: 10px;
-            font-size: 13px;
-        }
-
-        /* صف البحث الثاني في الهيدر */
-        .search-header-row th {
-            top: 40px;
-            /* يعتمد على ارتفاع الصف الأول */
-            background-color: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
-            padding: 5px !important;
-        }
-
-        .search-input,
-        .search-select-notes,
-        .header-date {
-            width: 100%;
-            padding: 5px;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            font-size: 11px;
-            font-family: 'Cairo';
-        }
-
-        .date-range-header {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        /* تنسيق الخلايا */
-        .table-container table td {
-            font-size: 12px;
-            padding: 8px;
-            text-align: center;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .editable-cell {
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .editable-cell:hover {
-            background-color: rgba(14, 165, 233, 0.05);
-        }
-
-        /* أزرار الإجراءات */
-        .btn-add-header {
-            background: #059669;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-save {
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .btn-cancel {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .dark-mode .search-header-row th {
-            background-color: #1e293b;
-            border-color: #334155;
-        }
-
-        .dark-mode .search-input {
-            background: #0f172a;
-            color: white;
-            border-color: #475569;
-        }
-    </style>
+    <link rel="stylesheet" href="Ayat_Enter.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-    <label class="dark-toggle" onclick="document.body.classList.toggle('dark-mode')">
-        <span class="icon">🌙</span>
-        <div class="switch"></div>
-        <span class="icon">☀️</span>
-    </label>
-
-    <button class="btn-view" onclick="window.location.href='index.html'">الصفحة الرئيسية</button>
-
-    <div class="entry-card">
-        <h2>تسجيل بيانات العدادات</h2>
-        <div id="totalSummary" style="margin-bottom:10px; font-size:13px; font-weight:600; color:#0f766e;">
-            إجمالي السجلات: 0 | نتائج البحث: 0
+    <div class="app-container">
+        <div class="header-actions">
+            <h1><i class="fas fa-tachometer-alt"></i> نظام تسجيل بيانات العدادات</h1>
+            <div class="action-buttons">
+                <label class="dark-mode-checkbox">
+                    <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                    <span class="checkbox-label">
+                        <i class="fas fa-moon"></i> الوضع المظلم
+                        <i class="fas fa-sun"></i>
+                    </span>
+                </label>
+                <button class="btn-home" onclick="window.location.href='index.html'">
+                    <i class="fas fa-home"></i> الرئيسية
+                </button>
+            </div>
         </div>
 
-        <div class="table-controls">
-            <button class="btn-refresh" onclick="refreshDatabase()">تحديث البيانات</button>
-            <button class="btn-excel" onclick="exportExcel()">تصدير Excel</button>
-        </div>
+        <div class="entry-card">
+            <div class="stats-bar" id="totalSummary">
+                إجمالي السجلات: 0 | نتائج البحث: 0
+            </div>
 
-        <div class="table-container">
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th>رقم العداد</th>
-                        <th>تاريخ الفحص</th>
-                        <th>القطاع</th>
-                        <th>الهندسة</th>
-                        <th>النشاط</th>
-                        <th>نوع العداد</th>
-                        <th>حالة العداد</th>
-                        <th>ملاحظات</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                    <tr class="search-header-row">
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="بحث بالرقم...">
-                        </th>
-                        <th>
-                            <div class="date-range-header">
-                                <input type="date" class="header-date start-date" onchange="filterTable()">
-                                <input type="date" class="header-date end-date" onchange="filterTable()">
-                            </div>
-                        </th>
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="القطاع.."></th>
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="الهندسة..">
-                        </th>
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="النشاط.."></th>
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="النوع.."></th>
-                        <th><input type="text" class="search-input" onkeyup="filterTable()" placeholder="الحالة.."></th>
-                        <th>
-                            <select class="search-select-notes" onchange="filterTable()">
-                                <option value="">الكل</option>
-                                <option value="تم تسليم العداد">تم التسليم</option>
-                                <option value="لم يتم الفحص">لم يتم الفحص</option>
-                                <option value="تم الفحص">تم الفحص</option>
-                            </select>
-                        </th>
-                        <th><button class="btn-add-header" onclick="addNewRow()">➕ إضافة</button></th>
-                    </tr>
-                </thead>
-                <tbody id="comparisonTableBody"></tbody>
-            </table>
-        </div>
+            <div class="table-controls">
+                <button class="btn-refresh" onclick="refreshDatabase()">
+                    <i class="fas fa-sync-alt"></i> تحديث البيانات
+                </button>
+                <button class="btn-excel" onclick="exportExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+            </div>
 
-        <div class="pagination-controls">
-            <button id="prevBtn" class="btn-pagination" onclick="window.prevPage()" disabled>السابق</button>
-            <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
-            <button id="nextBtn" class="btn-pagination" onclick="window.nextPage()" disabled>التالي</button>
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead>
+                        <tr class="search-header-row">
+                            <th>
+                                <div class="search-label">رقم العداد</div>
+                                <input type="text" class="search-input" id="searchMno" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">تاريخ الفحص</div>
+                                <div class="date-range">
+                                    <input type="date" class="header-date start-date" id="startDate"
+                                        onchange="filterTable()" placeholder="من">
+                                    <input type="date" class="header-date end-date" id="endDate"
+                                        onchange="filterTable()" placeholder="إلى">
+                                </div>
+                            </th>
+                            <th>
+                                <div class="search-label">القطاع</div>
+                                <input type="text" class="search-input" id="searchKeta3" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">الهندسة</div>
+                                <input type="text" class="search-input" id="searchHandsa" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">النشاط</div>
+                                <input type="text" class="search-input" id="searchNashat" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">نوع العداد</div>
+                                <input type="text" class="search-input" id="searchMtype" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">حالة العداد</div>
+                                <input type="text" class="search-input" id="searchStatus" onkeyup="filterTable()"
+                                    placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">ملاحظات</div>
+                                <select class="search-select-notes" id="searchNotes" onchange="filterTable()">
+                                    <option value="">الكل</option>
+                                    <option value="تم استلام العداد">تم استلام العداد</option>
+                                    <option value="تم الفحص">تم الفحص</option>
+                                </select>
+                            </th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr id="inputRow" class="input-row">
+                            <td><input type="text" id="inputMno" class="inline-input" placeholder="رقم العداد"></td>
+                            <td><input type="date" id="inputDate" class="inline-input"></td>
+                            <td>
+                                <select id="inputKeta3" class="inline-select">
+                                    <option value="">اختر القطاع</option>
+                                    <option>دمياط</option>
+                                    <option>شمال الدقهلية</option>
+                                    <option>جنوب الدقهلية</option>
+                                    <option>كفر الشيخ</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="inputHandsa" class="inline-select">
+                                    <option value="">اختر الهندسة</option>
+                                    <option>هندسة شمال دمياط</option>
+                                    <option>هندسة جنوب دمياط</option>
+                                    <option>هندسة عزبة البرج</option>
+                                    <option>هندسة كفر سعد</option>
+                                    <option>هندسة كفر البطيخ</option>
+                                    <option>هندسة راس البر</option>
+                                    <option>هندسة دمياط الجديدة</option>
+                                    <option>هندسة الزرقا</option>
+                                    <option>هندسة فارسكور</option>
+                                    <option>هندسة الروضة</option>
+                                    <option>هندسة الشعراء</option>
+                                    <option>هندسة مدينة شربين</option>
+                                    <option>هندسة قري شربين</option>
+                                    <option>هندسة دكرنس</option>
+                                    <option>هندسة جمصة</option>
+                                    <option>هندسة قري بلقاس</option>
+                                    <option>هندسة مدينة بلقاس</option>
+                                    <option>هندسة الستاموني</option>
+                                    <option>هندسة بني عبيد</option>
+                                    <option>هندسة منية النصر</option>
+                                    <option>هندسة ميت سلسيل</option>
+                                    <option>هندسة الجمالية</option>
+                                    <option>هندسة قري المنزلة</option>
+                                    <option>هندسة مدينة المنزلة</option>
+                                    <option>هندسة المطرية</option>
+                                    <option>هندسة شرق المنصورة</option>
+                                    <option>هندسة غرب المنصورة</option>
+                                    <option>هندسة طلخا</option>
+                                    <option>هندسة نبروه</option>
+                                    <option>هندسة قري المنصورة 1</option>
+                                    <option>هندسة قري المنصورة 2</option>
+                                    <option>هندسة اجا</option>
+                                    <option>هندسة مدينة السنبلاوين</option>
+                                    <option>هندسة قري السنبلاوين</option>
+                                    <option>هندسة تمي الامديد</option>
+                                    <option>هندسة مدينة ميت غمر</option>
+                                    <option>هندسة قري ميت غمر</option>
+                                    <option>هندسة كوم النور</option>
+                                    <option>هندسة مدينة كفر الشيخ</option>
+                                    <option>هندسة غرب كفر الشيخ</option>
+                                    <option>هندسة شرق كفر الشيخ</option>
+                                    <option>هندسة قلين</option>
+                                    <option>هندسة قرى سيدي سالم</option>
+                                    <option>هندسة مدينة سيدي سالم</option>
+                                    <option>هندسة الرياض</option>
+                                    <option>هندسة مدينة دسوق</option>
+                                    <option>هندسة قرى شمال دسوق</option>
+                                    <option>هندسة قرى جنوب دسوق</option>
+                                    <option>هندسة فوه</option>
+                                    <option>هندسة مطوبس</option>
+                                    <option>هندسة مدينة الحامول</option>
+                                    <option>هندسة قرى الحامول</option>
+                                    <option>هندسة بيلا</option>
+                                    <option>هندسة بلطيم</option>
+                                    <option>هندسة برج البرلس</option>
+                                </select>
+                            </td>
+                            <td>
+                                <div class="select-with-add">
+                                    <select id="inputNashat" class="inline-select">
+                                        <option value="">اختر النشاط</option>
+                                        <option>منزلي</option>
+                                        <option>تجاري</option>
+                                        <option>قوى محركة</option>
+                                        <option>كودي مخالف</option>
+                                        <option>ري</option>
+                                        <option>مزارع</option>
+                                        <option>مساجد</option>
+                                        <option>استثمار صناعة</option>
+                                        <option>كبار</option>
+                                        <option>مصالح حكومية</option>
+                                        <option>مصالح حكوميه اخري</option>
+                                    </select>
+                                    <button type="button" class="btn-add-option"
+                                        onclick="addNewOption('inputNashat', 'النشاط')"
+                                        title="إضافة نشاط جديد">+</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="select-with-add">
+                                    <select id="inputMtype" class="inline-select">
+                                        <option value="">اختر نوع العداد</option>
+                                        <option>سويدى ثلاثى مباشر</option>
+                                        <option>سويدي احادي</option>
+                                        <option>اسكرا احادي</option>
+                                        <option>المصريه احادي</option>
+                                        <option>جلوبال ثلاثى مباشر</option>
+                                        <option>جلوبال احادي</option>
+                                        <option>جلوبال ثلاثى غير مباشر</option>
+                                    </select>
+                                    <button type="button" class="btn-add-option"
+                                        onclick="addNewOption('inputMtype', 'نوع العداد')"
+                                        title="إضافة نوع جديد">+</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="select-with-add">
+                                    <select id="inputStatus" class="inline-select">
+                                        <option value="">اختر حالة العداد</option>
+                                        <option>الفحص</option>
+                                        <option>التكهين</option>
+                                        <option>فحص الشركة المصنعة</option>
+                                    </select>
+                                    <button type="button" class="btn-add-option"
+                                        onclick="addNewOption('inputStatus', 'حالة العداد')"
+                                        title="إضافة حالة جديدة">+</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="select-with-add">
+                                    <select id="inputNotes" class="inline-select">
+                                        <option value="">اختر ملاحظة</option>
+                                        <option>تم استلام العداد</option>
+                                        <option>تم الفحص</option>
+                                    </select>
+                                    <button type="button" class="btn-add-option"
+                                        onclick="addNewOption('inputNotes', 'الملاحظة')"
+                                        title="إضافة ملاحظة جديدة">+</button>
+                                </div>
+                            </td>
+                            <td><button class="btn-save-row" onclick="saveDirectInput()"><i class="fas fa-save"></i>
+                                    حفظ</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-controls">
+                <button id="prevBtn" class="btn-pagination" onclick="prevPage()" disabled><i
+                        class="fas fa-chevron-right"></i> السابق</button>
+                <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
+                <button id="nextBtn" class="btn-pagination" onclick="nextPage()" disabled>التالي <i
+                        class="fas fa-chevron-left"></i></button>
+            </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-            authDomain: "production1-ae85.firebaseapp.com",
-            projectId: "production1-ae85",
-            storageBucket: "production1-ae85.firebasestorage.app",
-            messagingSenderId: "490438031865",
-            appId: "1:490438031865:web:a4a69335989f30cd13a528"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        const options = {
-            2: ['دمياط', 'شمال الدقهلية', 'جنوب الدقهلية', 'كفر الشيخ'],
-            3: ['هندسة شمال دمياط', 'هندسة جنوب دمياط', 'هندسة عزبة البرج', 'هندسة كفر سعد', 'هندسة كفر البطيخ', 'هندسة راس البر', 'هندسة دمياط الجديدة', 'هندسة الزرقا', 'هندسة فارسكور', 'هندسة الروضة', 'هندسة الشعراء', 'هندسة مدينة شربين', 'هندسة قري شربين', 'هندسة دكرنس', 'هندسة جمصة', 'هندسة قري بلقاس', 'هندسة مدينة بلقاس', 'هندسة الستاموني', 'هندسة بني عبيد', 'هندسة منية النصر', 'هندسة ميت سلسيل', 'هندسة الجمالية', 'هندسة قري المنزلة', 'هندسة مدينة المنزلة', 'هندسة المطرية', 'هندسة شرق المنصورة', 'هندسة غرب المنصورة', 'هندسة طلخا', 'هندسة نبروه', 'هندسة قري المنصورة 1', 'هندسة قري المنصورة 2', 'هندسة اجا', 'هندسة مدينة السنبلاوين', 'هندسة قري السنبلاوين', 'هندسة تمي الامديد', 'هندسة مدينة ميت غمر', 'هندسة قري ميت غمر', 'هندسة كوم النور', 'هندسة مدينة كفر الشيخ', 'هندسة غرب كفر الشيخ', 'هندسة شرق كفر الشيخ', 'هندسة قلين', 'هندسة قرى سيدي سالم', 'هندسة مدينة سيدي سالم', 'هندسة الرياض', 'هندسة مدينة دسوق', 'هندسة قرى شمال دسوق', 'هندسة قرى جنوب دسوق', 'هندسة فوه', 'هندسة مطوبس', 'هندسة مدينة الحامول', 'هندسة قرى الحامول', 'هندسة بيلا', 'هندسة بلطيم', 'هندسة برج البرلس'],
-            4: ['منزلي', 'تجاري', 'قوى محركة', 'كودي مخالف', 'ري', 'مزارع', 'مساجد', 'استثمار صناعة', 'كبار', 'مصالح حكومية', 'مصالح حكوميه اخري', 'ADD_NEW'],
-            5: ['اسكرا احادي', 'المصريه احادي', 'جلوبال ثلاثى مباشر', 'جلوبال احادي', 'جلوبال ثلاثى غير مباشر', 'ADD_NEW'],
-            6: ['الفحص', 'التكهين', 'فحص الشركة المصنعة', 'ADD_NEW'],
-            7: ['تم تسليم العداد', 'لم يتم الفحص', 'تم الفحص', 'ADD_NEW']
-        };
-
-        let allData = [];
-        let filteredData = [];
-        let currentPage = 1;
-        const itemsPerPage = 10;
-
-        function formatDateDisplay(iso) {
-            if (!iso) return '';
-            const parts = iso.split('-');
-            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : iso;
-        }
-
-        function parseAnyToISO(val) {
-            if (!val) return '';
-            if (val.includes('/')) {
-                const p = val.split('/');
-                return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
-            }
-            return val;
-        }
-
-        async function loadAyatEnterData() {
-            const snapshot = await get(ref(db, 'Ayat_Enter'));
-            allData = [];
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                Object.keys(data).forEach(key => {
-                    allData.push({ ...data[key], mno: key });
-                });
-            }
-            filteredData = [...allData];
-            renderPage();
-        }
-
-        function renderPage() {
-            const tbody = document.getElementById('comparisonTableBody');
-            tbody.innerHTML = '';
-            const start = (currentPage - 1) * itemsPerPage;
-            const pageItems = filteredData.slice(start, start + itemsPerPage);
-
-            pageItems.forEach(item => {
-                const row = tbody.insertRow();
-                row.setAttribute('data-key', item.mno);
-                const fields = ['mno', 'enter_date', 'keta3', 'handsa', 'nashattype', 'mtype', 'status', 'notes'];
-                fields.forEach((f, i) => {
-                    const cell = row.insertCell(i);
-                    cell.className = 'editable-cell';
-                    cell.innerText = f === 'enter_date' ? formatDateDisplay(item[f]) : (item[f] || '');
-                });
-                const actionCell = row.insertCell(8);
-                actionCell.innerHTML = `
-                    <button class="btn-save" style="background:#0ea5e9" onclick="toggleRowEdit(this)">تعديل</button>
-                    <button class="btn-cancel" onclick="deleteRow(this)">حذف</button>
-                `;
-            });
-            updateUI();
-        }
-
-        function updateUI() {
-            document.getElementById('totalSummary').innerText = `إجمالي السجلات: ${allData.length} | نتائج البحث: ${filteredData.length}`;
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            document.getElementById('pageInfo').innerText = `الصفحة ${currentPage} من ${totalPages}`;
-            document.getElementById('prevBtn').disabled = currentPage === 1;
-            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
-        }
-
-        window.addNewRow = () => {
-            const tbody = document.getElementById('comparisonTableBody');
-            const row = tbody.insertRow(0);
-            row.setAttribute('data-editing', '1');
-            for (let i = 0; i < 8; i++) {
-                const cell = row.insertCell(i);
-                cell.className = 'editable-cell';
-                if (i === 0) cell.innerHTML = '<input type="text" placeholder="رقم العداد" style="width:90%">';
-                else if (i === 1) cell.innerText = formatDateDisplay(new Date().toISOString().slice(0, 10));
-                else cell.onclick = () => editCell(cell);
-            }
-            const actions = row.insertCell(8);
-            actions.innerHTML = `<button class="btn-save" onclick="saveNewRow(this)">حفظ</button> 
-                                 <button class="btn-cancel" onclick="loadAyatEnterData()">إلغاء</button>`;
-        };
-
-        window.saveNewRow = (btn) => {
-            const row = btn.closest('tr');
-            const mno = row.cells[0].querySelector('input')?.value.trim();
-            if (!mno) return Swal.fire("خطأ", "أدخل رقم العداد", "error");
-
-            const data = {
-                mno: mno,
-                enter_date: parseAnyToISO(row.cells[1].innerText),
-                keta3: row.cells[2].innerText,
-                handsa: row.cells[3].innerText,
-                nashattype: row.cells[4].innerText,
-                mtype: row.cells[5].innerText,
-                status: row.cells[6].innerText,
-                notes: row.cells[7].innerText
-            };
-
-            set(ref(db, `Ayat_Enter/${mno}`), data).then(() => {
-                Swal.fire("تم", "تم الحفظ", "success");
-                loadAyatEnterData();
-            });
-        };
-
-        window.editCell = (cell) => {
-            const row = cell.closest('tr');
-            if (row.getAttribute('data-editing') !== '1' || cell.cellIndex === 1) return;
-            if (cell.querySelector('input, select')) return;
-
-            const oldVal = cell.innerText;
-            const idx = cell.cellIndex;
-
-            if ([2, 3, 4, 5, 6, 7].includes(idx)) {
-                const sel = document.createElement('select');
-                sel.className = 'search-input';
-                options[idx].forEach(opt => {
-                    const o = document.createElement('option');
-                    o.value = opt; o.text = opt === 'ADD_NEW' ? '+ إضافة جديد' : opt;
-                    if (opt === oldVal) o.selected = true;
-                    sel.appendChild(o);
-                });
-                cell.innerHTML = ''; cell.appendChild(sel);
-                sel.focus();
-                sel.onblur = () => { cell.innerText = sel.value; };
-            } else {
-                const inp = document.createElement('input');
-                inp.value = oldVal; cell.innerHTML = ''; cell.appendChild(inp);
-                inp.focus();
-                inp.onblur = () => { cell.innerText = inp.value; };
-            }
-        };
-
-        window.toggleRowEdit = (btn) => {
-            const row = btn.closest('tr');
-            if (row.getAttribute('data-editing') !== '1') {
-                row.setAttribute('data-editing', '1');
-                row.style.background = "#f0f9ff";
-                btn.innerText = "حفظ";
-            } else {
-                const mno = row.getAttribute('data-key');
-                const data = {
-                    mno: mno,
-                    enter_date: parseAnyToISO(row.cells[1].innerText),
-                    keta3: row.cells[2].innerText,
-                    handsa: row.cells[3].innerText,
-                    nashattype: row.cells[4].innerText,
-                    mtype: row.cells[5].innerText,
-                    status: row.cells[6].innerText,
-                    notes: row.cells[7].innerText
-                };
-                set(ref(db, `Ayat_Enter/${mno}`), data).then(() => {
-                    row.setAttribute('data-editing', '0');
-                    row.style.background = "";
-                    btn.innerText = "تعديل";
-                    Swal.fire("تم", "تم التحديث", "success");
-                });
-            }
-        };
-
-        window.deleteRow = (btn) => {
-            const row = btn.closest('tr');
-            const key = row.getAttribute('data-key');
-            Swal.fire({ title: "حذف؟", showCancelButton: true }).then(r => {
-                if (r.isConfirmed) remove(ref(db, `Ayat_Enter/${key}`)).then(loadAyatEnterData);
-            });
-        };
-
-        window.filterTable = () => {
-            const row = document.querySelector('.search-header-row');
-            const q = Array.from(row.querySelectorAll('.search-input')).map(i => i.value.toLowerCase());
-            const start = row.querySelector('.start-date').value;
-            const end = row.querySelector('.end-date').value;
-            const note = row.querySelector('.search-select-notes').value;
-
-            filteredData = allData.filter(item => {
-                const itemDate = parseAnyToISO(item.enter_date);
-                if (start && itemDate < start) return false;
-                if (end && itemDate > end) return false;
-                if (q[0] && !item.mno.toLowerCase().includes(q[0])) return false;
-                if (q[1] && !item.keta3.toLowerCase().includes(q[1])) return false;
-                if (q[2] && !item.handsa.toLowerCase().includes(q[2])) return false;
-                if (q[3] && !item.nashattype.toLowerCase().includes(q[3])) return false;
-                if (q[4] && !item.mtype.toLowerCase().includes(q[4])) return false;
-                if (q[5] && !item.status.toLowerCase().includes(q[5])) return false;
-                if (note && item.notes !== note) return false;
-                return true;
-            });
-            currentPage = 1; renderPage();
-        };
-
-        window.refreshDatabase = loadAyatEnterData;
-        window.exportExcel = () => {
-            const wb = XLSX.utils.table_to_book(document.getElementById("dataTable"));
-            XLSX.writeFile(wb, "العدادات.xlsx");
-        };
-
-        window.onload = loadAyatEnterData;
-    </script>
+    <script type="module" src="Ayat_Enter.js"></script>
 </body>
 
 </html>
