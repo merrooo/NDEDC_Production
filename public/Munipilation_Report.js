@@ -23,6 +23,8 @@ const db = getDatabase(app);
 
 // Global Variables
 let isLoading = false;
+let currentMeterNo = null;
+let editingRow = null;
 
 // DOM Elements
 const mnameInput = document.getElementById("mname");
@@ -43,7 +45,6 @@ const loadNameInput = document.getElementById("newItemName");
 const btnSave = document.getElementById("btnSave");
 const btnReport = document.getElementById("reportMainBtn");
 const btnAddLoad = document.getElementById("btnAddLoad");
-const resetBtn = document.getElementById("resetBtn");
 
 // Store photos per load
 let loadPhotos = {};
@@ -53,7 +54,7 @@ function showLoading(message = "جاري المعالجة...") {
     if (isLoading) return;
     isLoading = true;
 
-    const allButtons = [btnSave, btnReport, btnAddLoad, resetBtn];
+    const allButtons = [btnSave, btnReport, btnAddLoad];
     const allInputs = [mnameInput, mnoInput, mcoInput, notesInput, phaseMode, countInput, pfInput, ampInput, wattInput, hpInput, loadNameInput];
 
     allButtons.forEach(btn => { if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; } });
@@ -72,7 +73,7 @@ function hideLoading() {
     if (!isLoading) return;
     isLoading = false;
 
-    const allButtons = [btnSave, btnReport, btnAddLoad, resetBtn];
+    const allButtons = [btnSave, btnReport, btnAddLoad];
     const allInputs = [mnameInput, mnoInput, mcoInput, notesInput, phaseMode, countInput, pfInput, ampInput, wattInput, hpInput, loadNameInput];
 
     allButtons.forEach(btn => { if (btn) { btn.disabled = false; btn.style.opacity = "1"; } });
@@ -81,93 +82,90 @@ function hideLoading() {
     Swal.close();
 }
 
-// ========== Electrical Calculation Functions ==========
-function calculateWattsAndHpFromAmps(amps, pf, mode) {
+// ========== Core Electrical Calculation Functions ==========
+function calculateFromAmps(amps, pf = 0.92, mode = "3") {
     const V = mode === "3" ? 380 : 220;
     const factor = mode === "3" ? Math.sqrt(3) : 1;
     const watts = factor * V * amps * pf;
     const hp = watts / 746;
-    return { watts, hp };
+    return { watts, hp, amps };
 }
 
-function calculateAmpsAndHpFromWatts(watts, pf, mode) {
+function calculateFromWatts(watts, pf = 0.92, mode = "3") {
     const V = mode === "3" ? 380 : 220;
     const factor = mode === "3" ? Math.sqrt(3) : 1;
     const amps = watts / (factor * V * pf);
     const hp = watts / 746;
-    return { amps, hp };
+    return { watts, amps, hp };
 }
 
-function calculateWattsAndAmpsFromHp(hp, pf, mode) {
+function calculateFromHP(hp, pf = 0.92, mode = "3") {
     const watts = hp * 746;
     const V = mode === "3" ? 380 : 220;
     const factor = mode === "3" ? Math.sqrt(3) : 1;
     const amps = watts / (factor * V * pf);
-    return { watts, amps };
+    return { watts, amps, hp };
 }
 
-// Update input fields based on which one changed
-function updateFromWatts() {
+// ========== Real-time Calculation for Input Fields (Main Form) ==========
+function updateInputsFromWatts() {
     let watts = parseFloat(wattInput.value) || 0;
     let pf = parseFloat(pfInput.value) || 0.92;
     let mode = phaseMode.value;
-    if (pf <= 0) pf = 0.92;
-
+    
     if (watts > 0) {
-        const { amps, hp } = calculateAmpsAndHpFromWatts(watts, pf, mode);
-        hpInput.value = hp.toFixed(3);
-        ampInput.value = amps.toFixed(2);
+        const result = calculateFromWatts(watts, pf, mode);
+        ampInput.value = result.amps.toFixed(2);
+        hpInput.value = result.hp.toFixed(3);
     } else {
-        hpInput.value = "";
-        ampInput.value = "";
+        if (ampInput.value === "" || parseFloat(ampInput.value) === 0) ampInput.value = "";
+        if (hpInput.value === "" || parseFloat(hpInput.value) === 0) hpInput.value = "";
     }
 }
 
-function updateFromHP() {
-    let hpVal = parseFloat(hpInput.value) || 0;
+function updateInputsFromHP() {
+    let hp = parseFloat(hpInput.value) || 0;
     let pf = parseFloat(pfInput.value) || 0.92;
     let mode = phaseMode.value;
-    if (pf <= 0) pf = 0.92;
-
-    if (hpVal > 0) {
-        const { watts, amps } = calculateWattsAndAmpsFromHp(hpVal, pf, mode);
-        wattInput.value = watts.toFixed(0);
-        ampInput.value = amps.toFixed(2);
+    
+    if (hp > 0) {
+        const result = calculateFromHP(hp, pf, mode);
+        wattInput.value = result.watts.toFixed(0);
+        ampInput.value = result.amps.toFixed(2);
     } else {
-        wattInput.value = "";
-        ampInput.value = "";
+        if (wattInput.value === "" || parseFloat(wattInput.value) === 0) wattInput.value = "";
+        if (ampInput.value === "" || parseFloat(ampInput.value) === 0) ampInput.value = "";
     }
 }
 
-function updateFromAmps() {
+function updateInputsFromAmps() {
     let amps = parseFloat(ampInput.value) || 0;
     let pf = parseFloat(pfInput.value) || 0.92;
     let mode = phaseMode.value;
-    if (pf <= 0) pf = 0.92;
-
+    
     if (amps > 0) {
-        const { watts, hp } = calculateWattsAndHpFromAmps(amps, pf, mode);
-        wattInput.value = watts.toFixed(0);
-        hpInput.value = hp.toFixed(3);
+        const result = calculateFromAmps(amps, pf, mode);
+        wattInput.value = result.watts.toFixed(0);
+        hpInput.value = result.hp.toFixed(3);
     } else {
-        wattInput.value = "";
-        hpInput.value = "";
+        if (wattInput.value === "" || parseFloat(wattInput.value) === 0) wattInput.value = "";
+        if (hpInput.value === "" || parseFloat(hpInput.value) === 0) hpInput.value = "";
     }
 }
 
-// Event listeners for real-time calculation
-wattInput.addEventListener("input", updateFromWatts);
-hpInput.addEventListener("input", updateFromHP);
-ampInput.addEventListener("input", updateFromAmps);
-phaseMode.addEventListener("change", () => {
-    if (wattInput.value && parseFloat(wattInput.value) > 0) updateFromWatts();
-    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateFromAmps();
-    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateFromHP();
+// Add event listeners for real-time calculation in main form
+wattInput.addEventListener('input', updateInputsFromWatts);
+hpInput.addEventListener('input', updateInputsFromHP);
+ampInput.addEventListener('input', updateInputsFromAmps);
+phaseMode.addEventListener('change', () => {
+    if (wattInput.value && parseFloat(wattInput.value) > 0) updateInputsFromWatts();
+    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateInputsFromHP();
+    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateInputsFromAmps();
 });
-pfInput.addEventListener("change", () => {
-    if (wattInput.value && parseFloat(wattInput.value) > 0) updateFromWatts();
-    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateFromAmps();
-    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateFromHP();
+pfInput.addEventListener('change', () => {
+    if (wattInput.value && parseFloat(wattInput.value) > 0) updateInputsFromWatts();
+    else if (hpInput.value && parseFloat(hpInput.value) > 0) updateInputsFromHP();
+    else if (ampInput.value && parseFloat(ampInput.value) > 0) updateInputsFromAmps();
 });
 
 // ========== Calculate Row Totals ==========
@@ -206,13 +204,14 @@ function updatePhotoPreview(row, loadName) {
     const photoCell = row.cells[7];
 
     if (photos.length > 0) {
-        let thumbsHtml = '<div class="photo-preview">';
-        photos.slice(0, 3).forEach((photo, idx) => {
-            thumbsHtml += `<img src="${photo}" class="photo-thumb" onclick="event.stopPropagation(); window.enlargeImage('${photo}')" title="صورة ${idx + 1}">`;
+        let thumbsHtml = '<div class="photo-preview" style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">';
+        photos.forEach((photo, idx) => {
+            thumbsHtml += `
+                <div style="position:relative; display:inline-block;">
+                    <img src="${photo}" class="photo-thumb" style="width:35px; height:35px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="event.stopPropagation(); window.enlargeImage('${photo}')" title="صورة ${idx + 1}">
+                </div>
+            `;
         });
-        if (photos.length > 3) {
-            thumbsHtml += `<span style="font-size:9px; color:#666;">+${photos.length - 3}</span>`;
-        }
         thumbsHtml += '</div>';
         photoCell.innerHTML = thumbsHtml;
     } else {
@@ -220,26 +219,219 @@ function updatePhotoPreview(row, loadName) {
     }
 }
 
-// ========== Add Load Row ==========
-function addLoadToTable(description, count, wattsPerUnit, hpPerUnit, ampsPerUnit) {
-    const { totalWatts, totalHP, totalAmps, totalKW } = calculateRowTotals(count, wattsPerUnit, hpPerUnit, ampsPerUnit);
+// ========== Update Photo Preview in Edit Mode ==========
+function updateEditPhotoPreview(row, loadName) {
+    const photos = loadPhotos[loadName] || [];
+    const photoCell = row.cells[7];
 
-    const row = tableBody.insertRow();
-    row.insertCell(0).innerText = description;
-    row.insertCell(1).innerText = count;
-    row.insertCell(2).innerText = wattsPerUnit || 0;
-    row.insertCell(3).innerText = hpPerUnit ? hpPerUnit.toFixed(3) : 0;
-    row.insertCell(4).innerText = totalAmps.toFixed(2);
-    row.insertCell(5).innerText = totalKW.toFixed(3);
-    row.insertCell(6).innerText = totalHP.toFixed(3);
+    if (photos.length > 0) {
+        let thumbsHtml = '<div class="edit-photo-preview" style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">';
+        photos.forEach((photo, idx) => {
+            thumbsHtml += `
+                <div style="position:relative; display:inline-block;">
+                    <img src="${photo}" style="width:35px; height:35px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="event.stopPropagation(); window.enlargeImage('${photo}')">
+                    <button class="remove-photo-btn" data-photo-index="${idx}" style="position:absolute; top:-5px; right:-5px; background:#e1573c; color:white; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+                </div>
+            `;
+        });
+        thumbsHtml += `<button class="add-photo-btn" style="background:#2c9cd4; color:white; border:none; padding:3px 8px; border-radius:12px; margin:0 2px; cursor:pointer; font-size:9px;"><i class="fas fa-plus"></i> إضافة</button>`;
+        thumbsHtml += '</div>';
+        photoCell.innerHTML = thumbsHtml;
 
-    const photoCell = row.insertCell(7);
-    photoCell.style.minWidth = "65px";
-    updatePhotoPreview(row, description);
+        const removeBtns = photoCell.querySelectorAll('.remove-photo-btn');
+        removeBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const photoIndex = parseInt(btn.getAttribute('data-photo-index'));
+                removePhotoFromLoad(loadName, photoIndex, row);
+            };
+        });
 
-    const actionCell = row.insertCell(8);
-    actionCell.style.whiteSpace = "nowrap";
+        const addBtn = photoCell.querySelector('.add-photo-btn');
+        if (addBtn) {
+            addBtn.onclick = (e) => {
+                e.stopPropagation();
+                uploadPhotoForLoadInEdit(loadName, row);
+            };
+        }
+    } else {
+        photoCell.innerHTML = `
+            <div style="display:flex; gap:5px; align-items:center;">
+                <span style="color:#aaa; font-size:9px;">لا صور</span>
+                <button class="add-photo-btn" style="background:#2c9cd4; color:white; border:none; padding:3px 8px; border-radius:12px; cursor:pointer; font-size:9px;">
+                    <i class="fas fa-plus"></i> إضافة
+                </button>
+            </div>
+        `;
+        const addBtn = photoCell.querySelector('.add-photo-btn');
+        if (addBtn) {
+            addBtn.onclick = (e) => {
+                e.stopPropagation();
+                uploadPhotoForLoadInEdit(loadName, row);
+            };
+        }
+    }
+}
+
+// Remove photo from load
+async function removePhotoFromLoad(loadName, photoIndex, row) {
+    const result = await Swal.fire({
+        title: "تأكيد الحذف",
+        text: "هل أنت متأكد من حذف هذه الصورة؟",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "نعم، حذف",
+        cancelButtonText: "إلغاء"
+    });
+
+    if (result.isConfirmed) {
+        if (loadPhotos[loadName]) {
+            loadPhotos[loadName].splice(photoIndex, 1);
+            if (loadPhotos[loadName].length === 0) {
+                delete loadPhotos[loadName];
+            }
+            updateEditPhotoPreview(row, loadName);
+            Swal.fire("تم الحذف", "تم حذف الصورة بنجاح", "success", { timer: 1000, showConfirmButton: false });
+        }
+    }
+}
+
+// Upload photo for specific load in edit mode
+async function uploadPhotoForLoadInEdit(loadName, row) {
+    if (isLoading) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showLoading(`جاري رفع ${files.length} صورة...`);
+
+        const newPhotos = [];
+        for (const file of files) {
+            const base64 = await compressImage(file);
+            newPhotos.push(base64);
+        }
+
+        if (!loadPhotos[loadName]) loadPhotos[loadName] = [];
+        loadPhotos[loadName] = [...loadPhotos[loadName], ...newPhotos];
+
+        updateEditPhotoPreview(row, loadName);
+
+        hideLoading();
+        await Swal.fire("تم الرفع", `تم إضافة ${newPhotos.length} صورة للحمل "${loadName}"`, "success", { timer: 1500, showConfirmButton: false });
+    };
+
+    input.click();
+}
+
+// ========== Real-time Calculation Function for Edit Mode ==========
+function updateEditCalculations(row, changedField) {
+    const countInputEl = row.querySelector('.edit-count-input');
+    const wattsInputEl = row.querySelector('.edit-watts-input');
+    const hpInputEl = row.querySelector('.edit-hp-input');
+    const ampsInputEl = row.querySelector('.edit-amps-input');
+
+    if (!countInputEl || !wattsInputEl || !hpInputEl || !ampsInputEl) return;
+
+    let watts = parseFloat(wattsInputEl.value) || 0;
+    let hp = parseFloat(hpInputEl.value) || 0;
+    let amps = parseFloat(ampsInputEl.value) || 0;
+    const count = parseFloat(countInputEl.value) || 1;
+
+    const pf = 0.92;
+    const mode = "3";
+
+    // Calculate based on which field was changed
+    if (changedField === 'watts' && watts > 0) {
+        const result = calculateFromWatts(watts, pf, mode);
+        amps = result.amps;
+        hp = result.hp;
+        wattsInputEl.value = watts.toFixed(0);
+        ampsInputEl.value = amps.toFixed(2);
+        hpInputEl.value = hp.toFixed(3);
+    }
+    else if (changedField === 'hp' && hp > 0) {
+        const result = calculateFromHP(hp, pf, mode);
+        watts = result.watts;
+        amps = result.amps;
+        wattsInputEl.value = watts.toFixed(0);
+        ampsInputEl.value = amps.toFixed(2);
+        hpInputEl.value = hp.toFixed(3);
+    }
+    else if (changedField === 'amps' && amps > 0) {
+        const result = calculateFromAmps(amps, pf, mode);
+        watts = result.watts;
+        hp = result.hp;
+        wattsInputEl.value = watts.toFixed(0);
+        ampsInputEl.value = amps.toFixed(2);
+        hpInputEl.value = hp.toFixed(3);
+    }
+
+    // Calculate totals
+    const totalWatts = watts * count;
+    const totalHP = hp * count;
+    const totalKW = totalWatts / 1000;
+
+    const totalKwSpan = row.querySelector('.temp-total-kw');
+    const totalHpSpan = row.querySelector('.temp-total-hp');
+
+    if (totalKwSpan) totalKwSpan.innerText = totalKW.toFixed(3);
+    if (totalHpSpan) totalHpSpan.innerText = totalHP.toFixed(3);
+}
+
+// ========== Save Row Data After Edit ==========
+function saveRowEdit(row, originalDescription) {
+    const count = parseInt(row.querySelector('.edit-count-input')?.value) || 1;
+    let watts = parseFloat(row.querySelector('.edit-watts-input')?.value) || 0;
+    let hp = parseFloat(row.querySelector('.edit-hp-input')?.value) || 0;
+    let amps = parseFloat(row.querySelector('.edit-amps-input')?.value) || 0;
+    const newDescription = row.querySelector('.edit-name-input')?.value.trim();
+
+    if (!newDescription) {
+        Swal.fire("تنبيه", "وصف الحمل مطلوب", "warning");
+        return false;
+    }
+
+    // Ensure calculations are consistent
+    const pf = 0.92;
+    const mode = "3";
+
+    if (watts > 0) {
+        const result = calculateFromWatts(watts, pf, mode);
+        amps = result.amps;
+        hp = result.hp;
+    } else if (hp > 0) {
+        const result = calculateFromHP(hp, pf, mode);
+        watts = result.watts;
+        amps = result.amps;
+    } else if (amps > 0) {
+        const result = calculateFromAmps(amps, pf, mode);
+        watts = result.watts;
+        hp = result.hp;
+    }
+
+    const { totalWatts, totalHP, totalAmps, totalKW } = calculateRowTotals(count, watts, hp, amps);
+
+    // Update the row display
+    row.cells[0].innerHTML = `<strong>${escapeHtml(newDescription)}</strong>`;
+    row.cells[1].innerHTML = count;
+    row.cells[2].innerHTML = watts.toFixed(0);
+    row.cells[3].innerHTML = hp.toFixed(3);
+    row.cells[4].innerHTML = totalAmps.toFixed(2);
+    row.cells[5].innerHTML = totalKW.toFixed(3);
+    row.cells[6].innerHTML = totalHP.toFixed(3);
+
+    // Restore action buttons
+    const actionCell = row.cells[8];
     actionCell.innerHTML = `
+        <button class="btn-edit-row" style="background:#f4b942; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-edit"></i>
+        </button>
         <button class="btn-camera-row" style="background:#2c9cd4; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
             <i class="fas fa-camera"></i>
         </button>
@@ -248,9 +440,170 @@ function addLoadToTable(description, count, wattsPerUnit, hpPerUnit, ampsPerUnit
         </button>
     `;
 
+    // Reattach event handlers
+    const editBtn = actionCell.querySelector('.btn-edit-row');
     const cameraBtn = actionCell.querySelector('.btn-camera-row');
     const delBtn = actionCell.querySelector('.btn-delete-row');
 
+    editBtn.onclick = () => makeRowEditable(row);
+    cameraBtn.onclick = () => uploadPhotoForLoad(newDescription, row);
+    delBtn.onclick = () => {
+        if (originalDescription && originalDescription !== newDescription) {
+            delete loadPhotos[originalDescription];
+        }
+        delete loadPhotos[newDescription];
+        row.remove();
+        updateTotals();
+    };
+
+    // Handle photo renaming
+    if (originalDescription && originalDescription !== newDescription && loadPhotos[originalDescription]) {
+        loadPhotos[newDescription] = loadPhotos[originalDescription];
+        delete loadPhotos[originalDescription];
+        updatePhotoPreview(row, newDescription);
+    }
+
+    updateTotals();
+    editingRow = null;
+    return true;
+}
+
+// ========== Make Row Editable ==========
+function makeRowEditable(row) {
+    if (editingRow && editingRow !== row) {
+        const cancelBtn = editingRow.querySelector('.btn-cancel-edit');
+        if (cancelBtn) cancelBtn.click();
+    }
+
+    const originalDescription = row.cells[0].innerText;
+    const currentCount = row.cells[1].innerText;
+    const currentWatts = row.cells[2].innerText;
+    const currentHp = row.cells[3].innerText;
+    const currentAmps = row.cells[4].innerText;
+
+    // Replace cells with input fields
+    row.cells[0].innerHTML = `<input type="text" class="edit-name-input" value="${escapeHtml(originalDescription)}" style="width:100%; padding:3px; border-radius:4px; border:1px solid #2c9cd4;">`;
+    row.cells[1].innerHTML = `<input type="number" class="edit-count-input" value="${currentCount}" style="width:60px; padding:3px; border-radius:4px; border:1px solid #2c9cd4; text-align:center;">`;
+    row.cells[2].innerHTML = `<input type="number" class="edit-watts-input" value="${currentWatts}" style="width:80px; padding:3px; border-radius:4px; border:1px solid #2c9cd4; text-align:center;">`;
+    row.cells[3].innerHTML = `<input type="number" class="edit-hp-input" value="${currentHp}" step="0.001" style="width:80px; padding:3px; border-radius:4px; border:1px solid #2c9cd4; text-align:center;">`;
+    row.cells[4].innerHTML = `<input type="number" class="edit-amps-input" value="${currentAmps}" step="0.01" style="width:80px; padding:3px; border-radius:4px; border:1px solid #2c9cd4; text-align:center;">`;
+    row.cells[5].innerHTML = `<span class="temp-total-kw">${row.cells[5].innerText}</span>`;
+    row.cells[6].innerHTML = `<span class="temp-total-hp">${row.cells[6].innerText}</span>`;
+
+    // Update photo cell for edit mode
+    updateEditPhotoPreview(row, originalDescription);
+
+    // Update action buttons
+    const actionCell = row.cells[8];
+    actionCell.innerHTML = `
+        <button class="btn-save-edit" style="background:#2e8b57; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-save"></i>
+        </button>
+        <button class="btn-cancel-edit" style="background:#888; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    // Get input elements
+    const wattsInputEl = row.querySelector('.edit-watts-input');
+    const hpInputEl = row.querySelector('.edit-hp-input');
+    const ampsInputEl = row.querySelector('.edit-amps-input');
+    const countInputEl = row.querySelector('.edit-count-input');
+
+    // Add real-time calculation event listeners
+    wattsInputEl.addEventListener('input', () => updateEditCalculations(row, 'watts'));
+    hpInputEl.addEventListener('input', () => updateEditCalculations(row, 'hp'));
+    ampsInputEl.addEventListener('input', () => updateEditCalculations(row, 'amps'));
+    countInputEl.addEventListener('input', () => updateEditCalculations(row, 'count'));
+
+    // Save button
+    const saveBtn = actionCell.querySelector('.btn-save-edit');
+    saveBtn.onclick = () => {
+        if (saveRowEdit(row, originalDescription)) {
+            editingRow = null;
+        }
+    };
+
+    // Cancel button
+    const cancelBtn = actionCell.querySelector('.btn-cancel-edit');
+    cancelBtn.onclick = () => {
+        // Restore original display
+        row.cells[0].innerHTML = `<strong>${escapeHtml(originalDescription)}</strong>`;
+        row.cells[1].innerHTML = currentCount;
+        row.cells[2].innerHTML = currentWatts;
+        row.cells[3].innerHTML = currentHp;
+        row.cells[4].innerHTML = currentAmps;
+        row.cells[5].innerHTML = row.cells[5].innerHTML;
+        row.cells[6].innerHTML = row.cells[6].innerHTML;
+        updatePhotoPreview(row, originalDescription);
+
+        // Restore action buttons
+        actionCell.innerHTML = `
+            <button class="btn-edit-row" style="background:#f4b942; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-camera-row" style="background:#2c9cd4; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+                <i class="fas fa-camera"></i>
+            </button>
+            <button class="btn-delete-row" style="background:#e1573c; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+
+        const editBtn = actionCell.querySelector('.btn-edit-row');
+        const cameraBtn = actionCell.querySelector('.btn-camera-row');
+        const delBtn = actionCell.querySelector('.btn-delete-row');
+
+        editBtn.onclick = () => makeRowEditable(row);
+        cameraBtn.onclick = () => uploadPhotoForLoad(originalDescription, row);
+        delBtn.onclick = () => {
+            delete loadPhotos[originalDescription];
+            row.remove();
+            updateTotals();
+        };
+
+        editingRow = null;
+    };
+
+    editingRow = row;
+}
+
+// ========== Add Load Row ==========
+function addLoadToTable(description, count, wattsPerUnit, hpPerUnit, ampsPerUnit) {
+    const { totalWatts, totalHP, totalAmps, totalKW } = calculateRowTotals(count, wattsPerUnit, hpPerUnit, ampsPerUnit);
+
+    const row = tableBody.insertRow();
+    row.insertCell(0).innerHTML = `<strong>${escapeHtml(description)}</strong>`;
+    row.insertCell(1).innerHTML = count;
+    row.insertCell(2).innerHTML = wattsPerUnit || 0;
+    row.insertCell(3).innerHTML = hpPerUnit ? hpPerUnit.toFixed(3) : 0;
+    row.insertCell(4).innerHTML = totalAmps.toFixed(2);
+    row.insertCell(5).innerHTML = totalKW.toFixed(3);
+    row.insertCell(6).innerHTML = totalHP.toFixed(3);
+
+    const photoCell = row.insertCell(7);
+    photoCell.style.minWidth = "65px";
+    updatePhotoPreview(row, description);
+
+    const actionCell = row.insertCell(8);
+    actionCell.style.whiteSpace = "nowrap";
+    actionCell.innerHTML = `
+        <button class="btn-edit-row" style="background:#f4b942; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn-camera-row" style="background:#2c9cd4; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-camera"></i>
+        </button>
+        <button class="btn-delete-row" style="background:#e1573c; color:white; border:none; padding:3px 6px; border-radius:12px; margin:0 1px; cursor:pointer; font-size:10px;">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    `;
+
+    const editBtn = actionCell.querySelector('.btn-edit-row');
+    const cameraBtn = actionCell.querySelector('.btn-camera-row');
+    const delBtn = actionCell.querySelector('.btn-delete-row');
+
+    editBtn.onclick = () => makeRowEditable(row);
     cameraBtn.onclick = () => uploadPhotoForLoad(description, row);
     delBtn.onclick = () => {
         delete loadPhotos[description];
@@ -261,7 +614,7 @@ function addLoadToTable(description, count, wattsPerUnit, hpPerUnit, ampsPerUnit
     updateTotals();
 }
 
-// Upload photo for specific load
+// Upload photo for specific load (normal mode)
 async function uploadPhotoForLoad(loadName, row) {
     if (isLoading) return;
 
@@ -351,9 +704,9 @@ btnAddLoad.onclick = () => {
 
     const description = loadNameInput.value.trim();
     const count = parseInt(countInput.value) || 1;
-    const watts = parseFloat(wattInput.value) || 0;
-    const hp = parseFloat(hpInput.value) || 0;
-    const amps = parseFloat(ampInput.value) || 0;
+    let watts = parseFloat(wattInput.value) || 0;
+    let hp = parseFloat(hpInput.value) || 0;
+    let amps = parseFloat(ampInput.value) || 0;
 
     if (!description) {
         Swal.fire("تنبيه", "يرجى إدخال وصف الحمل", "warning");
@@ -363,6 +716,24 @@ btnAddLoad.onclick = () => {
     if (watts === 0 && amps === 0 && hp === 0) {
         Swal.fire("تنبيه", "أدخل الوات أو الأمبير أو الحصان", "info");
         return;
+    }
+
+    // Auto-calculate missing values
+    const pf = 0.92;
+    const mode = phaseMode.value;
+
+    if (watts > 0) {
+        const result = calculateFromWatts(watts, pf, mode);
+        amps = result.amps;
+        hp = result.hp;
+    } else if (hp > 0) {
+        const result = calculateFromHP(hp, pf, mode);
+        watts = result.watts;
+        amps = result.amps;
+    } else if (amps > 0) {
+        const result = calculateFromAmps(amps, pf, mode);
+        watts = result.watts;
+        hp = result.hp;
     }
 
     addLoadToTable(description, count, watts, hp, amps);
@@ -413,8 +784,7 @@ btnSave.onclick = async () => {
 
     try {
         const loads = getCurrentLoads();
-        
-        // Calculate totals
+
         let totalKW = 0, totalHP = 0, totalAmps = 0;
         for (const load of loads) {
             totalKW += parseFloat(load.totalKW) || 0;
@@ -436,6 +806,7 @@ btnSave.onclick = async () => {
         };
 
         await set(ref(db, `Munipilation/${meterNo}`), dataToSave);
+        currentMeterNo = meterNo;
 
         hideLoading();
         await Swal.fire({ title: "تم الحفظ", text: "تم حفظ البيانات بنجاح", icon: "success", timer: 1500, showConfirmButton: false });
@@ -443,7 +814,10 @@ btnSave.onclick = async () => {
         hideLoading();
         await Swal.fire("خطأ", e.message, "error");
     }
+
+    window.location.reload();
 };
+
 
 function resetForm() {
     mnameInput.value = "";
@@ -452,16 +826,26 @@ function resetForm() {
     notesInput.value = "";
     tableBody.innerHTML = "";
     loadPhotos = {};
+    currentMeterNo = null;
+    editingRow = null;
     updateTotals();
 }
 
 // ========== Load Data to Main Form ==========
 async function loadDataToMainForm(meterNo) {
+    if (!meterNo) {
+        console.warn("لا يوجد رقم عداد للتحميل");
+        return null;
+    }
+
+    showLoading("جاري تحميل البيانات...");
+
     try {
         const snap = await get(ref(db, `Munipilation/${meterNo}`));
         const data = snap.val();
+        hideLoading();
 
-        if (data) {
+        if (data && data.meter_no === meterNo) {
             resetForm();
 
             mnameInput.value = data.name || "";
@@ -487,19 +871,33 @@ async function loadDataToMainForm(meterNo) {
                 for (let i = 0; i < tableBody.rows.length; i++) {
                     const row = tableBody.rows[i];
                     const loadName = row.cells[0].innerText;
-                    updatePhotoPreview(row, loadName);
+                    if (loadPhotos[loadName]) {
+                        updatePhotoPreview(row, loadName);
+                    }
                 }
             }
+
+            currentMeterNo = meterNo;
+            console.log("✅ تم تحميل البيانات بنجاح للمشترك:", data.name);
+            return data;
+        } else {
+            console.log("ℹ️ لا توجد بيانات للمشترك:", meterNo);
+            return null;
         }
-        return data;
     } catch (error) {
-        console.error("Error loading to main form:", error);
+        hideLoading();
+        console.error("❌ خطأ في تحميل البيانات:", error);
         return null;
     }
 }
 
 // ========== View Full Record ==========
 window.viewFullRecord = async (meterNo) => {
+    if (!meterNo) {
+        await Swal.fire("خطأ", "رقم العداد غير صالح", "error");
+        return;
+    }
+
     showLoading("جاري التحميل...");
 
     try {
@@ -533,10 +931,10 @@ window.viewFullRecord = async (meterNo) => {
             data.loads.forEach(load => {
                 const loadPhotosList = photos[load.item] || [];
                 let photosHtml = '<div style="display:flex; gap:5px; flex-wrap:wrap;">';
-                loadPhotosList.slice(0, 2).forEach(photo => {
-                    photosHtml += `<img src="${photo}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="window.enlargeImage('${photo}')">`;
+                loadPhotosList.slice(0, 3).forEach((photo, idx) => {
+                    photosHtml += `<img src="${photo}" style="width:35px; height:35px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="window.enlargeImage('${photo}')" title="صورة ${idx + 1}">`;
                 });
-                if (loadPhotosList.length > 2) photosHtml += `<span style="font-size:10px;">+${loadPhotosList.length - 2}</span>`;
+                if (loadPhotosList.length > 3) photosHtml += `<span style="font-size:10px; color:#666;">+${loadPhotosList.length - 3}</span>`;
                 photosHtml += '</div>';
 
                 loadsHtml += `<tr style="border-bottom:1px solid #ddd;">
@@ -548,7 +946,7 @@ window.viewFullRecord = async (meterNo) => {
                     <td style="padding:6px;">${load.totalKW || 0}</td>
                     <td style="padding:6px;">${load.totalHP || 0}</td>
                     <td style="padding:6px;">${photosHtml}</td>
-                 </tr>`;
+                  </tr>`;
             });
         }
 
@@ -557,7 +955,7 @@ window.viewFullRecord = async (meterNo) => {
             <td>${data.totalKW || 0}</td>
             <td>${data.totalHP || 0}</td>
             <td>${data.totalAmps || 0} A</td>
-         </tr></tfoot></table></div>`;
+           </tr></tfoot></table></div>`;
 
         await Swal.fire({
             title: `📋 بيانات المشترك: ${escapeHtml(data.name)}`,
@@ -565,6 +963,7 @@ window.viewFullRecord = async (meterNo) => {
                 <p><strong>رقم العداد:</strong> ${escapeHtml(data.meter_no || "-")}</p>
                 <p><strong>كود المشترك:</strong> ${escapeHtml(data.code || "-")}</p>
                 <p><strong>الملاحظات:</strong> ${escapeHtml(data.description || "-")}</p>
+                <p><strong>آخر تحديث:</strong> ${data.lastUpdated ? new Date(data.lastUpdated).toLocaleString('ar-EG') : "-"}</p>
                 ${loadsHtml}
             </div>`,
             width: "1100px",
@@ -573,402 +972,10 @@ window.viewFullRecord = async (meterNo) => {
         });
     } catch (error) {
         hideLoading();
-        await Swal.fire("خطأ", "فشل تحميل البيانات", "error");
+        console.error("Error viewing record:", error);
+        await Swal.fire("خطأ", "فشل تحميل البيانات: " + error.message, "error");
     }
 };
-
-// ========== Calculate Edit Row Total (for edit modal) - Auto calculation like main page ==========
-function calculateEditRowTotal(row) {
-    const count = parseFloat(row.querySelector('.edit-count')?.value) || 1;
-    let watts = parseFloat(row.querySelector('.edit-watts')?.value) || 0;
-    let hp = parseFloat(row.querySelector('.edit-hp')?.value) || 0;
-    let amps = parseFloat(row.querySelector('.edit-amps')?.value) || 0;
-
-    const pf = 0.92;
-    const mode = "3";
-    const V = mode === "3" ? 380 : 220;
-    const factor = mode === "3" ? Math.sqrt(3) : 1;
-
-    // Auto-calculate based on which field was edited (same logic as main page)
-    // Check which field has a value and calculate the others
-    if (watts > 0 && (hp === 0 || amps === 0)) {
-        // Calculate from watts
-        if (hp === 0) {
-            const calculatedHp = watts / 746;
-            row.querySelector('.edit-hp').value = calculatedHp.toFixed(3);
-            hp = calculatedHp;
-        }
-        if (amps === 0) {
-            const calculatedAmps = watts / (factor * V * pf);
-            row.querySelector('.edit-amps').value = calculatedAmps.toFixed(2);
-            amps = calculatedAmps;
-        }
-    } else if (hp > 0 && (watts === 0 || amps === 0)) {
-        // Calculate from HP
-        if (watts === 0) {
-            const calculatedWatts = hp * 746;
-            row.querySelector('.edit-watts').value = calculatedWatts.toFixed(0);
-            watts = calculatedWatts;
-        }
-        if (amps === 0) {
-            const calculatedWatts = hp * 746;
-            const calculatedAmps = calculatedWatts / (factor * V * pf);
-            row.querySelector('.edit-amps').value = calculatedAmps.toFixed(2);
-            amps = calculatedAmps;
-        }
-    } else if (amps > 0 && (watts === 0 || hp === 0)) {
-        // Calculate from Amps
-        const calculatedWatts = factor * V * amps * pf;
-        const calculatedHp = calculatedWatts / 746;
-        if (watts === 0) {
-            row.querySelector('.edit-watts').value = calculatedWatts.toFixed(0);
-            watts = calculatedWatts;
-        }
-        if (hp === 0) {
-            row.querySelector('.edit-hp').value = calculatedHp.toFixed(3);
-            hp = calculatedHp;
-        }
-    }
-
-    // Calculate totals
-    const totalWatts = watts * count;
-    const totalHP = hp * count;
-    const totalKW = totalWatts / 1000;
-
-    const totalKwCell = row.querySelector('.total-kw');
-    const totalHpCell = row.querySelector('.total-hp');
-    if (totalKwCell) totalKwCell.innerText = totalKW.toFixed(3);
-    if (totalHpCell) totalHpCell.innerText = totalHP.toFixed(3);
-}
-
-// ========== Edit Full Record ==========
-window.editFullRecord = async (meterNo) => {
-    showLoading("جاري التحميل...");
-
-    try {
-        const snap = await get(ref(db, `Munipilation/${meterNo}`));
-        const data = snap.val();
-        hideLoading();
-
-        if (!data) {
-            await Swal.fire("خطأ", "لم يتم العثور على البيانات", "error");
-            return;
-        }
-
-        const currentPhotos = data.photos || {};
-
-        let editHtml = `
-            <div style="margin-bottom:20px;">
-                <h4 style="margin-bottom:10px;">بيانات المشترك</h4>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-                    <div>
-                        <label style="display:block; font-size:12px; margin-bottom:5px;">اسم المشترك</label>
-                        <input type="text" id="editName" value="${escapeHtml(data.name || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:12px; margin-bottom:5px;">رقم العداد</label>
-                        <input type="text" id="editMeterNo" value="${escapeHtml(data.meter_no || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:12px; margin-bottom:5px;">كود المشترك</label>
-                        <input type="text" id="editCode" value="${escapeHtml(data.code || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:12px; margin-bottom:5px;">ملاحظات إضافية</label>
-                        <input type="text" id="editNotes" value="${escapeHtml(data.description || '')}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ddd;">
-                    </div>
-                </div>
-                <h4 style="margin-bottom:10px;">قائمة الأحمال</h4>
-                <div style="max-height:400px; overflow-y:auto;">
-                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                        <thead>
-                            <tr style="background:#0b2b40; color:white; position:sticky; top:0;">
-                                <th style="padding:6px;">وصف الحمل</th>
-                                <th style="padding:6px;">العدد</th>
-                                <th style="padding:6px;">وات</th>
-                                <th style="padding:6px;">حصان</th>
-                                <th style="padding:6px;">أمبير</th>
-                                <th style="padding:6px;">إجمالي ك.وات</th>
-                                <th style="padding:6px;">إجمالي حصان</th>
-                                <th style="padding:6px;">الصور</th>
-                                <th style="padding:6px;">حذف</th>
-                             </tr>
-                        </thead>
-                        <tbody id="editTableBody">
-        `;
-
-        if (data.loads && Array.isArray(data.loads)) {
-            data.loads.forEach((load, idx) => {
-                const loadPhotosList = currentPhotos[load.item] || [];
-                let photosHtml = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
-                loadPhotosList.forEach((photo, pIdx) => {
-                    photosHtml += `
-                        <div style="position:relative; display:inline-block;">
-                            <img src="${photo}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="window.enlargeImage('${photo}')">
-                            <button onclick="window.removePhotoFromEdit('${meterNo}', '${escapeHtml(load.item)}', ${pIdx})" style="position:absolute; top:-4px; right:-4px; background:#e1573c; color:white; border:none; border-radius:50%; width:14px; height:14px; font-size:9px; cursor:pointer;">✕</button>
-                        </div>
-                    `;
-                });
-                photosHtml += `<button onclick="window.addPhotoToEdit('${meterNo}', '${escapeHtml(load.item)}')" style="background:#2c9cd4; color:white; border:none; padding:2px 5px; border-radius:10px; font-size:9px; margin-top:3px; cursor:pointer;"><i class="fas fa-plus"></i> إضافة</button>`;
-
-                editHtml += `
-                    <tr data-loadname="${escapeHtml(load.item)}" data-idx="${idx}">
-                        <td style="padding:4px;"><strong>${escapeHtml(load.item)}</strong></td>
-                        <td style="padding:4px;"><input type="number" class="edit-count" value="${load.count || 1}" style="width:55px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
-                        <td style="padding:4px;"><input type="number" class="edit-watts" value="${load.watts || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
-                        <td style="padding:4px;"><input type="number" class="edit-hp" value="${load.hp || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
-                        <td style="padding:4px;"><input type="number" class="edit-amps" value="${load.amps || 0}" style="width:70px; padding:3px; border-radius:4px; border:1px solid #ddd; text-align:center; font-size:11px;"></td>
-                        <td class="total-kw" style="padding:4px; font-size:11px;">${load.totalKW || 0}</td>
-                        <td class="total-hp" style="padding:4px; font-size:11px;">${load.totalHP || 0}</td>
-                        <td style="padding:4px; min-width:90px;">${photosHtml}</td>
-                        <td style="padding:4px;"><button onclick="window.removeEditRow(this, '${meterNo}', '${escapeHtml(load.item)}')" style="background:#e1573c; color:white; border:none; padding:2px 6px; border-radius:10px; cursor:pointer; font-size:9px;">✕</button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        editHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        const result = await Swal.fire({
-            title: `تعديل البيانات - ${escapeHtml(data.name)}`,
-            html: editHtml,
-            width: "1200px",
-            showConfirmButton: true,
-            showCancelButton: true,
-            confirmButtonText: "حفظ التعديلات",
-            cancelButtonText: "إلغاء",
-            preConfirm: async () => {
-                return await saveFullEditedData(meterNo);
-            }
-        });
-
-        if (result.isConfirmed && result.value !== false) {
-            // Success already handled
-        }
-
-        // Add event listeners for auto-calculation after modal is open
-        setTimeout(() => {
-            const editTableBody = document.getElementById('editTableBody');
-            if (editTableBody) {
-                const inputs = editTableBody.querySelectorAll('.edit-count, .edit-watts, .edit-hp, .edit-amps');
-                inputs.forEach(input => {
-                    input.addEventListener('input', function () {
-                        const row = this.closest('tr');
-                        calculateEditRowTotal(row);
-                    });
-                });
-                // Initialize all row totals
-                editTableBody.querySelectorAll('tr').forEach(row => {
-                    calculateEditRowTotal(row);
-                });
-            }
-        }, 100);
-
-    } catch (error) {
-        hideLoading();
-        await Swal.fire("خطأ", "فشل تحميل البيانات", "error");
-    }
-};
-
-// Remove edit row and its photos
-window.removeEditRow = async (btn, meterNo, loadName) => {
-    const result = await Swal.fire({
-        title: "تأكيد الحذف",
-        text: `هل أنت متأكد من حذف الحمل "${loadName}" وجميع صوره؟`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "نعم، حذف",
-        cancelButtonText: "إلغاء",
-        confirmButtonColor: "#e1573c"
-    });
-
-    if (result.isConfirmed) {
-        const row = btn.closest('tr');
-
-        try {
-            const snap = await get(ref(db, `Munipilation/${meterNo}`));
-            const data = snap.val();
-            if (data && data.photos && data.photos[loadName]) {
-                delete data.photos[loadName];
-                await set(ref(db, `Munipilation/${meterNo}`), data);
-            }
-        } catch (error) {
-            console.error("Error removing photos:", error);
-        }
-
-        if (row) row.remove();
-        await Swal.fire("تم الحذف", `تم حذف الحمل "${loadName}"`, "success", { timer: 1500, showConfirmButton: false });
-    }
-};
-
-// Remove photo from edit
-window.removePhotoFromEdit = async (meterNo, loadName, photoIndex) => {
-    const result = await Swal.fire({
-        title: "تأكيد الحذف",
-        text: "هل أنت متأكد من حذف هذه الصورة؟",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "حذف",
-        cancelButtonText: "إلغاء"
-    });
-
-    if (result.isConfirmed) {
-        showLoading("جاري الحذف...");
-        try {
-            const snap = await get(ref(db, `Munipilation/${meterNo}`));
-            const data = snap.val();
-            if (data && data.photos && data.photos[loadName]) {
-                data.photos[loadName].splice(photoIndex, 1);
-                if (data.photos[loadName].length === 0) {
-                    delete data.photos[loadName];
-                }
-                await set(ref(db, `Munipilation/${meterNo}`), data);
-                hideLoading();
-                await Swal.fire("تم الحذف", "", "success", { timer: 1000, showConfirmButton: false });
-                await window.editFullRecord(meterNo);
-            } else {
-                hideLoading();
-            }
-        } catch (error) {
-            hideLoading();
-            await Swal.fire("خطأ", "فشل حذف الصورة", "error");
-        }
-    }
-};
-
-// Add photo to edit
-window.addPhotoToEdit = async (meterNo, loadName) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.multiple = true;
-
-    input.onchange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        showLoading(`جاري رفع ${files.length} صورة...`);
-
-        const newPhotos = [];
-        for (const file of files) {
-            const base64 = await compressImage(file);
-            newPhotos.push(base64);
-        }
-
-        const snap = await get(ref(db, `Munipilation/${meterNo}`));
-        const data = snap.val();
-        if (!data.photos) data.photos = {};
-        if (!data.photos[loadName]) data.photos[loadName] = [];
-        data.photos[loadName] = [...data.photos[loadName], ...newPhotos];
-        await set(ref(db, `Munipilation/${meterNo}`), data);
-
-        hideLoading();
-        await Swal.fire("تم الرفع", `تم إضافة ${newPhotos.length} صورة`, "success", { timer: 1500, showConfirmButton: false });
-        await window.editFullRecord(meterNo);
-    };
-
-    input.click();
-};
-
-// Save full edited data - preserves photos structure correctly
-async function saveFullEditedData(meterNo) {
-    showLoading("جاري الحفظ...");
-
-    try {
-        const newName = document.getElementById('editName')?.value || "";
-        const newMeterNo = document.getElementById('editMeterNo')?.value || "";
-        const newCode = document.getElementById('editCode')?.value || "";
-        const newDescription = document.getElementById('editNotes')?.value || "";
-
-        const rows = document.querySelectorAll('#editTableBody tr');
-        const loads = [];
-        let totalKWSum = 0;
-        let totalHPSum = 0;
-        let totalAmpsSum = 0;
-
-        // Get existing photos from Firebase to preserve them
-        const snap = await get(ref(db, `Munipilation/${meterNo}`));
-        const currentData = snap.val();
-        let photos = currentData?.photos || {};
-
-        for (const row of rows) {
-            const item = row.cells[0]?.innerText?.trim();
-            if (!item) continue;
-
-            const count = parseFloat(row.querySelector('.edit-count')?.value) || 1;
-            const watts = parseFloat(row.querySelector('.edit-watts')?.value) || 0;
-            const hp = parseFloat(row.querySelector('.edit-hp')?.value) || 0;
-            const amps = parseFloat(row.querySelector('.edit-amps')?.value) || 0;
-
-            const totalWatts = watts * count;
-            const totalHP = hp * count;
-            const totalAmpsLoad = amps * count;
-            const totalKW = totalWatts / 1000;
-
-            totalKWSum += totalKW;
-            totalHPSum += totalHP;
-            totalAmpsSum += totalAmpsLoad;
-
-            loads.push({
-                item: item,
-                count: count.toString(),
-                watts: watts.toString(),
-                hp: hp.toString(),
-                amps: amps.toString(),
-                totalKW: totalKW.toFixed(3),
-                totalHP: totalHP.toFixed(3)
-            });
-
-            // If photos for this load don't exist in photos object, create empty array
-            if (!photos[item]) {
-                photos[item] = [];
-            }
-        }
-
-        // Remove photos for loads that no longer exist
-        const existingLoadNames = loads.map(l => l.item);
-        Object.keys(photos).forEach(photoKey => {
-            if (!existingLoadNames.includes(photoKey)) {
-                delete photos[photoKey];
-            }
-        });
-
-        const dataToSave = {
-            name: newName,
-            meter_no: newMeterNo,
-            code: newCode || "",
-            description: newDescription || "",
-            loads: loads,
-            photos: photos,
-            totalKW: totalKWSum.toFixed(2),
-            totalHP: totalHPSum.toFixed(2),
-            totalAmps: totalAmpsSum.toFixed(2),
-            lastUpdated: new Date().toISOString(),
-        };
-
-        await set(ref(db, `Munipilation/${newMeterNo}`), dataToSave);
-
-        if (newMeterNo !== meterNo) {
-            await remove(ref(db, `Munipilation/${meterNo}`));
-        }
-
-        hideLoading();
-        await Swal.fire("تم الحفظ", "تم تحديث البيانات بنجاح", "success", { timer: 1500, showConfirmButton: false });
-
-        await loadDataToMainForm(newMeterNo);
-        return true;
-
-    } catch (error) {
-        hideLoading();
-        await Swal.fire("خطأ", "فشل حفظ التعديلات: " + error.message, "error");
-        return false;
-    }
-}
 
 // ========== Report ==========
 btnReport.onclick = async () => {
@@ -1023,7 +1030,7 @@ btnReport.onclick = async () => {
                                     <button onclick="window.viewFullRecord('${r.key}')" style="background:#f4b942; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
                                         <i class="fas fa-eye"></i> عرض
                                     </button>
-                                    <button onclick="window.editFullRecord('${r.key}')" style="background:#2e8b57; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
+                                    <button onclick="window.loadDataToMainForm('${r.key}')" style="background:#2e8b57; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
                                         <i class="fas fa-edit"></i> تعديل
                                     </button>
                                     <button onclick="window.exportToExcel('${r.key}')" style="background:#2c9cd4; color:white; border:none; padding:4px 8px; border-radius:12px; cursor:pointer; font-size:10px;">
@@ -1068,6 +1075,11 @@ window.deleteRecord = async (meterNo) => {
             await remove(ref(db, `Munipilation/${meterNo}`));
             hideLoading();
             await Swal.fire("تم الحذف", "تم حذف المشترك بنجاح", "success", { timer: 1500, showConfirmButton: false });
+
+            if (currentMeterNo === meterNo) {
+                resetForm();
+            }
+
             btnReport.click();
         } catch (error) {
             hideLoading();
@@ -1130,23 +1142,8 @@ window.exportToExcel = async (meterNo) => {
     }
 };
 
-// Reset form
-resetBtn.onclick = () => {
-    Swal.fire({
-        title: "إعادة تعيين النموذج",
-        text: "سيتم مسح جميع البيانات المدخلة. هل أنت متأكد؟",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "نعم، إعادة تعيين",
-        cancelButtonText: "إلغاء"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            resetForm();
-            Swal.fire("تم", "تم مسح النموذج", "success", { timer: 1000, showConfirmButton: false });
-        }
-    });
-};
 
+// Helper function to escape HTML
 function escapeHtml(str) {
     if (!str) return "";
     return str.replace(/[&<>]/g, function (m) {
@@ -1157,4 +1154,23 @@ function escapeHtml(str) {
     });
 }
 
-console.log("✅ Application loaded successfully!");
+// Make functions available globally
+window.loadDataToMainForm = loadDataToMainForm;
+window.checkDatabaseStructure = async (meterNo) => {
+    try {
+        const snap = await get(ref(db, `Munipilation/${meterNo}`));
+        const data = snap.val();
+        console.log("📊 هيكل البيانات:", {
+            exists: !!data,
+            keys: data ? Object.keys(data) : [],
+            hasPhotos: data?.photos ? Object.keys(data.photos) : false,
+            hasLoads: data?.loads ? data.loads.length : 0
+        });
+        return data;
+    } catch (error) {
+        console.error("خطأ في فحص قاعدة البيانات:", error);
+        return null;
+    }
+};
+
+console.log("✅ Application loaded successfully! Real-time calculation in main form and edit mode is enabled.");
