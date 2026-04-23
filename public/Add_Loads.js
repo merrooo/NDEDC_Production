@@ -306,8 +306,8 @@ window.showAddLoadModal = function () {
                 <input type="number" id="loadAmps" class="swal2-input" placeholder="Amps (A)" style="flex: 1;">
                 <span style="color: var(--text-muted);">أو</span>
                 <select id="loadSource" class="source-select" style="flex: 1;">
-                    <option value="3-PH-380v">3 فاز - 380 فولت (Three Phase)</option>
                     <option value="1-PH-220v">1 فاز - 220 فولت (Single Phase)</option>
+                    <option value="3-PH-380v">3 فاز - 380 فولت (Three Phase)</option>
                 </select>
             </div>
             <div class="photo-upload-area" id="photoUploadArea" style="width: 90%; margin: 10px auto;">
