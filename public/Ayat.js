@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-analytics.js";
 
 // ==================== CONFIGURATION ====================
@@ -25,10 +25,17 @@ let currentPage = 1;
 const ITEMS_PER_PAGE = 20;
 let currentEditOriginalIndex = null;
 
-// Cache for existing meter numbers (for faster duplicate checking)
+// Cache for existing meter numbers and MCO codes (for faster duplicate checking)
 let existingMeterNumbersCache = new Set();
+let existingMcoCache = new Set();
 
-// ==================== DATE HELPER FUNCTIONS ====================
+// ==================== HELPER FUNCTIONS ====================
+
+// Clean numeric string (remove non-digits)
+function cleanNumericString(value) {
+    if (!value) return "";
+    return String(value).replace(/\D/g, '').trim();
+}
 
 // Convert any date format to DD/MM/YYYY
 function convertToDDMMYYYY(dateStr) {
@@ -206,6 +213,33 @@ function formatDateForStorage(dateStr) {
     }
 }
 
+// Update cache of existing meter numbers and MCO codes
+async function updateCaches() {
+    try {
+        const snap = await get(ref(db, "Ayat/meterdata"));
+        if (snap.exists()) {
+            const data = snap.val();
+            const list = Array.isArray(data) ? data : Object.values(data);
+            existingMeterNumbersCache.clear();
+            existingMcoCache.clear();
+            list.forEach(item => {
+                if (item?.meternumber) {
+                    existingMeterNumbersCache.add(cleanNumericString(item.meternumber));
+                }
+                if (item?.metercode) {
+                    existingMcoCache.add(cleanNumericString(item.metercode));
+                }
+            });
+            console.log("Caches updated:", {
+                meterNumbers: existingMeterNumbersCache.size,
+                mcoCodes: existingMcoCache.size
+            });
+        }
+    } catch (error) {
+        console.warn("Error updating caches:", error);
+    }
+}
+
 // Reset form to empty state
 window.resetUI = () => {
     currentEditOriginalIndex = null;
@@ -244,29 +278,209 @@ function getFormData() {
     };
 }
 
-// Clean meter number (remove non-digits)
+// Clean meter number (remove non-digits) - kept for backward compatibility
 function cleanMeterNumber(value) {
-    return String(value || "").replace(/\D/g, '').trim();
+    return cleanNumericString(value);
 }
 
-// Update cache of existing meter numbers
-async function updateMeterNumberCache() {
-    try {
-        const snap = await get(ref(db, "Ayat/meterdata"));
-        if (snap.exists()) {
-            const data = snap.val();
-            const list = Array.isArray(data) ? data : Object.values(data);
-            existingMeterNumbersCache.clear();
-            list.forEach(item => {
-                if (item?.meternumber) {
-                    existingMeterNumbersCache.add(cleanMeterNumber(item.meternumber));
-                }
-            });
-        }
-    } catch (error) {
-        console.warn("Error updating cache:", error);
+// ==================== BULK EXCEL UPLOAD HANDLER ====================
+window.handleBulkExcelUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        console.log("No file selected");
+        return;
     }
-}
+
+    console.log("File selected:", file.name, file.size);
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            console.log("Rows parsed:", rows.length);
+            
+            if (rows.length === 0) {
+                Swal.fire("ملف فارغ", "لا توجد أسطر بيانات داخل هذا الملف لتمريرها.", "warning");
+                return;
+            }
+
+            Swal.fire({
+                title: 'جاري فحص وتصفية البيانات...',
+                text: `تم رصد ${rows.length} سجل بالملف. جاري معالجة الكود الموحد والشاسيه...`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Get current data to determine next index
+            const snap = await get(ref(db, "Ayat/meterdata"));
+            let currentList = [];
+            if (snap.exists()) {
+                const val = snap.val();
+                currentList = Array.isArray(val) ? val : Object.values(val);
+            }
+            
+            let currentServerIndex = currentList.length;
+
+            const finalBatchUpdates = {};
+            let duplicateCount = 0;
+            let successCount = 0;
+
+            for (let row of rows) {
+                // خريطة مطابقة ذكية تقرأ الأسماء من ملفك الأصلي بدقة متناهية
+                const mcoVal = cleanNumericString(row["كود المشترك"] || row["metercode"] || row["الكود الرقمي الموحد"] || row["MCO"]);
+                const mNumber = cleanNumericString(row["الشاسيه"] || row["meternumber"] || row["رقم العداد"]);
+                
+                if (!mNumber && !mcoVal) {
+                    continue; 
+                }
+
+                // التحقق المزدوج اللحظي لمنع التكرار
+                const isDuplicateMco = mcoVal && existingMcoCache.has(mcoVal);
+                const isDuplicateNumber = mNumber && existingMeterNumbersCache.has(mNumber);
+
+                if (isDuplicateMco || isDuplicateNumber) {
+                    duplicateCount++;
+                    console.log(`Duplicate skipped: MCO=${mcoVal}, Meter=${mNumber}`);
+                    continue;
+                }
+
+                // إعداد وقراءة باقي الأعمدة العربية من ملف الـ Excel الخاص بك
+                const preparedRecord = {
+                    calibrationdate: row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"] ? String(row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"]) : "",
+                    enterdate: row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"] ? String(row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"]) : new Date().toISOString().split('T')[0],
+                    handsa: String(row["الهندسة"] || row["الهندسة / الفرع"] || row["handsa"] || ""),
+                    keta3: String(row["القطاع"] || row["القطاع التابع له"] || row["keta3"] || ""),
+                    metercode: mcoVal,
+                    metername: String(row["اسم المشترك"] || row["اسم المشترك الثلاثي"] || row["metername"] || ""),
+                    meternumber: mNumber,
+                    metertype: String(row["نوع العداد"] || row["طراز ونوع العداد"] || row["metertype"] || ""),
+                    nashattype: String(row["النشاط"] || row["نوع النشاط الحركي"] || row["nashattype"] || ""),
+                    notes: String(row["ملاحظات"] || row["الملاحظات"] || row["notes"] || ""),
+                    result: String(row["نتيجة الفحص"] || row["النتيجة"] || row["result"] || "")
+                };
+
+                finalBatchUpdates[currentServerIndex] = preparedRecord;
+                
+                // تحديث مؤقت للكاش لضمان عدم حدوث تكرار ذاتي في نفس الملف
+                if (mcoVal) existingMcoCache.add(mcoVal);
+                if (mNumber) existingMeterNumbersCache.add(mNumber);
+                
+                currentServerIndex++;
+                successCount++;
+            }
+
+            if (successCount > 0) {
+                // Get current list and merge
+                const currentSnap = await get(ref(db, "Ayat/meterdata"));
+                let existingList = [];
+                if (currentSnap.exists()) {
+                    const val = currentSnap.val();
+                    existingList = Array.isArray(val) ? val : Object.values(val);
+                }
+                
+                // Convert batch updates to array and merge
+                const newRecords = Object.values(finalBatchUpdates);
+                const updatedList = [...existingList, ...newRecords];
+                
+                // Save the entire updated list
+                await set(ref(db, "Ayat/meterdata"), updatedList);
+                
+                Swal.fire({
+                    icon: duplicateCount > 0 ? 'warning' : 'success',
+                    title: 'اكتملت معالجة ورفع الملف السحابي',
+                    html: `
+                        <div style="text-align: right; direction: rtl; font-size: 14px; line-height: 1.6;">
+                            <p style="color: #3fb950; font-weight: bold;"><i class="fa-solid fa-cloud-arrow-up"></i> تم بنجاح رفع: ${successCount} سجل جديد.</p>
+                            ${duplicateCount > 0 ? `<p style="color: #f85149; font-weight: bold; margin-top: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> تنبيه: تم رصد وتخطي ( ${duplicateCount} ) سجل مكرر مسبقاً بالسيرفر لحماية بياناتك.</p>` : ''}
+                        </div>
+                    `
+                });
+                
+                // Reload data after successful upload
+                await loadDataForModal();
+                await updateCaches();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'البيانات مسجلة بالكامل',
+                    text: `جميع الأكواد الموحدة (MCO) والعدادات بالملف (عددها: ${duplicateCount}) مسجلة مسبقاً بقاعدة البيانات الحالية!`
+                });
+            }
+
+        } catch (err) {
+            console.error("Bulk Upload Crash:", err);
+            Swal.fire("فشل التحليل", "حدث خطأ أثناء معالجة ملف الـ Excel، تأكد من سلامة صياغة وتنسيق الملف.", "error");
+        } finally {
+            // Clear the file input
+            const fileInput = document.getElementById('excelFileInput');
+            if (fileInput) fileInput.value = "";
+        }
+    };
+    
+    reader.onerror = function(error) {
+        console.error("FileReader error:", error);
+        Swal.fire("خطأ", "حدث خطأ في قراءة الملف", "error");
+    };
+    
+    reader.readAsArrayBuffer(file);
+};
+
+// ==================== PASSWORD PROMPT FOR EXCEL UPLOAD ====================
+window.promptPassword = () => {
+    Swal.fire({
+        title: "كلمة مرور النظام",
+        input: "password",
+        inputPlaceholder: "أدخل كلمة المرور",
+        showCancelButton: true,
+        confirmButtonText: "دخول",
+        cancelButtonText: "إلغاء",
+        inputAttributes: {
+            maxlength: 10,
+            autocapitalize: "off",
+            autocorrect: "off"
+        }
+    }).then(result => {
+        if (result.isConfirmed && result.value === "1") {
+            // Create file input dynamically if it doesn't exist
+            let fileInput = document.getElementById("excelFileInput");
+            if (!fileInput) {
+                fileInput = document.createElement("input");
+                fileInput.type = "file";
+                fileInput.id = "excelFileInput";
+                fileInput.accept = ".xlsx, .xls, .csv";
+                fileInput.style.display = "none";
+                fileInput.setAttribute("onchange", "window.handleBulkExcelUpload(event)");
+                document.body.appendChild(fileInput);
+                console.log("Created file input element");
+            }
+            fileInput.click();
+        } else if (result.isConfirmed && result.value) {
+            Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+        }
+    });
+};
+
+// Manual trigger for testing (no password)
+window.triggerFileUpload = () => {
+    let fileInput = document.getElementById("excelFileInput");
+    if (!fileInput) {
+        fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.id = "excelFileInput";
+        fileInput.accept = ".xlsx, .xls, .csv";
+        fileInput.style.display = "none";
+        fileInput.setAttribute("onchange", "window.handleBulkExcelUpload(event)");
+        document.body.appendChild(fileInput);
+        console.log("Created file input element");
+    }
+    fileInput.click();
+};
 
 // ==================== CRUD OPERATIONS ====================
 
@@ -287,50 +501,53 @@ window.quickSave = async () => {
     if (saveBtn) saveBtn.innerHTML = "⌛ جاري المعالجة...";
 
     try {
-        const cleanedMeterNo = cleanMeterNumber(fields.meternumber);
+        const cleanedMeterNo = cleanNumericString(fields.meternumber);
+        const cleanedMco = cleanNumericString(fields.metercode);
 
         // Use cache for faster duplicate checking
-        if (currentEditOriginalIndex === null && existingMeterNumbersCache.has(cleanedMeterNo)) {
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = originalText;
-            }
+        if (currentEditOriginalIndex === null) {
+            if (existingMeterNumbersCache.has(cleanedMeterNo)) {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                }
 
-            // Find existing record details
-            const snap = await get(ref(db, "Ayat/meterdata"));
-            let list = [];
-            if (snap.exists()) {
-                const val = snap.val();
-                list = Array.isArray(val) ? val : Object.values(val);
-            }
-            const existingRecord = list.find(item => cleanMeterNumber(item.meternumber) === cleanedMeterNo);
+                // Find existing record details
+                const snap = await get(ref(db, "Ayat/meterdata"));
+                let list = [];
+                if (snap.exists()) {
+                    const val = snap.val();
+                    list = Array.isArray(val) ? val : Object.values(val);
+                }
+                const existingRecord = list.find(item => cleanNumericString(item.meternumber) === cleanedMeterNo);
 
-            const result = await Swal.fire({
-                title: "⚠️ رقم العداد مكرر",
-                html: `
-                    <div dir="rtl" style="text-align: right;">
-                        <p><strong>رقم العداد:</strong> ${cleanedMeterNo}</p>
-                        <p><strong>البيانات الموجودة:</strong></p>
-                        <ul style="text-align: right;">
-                            <li>المشترك: ${existingRecord?.metername || 'غير معروف'}</li>
-                            <li>تاريخ الفحص: ${formatDateForDisplay(existingRecord?.calibrationdate) || 'غير معروف'}</li>
-                            <li>القطاع: ${existingRecord?.keta3 || 'غير معروف'}</li>
-                        </ul>
-                        <hr>
-                        <p>هل تريد إضافة هذا الرقم كسجل جديد؟</p>
-                        <p style="color: #dc3545; font-size: 12px;">⚠️ إضافة رقم مكرر قد يسبب مشاكل في التقارير</p>
-                    </div>
-                `,
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "✅ نعم، أضف كسجل جديد",
-                cancelButtonText: "❌ إلغاء",
-                confirmButtonColor: "#10b981",
-                cancelButtonColor: "#ef4444"
-            });
+                const result = await Swal.fire({
+                    title: "⚠️ رقم العداد مكرر",
+                    html: `
+                        <div dir="rtl" style="text-align: right;">
+                            <p><strong>رقم العداد:</strong> ${cleanedMeterNo}</p>
+                            <p><strong>البيانات الموجودة:</strong></p>
+                            <ul style="text-align: right;">
+                                <li>المشترك: ${existingRecord?.metername || 'غير معروف'}</li>
+                                <li>تاريخ الفحص: ${formatDateForDisplay(existingRecord?.calibrationdate) || 'غير معروف'}</li>
+                                <li>القطاع: ${existingRecord?.keta3 || 'غير معروف'}</li>
+                            </ul>
+                            <hr>
+                            <p>هل تريد إضافة هذا الرقم كسجل جديد؟</p>
+                            <p style="color: #dc3545; font-size: 12px;">⚠️ إضافة رقم مكرر قد يسبب مشاكل في التقارير</p>
+                        </div>
+                    `,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "✅ نعم، أضف كسجل جديد",
+                    cancelButtonText: "❌ إلغاء",
+                    confirmButtonColor: "#10b981",
+                    cancelButtonColor: "#ef4444"
+                });
 
-            if (!result.isConfirmed) {
-                return;
+                if (!result.isConfirmed) {
+                    return;
+                }
             }
         }
 
@@ -344,8 +561,9 @@ window.quickSave = async () => {
         const finalData = {
             ...fields,
             meternumber: cleanedMeterNo,
-            calibrationdate: formatDateForStorage(fields.calibrationdate),
-            enterdate: formatDateForStorage(fields.enterdate)
+            metercode: cleanedMco,
+            calibrationdate: fields.calibrationdate,
+            enterdate: fields.enterdate
         };
 
         if (currentEditOriginalIndex !== null && currentEditOriginalIndex >= 0 && currentEditOriginalIndex < list.length) {
@@ -356,15 +574,13 @@ window.quickSave = async () => {
             list.push(finalData);
             await set(ref(db, "Ayat/meterdata"), list);
             existingMeterNumbersCache.add(cleanedMeterNo);
+            if (cleanedMco) existingMcoCache.add(cleanedMco);
             Swal.fire("تم الحفظ", "تم إضافة البيانات بنجاح", "success");
         }
 
         window.resetUI();
-
-        const modal = document.querySelector('.swal2-container');
-        if (modal && modal.style.display !== 'none') {
-            await loadDataForModal();
-        }
+        await loadDataForModal();
+        await updateCaches();
 
     } catch (error) {
         console.error("Error in quickSave:", error);
@@ -398,8 +614,8 @@ window.editRow = async (filteredIndex) => {
 
     document.getElementById("keta3").value = d.keta3 || "";
     document.getElementById("handsa").value = d.handsa || "";
-    document.getElementById("calib_date").value = formatDateForStorage(d.calibrationdate) || "";
-    document.getElementById("enter_date").value = formatDateForStorage(d.enterdate) || "";
+    document.getElementById("calib_date").value = d.calibrationdate || "";
+    document.getElementById("enter_date").value = d.enterdate || "";
     document.getElementById("mname").value = d.metername || "";
     document.getElementById("mno").value = d.meternumber || "";
     document.getElementById("mco").value = d.metercode || "";
@@ -452,12 +668,16 @@ window.deleteRow = async (filteredIndex) => {
             let list = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val())) : [];
 
             if (originalIndex >= 0 && originalIndex < list.length) {
-                const deletedNumber = cleanMeterNumber(list[originalIndex]?.meternumber);
+                const deletedNumber = cleanNumericString(list[originalIndex]?.meternumber);
+                const deletedMco = cleanNumericString(list[originalIndex]?.metercode);
                 list.splice(originalIndex, 1);
                 await set(ref(db, "Ayat/meterdata"), list);
 
                 if (deletedNumber) {
                     existingMeterNumbersCache.delete(deletedNumber);
+                }
+                if (deletedMco) {
+                    existingMcoCache.delete(deletedMco);
                 }
 
                 if (currentEditOriginalIndex === originalIndex) window.resetUI();
@@ -497,11 +717,15 @@ window.loadDataForModal = async () => {
             return dateB - dateA;
         });
 
-        // Update cache
+        // Update caches
         existingMeterNumbersCache.clear();
+        existingMcoCache.clear();
         filteredData.forEach(item => {
             if (item.meternumber) {
-                existingMeterNumbersCache.add(cleanMeterNumber(item.meternumber));
+                existingMeterNumbersCache.add(cleanNumericString(item.meternumber));
+            }
+            if (item.metercode) {
+                existingMcoCache.add(cleanNumericString(item.metercode));
             }
         });
 
@@ -534,13 +758,13 @@ function renderPage() {
     const meterCounts = {};
     filteredData.forEach(item => {
         if (item.meternumber) {
-            const clean = cleanMeterNumber(item.meternumber);
+            const clean = cleanNumericString(item.meternumber);
             if (clean) meterCounts[clean] = (meterCounts[clean] || 0) + 1;
         }
     });
 
     body.innerHTML = pageItems.map((d, idx) => {
-        const isDuplicate = meterCounts[cleanMeterNumber(d.meternumber)] > 1;
+        const isDuplicate = meterCounts[cleanNumericString(d.meternumber)] > 1;
         const globalIndex = start + idx;
         return `
             <tr class="${isDuplicate ? 'duplicate-row' : ''}">
@@ -697,7 +921,7 @@ window.clearFilters = () => {
 
 // Show duplicate numbers
 window.showDuplicateNumbers = () => {
-    const meterNumbers = filteredData.map(item => cleanMeterNumber(item.meternumber)).filter(n => n);
+    const meterNumbers = filteredData.map(item => cleanNumericString(item.meternumber)).filter(n => n);
     const counts = {};
     meterNumbers.forEach(num => counts[num] = (counts[num] || 0) + 1);
     const duplicates = Object.entries(counts).filter(([, c]) => c > 1);
@@ -708,7 +932,7 @@ window.showDuplicateNumbers = () => {
 
     let html = `<div dir="rtl"><h4 style="color:#dc3545">🔴 الأرقام المكررة (${duplicates.length})</h4>
               <table style="width:100%; border-collapse:collapse;">
-              <thead><tr style="background:#f8f9fa"><th style="padding:8px">رقم العداد</th><th>التكرار</th></tr></thead><tbody>`;
+              <thead><tr style="background:#f8f9fa"><th style="padding:8px">رقم العداد</th><th>التكرار</th></td></thead><tbody>`;
     duplicates.forEach(([num, count]) => {
         html += `<tr><td style="padding:8px; border-bottom:1px solid #ddd"><strong>${num}</strong></td>
              <td style="text-align:center">${count}</td></tr>`;
@@ -717,7 +941,7 @@ window.showDuplicateNumbers = () => {
     Swal.fire({ title: "المكررات", html, width: 500, confirmButtonText: "حسناً" });
 };
 
-// ==================== FAST EXPORT & IMPORT ====================
+// ==================== FAST EXPORT ====================
 
 // Export to Excel
 window.exportExcel = () => {
@@ -752,235 +976,6 @@ window.exportExcel = () => {
     XLSX.writeFile(wb, `سجل_التلاعبات_${date}.xlsx`);
     Swal.fire("تم التصدير", `تم تصدير ${filteredData.length} سجل`, "success");
 };
-
-// Password prompt for Excel upload
-window.promptPassword = () => {
-    Swal.fire({
-        title: "كلمة مرور النظام",
-        input: "password",
-        inputPlaceholder: "أدخل كلمة المرور",
-        showCancelButton: true,
-        confirmButtonText: "دخول",
-        cancelButtonText: "إلغاء"
-    }).then(r => {
-        if (r.value === "1") {
-            document.getElementById("excelFile")?.click();
-        } else if (r.value) {
-            Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
-        }
-    });
-};
-
-// ULTRA FAST Excel upload handler with date conversion to DD/MM/YYYY
-document.getElementById("excelFile")?.addEventListener("change", async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 20 * 1024 * 1024) {
-        return Swal.fire("خطأ", "حجم الملف كبير جداً. الحد الأقصى 20 ميجابايت", "error");
-    }
-
-    // Show loading immediately
-    Swal.fire({
-        title: '⏳ جاري تحميل الملف...',
-        html: 'يرجى الانتظار',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    try {
-        // Read file
-        const data = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = () => reject(new Error("خطأ في قراءة الملف"));
-            reader.readAsArrayBuffer(file);
-        });
-
-        // Parse Excel with date handling
-        const workbook = XLSX.read(data, { 
-            type: 'array', 
-            cellDates: true,  // Enable date parsing
-            dateNF: 'dd/mm/yyyy'  // Set date format to dd/mm/yyyy
-        });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        
-        // Convert to JSON with date formatting
-        const json = XLSX.utils.sheet_to_json(sheet, { 
-            defval: "", 
-            raw: false,
-            dateNF: 'dd/mm/yyyy'
-        });
-
-        if (!json.length) throw new Error("الملف فارغ");
-
-        // Update progress
-        Swal.fire({
-            title: '🔄 جاري معالجة البيانات...',
-            html: '<progress id="uploadProgress" value="0" max="100" style="width: 100%; height: 20px; border-radius: 10px;"></progress><p id="progressText" style="margin-top: 10px;">0%</p>',
-            allowOutsideClick: false,
-            showConfirmButton: false
-        });
-
-        // Get existing data once
-        const snap = await get(ref(db, "Ayat/meterdata"));
-        let current = [];
-        if (snap.exists()) {
-            const val = snap.val();
-            current = Array.isArray(val) ? val : Object.values(val);
-        }
-
-        // Create Set for O(1) lookup
-        const existingSet = new Set();
-        current.forEach(item => {
-            const clean = cleanMeterNumber(item.meternumber);
-            if (clean) existingSet.add(clean);
-        });
-
-        const getVal = (row, keys) => {
-            for (let k of keys) {
-                const val = row[k];
-                if (val !== undefined && val !== null && String(val).trim()) {
-                    return String(val).trim();
-                }
-            }
-            return "";
-        };
-
-        const newRecords = [];
-        const duplicatesInDB = [];
-        const seenInFile = new Set();
-        const totalRows = json.length;
-
-        // Get current date for default enterdate (in DD/MM/YYYY format)
-        const today = new Date();
-        const todayFormatted = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-
-        // Process rows
-        for (let i = 0; i < totalRows; i++) {
-            const row = json[i];
-
-            // Update progress
-            if (i % Math.ceil(totalRows / 20) === 0 || i === totalRows - 1) {
-                const percent = Math.round(((i + 1) / totalRows) * 100);
-                const progressElem = document.getElementById('uploadProgress');
-                const textElem = document.getElementById('progressText');
-                if (progressElem) progressElem.value = percent;
-                if (textElem) textElem.textContent = `${percent}% - معالجة ${i + 1} من ${totalRows}`;
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
-
-            let meterNo = cleanMeterNumber(getVal(row, ["رقم العداد", "meternumber", "Meter No", "meter_no", "رقم", "العداد"]));
-            if (!meterNo) continue;
-
-            // Check duplicate in file
-            if (seenInFile.has(meterNo)) {
-                continue;
-            }
-            seenInFile.add(meterNo);
-
-            // Check duplicate in database
-            if (existingSet.has(meterNo)) {
-                duplicatesInDB.push(meterNo);
-                continue;
-            }
-
-            // Get and convert calibration date to DD/MM/YYYY
-            let calibDateRaw = getVal(row, ["تاريخ الفحص", "calibrationdate", "Date", "التاريخ", "تاريخ"]);
-            let calibDateFormatted = "";
-            if (calibDateRaw) {
-                calibDateFormatted = convertToDDMMYYYY(calibDateRaw);
-            }
-
-            // Get and convert entry date to DD/MM/YYYY
-            let entryDateRaw = getVal(row, ["تاريخ التسجيل", "تاريخ الإدخال", "enterdate", "Entry Date", "تسجيل", "تاريخ التسجيل"]);
-            let entryDateFormatted = "";
-            if (entryDateRaw) {
-                entryDateFormatted = convertToDDMMYYYY(entryDateRaw);
-            } else {
-                entryDateFormatted = todayFormatted;
-            }
-
-            const record = {
-                keta3: getVal(row, ["القطاع", "keta3"]),
-                handsa: getVal(row, ["الهندسة", "handsa"]),
-                calibrationdate: calibDateFormatted,
-                enterdate: entryDateFormatted,
-                metername: getVal(row, ["اسم المشترك", "metername", "Name", "الاسم"]),
-                metercode: getVal(row, ["كود المشترك", "metercode", "Code", "كود"]),
-                nashattype: getVal(row, ["النشاط", "nashattype", "Activity"]),
-                metertype: getVal(row, ["نوع العداد", "metertype", "Type"]),
-                meternumber: meterNo,
-                result: getVal(row, ["نتيجة الفحص", "result", "Result"]),
-                notes: getVal(row, ["ملاحظات", "notes", "Notes"])
-            };
-
-            newRecords.push(record);
-            existingSet.add(meterNo);
-        }
-
-        // Batch save to Firebase
-        let addedCount = 0;
-        if (newRecords.length > 0) {
-            const updatedList = [...current, ...newRecords];
-            await set(ref(db, "Ayat/meterdata"), updatedList);
-            addedCount = newRecords.length;
-
-            // Update cache
-            newRecords.forEach(record => {
-                if (record.meternumber) {
-                    existingMeterNumbersCache.add(cleanMeterNumber(record.meternumber));
-                }
-            });
-        }
-
-        // Show result
-        let resultHtml = `<div dir="rtl" style="text-align: right;">`;
-
-        if (addedCount > 0) {
-            resultHtml += `
-                <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <h4 style="color: #155724; margin: 0 0 10px 0;">✅ تمت الإضافة بنجاح</h4>
-                    <p style="font-size: 20px; font-weight: bold; color: #155724;">📊 ${addedCount} عداد جديد</p>
-                    <p style="color: #155724; margin-top: 10px; font-size: 12px;">📅 تم تحويل التواريخ إلى صيغة DD/MM/YYYY</p>
-                </div>`;
-        } else {
-            resultHtml += `
-                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <h4 style="color: #856404; margin: 0;">⚠️ لم تتم إضافة أي بيانات جديدة</h4>
-                    <p style="margin-top: 10px;">جميع الأرقام موجودة مسبقاً</p>
-                </div>`;
-        }
-
-        if (duplicatesInDB.length > 0) {
-            resultHtml += `
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px; max-height: 200px; overflow-y: auto;">
-                    <h5 style="color: #dc3545; margin: 0 0 5px 0;">❌ تم تجاهل ${duplicatesInDB.length} رقماً مكرراً</h5>
-                    <div style="font-size: 12px; color: #6c757d;">(موجودة مسبقاً في قاعدة البيانات)</div>
-                    <div style="font-size: 11px; margin-top: 8px; color: #495057;">${duplicatesInDB.slice(0, 10).join(', ')}${duplicatesInDB.length > 10 ? '...' : ''}</div>
-                </div>`;
-        }
-
-        resultHtml += `</div>`;
-
-        await Swal.fire({
-            icon: addedCount > 0 ? "success" : "info",
-            title: addedCount > 0 ? "🎉 تمت المعالجة بنجاح" : "📋 ملاحظة",
-            html: resultHtml,
-            confirmButtonText: "حسناً",
-            width: 550
-        });
-
-        // Refresh data
-        await loadDataForModal();
-
-    } catch (error) {
-        console.error("Excel upload error:", error);
-        await Swal.fire("خطأ", error.message || "حدث خطأ أثناء معالجة الملف", "error");
-    } finally {
-        document.getElementById("excelFile").value = "";
-    }
-});
 
 // ==================== DYNAMIC OPTIONS ====================
 
@@ -1019,13 +1014,19 @@ window.showData = async () => {
     });
 };
 
-// Initialize cache on page load
+// ==================== INITIALIZATION ====================
+
+// Initialize caches on page load
 document.addEventListener("DOMContentLoaded", async () => {
+    console.log("DOM loaded, initializing...");
+    
     const enterDateInput = document.getElementById("enter_date");
     if (enterDateInput && !enterDateInput.value) {
         enterDateInput.value = new Date().toISOString().split('T')[0];
     }
-    await updateMeterNumberCache();
+    
+    await updateCaches();
+    console.log("Initialization complete");
 });
 
-console.log("Ayat.js loaded successfully - with DD/MM/YYYY date conversion");
+console.log("Ayat.js loaded successfully - with fixed bulk Excel upload handler");
