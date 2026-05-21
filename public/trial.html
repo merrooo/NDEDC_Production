@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>إدارة تسجيل - التلاعبات</title>
+
+    <!-- Core Libraries -->
+     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ================================================================
+           GLOBAL DESIGN SYSTEM: DARK MODE (default) & LIGHT MODE
+           متغيرات سي إس إس ديناميكية للتبديل بين النهار والليل
+        ================================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+        }
+
+        /* الوضع الليلي (DAFUALT) */
+        :root {
+            --bg-gradient: radial-gradient(circle at 25% 20%, #0a0f1c 0%, #03060c 100%);
+            --glass-bg: rgba(12, 20, 35, 0.55);
+            --glass-border: rgba(56, 139, 253, 0.3);
+            --neon-blue: #58a6ff;
+            --neon-green: #3fb950;
+            --neon-red: #f85149;
+            --neon-purple: #ab7df6;
+            --text-primary: #d1d9e8;
+            --text-heading: #f2f8ff;
+            --input-bg: rgba(18, 26, 36, 0.8);
+            --card-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+            --border-light: rgba(66, 82, 110, 0.4);
+            --btn-hover-glow: 0 0 8px rgba(88, 166, 255, 0.6);
+            --table-header: #0f1822;
+            --table-hover: rgba(88, 166, 255, 0.08);
+        }
+
+        /* الوضع النهاري - يتم تطبيقه كلاس Light mode */
+        body.light-mode {
+            --bg-gradient: linear-gradient(135deg, #e9f2fa 0%, #d4e0f0 100%);
+            --glass-bg: rgba(245, 250, 255, 0.85);
+            --glass-border: rgba(56, 100, 180, 0.4);
+            --neon-blue: #1a5bbf;
+            --neon-green: #1f7b34;
+            --neon-red: #d1382e;
+            --neon-purple: #7a4bc9;
+            --text-primary: #1f2a3e;
+            --text-heading: #0b1422;
+            --input-bg: #ffffff;
+            --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            --border-light: #bbcbe0;
+            --btn-hover-glow: 0 0 0 2px rgba(26, 91, 191, 0.2);
+            --table-header: #eef3fc;
+            --table-hover: rgba(26, 91, 191, 0.05);
+        }
+
+        .dashboard-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 28px 32px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s;
+        }
+
+        .control-header {
+            text-align: center;
+            margin-bottom: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.55rem;
+            font-weight: 600;
+            color: var(--text-heading);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title p {
+            color: var(--text-primary);
+            opacity: 0.75;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 40px;
+            padding: 8px 18px;
+            font-weight: 500;
+            gap: 8px;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--neon-blue);
+            transition: all 0.2s;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(0.96);
+            box-shadow: var(--btn-hover-glow);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 12.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-primary);
+            letter-spacing: 0.2px;
+        }
+
+        input,
+        select,
+        textarea {
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: var(--text-heading);
+            font-size: 13.5px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+        }
+
+        .btn-save {
+            background: var(--neon-green);
+            color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-save:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-import {
+            background: var(--neon-purple);
+            color: white;
+        }
+
+        .btn-view {
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            color: var(--neon-blue);
+        }
+
+        .btn-excel-export {
+            background: #238636;
+            color: white;
+            border-radius: 30px;
+            padding: 6px 16px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* جدول ومودال محسّن */
+        .modal-table-wrapper {
+            max-height: 58vh;
+            overflow-y: auto;
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            margin-top: 12px;
+        }
+
+        .custom-archive-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            text-align: right;
+        }
+
+        .custom-archive-table th {
+            background: var(--table-header);
+            padding: 12px 8px;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            color: var(--text-heading);
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .custom-archive-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        .custom-archive-table tbody tr:hover {
+            background: var(--table-hover);
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 11px;
+            border-radius: 8px;
+            margin-top: 5px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+        }
+
+        .pagination-cluster {
+            display: flex;
+            gap: 8px;
+            direction: ltr;
+        }
+
+        .btn-page {
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            padding: 5px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        #excelFileInput {
+            display: none;
+        }
+
+        .numeric-field {
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 680px) {
+            .dashboard-container {
+                padding: 18px;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .custom-archive-table td,
+            .custom-archive-table th {
+                white-space: normal;
+                word-break: break-word;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="control-header">
+            <div class="header-title">
+                <p>⚡ تسجيل بيانات عداد - التلاعبات</p>
+            </div>
+            <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="تبديل الوضع"><i
+                    class="fa-solid fa-moon"></i> <span>وضع نهاري</span></button>
+        </div>
+
+        <!-- نموذج الإدخال -->
+        <div class="form-grid">
+            <div class="form-group"><label><i class="fa-solid fa-map-location-dot"></i> القطاع</label><select
+                    id="keta3">
+                    <option value="">اختر القطاع</option>
+                    <option>دمياط</option>
+                    <option>شمال الدقهلية</option>
+                    <option>جنوب الدقهلية</option>
+                    <option>كفر الشيخ</option>
+                </select></div>
+            <div class="form-group"><label><i class="fa-solid fa-building-shield"></i> الهندسة / الفرع</label><select
+                    id="handsa">
+                    <option value="">اختر الهندسة</option>
+                    <option>هندسة شمال دمياط</option>
+                    <option>هندسة جنوب دمياط</option>
+                    <option>هندسة عزبة البرج</option>
+                    <option>هندسة كفر سعد</option>
+                    <option>هندسة كفر البطيخ</option>
+                    <option>هندسة دمياط الجديدة</option>
+                    <option>هندسة المنصورة</option>
+                    <option>هندسة دكرنس</option>
+                    <option>هندسة ميت غمر</option>
+                    <option>هندسة كفر الشيخ</option>
+                    <option>هندسة دسوق</option>
+                    <option>هندسة بيلا</option>
+                </select></div>
+            <div class="form-group"><label><i class="fa-solid fa-industry"></i> نوع النشاط الحركي</label><select
+                    id="nashattype">
+                    <option value="">-- اختر النشاط --</option>
+                    <option>منزلي</option>
+                    <option>تجاري</option>
+                    <option>قوى محركة</option>
+                    <option>كودي مخالف</option>
+                    <option>ري</option>
+                    <option>مزارع</option>
+                    <option>مساجد</option>
+                    <option>استثمار صناعة</option>
+                    <option value="ADD_NEW">➕ إضافة جديد</option>
+                </select></div>
+            <div class="form-group"><label><i class="fa-solid fa-bolt-lightning"></i> طراز العداد</label><select
+                    id="mtype">
+                    <option value="">-- اختر الطراز --</option>
+                    <option>سويدى ثلاثى مباشر</option>
+                    <option>سويدي احادي</option>
+                    <option>اسكرا احادي</option>
+                    <option>جلوبال ثلاثى مباشر</option>
+                    <option value="ADD_NEW">➕ إضافة جديد</option>
+                </select></div>
+            <div class="form-group"><label><i class="fa-solid fa-hashtag"></i> رقم العداد (الشاسيه)</label><input
+                    type="text" id="mno" class="numeric-field" placeholder="مثال: 23055630"></div>
+            <div class="form-group"><label><i class="fa-solid fa-calendar-check"></i> تاريخ الفحص المعملي</label><input
+                    type="date" id="calib_date"></div>
+            <div class="form-group"><label><i class="fa-solid fa-calendar-plus"></i> تاريخ التسجيل</label><input
+                    type="date" id="enter_date"></div>
+            <div class="form-group"><label><i class="fa-solid fa-user-gear"></i> اسم المشترك</label><input type="text"
+                    id="mname" placeholder="اسم المشترك"></div>
+            <div class="form-group"><label><i class="fa-solid fa-barcode"></i> كود المشترك (MCO)</label><input
+                    type="text" id="mco" class="numeric-field" placeholder="رقم الكود"></div>
+            <div class="form-group"><label><i class="fa-solid fa-square-poll-vertical"></i> نتيجة الفحص</label><select
+                    id="munip">
+                    <option value="">-- النتيجة --</option>
+                    <option>تلاعب</option>
+                    <option>سليم</option>
+                    <option>مديونية</option>-
+                    <option>تكهين</option>
+                    <option>تالف</option>
+                    <option value="ADD_NEW">➕ إضافة</option>
+                </select></div>
+            <div class="form-group full-width"><label><i class="fa-solid fa-comment-medical"></i> ملاحظات
+                    فنية</label><textarea id="notes" placeholder="تفاصيل الفحص والتقرير..."></textarea></div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-save" onclick="window.quickSave()"><i class="fa-solid fa-cloud-arrow-up"></i> حفظ
+                </button>
+            <button class="btn btn-import" onclick="document.getElementById('excelFileInput').click()"><i
+                    class="fa-solid fa-file-import"></i> استيراد Excel سحابي</button>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls" onchange="window.handleBulkExcelUpload(event)">
+            <button class="btn btn-view" onclick="window.showData()"><i class="fa-solid fa-database"></i> استعراض
+                الأرشيف الذكي</button>
+        </div>
+    </div>
+
+    <template id="tableTemplate">
+        <div
+            style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <span style="color:var(--text-primary);">📋 إجمالي السجلات: <strong id="rowCount"
+                    style="color:var(--neon-blue);">0</strong></span>
+            <button class="btn-excel-export" onclick="window.exportExcel()"><i class="fa-regular fa-file-excel"></i>
+                تصدير التقرير Excel</button>
+        </div>
+        <div class="modal-table-wrapper">
+            <table class="custom-archive-table" id="excelTargetTable">
+                <thead>
+                    <tr>
+                        <th>م</th>
+                        <th>القطاع</th>
+                        <th>الهندسة</th>
+                        <th>تاريخ الفحص</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>اسم المشترك</th>
+                        <th>كود المشترك</th>
+                        <th>النشاط</th>
+                        <th>نوع العداد</th>
+                        <th>رقم العداد</th>
+                        <th>النتيجة</th>
+                        <th>ملاحظات</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="modalBody"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer-controls" style="display:flex; justify-content:space-between; margin-top:16px;">
+            <button class="btn-page" style="background:#cc2431; color:white;" onclick="window.clearFilters()">🔄 إعادة
+                تعيين الفلاتر</button>
+            <div class="pagination-cluster"><button id="prevBtn" class="btn-page" onclick="window.prevPage()">السابق
+                    ⬅️</button><span id="pageInfo" style="align-self:center;">صفحة 1</span><button id="nextBtn"
+                    class="btn-page" onclick="window.nextPage()">➡️ التالي</button></div>
+        </div>
+    </template>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            projectId: "production1-ae85",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528"
+        };
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Global state
+        window.allData = [];
+        window.existingMcoCache = new Set();
+        window.existingMeterNumbersCache = new Set();
+        let initialSyncDone = false;
+
+        // Sync Firebase in realtime
+        const meterDataRef = ref(database, "Ayat/meterdata");
+        onValue(meterDataRef, (snapshot) => {
+            const newArr = [];
+            const mcoSet = new Set();
+            const meterSet = new Set();
+            if (snapshot.exists()) {
+                const raw = snapshot.val();
+                const process = (item, key) => {
+                    if (item && typeof item === 'object') {
+                        const cleanMco = cleanNumericString(item.metercode);
+                        const cleanMeter = cleanNumericString(item.meternumber);
+                        if (cleanMco) mcoSet.add(cleanMco);
+                        if (cleanMeter) meterSet.add(cleanMeter);
+                        newArr.push({ ...item, __firebaseKey: String(key) });
+                    }
+                };
+                if (Array.isArray(raw)) raw.forEach((item, idx) => process(item, idx));
+                else Object.keys(raw).forEach(k => process(raw[k], k));
+            }
+            window.allData = newArr;
+            window.existingMcoCache = mcoSet;
+            window.existingMeterNumbersCache = meterSet;
+            if (window.modalFilteredData !== undefined) window.filterTable();
+        });
+
+        // Helper functions
+        function cleanNumericString(val) { if (!val && val !== 0) return ""; return String(val).trim().replace(/['"`\s]/g, ""); }
+        function formatDateToDDMMYYYY(dateStr) { if (!dateStr) return ""; const parts = dateStr.split("-"); if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; return dateStr; }
+
+        window.quickSave = async function () {
+            const keta3 = document.getElementById("keta3").value.trim();
+            const handsa = document.getElementById("handsa").value.trim();
+            const nashattype = document.getElementById("nashattype").value.trim();
+            const metertype = document.getElementById("mtype").value.trim();
+            const meternumber = cleanNumericString(document.getElementById("mno").value);
+            const metercode = cleanNumericString(document.getElementById("mco").value);
+            if (!meternumber || !keta3 || !handsa) return Swal.fire("تنبيه", "رقم العداد، القطاع والهندسة إجبارية", "warning");
+            if (window.existingMeterNumbersCache.has(meternumber) || (metercode && window.existingMcoCache.has(metercode)))
+                return Swal.fire("سجل مكرر", "رقم العداد أو كود المشترك موجود مسبقاً في قاعدة البيانات!", "error");
+
+            const newRecord = {
+                keta3, handsa, nashattype, metertype, meternumber,
+                calibrationdate: formatDateToDDMMYYYY(document.getElementById("calib_date").value),
+                enterdate: formatDateToDDMMYYYY(document.getElementById("enter_date").value) || formatDateToDDMMYYYY(new Date().toISOString().split('T')[0]),
+                metername: document.getElementById("mname").value.trim(),
+                metercode, result: document.getElementById("munip").value.trim(),
+                notes: document.getElementById("notes").value.trim()
+            };
+            try {
+                Swal.fire({ title: 'جاري الحفظ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                let nextIndex = window.allData.length;
+                const numericKeys = window.allData.map(d => parseInt(d.__firebaseKey)).filter(k => !isNaN(k));
+                if (numericKeys.length) nextIndex = Math.max(...numericKeys) + 1;
+                else if (window.allData.length) nextIndex = window.allData.length;
+                await update(ref(database), { [`Ayat/meterdata/${nextIndex}`]: newRecord });
+                Swal.fire("تم الحفظ", `السجل برقم ${nextIndex} مؤمن `, "success");
+                document.getElementById("mno").value = ""; document.getElementById("mco").value = ""; document.getElementById("notes").value = "";
+                document.getElementById("mname").value = "";
+            } catch { Swal.fire("خطأ", "فشل الحفظ، تحقق من اتصال الإنترنت", "error"); }
+        };
+
+        // Bulk import enhanced with dynamic headers
+        window.handleBulkExcelUpload = async function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                    if (!rows.length) return Swal.fire("ملف فارغ", "لا توجد بيانات", "warning");
+                    Swal.fire({ title: 'معالجة الملف..', text: `تم قراءة ${rows.length} سجل. جاري التصفية..`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                    let nextIndex = 0;
+                    const numericKeys = window.allData.map(d => parseInt(d.__firebaseKey)).filter(k => !isNaN(k));
+                    nextIndex = numericKeys.length ? Math.max(...numericKeys) + 1 : window.allData.length;
+                    const batch = {};
+                    let duplicates = 0, added = 0;
+
+                    for (const row of rows) {
+                        const mcoVal = cleanNumericString(row["كود المشترك"] || row["metercode"] || row["الكود الموحد"] || row["MCO"]);
+                        const meterNum = cleanNumericString(row["الشاسيه"] || row["meternumber"] || row["رقم العداد"]);
+                        if ((!meterNum && !mcoVal)) continue;
+                        if ((meterNum && window.existingMeterNumbersCache.has(meterNum)) || (mcoVal && window.existingMcoCache.has(mcoVal))) { duplicates++; continue; }
+
+                        const record = {
+                            keta3: String(row["القطاع"] || row["keta3"] || ""),
+                            handsa: String(row["الهندسة"] || row["handsa"] || ""),
+                            nashattype: String(row["النشاط"] || row["nashattype"] || ""),
+                            metertype: String(row["نوع العداد"] || row["metertype"] || ""),
+                            meternumber: meterNum,
+                            calibrationdate: String(row["تاريخ الفحص"] || row["calibrationdate"] || ""),
+                            enterdate: String(row["تاريخ التسجيل"] || row["enterdate"] || new Date().toISOString().split('T')[0]),
+                            metername: String(row["اسم المشترك"] || row["metername"] || ""),
+                            metercode: mcoVal,
+                            result: String(row["نتيجة الفحص"] || row["result"] || ""),
+                            notes: String(row["ملاحظات"] || row["notes"] || "")
+                        };
+                        batch[`Ayat/meterdata/${nextIndex}`] = record;
+                        if (meterNum) window.existingMeterNumbersCache.add(meterNum);
+                        if (mcoVal) window.existingMcoCache.add(mcoVal);
+                        nextIndex++; added++;
+                    }
+                    if (added > 0) await update(ref(database), batch);
+                    Swal.fire({ icon: added ? "success" : "warning", title: "اكتمال الرفع", html: `✅ تم رفع ${added} سجلات جديدة.<br/>⚠️ تم تخطي ${duplicates} مكرر.` });
+                } catch (err) { Swal.fire("خطأ", "فشل تحليل الملف", "error"); }
+                document.getElementById('excelFileInput').value = "";
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.showData = function () {
+            if (!window.allData.length) return Swal.fire("مستودع فارغ", "لا توجد سجلات", "info");
+            const template = document.getElementById("tableTemplate").content.cloneNode(true);
+            Swal.fire({
+                title: '📊 الأرشيف الذكي والفلاتر', html: '<div id="modalDynamicRender"></div>', width: '95vw', showConfirmButton: false, showCloseButton: true, didOpen: () => {
+                    document.getElementById("modalDynamicRender").appendChild(template);
+                    window.modalCurrentPage = 1; window.modalRowsPerPage = 12;
+                    window.modalFilteredData = [...window.allData];
+                    window.renderTableBody = () => {
+                        const tbody = document.getElementById("modalBody"); if (!tbody) return;
+                        const total = window.modalFilteredData.length;
+                        document.getElementById("rowCount") && (document.getElementById("rowCount").innerText = total);
+                        const start = (window.modalCurrentPage - 1) * window.modalRowsPerPage;
+                        const end = Math.min(start + window.modalRowsPerPage, total);
+                        const pageRows = window.modalFilteredData.slice(start, end);
+                        if (!pageRows.length && total) { window.modalCurrentPage = Math.ceil(total / window.modalRowsPerPage); return window.renderTableBody(); }
+                        tbody.innerHTML = pageRows.map((item, idx) => `
+                    <tr><td>${start + idx + 1}</td><td>${item.keta3 || ''}</td><td>${item.handsa || ''}</td>
+                    <td>${item.calibrationdate || ''}</td><td>${item.enterdate || ''}</td><td>${item.metername || ''}</td>
+                    <td style="color:var(--neon-purple);font-weight:bold;">${item.metercode || ''}</td><td>${item.nashattype || ''}</td>
+                    <td>${item.metertype || ''}</td><td style="color:var(--neon-blue);">${item.meternumber || ''}</td>
+                    <td><span style="background:rgba(88,166,255,0.15); padding:2px 8px; border-radius:20px;">${item.result || ''}</span></td>
+                    <td style="max-width:180px; white-space:normal;">${item.notes || ''}</td>
+                    <td><button onclick="window.deleteRowFromServer('${item.__firebaseKey}')" style="background:transparent; border:none; color:var(--neon-red); cursor:pointer;"><i class="fa-regular fa-trash-can"></i></button></td></tr>
+                `).join('');
+                        const totalPages = Math.ceil(total / window.modalRowsPerPage) || 1;
+                        document.getElementById("pageInfo") && (document.getElementById("pageInfo").innerHTML = `صفحة ${window.modalCurrentPage} من ${totalPages}`);
+                        const prevBtn = document.getElementById("prevBtn"); const nextBtn = document.getElementById("nextBtn");
+                        if (prevBtn) prevBtn.disabled = (window.modalCurrentPage === 1);
+                        if (nextBtn) nextBtn.disabled = (window.modalCurrentPage === totalPages);
+                    };
+                    window.filterTable = function () {
+                        const filters = {
+                            f0: (document.getElementById("f0")?.value || "").toLowerCase(), f1: (document.getElementById("f1")?.value || "").toLowerCase(),
+                            f4: (document.getElementById("f4")?.value || "").toLowerCase(), f5: (document.getElementById("f5")?.value || "").toLowerCase(),
+                            f6: (document.getElementById("f6")?.value || "").toLowerCase(), f7: (document.getElementById("f7")?.value || "").toLowerCase(),
+                            f8: (document.getElementById("f8")?.value || "").toLowerCase(), f9: (document.getElementById("f9")?.value || "").toLowerCase(),
+                            f10: (document.getElementById("f10")?.value || "").toLowerCase()
+                        };
+                        window.modalFilteredData = window.allData.filter(item =>
+                            (!filters.f0 || (item.keta3 || "").toLowerCase().includes(filters.f0)) &&
+                            (!filters.f1 || (item.handsa || "").toLowerCase().includes(filters.f1)) &&
+                            (!filters.f4 || (item.metername || "").toLowerCase().includes(filters.f4)) &&
+                            (!filters.f5 || (item.metercode || "").toLowerCase().includes(filters.f5)) &&
+                            (!filters.f6 || (item.nashattype || "").toLowerCase().includes(filters.f6)) &&
+                            (!filters.f7 || (item.metertype || "").toLowerCase().includes(filters.f7)) &&
+                            (!filters.f8 || (item.meternumber || "").toLowerCase().includes(filters.f8)) &&
+                            (!filters.f9 || (item.result || "").toLowerCase().includes(filters.f9)) &&
+                            (!filters.f10 || (item.notes || "").toLowerCase().includes(filters.f10))
+                        );
+                        window.modalCurrentPage = 1; window.renderTableBody();
+                    };
+                    const headerRow = document.querySelector("#excelTargetTable thead tr");
+                    if (headerRow) {
+                        const ths = headerRow.children;
+                        for (let i = 0; i < ths.length - 1; i++) {
+                            const filterId = `f${i}`;
+                            const th = ths[i];
+                            const input = document.createElement("input");
+                            input.placeholder = `🔍 بحث ${ths[i].innerText}`;
+                            input.className = "filter-input";
+                            input.id = filterId;
+                            input.addEventListener("input", () => window.filterTable());
+                            th.appendChild(input);
+                        }
+                    }
+                    window.renderTableBody();
+                    window.nextPage = () => { const max = Math.ceil(window.modalFilteredData.length / window.modalRowsPerPage); if (window.modalCurrentPage < max) { window.modalCurrentPage++; window.renderTableBody(); } };
+                    window.prevPage = () => { if (window.modalCurrentPage > 1) { window.modalCurrentPage--; window.renderTableBody(); } };
+                    window.clearFilters = () => { for (let i = 0; i <= 10; i++) { const el = document.getElementById(`f${i}`); if (el) el.value = ""; } window.filterTable(); };
+                }
+            });
+        };
+        window.deleteRowFromServer = async (key) => { if (!key) return; if ((await Swal.fire({ title: '⚠️ حذف سجل', text: 'سيتم الحذف نهائياً', icon: 'warning', showCancelButton: true, confirmButtonColor: '#f85149', confirmButtonText: 'نعم' })).isConfirmed) { try { await remove(ref(database, `Ayat/meterdata/${key}`)); Swal.fire("تم الحذف", "", "success"); } catch (e) { Swal.fire("خطأ", "", "error"); } } };
+        window.exportExcel = function () { if (window.modalFilteredData?.length) { const data = window.modalFilteredData.map((d, i) => ({ "م": i + 1, "القطاع": d.keta3, "الهندسة": d.handsa, "تاريخ الفحص": d.calibrationdate, "تاريخ التسجيل": d.enterdate, "المشترك": d.metername, "كود المشترك": d.metercode, "النشاط": d.nashattype, "نوع العداد": d.metertype, "رقم العداد": d.meternumber, "النتيجة": d.result, "ملاحظات": d.notes })); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "تقرير_العدادات"); XLSX.writeFile(wb, `عدادات_${new Date().toISOString().slice(0, 10)}.xlsx`); } };
+        window.checkNewOption = async (sel) => { if (sel.value === "ADD_NEW") { const { value: v } = await Swal.fire({ title: "إضافة بند", input: "text", inputLabel: "الاسم الجديد" }); if (v) { const opt = document.createElement("option"); opt.value = v.trim(); opt.textContent = v.trim(); sel.insertBefore(opt, sel.lastElementChild); sel.value = v.trim(); } else sel.value = ""; } };
+        document.getElementById("enter_date").value = new Date().toISOString().split('T')[0];
+
+        // Day / Night Mode Toggle
+        const themeBtn = document.getElementById("themeToggleBtn");
+        const applyTheme = (isLight) => {
+            if (isLight) document.body.classList.add("light-mode");
+            else document.body.classList.remove("light-mode");
+            localStorage.setItem("meterTheme", isLight ? "light" : "dark");
+            themeBtn.innerHTML = isLight ? '<i class="fa-solid fa-sun"></i> <span>وضع ليلي</span>' : '<i class="fa-solid fa-moon"></i> <span>وضع نهاري</span>';
+        };
+        const savedTheme = localStorage.getItem("meterTheme");
+        if (savedTheme === "light") applyTheme(true);
+        else applyTheme(false);
+        themeBtn.addEventListener("click", () => applyTheme(!document.body.classList.contains("light-mode")));
+    </script>
+</body>
+
+</html>
