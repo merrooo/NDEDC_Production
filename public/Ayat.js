@@ -42,7 +42,6 @@ function convertToDDMMYYYY(dateStr) {
     if (!dateStr) return "";
     
     try {
-        // If it's already a Date object
         if (dateStr instanceof Date) {
             const day = String(dateStr.getDate()).padStart(2, '0');
             const month = String(dateStr.getMonth() + 1).padStart(2, '0');
@@ -50,14 +49,11 @@ function convertToDDMMYYYY(dateStr) {
             return `${day}/${month}/${year}`;
         }
         
-        // Convert to string if needed
         const str = String(dateStr).trim();
         
-        // Check for Excel serial number (dates stored as numbers)
         if (typeof dateStr === 'number' || /^\d+$/.test(str)) {
             const serial = parseInt(str);
             if (serial > 0 && serial < 100000) {
-                // Excel serial date conversion (days since 1900-01-01)
                 const excelEpoch = new Date(1900, 0, 1);
                 const date = new Date(excelEpoch.getTime() + (serial - 2) * 86400000);
                 const day = String(date.getDate()).padStart(2, '0');
@@ -69,10 +65,8 @@ function convertToDDMMYYYY(dateStr) {
             }
         }
         
-        // Try to parse common date formats
         let day, month, year;
         
-        // Format: YYYY-MM-DD
         if (str.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const parts = str.split('-');
             year = parts[0];
@@ -81,22 +75,18 @@ function convertToDDMMYYYY(dateStr) {
             return `${day}/${month}/${year}`;
         }
         
-        // Format: MM/DD/YYYY or DD/MM/YYYY
         if (str.includes('/')) {
             const parts = str.split('/');
             if (parts.length === 3) {
-                // Check if first part is year (YYYY/MM/DD)
                 if (parts[0].length === 4) {
                     year = parts[0];
                     month = parts[1].padStart(2, '0');
                     day = parts[2].padStart(2, '0');
                     return `${day}/${month}/${year}`;
                 }
-                // Assume DD/MM/YYYY
                 day = parts[0].padStart(2, '0');
                 month = parts[1].padStart(2, '0');
                 year = parts[2];
-                // If year is 2 digits, convert to 4 digits
                 if (year.length === 2) {
                     year = parseInt(year) > 30 ? `19${year}` : `20${year}`;
                 }
@@ -104,18 +94,15 @@ function convertToDDMMYYYY(dateStr) {
             }
         }
         
-        // Format: DD-MM-YYYY
         if (str.includes('-')) {
             const parts = str.split('-');
             if (parts.length === 3) {
-                // Check if first part is year (YYYY-MM-DD)
                 if (parts[0].length === 4) {
                     year = parts[0];
                     month = parts[1].padStart(2, '0');
                     day = parts[2].padStart(2, '0');
                     return `${day}/${month}/${year}`;
                 }
-                // Assume DD-MM-YYYY
                 day = parts[0].padStart(2, '0');
                 month = parts[1].padStart(2, '0');
                 year = parts[2];
@@ -126,7 +113,6 @@ function convertToDDMMYYYY(dateStr) {
             }
         }
         
-        // Try using JavaScript Date parsing as last resort
         const jsDate = new Date(str);
         if (!isNaN(jsDate.getTime()) && jsDate.getFullYear() > 1900) {
             const day = String(jsDate.getDate()).padStart(2, '0');
@@ -146,7 +132,6 @@ function convertToDDMMYYYY(dateStr) {
 function parseDate(dateStr) {
     if (!dateStr) return null;
     try {
-        // If already in DD/MM/YYYY format
         if (dateStr.includes('/')) {
             const parts = dateStr.split('/');
             if (parts.length === 3) {
@@ -181,7 +166,6 @@ function parseDate(dateStr) {
 function formatDateForDisplay(dateStr) {
     if (!dateStr) return "";
     try {
-        // If already in DD/MM/YYYY format, convert to DD-MM-YYYY for display
         if (dateStr.includes('/')) {
             return dateStr.replace(/\//g, '-');
         }
@@ -283,6 +267,115 @@ function cleanMeterNumber(value) {
     return cleanNumericString(value);
 }
 
+// ==================== DUPLICATE REPORT FUNCTIONS ====================
+
+// Show duplicate report in a SweetAlert table
+window.showDuplicateReport = (duplicatesList, type = "both") => {
+    if (!duplicatesList || duplicatesList.length === 0) {
+        Swal.fire("لا توجد مكررات", "جميع البيانات فريدة ولا توجد أرقام مكررة", "success");
+        return;
+    }
+
+    let html = `
+        <div dir="rtl" style="text-align: right; max-height: 500px; overflow-y: auto;">
+            <h4 style="color: #dc3545; margin-bottom: 15px;">
+                🔴 تم رصد ${duplicatesList.length} سجل مكرر
+            </h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 8px; text-align: center;">#</th>
+                        <th style="padding: 8px; text-align: center;">رقم العداد</th>
+                        <th style="padding: 8px; text-align: center;">كود المشترك (MCO)</th>
+                        <th style="padding: 8px; text-align: center;">اسم المشترك</th>
+                        <th style="padding: 8px; text-align: center;">القطاع</th>
+                        <th style="padding: 8px; text-align: center;">تاريخ الفحص</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    duplicatesList.forEach((dup, index) => {
+        html += `
+            <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px; text-align: center;">${index + 1}</td>
+                <td style="padding: 8px; text-align: center;"><strong>${dup.meternumber || '—'}</strong></td>
+                <td style="padding: 8px; text-align: center;">${dup.metercode || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.metername || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.keta3 || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.calibrationdate || '—'}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; color: #856404;">
+                <strong>📌 ملاحظة:</strong> هذه السجلات موجودة مسبقاً في قاعدة البيانات ولم يتم رفعها مرة أخرى.
+            </div>
+        </div>
+    `;
+
+    Swal.fire({
+        title: "⚠️ السجلات المكررة",
+        html: html,
+        icon: "warning",
+        width: "90%",
+        maxWidth: "1000px",
+        confirmButtonText: "حسناً",
+        confirmButtonColor: "#10b981"
+    });
+};
+
+// Function to check and report duplicates in current filtered data
+window.checkCurrentDuplicates = () => {
+    const meterCounts = new Map();
+    const mcoCounts = new Map();
+    const duplicates = [];
+
+    filteredData.forEach((item, index) => {
+        const meterNumber = cleanNumericString(item.meternumber);
+        const mcoCode = cleanNumericString(item.metercode);
+
+        if (meterNumber) {
+            if (!meterCounts.has(meterNumber)) {
+                meterCounts.set(meterNumber, []);
+            }
+            meterCounts.get(meterNumber).push({ ...item, originalIndex: index });
+        }
+
+        if (mcoCode) {
+            if (!mcoCounts.has(mcoCode)) {
+                mcoCounts.set(mcoCode, []);
+            }
+            mcoCounts.get(mcoCode).push({ ...item, originalIndex: index });
+        }
+    });
+
+    meterCounts.forEach((items, meterNumber) => {
+        if (items.length > 1) {
+            duplicates.push(...items);
+        }
+    });
+
+    mcoCounts.forEach((items, mcoCode) => {
+        if (items.length > 1) {
+            items.forEach(item => {
+                if (!duplicates.some(d => d.originalIndex === item.originalIndex)) {
+                    duplicates.push(item);
+                }
+            });
+        }
+    });
+
+    if (duplicates.length === 0) {
+        Swal.fire("✅ لا توجد مكررات", "جميع السجلات في قاعدة البيانات فريدة ولا توجد أرقام مكررة.", "success");
+    } else {
+        window.showDuplicateReport(duplicates, "both");
+    }
+};
+
 // ==================== BULK EXCEL UPLOAD HANDLER ====================
 window.handleBulkExcelUpload = function(event) {
     const file = event.target.files[0];
@@ -317,7 +410,6 @@ window.handleBulkExcelUpload = function(event) {
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            // Get current data to determine next index
             const snap = await get(ref(db, "Ayat/meterdata"));
             let currentList = [];
             if (snap.exists()) {
@@ -326,13 +418,12 @@ window.handleBulkExcelUpload = function(event) {
             }
             
             let currentServerIndex = currentList.length;
-
             const finalBatchUpdates = {};
             let duplicateCount = 0;
             let successCount = 0;
+            let duplicateRecords = [];
 
             for (let row of rows) {
-                // خريطة مطابقة ذكية تقرأ الأسماء من ملفك الأصلي بدقة متناهية
                 const mcoVal = cleanNumericString(row["كود المشترك"] || row["metercode"] || row["الكود الرقمي الموحد"] || row["MCO"]);
                 const mNumber = cleanNumericString(row["الشاسيه"] || row["meternumber"] || row["رقم العداد"]);
                 
@@ -340,17 +431,21 @@ window.handleBulkExcelUpload = function(event) {
                     continue; 
                 }
 
-                // التحقق المزدوج اللحظي لمنع التكرار
                 const isDuplicateMco = mcoVal && existingMcoCache.has(mcoVal);
                 const isDuplicateNumber = mNumber && existingMeterNumbersCache.has(mNumber);
 
                 if (isDuplicateMco || isDuplicateNumber) {
                     duplicateCount++;
-                    console.log(`Duplicate skipped: MCO=${mcoVal}, Meter=${mNumber}`);
+                    duplicateRecords.push({
+                        meternumber: mNumber,
+                        metercode: mcoVal,
+                        metername: row["اسم المشترك"] || row["اسم المشترك الثلاثي"] || row["metername"] || "",
+                        keta3: row["القطاع"] || row["القطاع التابع له"] || row["keta3"] || "",
+                        calibrationdate: row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"] || ""
+                    });
                     continue;
                 }
 
-                // إعداد وقراءة باقي الأعمدة العربية من ملف الـ Excel الخاص بك
                 const preparedRecord = {
                     calibrationdate: row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"] ? String(row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"]) : "",
                     enterdate: row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"] ? String(row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"]) : new Date().toISOString().split('T')[0],
@@ -367,7 +462,6 @@ window.handleBulkExcelUpload = function(event) {
 
                 finalBatchUpdates[currentServerIndex] = preparedRecord;
                 
-                // تحديث مؤقت للكاش لضمان عدم حدوث تكرار ذاتي في نفس الملف
                 if (mcoVal) existingMcoCache.add(mcoVal);
                 if (mNumber) existingMeterNumbersCache.add(mNumber);
                 
@@ -376,7 +470,6 @@ window.handleBulkExcelUpload = function(event) {
             }
 
             if (successCount > 0) {
-                // Get current list and merge
                 const currentSnap = await get(ref(db, "Ayat/meterdata"));
                 let existingList = [];
                 if (currentSnap.exists()) {
@@ -384,40 +477,84 @@ window.handleBulkExcelUpload = function(event) {
                     existingList = Array.isArray(val) ? val : Object.values(val);
                 }
                 
-                // Convert batch updates to array and merge
                 const newRecords = Object.values(finalBatchUpdates);
                 const updatedList = [...existingList, ...newRecords];
                 
-                // Save the entire updated list
                 await set(ref(db, "Ayat/meterdata"), updatedList);
                 
-                Swal.fire({
+                let resultHtml = `
+                    <div style="text-align: right; direction: rtl; font-size: 14px; line-height: 1.6;">
+                        <p style="color: #3fb950; font-weight: bold;"><i class="fa-solid fa-cloud-arrow-up"></i> تم بنجاح رفع: ${successCount} سجل جديد.</p>
+                `;
+                
+                if (duplicateCount > 0) {
+                    resultHtml += `
+                        <p style="color: #f85149; font-weight: bold; margin-top: 8px;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> تنبيه: تم رصد وتخطي (${duplicateCount}) سجل مكرر مسبقاً.
+                        </p>
+                        <button id="showDuplicatesBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #fd7e14; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            🔍 عرض السجلات المكررة
+                        </button>
+                    `;
+                }
+                
+                resultHtml += `</div>`;
+                
+                await Swal.fire({
                     icon: duplicateCount > 0 ? 'warning' : 'success',
                     title: 'اكتملت معالجة ورفع الملف السحابي',
-                    html: `
-                        <div style="text-align: right; direction: rtl; font-size: 14px; line-height: 1.6;">
-                            <p style="color: #3fb950; font-weight: bold;"><i class="fa-solid fa-cloud-arrow-up"></i> تم بنجاح رفع: ${successCount} سجل جديد.</p>
-                            ${duplicateCount > 0 ? `<p style="color: #f85149; font-weight: bold; margin-top: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> تنبيه: تم رصد وتخطي ( ${duplicateCount} ) سجل مكرر مسبقاً بالسيرفر لحماية بياناتك.</p>` : ''}
-                        </div>
-                    `
+                    html: resultHtml,
+                    didOpen: () => {
+                        if (duplicateCount > 0) {
+                            const showBtn = document.getElementById('showDuplicatesBtn');
+                            if (showBtn) {
+                                showBtn.onclick = () => {
+                                    Swal.close();
+                                    window.showDuplicateReport(duplicateRecords, "both");
+                                };
+                            }
+                        }
+                    }
                 });
                 
-                // Reload data after successful upload
                 await loadDataForModal();
                 await updateCaches();
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'البيانات مسجلة بالكامل',
-                    text: `جميع الأكواد الموحدة (MCO) والعدادات بالملف (عددها: ${duplicateCount}) مسجلة مسبقاً بقاعدة البيانات الحالية!`
-                });
+                if (duplicateRecords.length > 0) {
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: '⚠️ جميع السجلات مكررة',
+                        html: `
+                            <div style="text-align: right; direction: rtl;">
+                                <p style="color: #f85149;">تم العثور على ${duplicateCount} سجل مكرر في الملف.</p>
+                                <button id="viewDuplicatesBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #fd7e14; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    🔍 عرض السجلات المكررة
+                                </button>
+                            </div>
+                        `,
+                        didOpen: () => {
+                            const viewBtn = document.getElementById('viewDuplicatesBtn');
+                            if (viewBtn) {
+                                viewBtn.onclick = () => {
+                                    Swal.close();
+                                    window.showDuplicateReport(duplicateRecords, "both");
+                                };
+                            }
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'البيانات مسجلة بالكامل',
+                        text: `جميع الأكواد الموحدة (MCO) والعدادات بالملف (عددها: ${duplicateCount}) مسجلة مسبقاً بقاعدة البيانات الحالية!`
+                    });
+                }
             }
 
         } catch (err) {
             console.error("Bulk Upload Crash:", err);
             Swal.fire("فشل التحليل", "حدث خطأ أثناء معالجة ملف الـ Excel، تأكد من سلامة صياغة وتنسيق الملف.", "error");
         } finally {
-            // Clear the file input
             const fileInput = document.getElementById('excelFileInput');
             if (fileInput) fileInput.value = "";
         }
@@ -447,7 +584,6 @@ window.promptPassword = () => {
         }
     }).then(result => {
         if (result.isConfirmed && result.value === "1") {
-            // Create file input dynamically if it doesn't exist
             let fileInput = document.getElementById("excelFileInput");
             if (!fileInput) {
                 fileInput = document.createElement("input");
@@ -504,7 +640,6 @@ window.quickSave = async () => {
         const cleanedMeterNo = cleanNumericString(fields.meternumber);
         const cleanedMco = cleanNumericString(fields.metercode);
 
-        // Use cache for faster duplicate checking
         if (currentEditOriginalIndex === null) {
             if (existingMeterNumbersCache.has(cleanedMeterNo)) {
                 if (saveBtn) {
@@ -512,7 +647,6 @@ window.quickSave = async () => {
                     saveBtn.innerHTML = originalText;
                 }
 
-                // Find existing record details
                 const snap = await get(ref(db, "Ayat/meterdata"));
                 let list = [];
                 if (snap.exists()) {
@@ -717,7 +851,6 @@ window.loadDataForModal = async () => {
             return dateB - dateA;
         });
 
-        // Update caches
         existingMeterNumbersCache.clear();
         existingMcoCache.clear();
         filteredData.forEach(item => {
@@ -784,7 +917,7 @@ function renderPage() {
                     <button class="btn-edit" onclick="window.editRow(${globalIndex})" title="تعديل">✏️</button>
                     <button class="btn-del" onclick="window.deleteRow(${globalIndex})" title="حذف">🗑</button>
                 </td>
-            </tr>
+             </tr>
         `;
     }).join("");
 
@@ -857,7 +990,6 @@ window.filterTable = () => {
     };
 
     filteredData = allData.map((d, i) => ({ ...d, __originalIndex: i })).filter(d => {
-        // Calibration Date filter
         let calibDateMatch = true;
         if (filters.calibDateFrom || filters.calibDateTo) {
             const rowDate = parseDate(d.calibrationdate);
@@ -875,7 +1007,6 @@ window.filterTable = () => {
             }
         }
 
-        // Entry Date filter
         let entryDateMatch = true;
         if (filters.entryDateFrom || filters.entryDateTo) {
             const rowDate = parseDate(d.enterdate);
@@ -932,7 +1063,7 @@ window.showDuplicateNumbers = () => {
 
     let html = `<div dir="rtl"><h4 style="color:#dc3545">🔴 الأرقام المكررة (${duplicates.length})</h4>
               <table style="width:100%; border-collapse:collapse;">
-              <thead><tr style="background:#f8f9fa"><th style="padding:8px">رقم العداد</th><th>التكرار</th></td></thead><tbody>`;
+              <thead><tr style="background:#f8f9fa"><th style="padding:8px">رقم العداد</th><th>التكرار</th></tr></thead><tbody>`;
     duplicates.forEach(([num, count]) => {
         html += `<tr><td style="padding:8px; border-bottom:1px solid #ddd"><strong>${num}</strong></td>
              <td style="text-align:center">${count}</td></tr>`;
@@ -1016,7 +1147,6 @@ window.showData = async () => {
 
 // ==================== INITIALIZATION ====================
 
-// Initialize caches on page load
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("DOM loaded, initializing...");
     
@@ -1029,4 +1159,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("Initialization complete");
 });
 
-console.log("Ayat.js loaded successfully - with fixed bulk Excel upload handler");
+console.log("Ayat.js loaded successfully - with duplicate report feature");
