@@ -28,6 +28,7 @@ let currentEditOriginalIndex = null;
 // Cache for existing meter numbers and MCO codes (for faster duplicate checking)
 let existingMeterNumbersCache = new Set();
 let existingMcoCache = new Set();
+let duplicateReferenceMode = "meternumber";
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -35,6 +36,50 @@ let existingMcoCache = new Set();
 function cleanNumericString(value) {
     if (!value) return "";
     return String(value).replace(/\D/g, '').trim();
+}
+
+// Keep meter code as text (important for alphanumeric codes)
+function normalizeMeterCode(value) {
+    if (!value) return "";
+    return String(value).replace(/\s+/g, '').trim();
+}
+
+function normalizeText(value) {
+    if (value === null || value === undefined) return "";
+    return String(value).trim().toLowerCase();
+}
+
+function getDuplicateSourceValue(item, mode) {
+    if (!item) return "";
+    if (mode === "meternumber") return item.meternumber;
+    if (mode === "metercode") return item.metercode;
+    if (mode === "metername") return item.metername;
+    return "";
+}
+
+function normalizeDuplicateValue(value, mode) {
+    if (mode === "meternumber") return cleanNumericString(value);
+    if (mode === "metercode") return normalizeMeterCode(value).toLowerCase();
+    if (mode === "metername") return normalizeText(value);
+    return "";
+}
+
+function getDuplicateReferenceLabel(mode) {
+    if (mode === "metercode") return "كود المشترك";
+    if (mode === "metername") return "اسم المشترك";
+    return "رقم العداد";
+}
+
+function mergeUploadedRecord(existingRecord, incomingRecord) {
+    const merged = { ...existingRecord };
+
+    Object.entries(incomingRecord).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            merged[key] = value;
+        }
+    });
+
+    return merged;
 }
 
 // Convert any date format to DD/MM/YYYY
@@ -211,7 +256,7 @@ async function updateCaches() {
                     existingMeterNumbersCache.add(cleanNumericString(item.meternumber));
                 }
                 if (item?.metercode) {
-                    existingMcoCache.add(cleanNumericString(item.metercode));
+                    existingMcoCache.add(normalizeMeterCode(item.metercode));
                 }
             });
             console.log("Caches updated:", {
@@ -330,53 +375,67 @@ window.showDuplicateReport = (duplicatesList, type = "both") => {
 
 // Function to check and report duplicates in current filtered data
 window.checkCurrentDuplicates = () => {
-    const meterCounts = new Map();
-    const mcoCounts = new Map();
+    const counts = new Map();
     const duplicates = [];
 
     filteredData.forEach((item, index) => {
-        const meterNumber = cleanNumericString(item.meternumber);
-        const mcoCode = cleanNumericString(item.metercode);
+        const key = normalizeDuplicateValue(getDuplicateSourceValue(item, duplicateReferenceMode), duplicateReferenceMode);
 
-        if (meterNumber) {
-            if (!meterCounts.has(meterNumber)) {
-                meterCounts.set(meterNumber, []);
-            }
-            meterCounts.get(meterNumber).push({ ...item, originalIndex: index });
+        if (!key) {
+            return;
         }
 
-        if (mcoCode) {
-            if (!mcoCounts.has(mcoCode)) {
-                mcoCounts.set(mcoCode, []);
-            }
-            mcoCounts.get(mcoCode).push({ ...item, originalIndex: index });
+        if (!counts.has(key)) {
+            counts.set(key, []);
         }
+
+        counts.get(key).push({ ...item, originalIndex: index });
     });
 
-    meterCounts.forEach((items, meterNumber) => {
+    counts.forEach((items) => {
         if (items.length > 1) {
             duplicates.push(...items);
         }
     });
 
-    mcoCounts.forEach((items, mcoCode) => {
-        if (items.length > 1) {
-            items.forEach(item => {
-                if (!duplicates.some(d => d.originalIndex === item.originalIndex)) {
-                    duplicates.push(item);
-                }
-            });
-        }
-    });
-
     if (duplicates.length === 0) {
-        Swal.fire("✅ لا توجد مكررات", "جميع السجلات في قاعدة البيانات فريدة ولا توجد أرقام مكررة.", "success");
+        Swal.fire("✅ لا توجد مكررات", `جميع السجلات فريدة بالنسبة لـ ${getDuplicateReferenceLabel(duplicateReferenceMode)}.`, "success");
     } else {
-        window.showDuplicateReport(duplicates, "both");
+        window.showDuplicateReport(duplicates, duplicateReferenceMode);
     }
 };
 
 // ==================== BULK EXCEL UPLOAD HANDLER ====================
+function normalizeExcelKey(value) {
+    return String(value ?? "")
+        .replace(/\s+/g, "")
+        .replace(/[\u200e\u200f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function getExcelValue(row, aliases) {
+    const normalizedMap = Object.keys(row || {}).reduce((acc, key) => {
+        acc[normalizeExcelKey(key)] = key;
+        return acc;
+    }, {});
+
+    for (const alias of aliases) {
+        const matchedKey = normalizedMap[normalizeExcelKey(alias)];
+        if (matchedKey !== undefined) {
+            const value = row[matchedKey];
+            if (value !== undefined && value !== null) {
+                const text = String(value).trim();
+                if (text !== "") {
+                    return text;
+                }
+            }
+        }
+    }
+
+    return "";
+}
+
 window.handleBulkExcelUpload = function(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -393,11 +452,11 @@ window.handleBulkExcelUpload = function(event) {
             const workbook = XLSX.read(data, { type: 'array', cellDates: true });
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            
+
             const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-            
+
             console.log("Rows parsed:", rows.length);
-            
+
             if (rows.length === 0) {
                 Swal.fire("ملف فارغ", "لا توجد أسطر بيانات داخل هذا الملف لتمريرها.", "warning");
                 return;
@@ -405,7 +464,7 @@ window.handleBulkExcelUpload = function(event) {
 
             Swal.fire({
                 title: 'جاري فحص وتصفية البيانات...',
-                text: `تم رصد ${rows.length} سجل بالملف. جاري معالجة الكود الموحد والشاسيه...`,
+                text: `تم رصد ${rows.length} سجل بالملف. جاري معالجة البيانات...`,
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
@@ -416,139 +475,181 @@ window.handleBulkExcelUpload = function(event) {
                 const val = snap.val();
                 currentList = Array.isArray(val) ? val : Object.values(val);
             }
-            
-            let currentServerIndex = currentList.length;
-            const finalBatchUpdates = {};
-            let duplicateCount = 0;
-            let successCount = 0;
-            let duplicateRecords = [];
 
-            for (let row of rows) {
-                const mcoVal = cleanNumericString(row["كود المشترك"] || row["metercode"] || row["الكود الرقمي الموحد"] || row["MCO"]);
-                const mNumber = cleanNumericString(row["الشاسيه"] || row["meternumber"] || row["رقم العداد"]);
-                
-                if (!mNumber && !mcoVal) {
-                    continue; 
-                }
+            let addedCount = 0;
+            let updatedCount = 0;
+            let savedCount = 0;
+            let invalidCount = 0;
+            const invalidRecords = [];
 
-                const isDuplicateMco = mcoVal && existingMcoCache.has(mcoVal);
-                const isDuplicateNumber = mNumber && existingMeterNumbersCache.has(mNumber);
+            for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                const row = rows[rowIndex];
 
-                if (isDuplicateMco || isDuplicateNumber) {
-                    duplicateCount++;
-                    duplicateRecords.push({
-                        meternumber: mNumber,
-                        metercode: mcoVal,
-                        metername: row["اسم المشترك"] || row["اسم المشترك الثلاثي"] || row["metername"] || "",
-                        keta3: row["القطاع"] || row["القطاع التابع له"] || row["keta3"] || "",
-                        calibrationdate: row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"] || ""
+                const mcoVal = normalizeMeterCode(getExcelValue(row, ["كود المشترك", "كود ","الكود الموحّد","الكود الجديد", "MCO", "mco", "metercode"]));
+                const mNumber = cleanNumericString(getExcelValue(row, ["رقم العداد", "رقم العداد", "شاسيه العداد", "رقم الشاسية ", "meternumber", "mno"]));
+                const keta3 = getExcelValue(row, ["قطاع", "القطاع", "DiscoSection", "keta3", "المنطقة", "المنطقة/القطاع"]);
+                const handsa = getExcelValue(row, ["هندسة", "الهندسة", "DiscoBranch", "الادارة", "الفرع"]);
+                const calibrationdate = getExcelValue(row, ["تاريخ الفحص", "تاريخ المعايرة", "تاريخ المعايره", "الفحص التاريخ"]);
+                const enterdate = getExcelValue(row, ["تاريخ الإدخال", "تاريخ التسجيل", "تاريخ الرفع", "تاريخ الاضافة"]) || new Date().toISOString().split('T')[0];
+                const metername = getExcelValue(row, ["اسم المشترك", "اسم المشتركين", "الأسم", "المشترك"]);
+                const metertype = getExcelValue(row, ["نوع العداد", "نوع العداد", "meter type", "metertype"]);
+                const nashattype = getExcelValue(row, ["نوع النشاط", "النشاط","حالة الأشتراك", "activity type", "nashattype"]);
+                const result = getExcelValue(row, ["نتيجة الفحص", "الحالة", "النتيجة", "result"]);
+                const notes = getExcelValue(row, ["ملاحظات", "ملاحظات الفحص", "التعليقات", "notes"]);
+
+                if (!mcoVal) {
+                    invalidCount++;
+                    invalidRecords.push({
+                        rowNumber: rowIndex + 2,
+                        reason: "لا يوجد كود المشترك (يجب أن يكون اسم العمود بالضبط: كود المشترك أو أحد البدائل المدعومة)"
                     });
                     continue;
                 }
 
                 const preparedRecord = {
-                    calibrationdate: row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"] ? String(row["تاريخ الفحص"] || row["تاريخ الفحص المعملي"] || row["calibrationdate"]) : "",
-                    enterdate: row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"] ? String(row["تاريخ الإدخال"] || row["تاريخ التسجيل بالنظام"] || row["enterdate"]) : new Date().toISOString().split('T')[0],
-                    handsa: String(row["الهندسة"] || row["الهندسة / الفرع"] || row["handsa"] || ""),
-                    keta3: String(row["القطاع"] || row["القطاع التابع له"] || row["keta3"] || ""),
+                    calibrationdate,
+                    enterdate,
+                    handsa,
+                    keta3,
                     metercode: mcoVal,
-                    metername: String(row["اسم المشترك"] || row["اسم المشترك الثلاثي"] || row["metername"] || ""),
+                    metername,
                     meternumber: mNumber,
-                    metertype: String(row["نوع العداد"] || row["طراز ونوع العداد"] || row["metertype"] || ""),
-                    nashattype: String(row["النشاط"] || row["نوع النشاط الحركي"] || row["nashattype"] || ""),
-                    notes: String(row["ملاحظات"] || row["الملاحظات"] || row["notes"] || ""),
-                    result: String(row["نتيجة الفحص"] || row["النتيجة"] || row["result"] || "")
+                    metertype,
+                    nashattype,
+                    notes,
+                    result
                 };
 
-                finalBatchUpdates[currentServerIndex] = preparedRecord;
-                
-                if (mcoVal) existingMcoCache.add(mcoVal);
-                if (mNumber) existingMeterNumbersCache.add(mNumber);
-                
-                currentServerIndex++;
-                successCount++;
+                const existingIndex = currentList.findIndex(item => normalizeMeterCode(item?.metercode) === mcoVal);
+                if (existingIndex >= 0) {
+                    currentList[existingIndex] = mergeUploadedRecord(currentList[existingIndex], preparedRecord);
+                    updatedCount++;
+                } else {
+                    currentList.push(preparedRecord);
+                    addedCount++;
+                }
+
+                savedCount++;
             }
 
-            if (successCount > 0) {
-                const currentSnap = await get(ref(db, "Ayat/meterdata"));
-                let existingList = [];
-                if (currentSnap.exists()) {
-                    const val = currentSnap.val();
-                    existingList = Array.isArray(val) ? val : Object.values(val);
-                }
-                
-                const newRecords = Object.values(finalBatchUpdates);
-                const updatedList = [...existingList, ...newRecords];
-                
-                await set(ref(db, "Ayat/meterdata"), updatedList);
-                
+            if (savedCount > 0) {
+                await set(ref(db, "Ayat/meterdata"), currentList);
+
                 let resultHtml = `
                     <div style="text-align: right; direction: rtl; font-size: 14px; line-height: 1.6;">
-                        <p style="color: #3fb950; font-weight: bold;"><i class="fa-solid fa-cloud-arrow-up"></i> تم بنجاح رفع: ${successCount} سجل جديد.</p>
+                        <p style="color: #3fb950; font-weight: bold;">✅ تم حفظ/تحديث ${savedCount} سجل.</p>
+                        <p style="color: #93c5fd; font-weight: bold; margin-top: 8px;">➕ سجلات مضافة: ${addedCount}</p>
+                        <p style="color: #f59e0b; font-weight: bold; margin-top: 8px;">🔄 سجلات محدثة: ${updatedCount}</p>
                 `;
-                
-                if (duplicateCount > 0) {
+
+                if (invalidCount > 0) {
                     resultHtml += `
-                        <p style="color: #f85149; font-weight: bold; margin-top: 8px;">
-                            <i class="fa-solid fa-triangle-exclamation"></i> تنبيه: تم رصد وتخطي (${duplicateCount}) سجل مكرر مسبقاً.
+                        <p style="color: #f59e0b; font-weight: bold; margin-top: 8px;">
+                            ⚠️ تم تخطي ${invalidCount} سجل لعدم وجود كود مشترك.
                         </p>
-                        <button id="showDuplicatesBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #fd7e14; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            🔍 عرض السجلات المكررة
+                        <button id="showInvalidBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #f59e0b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            🔎 عرض السجلات غير المكتملة
                         </button>
                     `;
                 }
-                
+
                 resultHtml += `</div>`;
-                
+
                 await Swal.fire({
-                    icon: duplicateCount > 0 ? 'warning' : 'success',
-                    title: 'اكتملت معالجة ورفع الملف السحابي',
+                    icon: invalidCount > 0 ? 'warning' : 'success',
+                    title: invalidCount > 0 ? 'تم رفع الجزء الصحيح من الملف' : 'اكتملت معالجة ورفع الملف السحابي',
                     html: resultHtml,
                     didOpen: () => {
-                        if (duplicateCount > 0) {
-                            const showBtn = document.getElementById('showDuplicatesBtn');
-                            if (showBtn) {
-                                showBtn.onclick = () => {
+                        if (invalidCount > 0) {
+                            const showInvalidBtn = document.getElementById('showInvalidBtn');
+                            if (showInvalidBtn) {
+                                showInvalidBtn.onclick = () => {
                                     Swal.close();
-                                    window.showDuplicateReport(duplicateRecords, "both");
+                                    Swal.fire({
+                                        title: 'السجلات غير المكتملة',
+                                        html: `
+                                            <div dir="rtl" style="text-align: right; max-height: 420px; overflow-y: auto;">
+                                                <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                                                    <thead>
+                                                        <tr style="background:#f8f9fa;">
+                                                            <th style="padding:8px; text-align:center;">رقم الصف</th>
+                                                            <th style="padding:8px; text-align:center;">السبب</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${invalidRecords.map((item) => `
+                                                            <tr style="border-bottom:1px solid #dee2e6;">
+                                                                <td style="padding:8px; text-align:center;">${item.rowNumber}</td>
+                                                                <td style="padding:8px; text-align:center;">${item.reason}</td>
+                                                            </tr>
+                                                        `).join("")}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        `,
+                                        icon: 'warning',
+                                        width: '700px'
+                                    });
                                 };
                             }
                         }
                     }
                 });
-                
+
                 await loadDataForModal();
                 await updateCaches();
-            } else {
-                if (duplicateRecords.length > 0) {
-                    await Swal.fire({
-                        icon: 'warning',
-                        title: '⚠️ جميع السجلات مكررة',
-                        html: `
-                            <div style="text-align: right; direction: rtl;">
-                                <p style="color: #f85149;">تم العثور على ${duplicateCount} سجل مكرر في الملف.</p>
-                                <button id="viewDuplicatesBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #fd7e14; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                                    🔍 عرض السجلات المكررة
-                                </button>
-                            </div>
-                        `,
-                        didOpen: () => {
-                            const viewBtn = document.getElementById('viewDuplicatesBtn');
-                            if (viewBtn) {
-                                viewBtn.onclick = () => {
-                                    Swal.close();
-                                    window.showDuplicateReport(duplicateRecords, "both");
-                                };
-                            }
+            } else if (invalidCount > 0) {
+                await Swal.fire({
+                    icon: 'warning',
+                    title: '⚠️ لم يتم رفع أي سجل',
+                    html: `
+                        <div style="text-align: right; direction: rtl;">
+                            <p>تم تخطي ${invalidCount} سجل لأنهم لا يحتويون على كود مشترك.</p>
+                            <button id="viewInvalidBtn" style="margin-top: 10px; padding: 8px 16px; background-color: #f59e0b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                🔎 عرض السجلات غير المكتملة
+                            </button>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        const viewInvalidBtn = document.getElementById('viewInvalidBtn');
+                        if (viewInvalidBtn) {
+                            viewInvalidBtn.onclick = () => {
+                                Swal.close();
+                                Swal.fire({
+                                    title: 'السجلات غير المكتملة',
+                                    html: `
+                                        <div dir="rtl" style="text-align: right; max-height: 420px; overflow-y: auto;">
+                                            <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                                                <thead>
+                                                    <tr style="background:#f8f9fa;">
+                                                        <th style="padding:8px; text-align:center;">رقم الصف</th>
+                                                        <th style="padding:8px; text-align:center;">السبب</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${invalidRecords.map((item) => `
+                                                        <tr style="border-bottom:1px solid #dee2e6;">
+                                                            <td style="padding:8px; text-align:center;">${item.rowNumber}</td>
+                                                            <td style="padding:8px; text-align:center;">${item.reason}</td>
+                                                        </tr>
+                                                    `).join("")}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    `,
+                                    icon: 'warning',
+                                    width: '700px'
+                                });
+                            };
                         }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'البيانات مسجلة بالكامل',
-                        text: `جميع الأكواد الموحدة (MCO) والعدادات بالملف (عددها: ${duplicateCount}) مسجلة مسبقاً بقاعدة البيانات الحالية!`
-                    });
-                }
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'لم يتم رفع أي سجل',
+                    text: 'لم يتم العثور على سجلات قابلة للرفع في هذا الملف.'
+                });
             }
 
         } catch (err) {
@@ -559,12 +660,12 @@ window.handleBulkExcelUpload = function(event) {
             if (fileInput) fileInput.value = "";
         }
     };
-    
+
     reader.onerror = function(error) {
         console.error("FileReader error:", error);
         Swal.fire("خطأ", "حدث خطأ في قراءة الملف", "error");
     };
-    
+
     reader.readAsArrayBuffer(file);
 };
 
@@ -638,7 +739,7 @@ window.quickSave = async () => {
 
     try {
         const cleanedMeterNo = cleanNumericString(fields.meternumber);
-        const cleanedMco = cleanNumericString(fields.metercode);
+        const cleanedMco = normalizeMeterCode(fields.metercode);
 
         if (currentEditOriginalIndex === null) {
             if (existingMeterNumbersCache.has(cleanedMeterNo)) {
@@ -858,7 +959,7 @@ window.loadDataForModal = async () => {
                 existingMeterNumbersCache.add(cleanNumericString(item.meternumber));
             }
             if (item.metercode) {
-                existingMcoCache.add(cleanNumericString(item.metercode));
+                existingMcoCache.add(normalizeMeterCode(item.metercode));
             }
         });
 
@@ -888,18 +989,19 @@ function renderPage() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const pageItems = filteredData.slice(start, start + ITEMS_PER_PAGE);
 
-    const meterCounts = {};
+    const duplicateCounts = {};
     filteredData.forEach(item => {
-        if (item.meternumber) {
-            const clean = cleanNumericString(item.meternumber);
-            if (clean) meterCounts[clean] = (meterCounts[clean] || 0) + 1;
+        const key = normalizeDuplicateValue(getDuplicateSourceValue(item, duplicateReferenceMode), duplicateReferenceMode);
+        if (key) {
+            duplicateCounts[key] = (duplicateCounts[key] || 0) + 1;
         }
     });
 
     body.innerHTML = pageItems.map((d, idx) => {
-        const cleanNumber = cleanNumericString(d.meternumber);
-        const isDuplicate = meterCounts[cleanNumber] > 1;
+        const key = normalizeDuplicateValue(getDuplicateSourceValue(d, duplicateReferenceMode), duplicateReferenceMode);
+        const isDuplicate = !!key && (duplicateCounts[key] || 0) > 1;
         const globalIndex = start + idx;
+        const safeDuplicateValue = String(key ?? "");
         return `
             <tr class="${isDuplicate ? 'duplicate-row' : ''}">
                 <td>${start + idx + 1}</td>
@@ -914,7 +1016,7 @@ function renderPage() {
                 <td>
   <strong>${d.meternumber || ''}</strong>
   ${isDuplicate ? `
-    <button class="duplicate-flag" onclick="window.showDuplicateRows('${cleanNumber}')" title="عرض السجلات المكررة">
+    <button class="duplicate-flag" data-value="${safeDuplicateValue}" data-mode="${duplicateReferenceMode}" title="عرض السجلات المكررة">
       🚩
     </button>
   ` : ''}
@@ -922,8 +1024,8 @@ function renderPage() {
                 <td>${d.result || ''}</td>
                 <td>${d.notes || ''}</td>
                 <td class="action-buttons">
-                    <button class="btn-edit" onclick="window.editRow(${globalIndex})" title="تعديل">✏️</button>
-                    <button class="btn-del" onclick="window.deleteRow(${globalIndex})" title="حذف">🗑</button>
+                    <button class="btn-edit" data-index="${globalIndex}" title="تعديل">✏️</button>
+                    <button class="btn-del" data-index="${globalIndex}" title="حذف">🗑</button>
                 </td>
              </tr>
         `;
@@ -932,15 +1034,17 @@ function renderPage() {
     const rowCountEl = document.getElementById("rowCount");
     if (rowCountEl) rowCountEl.innerText = filteredData.length;
 
-    const duplicateCount = Object.values(meterCounts).filter(c => c > 1).length;
+    const duplicateCount = Object.values(duplicateCounts).filter(c => c > 1).length;
     const dupSpan = document.getElementById("duplicateCount");
     const showBtn = document.getElementById("showDuplicatesBtn");
+    const dupLabel = document.getElementById("duplicateLabel");
 
     if (dupSpan) {
         if (duplicateCount > 0) {
             dupSpan.style.display = "inline";
             const dupNumEl = document.getElementById("duplicateNum");
             if (dupNumEl) dupNumEl.innerText = duplicateCount;
+            if (dupLabel) dupLabel.innerText = getDuplicateReferenceLabel(duplicateReferenceMode);
             if (showBtn) showBtn.style.display = "inline-block";
         } else {
             dupSpan.style.display = "none";
@@ -982,25 +1086,28 @@ window.prevPage = () => {
 // Filter table data
 window.filterTable = () => {
     const filters = {
-        keta3: document.getElementById("f0")?.value || "",
-        handsa: document.getElementById("f1")?.value || "",
+        keta3: normalizeText(document.getElementById("f0")?.value || ""),
+        handsa: normalizeText(document.getElementById("f1")?.value || ""),
         calibDateFrom: document.getElementById("f2")?.value || "",
         calibDateTo: document.getElementById("f3")?.value || "",
         entryDateFrom: document.getElementById("f11")?.value || "",
         entryDateTo: document.getElementById("f12")?.value || "",
-        name: (document.getElementById("f4")?.value || "").toLowerCase(),
-        code: (document.getElementById("f5")?.value || "").toLowerCase(),
-        nashat: (document.getElementById("f6")?.value || "").toLowerCase(),
-        mType: (document.getElementById("f7")?.value || "").toLowerCase(),
-        mNo: (document.getElementById("f8")?.value || "").toLowerCase(),
-        result: (document.getElementById("f9")?.value || "").toLowerCase(),
-        notes: (document.getElementById("f10")?.value || "").toLowerCase()
+        name: normalizeText(document.getElementById("f4")?.value || ""),
+        code: normalizeText(document.getElementById("f5")?.value || ""),
+        nashat: normalizeText(document.getElementById("f6")?.value || ""),
+        mType: normalizeText(document.getElementById("f7")?.value || ""),
+        mNo: normalizeText(document.getElementById("f8")?.value || ""),
+        result: normalizeText(document.getElementById("f9")?.value || ""),
+        notes: normalizeText(document.getElementById("f10")?.value || "")
     };
 
     filteredData = allData.map((d, i) => ({ ...d, __originalIndex: i })).filter(d => {
+        const rowCalibDate = normalizeText(d.calibrationdate);
+        const rowEnterDate = normalizeText(d.enterdate);
+
         let calibDateMatch = true;
         if (filters.calibDateFrom || filters.calibDateTo) {
-            const rowDate = parseDate(d.calibrationdate);
+            const rowDate = parseDate(rowCalibDate);
             if (rowDate) {
                 if (filters.calibDateFrom) {
                     const fromDate = new Date(filters.calibDateFrom);
@@ -1017,7 +1124,7 @@ window.filterTable = () => {
 
         let entryDateMatch = true;
         if (filters.entryDateFrom || filters.entryDateTo) {
-            const rowDate = parseDate(d.enterdate);
+            const rowDate = parseDate(rowEnterDate);
             if (rowDate) {
                 if (filters.entryDateFrom) {
                     const fromDate = new Date(filters.entryDateFrom);
@@ -1033,15 +1140,15 @@ window.filterTable = () => {
         }
 
         return calibDateMatch && entryDateMatch &&
-            (!filters.keta3 || d.keta3 === filters.keta3) &&
-            (!filters.handsa || d.handsa === filters.handsa) &&
-            (d.metername || "").toLowerCase().includes(filters.name) &&
-            (d.metercode || "").toLowerCase().includes(filters.code) &&
-            (d.nashattype || "").toLowerCase().includes(filters.nashat) &&
-            (d.metertype || "").toLowerCase().includes(filters.mType) &&
-            (d.meternumber || "").toLowerCase().includes(filters.mNo) &&
-            (d.result || "").toLowerCase().includes(filters.result) &&
-            (d.notes || "").toLowerCase().includes(filters.notes);
+            (!filters.keta3 || normalizeText(d.keta3) === filters.keta3) &&
+            (!filters.handsa || normalizeText(d.handsa) === filters.handsa) &&
+            normalizeText(d.metername).includes(filters.name) &&
+            normalizeText(d.metercode).includes(filters.code) &&
+            normalizeText(d.nashattype).includes(filters.nashat) &&
+            normalizeText(d.metertype).includes(filters.mType) &&
+            normalizeText(d.meternumber).includes(filters.mNo) &&
+            normalizeText(d.result).includes(filters.result) &&
+            normalizeText(d.notes).includes(filters.notes);
     });
 
     currentPage = 1;
@@ -1060,24 +1167,52 @@ window.clearFilters = () => {
 
 // Show duplicate numbers
 window.showDuplicateNumbers = () => {
-    const meterNumbers = filteredData.map(item => cleanNumericString(item.meternumber)).filter(n => n);
     const counts = {};
-    meterNumbers.forEach(num => counts[num] = (counts[num] || 0) + 1);
+    filteredData.forEach(item => {
+        const key = normalizeDuplicateValue(getDuplicateSourceValue(item, duplicateReferenceMode), duplicateReferenceMode);
+        if (!key) return;
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
     const duplicates = Object.entries(counts).filter(([, c]) => c > 1);
 
     if (duplicates.length === 0) {
-        return Swal.fire("لا توجد مكررات", "جميع الأرقام فريدة", "info");
+        return Swal.fire("لا توجد مكررات", `جميع ${getDuplicateReferenceLabel(duplicateReferenceMode)} فريدة`, "info");
     }
 
-    let html = `<div dir="rtl"><h4 style="color:#dc3545">🔴 الأرقام المكررة (${duplicates.length})</h4>
+    const label = getDuplicateReferenceLabel(duplicateReferenceMode);
+    let html = `<div dir="rtl"><h4 style="color:#dc3545">🔴 ${label} المكررة (${duplicates.length})</h4>
               <table style="width:100%; border-collapse:collapse;">
-              <thead><tr style="background:#f8f9fa"><th style="padding:8px">رقم العداد</th><th>التكرار</th></tr></thead><tbody>`;
+              <thead><tr style="background:#f8f9fa"><th style="padding:8px">${label}</th><th>التكرار</th></tr></thead><tbody>`;
     duplicates.forEach(([num, count]) => {
         html += `<tr><td style="padding:8px; border-bottom:1px solid #ddd"><strong>${num}</strong></td>
              <td style="text-align:center">${count}</td></tr>`;
     });
     html += `</tbody></table></div>`;
     Swal.fire({ title: "المكررات", html, width: 500, confirmButtonText: "حسناً" });
+};
+
+window.setDuplicateReferenceMode = (mode) => {
+    if (["meternumber", "metercode", "metername"].includes(mode)) {
+        duplicateReferenceMode = mode;
+        renderPage();
+    }
+};
+
+window.showDuplicateRows = (value, mode = duplicateReferenceMode) => {
+    const normalizedValue = normalizeDuplicateValue(value, mode);
+
+    if (!normalizedValue) {
+        return Swal.fire("تنبيه", "لا يوجد تكرار لعرضه", "info");
+    }
+
+    const duplicates = filteredData.filter(item => normalizeDuplicateValue(getDuplicateSourceValue(item, mode), mode) === normalizedValue);
+
+    if (duplicates.length === 0) {
+        return Swal.fire("لا توجد مكررات", `لا يوجد سجل مكرر لهذا ${getDuplicateReferenceLabel(mode)}`, "info");
+    }
+
+    window.showDuplicateReport(duplicates, mode);
 };
 
 // ==================== FAST EXPORT ====================
@@ -1142,6 +1277,77 @@ window.checkNewOption = async (selectEl) => {
 
 // ==================== SHOW MODAL ====================
 
+function bindModalControls() {
+    const popup = Swal.getPopup();
+    if (!popup || popup.dataset.modalHandlersBound === "true") {
+        return;
+    }
+
+    popup.dataset.modalHandlersBound = "true";
+
+    const addListener = (selector, eventName, handler) => {
+        const element = popup.querySelector(selector);
+        if (element) {
+            element.addEventListener(eventName, handler);
+        }
+    };
+
+    addListener("#showDuplicatesBtn", "click", () => window.showDuplicateNumbers?.());
+    addListener("#duplicateFlagBtn", "click", () => window.checkCurrentDuplicates?.());
+    addListener(".btn-excel", "click", () => window.exportExcel?.());
+    addListener(".btn-refresh", "click", () => window.loadDataForModal?.());
+    addListener(".btn-clear-filters", "click", () => window.clearFilters?.());
+    addListener("#prevBtn", "click", () => window.prevPage?.());
+    addListener("#nextBtn", "click", () => window.nextPage?.());
+    addListener("#duplicateReferenceSelect", "change", (event) => window.setDuplicateReferenceMode?.(event.target.value));
+
+    [
+        ["#f0", "change"],
+        ["#f1", "change"],
+        ["#f2", "change"],
+        ["#f3", "change"],
+        ["#f11", "change"],
+        ["#f12", "change"],
+        ["#f4", "input"],
+        ["#f5", "input"],
+        ["#f6", "input"],
+        ["#f7", "input"],
+        ["#f8", "input"],
+        ["#f9", "input"],
+        ["#f10", "input"]
+    ].forEach(([selector, eventName]) => {
+        addListener(selector, eventName, () => window.filterTable?.());
+    });
+
+    popup.addEventListener("click", (event) => {
+        const editButton = event.target.closest(".btn-edit");
+        if (editButton) {
+            event.preventDefault();
+            const index = Number(editButton.dataset.index);
+            if (!Number.isNaN(index)) {
+                window.editRow(index);
+            }
+            return;
+        }
+
+        const deleteButton = event.target.closest(".btn-del");
+        if (deleteButton) {
+            event.preventDefault();
+            const index = Number(deleteButton.dataset.index);
+            if (!Number.isNaN(index)) {
+                window.deleteRow(index);
+            }
+            return;
+        }
+
+        const duplicateButton = event.target.closest(".duplicate-flag");
+        if (duplicateButton) {
+            event.preventDefault();
+            window.showDuplicateRows?.(duplicateButton.dataset.value, duplicateButton.dataset.mode || duplicateReferenceMode);
+        }
+    });
+}
+
 window.showData = async () => {
     Swal.fire({
         title: "📋 سجل البيانات",
@@ -1149,7 +1355,10 @@ window.showData = async () => {
         width: "98%",
         showConfirmButton: false,
         showCloseButton: true,
-        didOpen: () => loadDataForModal()
+        didOpen: async () => {
+            await loadDataForModal();
+            bindModalControls();
+        }
     });
 };
 
@@ -1168,17 +1377,3 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 console.log("Ayat.js loaded successfully - with duplicate report feature");
-
-window.showDuplicateRows = (meterNumber) => {
-  if (!meterNumber) {
-    return Swal.fire("تنبيه", "لا يوجد رقم مكرر لعرضه", "info");
-  }
-
-  const duplicates = filteredData.filter(item => cleanNumericString(item.meternumber) === meterNumber);
-
-  if (duplicates.length === 0) {
-    return Swal.fire("لا توجد مكررات", "لا يوجد سجل مكرر لهذا الرقم", "info");
-  }
-
-  window.showDuplicateReport(duplicates, "meter");
-};
