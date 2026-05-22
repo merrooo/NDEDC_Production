@@ -897,7 +897,8 @@ function renderPage() {
     });
 
     body.innerHTML = pageItems.map((d, idx) => {
-        const isDuplicate = meterCounts[cleanNumericString(d.meternumber)] > 1;
+        const cleanNumber = cleanNumericString(d.meternumber);
+        const isDuplicate = meterCounts[cleanNumber] > 1;
         const globalIndex = start + idx;
         return `
             <tr class="${isDuplicate ? 'duplicate-row' : ''}">
@@ -910,7 +911,14 @@ function renderPage() {
                 <td>${d.metercode || ''}</td>
                 <td>${d.nashattype || ''}</td>
                 <td>${d.metertype || ''}</td>
-                <td><strong>${d.meternumber || ''}</strong>${isDuplicate ? ' 🔴' : ''}</td>
+                <td>
+  <strong>${d.meternumber || ''}</strong>
+  ${isDuplicate ? `
+    <button class="duplicate-flag" onclick="window.showDuplicateRows('${cleanNumber}')" title="عرض السجلات المكررة">
+      🚩
+    </button>
+  ` : ''}
+</td>
                 <td>${d.result || ''}</td>
                 <td>${d.notes || ''}</td>
                 <td class="action-buttons">
@@ -1160,3 +1168,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 console.log("Ayat.js loaded successfully - with duplicate report feature");
+
+window.showDuplicateRows = (meterNumber) => {
+  if (!meterNumber) {
+    return Swal.fire("تنبيه", "لا يوجد رقم مكرر لعرضه", "info");
+  }
+
+  const duplicates = filteredData.filter(item => cleanNumericString(item.meternumber) === meterNumber);
+
+  if (duplicates.length === 0) {
+    return Swal.fire("لا توجد مكررات", "لا يوجد سجل مكرر لهذا الرقم", "info");
+  }
+
+  window.showDuplicateReport(duplicates, "meter");
+};
