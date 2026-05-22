@@ -28,7 +28,7 @@ let currentEditOriginalIndex = null;
 // Cache for existing meter numbers and MCO codes (for faster duplicate checking)
 let existingMeterNumbersCache = new Set();
 let existingMcoCache = new Set();
-let duplicateReferenceMode = "meternumber";
+let duplicateReferenceMode = "metercode";
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -321,20 +321,28 @@ window.showDuplicateReport = (duplicatesList, type = "both") => {
         return;
     }
 
+    const duplicateLabel = getDuplicateReferenceLabel(type || duplicateReferenceMode);
+
     let html = `
         <div dir="rtl" style="text-align: right; max-height: 500px; overflow-y: auto;">
             <h4 style="color: #dc3545; margin-bottom: 15px;">
-                🔴 تم رصد ${duplicatesList.length} سجل مكرر
+                🔴 تم رصد ${duplicatesList.length} سجل مكرر حسب ${duplicateLabel}
             </h4>
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                         <th style="padding: 8px; text-align: center;">#</th>
-                        <th style="padding: 8px; text-align: center;">رقم العداد</th>
-                        <th style="padding: 8px; text-align: center;">كود المشترك (MCO)</th>
-                        <th style="padding: 8px; text-align: center;">اسم المشترك</th>
                         <th style="padding: 8px; text-align: center;">القطاع</th>
+                        <th style="padding: 8px; text-align: center;">الهندسة</th>
                         <th style="padding: 8px; text-align: center;">تاريخ الفحص</th>
+                        <th style="padding: 8px; text-align: center;">تاريخ التسجيل</th>
+                        <th style="padding: 8px; text-align: center;">اسم المشترك</th>
+                        <th style="padding: 8px; text-align: center;">كود المشترك</th>
+                        <th style="padding: 8px; text-align: center;">النشاط</th>
+                        <th style="padding: 8px; text-align: center;">نوع العداد</th>
+                        <th style="padding: 8px; text-align: center;">رقم العداد</th>
+                        <th style="padding: 8px; text-align: center;">نتيجة الفحص</th>
+                        <th style="padding: 8px; text-align: center;">ملاحظات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -344,11 +352,17 @@ window.showDuplicateReport = (duplicatesList, type = "both") => {
         html += `
             <tr style="border-bottom: 1px solid #dee2e6;">
                 <td style="padding: 8px; text-align: center;">${index + 1}</td>
-                <td style="padding: 8px; text-align: center;"><strong>${dup.meternumber || '—'}</strong></td>
-                <td style="padding: 8px; text-align: center;">${dup.metercode || '—'}</td>
-                <td style="padding: 8px; text-align: center;">${dup.metername || '—'}</td>
                 <td style="padding: 8px; text-align: center;">${dup.keta3 || '—'}</td>
-                <td style="padding: 8px; text-align: center;">${dup.calibrationdate || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.handsa || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${formatDateForDisplay(dup.calibrationdate) || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${formatDateForDisplay(dup.enterdate) || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.metername || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.metercode || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.nashattype || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.metertype || '—'}</td>
+                <td style="padding: 8px; text-align: center;"><strong>${dup.meternumber || '—'}</strong></td>
+                <td style="padding: 8px; text-align: center;">${dup.result || '—'}</td>
+                <td style="padding: 8px; text-align: center;">${dup.notes || '—'}</td>
             </tr>
         `;
     });
@@ -520,9 +534,13 @@ window.handleBulkExcelUpload = function(event) {
                     result
                 };
 
-                const existingIndex = currentList.findIndex(item => normalizeMeterCode(item?.metercode) === mcoVal);
-                if (existingIndex >= 0) {
-                    currentList[existingIndex] = mergeUploadedRecord(currentList[existingIndex], preparedRecord);
+                const sameMcoSameMeterNumberIndex = currentList.findIndex(item =>
+                    normalizeMeterCode(item?.metercode) === mcoVal &&
+                    cleanNumericString(item?.meternumber) === mNumber
+                );
+
+                if (sameMcoSameMeterNumberIndex >= 0) {
+                    currentList[sameMcoSameMeterNumberIndex] = mergeUploadedRecord(currentList[sameMcoSameMeterNumberIndex], preparedRecord);
                     updatedCount++;
                 } else {
                     currentList.push(preparedRecord);
@@ -1001,9 +1019,8 @@ function renderPage() {
         const key = normalizeDuplicateValue(getDuplicateSourceValue(d, duplicateReferenceMode), duplicateReferenceMode);
         const isDuplicate = !!key && (duplicateCounts[key] || 0) > 1;
         const globalIndex = start + idx;
-        const safeDuplicateValue = String(key ?? "");
         return `
-            <tr class="${isDuplicate ? 'duplicate-row' : ''}">
+            <tr>
                 <td>${start + idx + 1}</td>
                 <td>${d.keta3 || ''}</td>
                 <td>${d.handsa || ''}</td>
@@ -1013,14 +1030,7 @@ function renderPage() {
                 <td>${d.metercode || ''}</td>
                 <td>${d.nashattype || ''}</td>
                 <td>${d.metertype || ''}</td>
-                <td>
-  <strong>${d.meternumber || ''}</strong>
-  ${isDuplicate ? `
-    <button class="duplicate-flag" data-value="${safeDuplicateValue}" data-mode="${duplicateReferenceMode}" title="عرض السجلات المكررة">
-      🚩
-    </button>
-  ` : ''}
-</td>
+                <td><strong>${d.meternumber || ''}</strong></td>
                 <td>${d.result || ''}</td>
                 <td>${d.notes || ''}</td>
                 <td class="action-buttons">
@@ -1193,7 +1203,7 @@ window.showDuplicateNumbers = () => {
 };
 
 window.setDuplicateReferenceMode = (mode) => {
-    if (["meternumber", "metercode", "metername"].includes(mode)) {
+    if (mode === "metercode") {
         duplicateReferenceMode = mode;
         renderPage();
     }
