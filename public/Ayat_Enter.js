@@ -58,6 +58,7 @@ window.saveDirectInput = async function () {
         mtype: document.getElementById('inputMtype').value,
         status: document.getElementById('inputStatus').value,
         notes: document.getElementById('inputNotes').value
+        addnotes: document.getElementById('inputaddNotes').value
     };
 
     try {
@@ -260,6 +261,7 @@ window.filterTable = function () {
     const handsaSearch = document.getElementById('searchHandsa')?.value.toLowerCase() || '';
     const nashatSearch = document.getElementById('searchNashat')?.value.toLowerCase() || '';
     const mtypeSearch = document.getElementById('searchMtype')?.value.toLowerCase() || '';
+    const statusSearch = document.getElementById('searchStatus')?.value.toLowerCase() || '';
     const statusSearch = document.getElementById('searchStatus')?.value.toLowerCase() || '';
     const notesVal = document.getElementById('searchNotes')?.value || '';
 

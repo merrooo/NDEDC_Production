@@ -6,10 +6,461 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes" />
     <title>نظام تسجيل العدادات - Smart Qabda</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="Ayat_Enter.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #f0f4f8;
+            padding: 16px;
+            transition: background 0.3s, color 0.2s;
+        }
+
+        body.dark-mode {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .entry-card {
+            background: #1e293b;
+        }
+
+        body.dark-mode .search-input,
+        body.dark-mode .header-date,
+        body.dark-mode .search-select-notes,
+        body.dark-mode .inline-input,
+        body.dark-mode .inline-select {
+            background: #334155;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+
+        body.dark-mode .stats-bar {
+            background: #0f172a;
+            color: #5ee0da;
+        }
+
+        body.dark-mode table td {
+            border-color: #334155;
+        }
+
+        body.dark-mode .input-row {
+            background: #2d3a4e;
+        }
+
+        body.dark-mode .section-header {
+            color: #38bdf8;
+            border-bottom-color: #334155;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #0f766e, #0d9488);
+            padding: 16px 24px;
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-actions h1 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .dark-mode-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 40px;
+            transition: 0.2s;
+        }
+
+        .dark-mode-checkbox:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .dark-mode-checkbox input {
+            display: none;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .checkbox-label i:first-child {
+            display: inline-block;
+        }
+
+        .checkbox-label i:last-child {
+            display: none;
+        }
+
+        .dark-mode-checkbox input:checked+.checkbox-label i:first-child {
+            display: none;
+        }
+
+        .dark-mode-checkbox input:checked+.checkbox-label i:last-child {
+            display: inline-block;
+        }
+
+        .btn-home {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px;
+        }
+
+        .btn-home:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.02);
+        }
+
+        .entry-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            margin-bottom: 25px;
+        }
+
+        /* تنسيق العناوين الجديدة فوق الجداول */
+        .section-header {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f766e;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-bar {
+            background: #e6f7f5;
+            padding: 10px 16px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #0f766e;
+            text-align: center;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-refresh,
+        .btn-excel {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+
+        .btn-refresh {
+            background: #0284c7;
+            color: white;
+        }
+
+        .btn-excel {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-refresh:hover,
+        .btn-excel:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 65vh;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 1200px;
+        }
+
+        .search-header-row th {
+            background: #f8fafc;
+            padding: 10px 8px;
+            border-bottom: 2px solid #cbd5e1;
+            vertical-align: top;
+            font-weight: normal;
+            font-size: 11px;
+        }
+
+        body.dark-mode .search-header-row th {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        .search-label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #0f766e;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        body.dark-mode .search-label {
+            color: #5ee0da;
+        }
+
+        .search-input,
+        .header-date,
+        .search-select-notes {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 11px;
+            font-family: 'Cairo', sans-serif;
+            background: white;
+        }
+
+        .date-range {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-range input {
+            width: 100%;
+        }
+
+        .input-row {
+            background: #fefce8;
+            border-bottom: 2px solid #facc15;
+        }
+
+        .input-row td {
+            padding: 10px 8px;
+        }
+
+        .inline-input,
+        .inline-select {
+            width: 100%;
+            min-width: 120px;
+            padding: 8px 6px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            font-family: 'Cairo', sans-serif;
+            font-size: 12px;
+            background: white;
+        }
+
+        .select-with-add {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .select-with-add select {
+            flex: 1;
+            min-width: 110px;
+        }
+
+        .btn-add-option {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            width: 28px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .btn-add-option:hover {
+            background: #0284c7;
+            transform: scale(1.02);
+        }
+
+        .btn-save-row {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            transition: all 0.2s;
+            width: auto;
+            min-width: 60px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .btn-save-row:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        tbody tr:not(.input-row) td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .action-buttons-container {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-icon-edit,
+        .btn-icon-delete {
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon-edit {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-icon-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-icon-edit:hover {
+            background: #d97706 !important;
+            transform: scale(1.05);
+        }
+
+        .btn-icon-delete:hover {
+            background: #dc2626 !important;
+            transform: scale(1.05);
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn-pagination {
+            background: #0f766e;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            font-size: 12px;
+        }
+
+        .btn-pagination:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .page-info {
+            font-weight: 600;
+            background: #e2e8f0;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 12px;
+        }
+
+        body.dark-mode .page-info {
+            background: #334155;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .header-actions { flex-direction: column; align-items: stretch; text-align: center; }
+            .action-buttons { justify-content: center; }
+            .entry-card { padding: 12px; }
+            .stats-bar { font-size: 0.75rem; padding: 8px; }
+            table { font-size: 11px; min-width: 900px; }
+        }
+
+        .swal2-popup { font-family: 'Cairo', sans-serif !important; font-size: 14px !important; }
+        .swal2-input, .swal2-select { font-family: 'Cairo', sans-serif !important; margin: 5px 0 !important; width: 100% !important; }
+    </style>
 </head>
 
 <body>
@@ -31,75 +482,26 @@
         </div>
 
         <div class="entry-card">
-            <div class="stats-bar" id="totalSummary">
-                إجمالي السجلات: 0 | نتائج البحث: 0
+            <div class="section-header">
+                <i class="fas fa-edit"></i> تسجيل البيانات
             </div>
-
-            <div class="table-controls">
-                <button class="btn-refresh" onclick="refreshDatabase()">
-                    <i class="fas fa-sync-alt"></i> تحديث البيانات
-                </button>
-                <button class="btn-excel" onclick="exportExcel()">
-                    <i class="fas fa-file-excel"></i> تصدير Excel
-                </button>
-            </div>
-
             <div class="table-wrapper">
-                <table id="dataTable">
+                <table>
                     <thead>
-                        <tr class="search-header-row">
-                            <th>
-                                <div class="search-label">رقم العداد</div>
-                                <input type="text" class="search-input" id="searchMno" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">تاريخ الفحص</div>
-                                <div class="date-range">
-                                    <input type="date" class="header-date start-date" id="startDate"
-                                        onchange="filterTable()" placeholder="من">
-                                    <input type="date" class="header-date end-date" id="endDate"
-                                        onchange="filterTable()" placeholder="إلى">
-                                </div>
-                            </th>
-                            <th>
-                                <div class="search-label">القطاع</div>
-                                <input type="text" class="search-input" id="searchKeta3" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">الهندسة</div>
-                                <input type="text" class="search-input" id="searchHandsa" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">النشاط</div>
-                                <input type="text" class="search-input" id="searchNashat" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">نوع العداد</div>
-                                <input type="text" class="search-input" id="searchMtype" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">حالة العداد</div>
-                                <input type="text" class="search-input" id="searchStatus" onkeyup="filterTable()"
-                                    placeholder="بحث...">
-                            </th>
-                            <th>
-                                <div class="search-label">ملاحظات</div>
-                                <select class="search-select-notes" id="searchNotes" onchange="filterTable()">
-                                    <option value="">الكل</option>
-                                    <option value="تم استلام العداد">تم استلام العداد</option>
-                                    <option value="تم الفحص">تم الفحص</option>
-                                    <option value="تم تسليم العداد-للهندسة">تم تسليم العداد-للهندسة</option>
-                                </select>
-                            </th>
-                            <th>الإجراءات</th>
+                        <tr style="background: #f8fafc; text-align: center;">
+                            <th style="padding: 10px;">رقم العداد</th>
+                            <th style="padding: 10px;">تاريخ الاستلام</th>
+                            <th style="padding: 10px;">القطاع</th>
+                            <th style="padding: 10px;">الهندسة</th>
+                            <th style="padding: 10px;">النشاط</th>
+                            <th style="padding: 10px;">نوع العداد</th>
+                            <th style="padding: 10px;">حالة العداد</th>
+                            <th style="padding: 10px;">ملاحظات</th>
+                            <th style="padding: 10px;">ملاحظات أخرى</th>
+                            <th style="padding: 10px;">الإجراء</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody">
+                    <tbody>
                         <tr id="inputRow" class="input-row">
                             <td><input type="text" id="inputMno" class="inline-input" placeholder="رقم العداد"></td>
                             <td><input type="date" id="inputDate" class="inline-input"></td>
@@ -188,9 +590,7 @@
                                         <option>مصالح حكومية</option>
                                         <option>مصالح حكوميه اخري</option>
                                     </select>
-                                    <button type="button" class="btn-add-option"
-                                        onclick="addNewOption('inputNashat', 'النشاط')"
-                                        title="إضافة نشاط جديد">+</button>
+                                    <button type="button" class="btn-add-option" onclick="addNewOption('inputNashat', 'النشاط')">+</button>
                                 </div>
                             </td>
                             <td>
@@ -205,9 +605,7 @@
                                         <option>جلوبال احادي</option>
                                         <option>جلوبال ثلاثى غير مباشر</option>
                                     </select>
-                                    <button type="button" class="btn-add-option"
-                                        onclick="addNewOption('inputMtype', 'نوع العداد')"
-                                        title="إضافة نوع جديد">+</button>
+                                    <button type="button" class="btn-add-option" onclick="addNewOption('inputMtype', 'نوع العداد')">+</button>
                                 </div>
                             </td>
                             <td>
@@ -218,42 +616,471 @@
                                         <option>التكهين</option>
                                         <option>فحص الشركة المصنعة</option>
                                     </select>
-                                    <button type="button" class="btn-add-option"
-                                        onclick="addNewOption('inputStatus', 'حالة العداد')"
-                                        title="إضافة حالة جديدة">+</button>
+                                    <button type="button" class="btn-add-option" onclick="addNewOption('inputStatus', 'حالة العداد')">+</button>
                                 </div>
                             </td>
                             <td>
                                 <div class="select-with-add">
                                     <select id="inputNotes" class="inline-select">
                                         <option value="">اختر ملاحظة</option>
-                                        <option>تم استلام العداد</option>
+                                        <option>تم استلام العداد بالمعمل الهندسي</option>
                                         <option>تم الفحص</option>
                                         <option>تم تسليم العداد-للهندسة</option>
                                     </select>
-                                    <button type="button" class="btn-add-option"
-                                        onclick="addNewOption('inputNotes', 'الملاحظة')"
-                                        title="إضافة ملاحظة جديدة">+</button>
+                                    <button type="button" class="btn-add-option" onclick="addNewOption('inputNotes', 'الملاحظة')">+</button>
                                 </div>
                             </td>
-                            <td><button class="btn-save-row" onclick="saveDirectInput()"><i class="fas fa-save"></i>
-                                    حفظ</button></td>
+                            <td><input type="text" id="inputaddNotes" class="inline-input" placeholder="ملاحظات أخرى"></td>
+                            <td><button class="btn-save-row" onclick="saveDirectInput()"><i class="fas fa-save"></i> حفظ</button></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="entry-card">
+            <div class="section-header">
+                <i class="fas fa-search"></i> البحث وعرض السجلات
+            </div>
+
+            <div class="stats-bar" id="totalSummary">
+                إجمالي السجلات: 0 | نتائج البحث: 0
+            </div>
+
+            <div class="table-controls">
+                <button class="btn-refresh" onclick="refreshDatabase()">
+                    <i class="fas fa-sync-alt"></i> تحديث البيانات
+                </button>
+                <button class="btn-excel" onclick="exportExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead>
+                        <tr class="search-header-row">
+                            <th>
+                                <div class="search-label">رقم العداد</div>
+                                <input type="text" class="search-input" id="searchMno" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">تاريخ الاستلام</div>
+                                <div class="date-range">
+                                    <input type="date" class="header-date start-date" id="startDate" onchange="filterTable()">
+                                    <input type="date" class="header-date end-date" id="endDate" onchange="filterTable()">
+                                </div>
+                            </th>
+                            <th>
+                                <div class="search-label">القطاع</div>
+                                <input type="text" class="search-input" id="searchKeta3" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">الهندسة</div>
+                                <input type="text" class="search-input" id="searchHandsa" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">النشاط</div>
+                                <input type="text" class="search-input" id="searchNashat" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">نوع العداد</div>
+                                <input type="text" class="search-input" id="searchMtype" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">حالة العداد</div>
+                                <input type="text" class="search-input" id="searchStatus" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>
+                                <div class="search-label">ملاحظات</div>
+                                <select class="search-select-notes" id="searchNotes" onchange="filterTable()">
+                                    <option value="">الكل</option>
+                                    <option value="تم استلام العداد بالمعمل الهندسي">تم استلام العداد بالمعمل الهندسي</option>
+                                    <option value="تم الفحص">تم الفحص</option>
+                                    <option value="تم تسليم العداد-للهندسة">تم تسليم العداد-للهندسة</option>
+                                </select>
+                            </th>
+                            <th>
+                                <div class="search-label">ملاحظات أخرى</div>
+                                <input type="text" class="search-input" id="searchaddNotes" onkeyup="filterTable()" placeholder="بحث...">
+                            </th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
 
             <div class="pagination-controls">
-                <button id="prevBtn" class="btn-pagination" onclick="prevPage()" disabled><i
-                        class="fas fa-chevron-right"></i> السابق</button>
+                <button id="prevBtn" class="btn-pagination" onclick="prevPage()"><i class="fas fa-chevron-right"></i> السابق</button>
                 <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
-                <button id="nextBtn" class="btn-pagination" onclick="nextPage()" disabled>التالي <i
-                        class="fas fa-chevron-left"></i></button>
+                <button id="nextBtn" class="btn-pagination" onclick="nextPage()">التالي <i class="fas fa-chevron-left"></i></button>
             </div>
         </div>
     </div>
 
-    <script type="module" src="Ayat_Enter.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        async function loadData() {
+            const snapshot = await get(ref(db, 'Ayat_Enter'));
+            allData = [];
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                Object.keys(data).forEach(key => {
+                    allData.push({ ...data[key], id: key });
+                });
+                allData.sort((a, b) => (b.enter_date || '').localeCompare(a.enter_date || ''));
+            }
+            filteredData = [...allData];
+            currentPage = 1;
+            renderTable();
+            updateStats();
+        }
+
+        window.saveDirectInput = async function () {
+            const mno = document.getElementById('inputMno').value.trim();
+            if (!mno) {
+                Swal.fire("خطأ", "رقم العداد مطلوب", "error");
+                return;
+            }
+
+            if (allData.some(item => item.mno === mno)) {
+                Swal.fire("تنبيه", "رقم العداد موجود بالفعل", "warning");
+                return;
+            }
+
+            const newRecord = {
+                mno: mno,
+                enter_date: document.getElementById('inputDate').value,
+                keta3: document.getElementById('inputKeta3').value,
+                handsa: document.getElementById('inputHandsa').value,
+                nashattype: document.getElementById('inputNashat').value,
+                mtype: document.getElementById('inputMtype').value,
+                status: document.getElementById('inputStatus').value,
+                notes: document.getElementById('inputNotes').value,
+                addnotes: document.getElementById('inputaddNotes').value
+            };
+
+            try {
+                await set(ref(db, `Ayat_Enter/${mno}`), newRecord);
+                Swal.fire("تم", "تم إضافة العداد بنجاح", "success");
+
+                document.getElementById('inputMno').value = '';
+                document.getElementById('inputKeta3').value = '';
+                document.getElementById('inputHandsa').value = '';
+                document.getElementById('inputNashat').value = '';
+                document.getElementById('inputMtype').value = '';
+                document.getElementById('inputStatus').value = '';
+                document.getElementById('inputNotes').value = '';
+                document.getElementById('inputaddNotes').value = '';
+                document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+
+                await loadData();
+            } catch (error) {
+                Swal.fire("خطأ", "فشل في حفظ البيانات", "error");
+            }
+        };
+
+        window.addNewOption = async function (selectId, optionName) {
+            const { value: newValue } = await Swal.fire({
+                title: `إضافة ${optionName} جديد`,
+                input: 'text',
+                inputPlaceholder: `أدخل ${optionName} الجديد`,
+                showCancelButton: true,
+                confirmButtonText: 'إضافة',
+                cancelButtonText: 'إلغاء',
+                inputValidator: (value) => {
+                    if (!value) return 'الرجاء إدخال قيمة!';
+                    return null;
+                }
+            });
+
+            if (newValue) {
+                const select = document.getElementById(selectId);
+                const option = document.createElement('option');
+                option.value = newValue;
+                option.textContent = newValue;
+                select.appendChild(option);
+                select.value = newValue;
+                Swal.fire('تم', `تم إضافة ${optionName} بنجاح`, 'success');
+            }
+        };
+
+        window.editRecord = async function (mno) {
+            const record = allData.find(r => r.mno === mno);
+            if (!record) return;
+
+            const keta3Options = Array.from(document.getElementById('inputKeta3').options).map(opt => opt.value).filter(v => v);
+            const handsaOptions = Array.from(document.getElementById('inputHandsa').options).map(opt => opt.value).filter(v => v);
+            const nashatOptions = Array.from(document.getElementById('inputNashat').options).map(opt => opt.value).filter(v => v);
+            const mtypeOptions = Array.from(document.getElementById('inputMtype').options).map(opt => opt.value).filter(v => v);
+            const statusOptions = Array.from(document.getElementById('inputStatus').options).map(opt => opt.value).filter(v => v);
+            const notesOptions = Array.from(document.getElementById('inputNotes').options).map(opt => opt.value).filter(v => v);
+
+            const result = await Swal.fire({
+                title: 'تعديل البيانات',
+                html: `
+                    <input id="swal-mno" class="swal2-input" placeholder="رقم العداد" value="${record.mno || ''}" readonly style="background:#f0f0f0">
+                    <input id="swal-date" type="date" class="swal2-input" value="${record.enter_date || ''}">
+                    <select id="swal-keta3" class="swal2-select">
+                        <option value="">اختر القطاع</option>
+                        ${keta3Options.map(opt => `<option value="${opt}" ${record.keta3 === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <select id="swal-handsa" class="swal2-select">
+                        <option value="">اختر الهندسة</option>
+                        ${handsaOptions.map(opt => `<option value="${opt}" ${record.handsa === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <select id="swal-nashat" class="swal2-select">
+                        <option value="">اختر النشاط</option>
+                        ${nashatOptions.map(opt => `<option value="${opt}" ${record.nashattype === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <select id="swal-mtype" class="swal2-select">
+                        <option value="">اختر نوع العداد</option>
+                        ${mtypeOptions.map(opt => `<option value="${opt}" ${record.mtype === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <select id="swal-status" class="swal2-select">
+                        <option value="">اختر حالة العداد</option>
+                        ${statusOptions.map(opt => `<option value="${opt}" ${record.status === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <select id="swal-notes" class="swal2-select">
+                        <option value="">اختر ملاحظة</option>
+                        ${notesOptions.map(opt => `<option value="${opt}" ${record.notes === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <input id="swal-addnotes" class="swal2-input" placeholder="ملاحظات أخرى" value="${record.addnotes || ''}">
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'حفظ',
+                cancelButtonText: 'إلغاء',
+                preConfirm: () => {
+                    return {
+                        mno: document.getElementById('swal-mno').value,
+                        enter_date: document.getElementById('swal-date').value,
+                        keta3: document.getElementById('swal-keta3').value,
+                        handsa: document.getElementById('swal-handsa').value,
+                        nashattype: document.getElementById('swal-nashat').value,
+                        mtype: document.getElementById('swal-mtype').value,
+                        status: document.getElementById('swal-status').value,
+                        notes: document.getElementById('swal-notes').value,
+                        addnotes: document.getElementById('swal-addnotes').value
+                    };
+                }
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    await set(ref(db, `Ayat_Enter/${mno}`), result.value);
+                    Swal.fire("تم", "تم تحديث البيانات بنجاح", "success");
+                    await loadData();
+                } catch (error) {
+                    Swal.fire("خطأ", "فشل في تحديث البيانات", "error");
+                }
+            }
+        };
+
+        window.deleteRecord = async function (mno) {
+            const result = await Swal.fire({
+                title: 'حذف السجل',
+                text: `هل تريد حذف العداد رقم ${mno}؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'نعم، حذف',
+                cancelButtonText: 'إلغاء'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    await remove(ref(db, `Ayat_Enter/${mno}`));
+                    Swal.fire('تم الحذف', 'تم حذف السجل بنجاح', 'success');
+                    await loadData();
+                } catch (error) {
+                    Swal.fire("خطأ", "فشل في حذف البيانات", "error");
+                }
+            }
+        };
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const pageItems = filteredData.slice(start, start + itemsPerPage);
+
+            pageItems.forEach(item => {
+                const row = tbody.insertRow();
+                const fields = ['mno', 'enter_date', 'keta3', 'handsa', 'nashattype', 'mtype', 'status', 'notes', 'addnotes'];
+                
+                fields.forEach(field => {
+                    const cell = row.insertCell();
+                    if (field === 'enter_date') {
+                        cell.textContent = item[field] ? formatDateDisplay(item[field]) : '—';
+                    } else {
+                        cell.textContent = item[field] || '—';
+                    }
+                });
+
+                const actionCell = row.insertCell();
+                actionCell.className = 'action-buttons-container';
+                actionCell.innerHTML = `
+                    <button class="btn-icon-edit" onclick="editRecord('${item.mno}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon-delete" onclick="deleteRecord('${item.mno}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            });
+
+            updatePagination();
+        }
+
+        function formatDateDisplay(iso) {
+            if (!iso) return '';
+            const parts = iso.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return iso;
+        }
+
+        window.filterTable = function () {
+            const mnoSearch = document.getElementById('searchMno')?.value.toLowerCase() || '';
+            const startDate = document.getElementById('startDate')?.value || '';
+            const endDate = document.getElementById('endDate')?.value || '';
+            const keta3Search = document.getElementById('searchKeta3')?.value.toLowerCase() || '';
+            const handsaSearch = document.getElementById('searchHandsa')?.value.toLowerCase() || '';
+            const nashatSearch = document.getElementById('searchNashat')?.value.toLowerCase() || '';
+            const mtypeSearch = document.getElementById('searchMtype')?.value.toLowerCase() || '';
+            const statusSearch = document.getElementById('searchStatus')?.value.toLowerCase() || '';
+            const notesVal = document.getElementById('searchNotes')?.value || '';
+            const addnotesSearch = document.getElementById('searchaddNotes')?.value.toLowerCase() || '';
+
+            filteredData = allData.filter(item => {
+                if (mnoSearch && !item.mno?.toLowerCase().includes(mnoSearch)) return false;
+                if (keta3Search && !item.keta3?.toLowerCase().includes(keta3Search)) return false;
+                if (handsaSearch && !item.handsa?.toLowerCase().includes(handsaSearch)) return false;
+                if (nashatSearch && !item.nashattype?.toLowerCase().includes(nashatSearch)) return false;
+                if (mtypeSearch && !item.mtype?.toLowerCase().includes(mtypeSearch)) return false;
+                if (statusSearch && !item.status?.toLowerCase().includes(statusSearch)) return false;
+                if (notesVal && item.notes !== notesVal) return false;
+                if (addnotesSearch && !item.addnotes?.toLowerCase().includes(addnotesSearch)) return false;
+
+                const itemDate = item.enter_date || '';
+                if (startDate && itemDate < startDate) return false;
+                if (endDate && itemDate > endDate) return false;
+
+                return true;
+            });
+
+            currentPage = 1;
+            renderTable();
+            updateStats();
+        };
+
+        function updateStats() {
+            const summary = document.getElementById('totalSummary');
+            if (summary) {
+                summary.innerHTML = `<i class="fas fa-database"></i> إجمالي السجلات: ${allData.length} | <i class="fas fa-search"></i> نتائج البحث: ${filteredData.length}`;
+            }
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            if (pageInfo) pageInfo.textContent = `الصفحة ${currentPage} من ${totalPages}`;
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+        }
+
+        window.prevPage = function () {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        };
+
+        window.nextPage = function () {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        };
+
+        window.refreshDatabase = async function () {
+            await loadData();
+            Swal.fire('تم التحديث', 'تم تحديث البيانات بنجاح', 'success');
+        };
+
+        window.exportExcel = function () {
+            const exportData = filteredData.map(item => ({
+                'رقم العداد': item.mno,
+                'تاريخ الاستلام': formatDateDisplay(item.enter_date),
+                'القطاع': item.keta3 || '',
+                'الهندسة': item.handsa || '',
+                'النشاط': item.nashattype || '',
+                'نوع العداد': item.mtype || '',
+                'حالة العداد': item.status || '',
+                'ملاحظات': item.notes || '',
+                'ملاحظات أخرى': item.addnotes || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "العدادات");
+            XLSX.writeFile(wb, `تقرير_العدادات_${new Date().toLocaleDateString('ar-EG')}.xlsx`);
+        };
+
+        window.toggleDarkMode = function () {
+            const checkbox = document.getElementById('darkModeToggle');
+            if (checkbox.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        };
+
+        function checkDarkModePreference() {
+            const darkMode = localStorage.getItem('darkMode');
+            const checkbox = document.getElementById('darkModeToggle');
+            if (darkMode === 'enabled' && checkbox) {
+                document.body.classList.add('dark-mode');
+                checkbox.checked = true;
+            }
+        }
+
+        window.onload = async () => {
+            checkDarkModePreference();
+            document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+            await loadData();
+        };
+    </script>
 </body>
 
 </html>
