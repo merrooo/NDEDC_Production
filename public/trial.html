@@ -2,699 +2,1137 @@
 <html lang="ar" dir="rtl">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>إدارة تسجيل - التلاعبات</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> إدارة تسجيل - التلاعبات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Core Libraries -->
-    <link href="https://fonts.googleapis.com/css2=family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* ===== Ayat.css - Modern Minimalist Style ===== */
 
-    <style>
-        /* ================================================================
-           GLOBAL DESIGN SYSTEM: DARK MODE (default) & LIGHT MODE
-        ================================================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
+    /* --- Base & Reset --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body {
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: var(--bg-gradient);
-            color: var(--text-primary);
-        }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f4f6f9;
+      color: #2d3748;
+      padding: 24px;
+      line-height: 1.6;
+      transition: background-color 0.25s, color 0.25s;
+    }
 
-        /* الوضع الليلي (DEFAULT) */
-        :root {
-            --bg-gradient: radial-gradient(circle at 25% 20%, #0a0f1c 0%, #03060c 100%);
-            --glass-bg: rgba(12, 20, 35, 0.55);
-            --glass-border: rgba(56, 139, 253, 0.3);
-            --neon-blue: #58a6ff;
-            --neon-green: #3fb950;
-            --neon-red: #f85149;
-            --neon-purple: #ab7df6;
-            --text-primary: #d1d9e8;
-            --text-heading: #f2f8ff;
-            --input-bg: rgba(18, 26, 36, 0.8);
-            --card-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
-            --border-light: rgba(66, 82, 110, 0.4);
-            --btn-hover-glow: 0 0 8px rgba(88, 166, 255, 0.6);
-            --table-header: #0f1822;
-            --table-hover: rgba(88, 166, 255, 0.08);
-        }
+    /* --- Dark Mode Base --- */
+    body.dark-mode {
+      background-color: #0b0f19;
+      color: #e2e8f0;
+    }
 
-        /* الوضع النهاري */
-        body.light-mode {
-            --bg-gradient: linear-gradient(135deg, #e9f2fa 0%, #d4e0f0 100%);
-            --glass-bg: rgba(245, 250, 255, 0.85);
-            --glass-border: rgba(56, 100, 180, 0.4);
-            --neon-blue: #1a5bbf;
-            --neon-green: #1f7b34;
-            --neon-red: #d1382e;
-            --neon-purple: #7a4bc9;
-            --text-primary: #1f2a3e;
-            --text-heading: #0b1422;
-            --input-bg: #ffffff;
-            --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-            --border-light: #bbcbe0;
-            --btn-hover-glow: 0 0 0 2px rgba(26, 91, 191, 0.2);
-            --table-header: #eef3fc;
-            --table-hover: rgba(26, 91, 191, 0.05);
-        }
+    /* --- Main Split Layout Container --- */
+    .main-wrapper {
+      display: flex;
+      gap: 24px;
+      max-width: 1750px;
+      margin: 0 auto;
+      align-items: flex-start;
+    }
 
-        .dashboard-container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid var(--glass-border);
-            border-radius: 28px;
-            padding: 28px 32px;
-            width: 100%;
-            max-width: 1200px;
-            box-shadow: var(--card-shadow);
-        }
+    /* --- Right Form Panel --- */
+    .entry-card {
+      background-color: #ffffff;
+      flex: 1;
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.25s;
+    }
 
-        .control-header {
-            text-align: center;
-            margin-bottom: 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            border-bottom: 1px solid var(--border-light);
-            padding-bottom: 12px;
-        }
+    /* --- Left Sidebar Table Panel --- */
+    .left-sidebar-panel {
+      background-color: #ffffff;
+      width: 990px;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.25s;
+      position: sticky;
+      top: 24px;
+    }
 
-        .header-title p {
-            color: var(--text-heading);
-            font-weight: 700;
-            font-size: 1.4rem;
-        }
+    body.dark-mode .entry-card,
+    body.dark-mode .left-sidebar-panel {
+      background-color: #151d30;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
 
-        .theme-toggle-btn {
-            background: var(--input-bg);
-            border: 1px solid var(--border-light);
-            border-radius: 40px;
-            padding: 8px 18px;
-            font-weight: 500;
-            gap: 8px;
-            display: inline-flex;
-            align-items: center;
-            cursor: pointer;
-            color: var(--neon-blue);
-        }
+    .entry-card h2, .left-sidebar-panel h3 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 700;
+      color: #1a202c;
+    }
 
-        .theme-toggle-btn:hover {
-            transform: scale(0.96);
-            box-shadow: var(--btn-hover-glow);
-        }
+    .entry-card h2 { font-size: 1.5rem; }
+    .left-sidebar-panel h3 { font-size: 1.15rem; color: #0f766e; display: flex; align-items: center; justify-content: center; gap: 8px;}
+    body.dark-mode .left-sidebar-panel h3 { color: #38bdf8; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 18px;
-            margin-bottom: 28px;
-        }
+    body.dark-mode .entry-card h2,
+    body.dark-mode .left-sidebar-panel h3 {
+      color: #ffffff;
+    }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+    /* --- Form Fields (Grid Layout) --- */
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
 
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
+    .input-with-label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-        label {
-            font-size: 12.5px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-primary);
-        }
+    .input-with-label label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+    }
 
-        input, select, textarea {
-            background: var(--input-bg);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 10px 14px;
-            color: var(--text-heading);
-            font-size: 13.5px;
-            outline: none;
-        }
+    body.dark-mode .input-with-label label {
+      color: #a0aec0;
+    }
 
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
-        }
+    .input-with-label input,
+    .input-with-label select,
+    .input-with-label textarea,
+    .filter-select,
+    .filter-input,
+    .sidebar-search {
+      width: 100%;
+      padding: 10px 14px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.9rem;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      color: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
 
-        .action-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            border-top: 1px solid var(--border-light);
-            padding-top: 20px;
-            margin-top: 6px;
-        }
+    body.dark-mode .input-with-label input,
+    body.dark-mode .input-with-label select,
+    body.dark-mode .input-with-label textarea,
+    body.dark-mode .filter-select,
+    body.dark-mode .filter-input,
+    body.dark-mode .sidebar-search {
+      background-color: #0b0f19;
+      border-color: #2d3748;
+    }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: 500;
-            font-size: 13px;
-            cursor: pointer;
-            border: none;
-            color: white;
-        }
+    .input-with-label input:focus,
+    .input-with-label select:focus,
+    .input-with-label textarea:focus {
+      outline: none;
+      border-color: #3182ce;
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    }
 
-        .btn-save { background: var(--neon-green); }
-        .btn-import { background: var(--neon-purple); }
-        .btn-view { background: var(--input-bg); border: 1px solid var(--border-light); color: var(--neon-blue); }
-        .btn-excel-export { background: #238636; color: white; border-radius: 30px; padding: 6px 16px; border: none; cursor: pointer; font-weight: 500; }
+    .full-width-container {
+      grid-column: 1 / -1;
+    }
 
-        .modal-table-wrapper {
-            max-height: 52vh;
-            overflow-y: auto;
-            border-radius: 16px;
-            border: 1px solid var(--border-light);
-            margin-top: 12px;
-        }
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
 
-        .custom-archive-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12.5px;
-            text-align: right;
-        }
+    /* --- Control Panels (Inside Modal) --- */
+    .data-modal-container .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
 
-        .custom-archive-table th {
-            background: var(--table-header);
-            padding: 12px 8px;
-            position: sticky;
-            top: 0;
-            font-weight: 600;
-            color: var(--text-heading);
-            border-bottom: 2px solid var(--border-light);
-            z-index: 2;
-        }
+    .data-modal-container .controls-left,
+    .data-modal-container .controls-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
-        .custom-archive-table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid var(--border-light);
-            white-space: nowrap;
-        }
+    /* --- Date Filter Columns --- */
+    .filter-date-col {
+      min-width: 140px;
+    }
 
-        .custom-archive-table tbody tr:hover { background: var(--table-hover); }
-        .filter-input { width: 100%; padding: 6px 8px; font-size: 11px; border-radius: 8px; margin-top: 5px; background: var(--input-bg); border: 1px solid var(--border-light); color: var(--text-heading); }
-        .pagination-cluster { display: flex; gap: 8px; direction: ltr; }
-        .btn-page { background: var(--input-bg); border: 1px solid var(--border-light); padding: 5px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; color: var(--text-primary); }
-        .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
-        .numeric-field { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+    .date-filter-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-        @media (max-width: 680px) {
-            .dashboard-container { padding: 18px; }
-            .custom-archive-table td, .custom-archive-table th { white-space: normal; word-break: break-word; }
-        }
-    </style>
+    .date-filter-container input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+    }
+
+    /* --- Buttons Layout --- */
+    button, 
+    .dark-toggle {
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.9rem;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      transition: transform 0.1s, filter 0.15s;
+    }
+
+    button:hover,
+    .dark-toggle:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-save { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; }
+    .btn-view { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; }
+    .btn-excel { background: linear-gradient(135deg, #059669, #047857); color: #ffffff; }
+    .btn-refresh { background: linear-gradient(135deg, #4b5563, #374151); color: #ffffff; }
+    .btn-clear-filters { background: linear-gradient(135deg, #ea580c, #c2410c); color: #ffffff; }
+    .btn-pagination { background: linear-gradient(135deg, #475569, #334155); color: #ffffff; }
+    .btn-warning { background: linear-gradient(135deg, #fd7e14, #e8590c); color: #ffffff; }
+    .btn-edit { background: linear-gradient(135deg, #eab308, #ca8a04); color: #1e293b; padding: 6px 12px; font-size: 0.8rem; }
+    .btn-del { background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; padding: 6px 12px; font-size: 0.8rem; }
+
+    /* --- Dark Mode Toggle Look --- */
+    .dark-toggle {
+      background-color: #e2e8f0;
+      color: #1a202c;
+      padding: 8px 16px;
+    }
+
+    body.dark-mode .dark-toggle {
+      background-color: #2d3748;
+      color: #f7fafc;
+    }
+
+    .dark-toggle .switch {
+      width: 36px;
+      height: 18px;
+      background-color: #cbd5e0;
+      border-radius: 10px;
+      position: relative;
+      display: inline-block;
+    }
+
+    body.dark-mode .dark-toggle .switch { background-color: #4a5568; }
+    .dark-toggle .switch::after {
+      content: ""; position: absolute; top: 2px; width: 14px; height: 14px;
+      background-color: #ffffff; border-radius: 50%; transition: transform 0.2s ease; left: 2px;
+    }
+    body.dark-mode .dark-toggle .switch::after { transform: translateX(18px); }
+
+    /* --- Table Architecture --- */
+    .table-container, .sidebar-table-container {
+      overflow-x: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+    .table-container { max-height: 60vh; }
+    .sidebar-table-container { max-height: 52vh; overflow-y: auto; }
+
+    body.dark-mode .table-container,
+    body.dark-mode .sidebar-table-container { border-color: #2d3748; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    #dataTable { min-width: 1300px; }
+    #sidebarTable { min-width: 100%; }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+
+    body.dark-mode th, body.dark-mode td { border-bottom-color: #2d3748; }
+
+    thead th {
+      background: linear-gradient(135deg, #1a202c, #0f172a);
+      color: #ffffff;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    body.dark-mode thead th { background: linear-gradient(135deg, #0b0f19, #020617); }
+
+    .filter-row th { background-color: #f7fafc; padding: 12px 8px; }
+    body.dark-mode .filter-row th { background-color: #151d30; }
+    .filter-row th input, .filter-row th select { width: 100%; min-width: 100px; }
+
+    tbody tr:hover td { background-color: #f8fafc; }
+    body.dark-mode tbody tr:hover td { background-color: #1e293b; }
+
+    .duplicate-row td { background-color: #fee2e2 !important; color: #991b1b !important; }
+    body.dark-mode .duplicate-row td { background-color: #7f1d1d !important; color: #fee2e2 !important; }
+
+    .action-buttons { display: flex; gap: 8px; justify-content: center; white-space: nowrap; }
+    .action-buttons button { padding: 4px 10px; font-size: 0.75rem; min-width: auto; }
+
+    /* --- Pagination Elements --- */
+    .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding: 16px 0; }
+    .page-info { font-weight: 600; font-size: 0.95rem; }
+
+    /* --- SweetAlert2 Style Custom Adjustments --- */
+    .swal2-popup { font-family: 'Cairo', sans-serif !important; border-radius: 14px !important; }
+    .swal-large-popup { width: 98% !important; max-width: 1550px !important; padding: 15px !important; }
+
+    .add-new-option { color: #10b981; font-weight: 600; border-top: 1px solid #cbd5e1; margin-top: 4px; padding-top: 4px; }
+    body.dark-mode .add-new-option { color: #34d399; border-top-color: #374151; }
+
+    @media (max-width: 1200px) {
+      .main-wrapper { flex-direction: column; }
+      .left-sidebar-panel { width: 100%; position: static; }
+      .inputs-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .inputs-grid { grid-template-columns: 1fr; }
+      .data-modal-container .table-controls { flex-direction: column; align-items: stretch; }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="dashboard-container">
-        <div class="control-header">
-            <div class="header-title">
-                <p>Main Header</p>
-            </div>
-            <button class="theme-toggle-btn" id="themeToggleBtn">
-                <i class="fa-solid fa-moon"></i> <span>Day / Night</span>
-            </button>
+
+  <div class="main-wrapper">
+    
+    <!-- Right Container (Main Form Panel) -->
+    <div class="entry-card">
+      <h2>⚡ تسجيل بيانات عداد - التلاعبات</h2>
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
+        <label class="dark-toggle" onclick="document.body.classList.toggle('dark-mode')">
+          <span class="icon">🌙</span>
+          <div class="switch"></div>
+          <span class="icon">☀️</span>
+        </label>
+
+        <button class="btn-view" onclick="window.location.href='index.html'">
+          ⬅️ الصفحة الرئيسية
+        </button>
+
+        <button class="btn-excel" id="uploadBtn" onclick="window.promptPassword && window.promptPassword()">
+          📥 رفع Excel
+        </button>
+
+        <div class="input-with-label" style="min-width: 180px; margin: 0;">
+          <input type="date" id="enter_date" style="padding: 6px 10px;" />
+        </div>
+      </div>
+
+      <div class="inputs-grid">
+        <div class="input-with-label">
+          <label>📍 القطاع</label>
+          <select id="keta3">
+            <option value="">اختر القطاع</option>
+            <option>دمياط</option>
+            <option>شمال الدقهلية</option>
+            <option>جنوب الدقهلية</option>
+            <option>كفر الشيخ</option>
+          </select>
         </div>
 
-        <div class="form-grid">
-            <div class="form-group"><label>Label_2</label>
-                <input type="text" id="mno" class="numeric-field" placeholder="مثال: 23055630">
-            </div>
-           <div class="form-group"><label>Date_1</label>
-                <input type="date" id="calib_date">
-            </div>
-            <div class="form-group"><label>Label_3</label>
-                <select id="munip" onchange="window.checkAddNewOption(this)">
-                    <option value="">-- choose --</option>
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option value="ADD_NEW">➕ إضافة جديد</option>
-                </select>
-            </div>
-            <div class="form-group full-width"><label>Label_4</label>
-                <textarea id="notes" placeholder="Notes..."></textarea>
-            </div>
-             <div class="form-group"><label>Label_5</label>
-                <input type="checkbox" id="chk" ></input>
-            </div>
+        <div class="input-with-label">
+          <label>🏗️ الهندسة</label>
+          <select id="handsa">
+            <option value="">اختر الهندسة</option>
+            <option>هندسة شمال دمياط</option><option>هندسة جنوب دمياط</option><option>هندسة عزبة البرج</option><option>هندسة كفر سعد</option><option>هندسة كفر البطيخ</option><option>هندسة راس البر</option><option>هندسة دمياط الجديدة</option><option>هندسة الزرقا</option><option>هندسة فارسكور</option><option>هندسة الروضة</option><option>هندسة الشعراء</option><option>هندسة مدينة شربين</option><option>هندسة قري شربين</option><option>هندسة دكرنس</option><option>هندسة جمصة</option><option>هندسة قري بلقاس</option><option>هندسة مدينة بلقاس</option><option>هندسة الستاموني</option><option>هندسة بني عبيد</option><option>هندسة منية النصر</option><option>هندسة ميت سلسيل</option><option>هندسة الجمالية</option><option>هندسة قري المنزلة</option><option>هندسة مدينة المنزلة</option><option>هندسة المطرية</option><option>هندسة شرق المنصورة</option><option>هندسة غرب المنصورة</option><option>هندسة طلخا</option><option>هندسة nبروه</option><option>هندسة قري المنصورة 1</option><option>هندسة قري المنصورة 2</option><option>هندسة اجا</option><option>هندسة مدينة السنبلاوين</option><option>هندسة قري السنبلاوين</option><option>هندسة تمي الامديد</option><option>هندسة مدينة ميت غمر</option><option>هندسة قري ميت غمر</option><option>هندسة كوم النور</option><option>هندسة مدينة كفر الشيخ</option><option>هندسة غرب كفر الشيخ</option><option>هندسة شرق كفر الشيخ</option><option>هندسة قلين</option><option>هندسة قرى سيدي سالم</option><option>هندسة مدينة سيدي سالم</option><option>هندسة الرياض</option><option>هندسة مدينة دسوق</option><option>هندسة قرى شمال دسوق</option><option>هندسة قرى جنوب دسوق</option><option>هندسة فوه</option><option>هندسة مطوبس</option><option>هندسة مدينة الحامول</option><option>هندسة قرى الحامول</option><option>هندسة بيلا</option><option>هندسة بلطيم</option><option>هندسة برج البرلس</option>
+          </select>
         </div>
 
-        <div class="action-bar">
-            <button class="btn btn-save" onclick="window.quickSave()"><i class="fa-solid fa-cloud-arrow-up"></i>Button_1</button>
-            <button class="btn btn-import" onclick="document.getElementById('excelFileInput').click()"><i class="fa-solid fa-file-import"></i>Button_2</button>
-            <input type="file" id="excelFileInput" accept=".xlsx, .xls" onchange="window.handleBulkExcelUpload(event)">
-            <button class="btn btn-view" onclick="window.showData()"><i class="fa-solid fa-database"></i>Button_3</button>
+        <div class="input-with-label">
+          <label>📋 نوع النشاط</label>
+          <select id="nashattype" onchange="window.checkNewOption && window.checkNewOption(this)">
+            <option value="">اختر نوع النشاط</option>
+            <option>منزلي</option><option>تجاري</option><option>قوى محركة</option><option>كودي مخالف</option><option>ري</option><option>مزارع</option><option>مساجد</option><option>استثمار صناعة</option><option>كبار</option><option>مصالح حكومية</option><option>مصالح حكوميه اخري</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة نوع جديد...</option>
+          </select>
         </div>
+
+        <div class="input-with-label">
+          <label>⚙️ نوع العداد</label>
+          <select id="mtype" onchange="window.checkNewOption && window.checkNewOption(this)">
+            <option value="">اختر نوع العداد</option>
+            <option>سويدى ثلاثى مباشر</option><option>سويدي احادي</option><option>اسكرا احادي</option><option>المصريه احادي</option><option>جلوبال ثلاثى مباشر</option><option>جلوبال احادي</option><option>جلوبال ثلاثى غير مباشر</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة نوع جديد...</option>
+          </select>
+        </div>
+
+        <div class="input-with-label">
+          <label>🔢 رقم العداد</label>
+          <input id="mno" placeholder="رقم العداد" />
+        </div>
+
+        <div class="input-with-label">
+          <label>📅 تاريخ الفحص</label>
+          <input type="date" id="calib_date" />
+        </div>
+
+        <div class="input-with-label">
+          <label>👤 اسم المشترك</label>
+          <input id="mname" placeholder="اسم المشترك" />
+        </div>
+
+        <div class="input-with-label">
+          <label>🆔 كود المشترك</label>
+          <input id="mco" placeholder="كود المشترك" />
+        </div>
+
+        <div class="input-with-label">
+          <label>📍 نتيجة الفحص</label>
+          <select id="munip" onchange="window.checkNewOption && window.checkNewOption(this)">
+            <option value="">اختر نتيجة الفحص</option>
+            <option>تلاعب</option><option>سليم</option><option>مديونية</option><option>تكهين</option><option>تالف</option><option>محترق</option><option>صيانة</option><option>عاطل</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة نتيجة جديدة...</option>
+          </select>
+        </div>
+
+        <div class="input-with-label full-width-container">
+          <label>📝 ملاحظات الفحص</label>
+          <textarea id="notes" placeholder="ملاحظات الفحص"></textarea>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn-save" id="saveBtn" onclick="window.quickSave && window.quickSave()">💾 حفظ البيانات</button>
+        <button class="btn-view" id="viewBtn" onclick="window.showData && window.showData()">👁 عرض الجدول الرئيسي</button>
+      </div>
     </div>
 
-    <!-- قالب جدول الأرشيف التفاعلي داخل المودال -->
-    <template id="tableTemplate">
-        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <span style="color:var(--text-primary);">📋 Total Filtered Records: <strong id="rowCount" style="color:var(--neon-blue);">0</strong></span>
-            <button class="btn-excel-export" onclick="window.exportExcel()"><i class="fa-regular fa-file-excel"></i> Export Current Report to Excel</button>
+    <!-- Left Side Panel (Ayat_Enter Data Sidebar) -->
+    <div class="left-sidebar-panel">
+      <h3>📥 العدادات الجارية بالمعمل (Ayat_Enter)</h3>
+      <input type="text" id="sidebarSearchInput" class="sidebar-search" placeholder="🔍 ابحث برقم العداد الجاري..." onkeyup="window.filterSidebarTable && window.filterSidebarTable()" style="margin-bottom: 12px; padding: 6px 12px; font-size:0.85rem;"/>
+      
+      <div class="sidebar-table-container">
+        <table id="sidebarTable">
+          <thead>
+            <tr>
+              <th>رقم العداد</th>
+              <th>تاريخ الاستلام</th>
+              <th>الهندسة</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="sidebarTableBody">
+            <tr><td colspan="4" style="padding:20px; color:#888;">جاري جلب البيانات...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Table Template Container (Popup Swal Content) -->
+  <template id="tableTemplate">
+    <div dir="rtl" class="data-modal-container">
+      <div class="table-controls">
+        <div class="controls-left">
+          <span>إجمالي السجلات: <b id="rowCount" style="color:#2563eb;">0</b></span>
+          <span id="duplicateCount" style="color: #dc3545; margin-right: 20px; display: none;">
+            🔴 <b id="duplicateNum">0</b> مكررات
+          </span>
+          <button id="showDuplicatesBtn" class="btn-warning" onclick="window.checkCurrentDuplicates && window.checkCurrentDuplicates()" style="display: none; padding: 4px 8px; border-radius: 4px; margin-right: 10px; font-size: 0.8rem;">
+            عرض المكررات
+          </button>
+          <select id="duplicateReferenceSelect" onchange="window.setDuplicateReferenceMode && window.setDuplicateReferenceMode(this.value)" style="margin-right: 10px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ccc; font-family:'Cairo'; font-size: 0.8rem;">
+            <option value="metercode">حسب كود المشترك</option>
+            <option value="meternumber">حسب رقم العداد</option>
+          </select>
         </div>
-        <div class="modal-table-wrapper">
-            <table class="custom-archive-table" id="excelTargetTable">
-                <thead>
-                    <tr>
-                        <th>1</th>
-                        <th>2</th>
-                        <th>3</th>
-                        <th>4</th>
-                        <th>5</th>
-                        <th>Notes</th>
-                        <th>Delete</th>
-                        <th>Edite</th>
-                    </tr>
-                </thead>
-                <tbody id="modalBody"></tbody>
-            </table>
+        <div class="controls-right">
+          <button class="btn-excel" onclick="window.exportExcel && window.exportExcel()">📊 تصدير Excel</button>
+          <button class="btn-refresh" onclick="window.loadDataForModal && window.loadDataForModal()">🔄 تحديث</button>
+          <button class="btn-clear-filters" onclick="window.clearFilters && window.clearFilters()">❌ مسح الفلاتر</button>
         </div>
-        <div class="modal-footer-controls" style="display:flex; justify-content:space-between; margin-top:16px;">
-            <button class="btn-page" style="background:#cc2431; color:white;" onclick="window.clearFilters()">🔄 Reset Filters</button>
-            <div class="pagination-cluster">
-                <button id="prevBtn" class="btn-page" onclick="window.prevPage()">Prevous ⬅️</button>
-                <span id="pageInfo" style="align-self:center; color:var(--text-primary);"> Page-1</span>
-                <button id="nextBtn" class="btn-page" onclick="window.nextPage()">➡️ Next</button>
-            </div>
-        </div>
-    </template>
+      </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-        import { getDatabase, ref, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+      <div class="table-container">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th>م</th>
+              <th>القطاع</th>
+              <th>الهندسة</th>
+              <th>تاريخ الفحص</th>
+              <th>تاريخ التسجيل</th>
+              <th>اسم المشترك</th>
+              <th>كود المشترك</th>
+              <th>النشاط</th>
+              <th>نوع العداد</th>
+              <th>رقم العداد</th>
+              <th>نتيجة الفحص</th>
+              <th>ملاحظات</th>
+              <th>إجراء</th>
+            </tr>
+            <tr class="filter-row">
+              <th>-</th>
+              <th>
+                <select id="f0" class="filter-select" onchange="window.filterTable && window.filterTable()">
+                  <option value="">الكل</option><option>دمياط</option><option>شمال الدقهلية</option><option>جنوب الدقهلية</option><option>كفر الشيخ</option>
+                </select>
+              </th>
+              <th>
+                <select id="f1" class="filter-select" onchange="window.filterTable && window.filterTable()">
+                  <option value="">الكل</option>
+                  <option>هندسة شمال دمياط</option><option>هندسة جنوب دمياط</option><option>هندسة عزبة البرج</option><option>هندسة كفر سعد</option><option>هندسة كفر البطيخ</option><option>هندسة راس البر</option><option>هندسة دمياط الجديدة</option><option>هندسة الزرقا</option><option>هندسة فارسكور</option><option>هندسة الروضة</option><option>هندسة الشعراء</option><option>هندسة مدينة شربين</option><option>هندسة قري شربين</option><option>هندسة دكرنس</option><option>هندسة جمصة</option><option>هندسة قري بلقاس</option><option>هندسة مدينة بلقاس</option><option>هندسة الستاموني</option><option>هندسة بني عبيد</option><option>هندسة منية النصر</option><option>هندسة ميت سلسيل</option><option>هندسة الجمالية</option><option>هندسة قري المنزلة</option><option>هندسة مدينة المنزلة</option><option>هندسة المطرية</option><option>هندسة شرق المنصورة</option><option>هندسة غرب المنصورة</option><option>هندسة طلخا</option><option>هندسة نبروه</option><option>هندسة قري المنصورة 1</option><option>هندسة قري المنصورة 2</option><option>هندسة اجا</option><option>هندسة مدينة السنبلاوين</option><option>هندسة قري السنبلاوين</option><option>هندسة تمي الامديد</option><option>هندسة مدينة ميت غمر</option><option>هندسة قري ميت غمر</option><option>هندسة كوم النور</option><option>هندسة مدينة كفر الشيخ</option><option>هندسة غرب كفر الشيخ</option><option>هندسة شرق كفر الشيخ</option><option>هندسة قلين</option><option>هندسة قرى سيدي سالم</option><option>هندسة مدينة سيدي سالم</option><option>هندسة الرياض</option><option>هندسة مدينة دسوق</option><option>هندسة قرى شمال دسوق</option><option>هندسة قرى جنوب دسوق</option><option>هندسة فوه</option><option>هندسة مطوبس</option><option>هندسة مدينة الحامول</option><option>هندسة قرى الحامول</option><option>هندسة بيلا</option><option>هندسة بلطيم</option><option>هندسة برج البرلس</option>
+                </select>
+              </th>
+              <th class="filter-date-col">
+                <div class="date-filter-container">
+                  <input type="date" id="f2" class="filter-input" onchange="window.filterTable && window.filterTable()" />
+                  <input type="date" id="f3" class="filter-input" onchange="window.filterTable && window.filterTable()" />
+                </div>
+              </th>
+              <th class="filter-date-col">
+                <div class="date-filter-container">
+                  <input type="date" id="f11" class="filter-input" onchange="window.filterTable && window.filterTable()" />
+                  <input type="date" id="f12" class="filter-input" onchange="window.filterTable && window.filterTable()" />
+                </div>
+              </th>
+              <th><input type="text" id="f4" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f5" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f6" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f7" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f8" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f9" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th><input type="text" id="f10" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
+              <th>-</th>
+            </tr>
+          </thead>
+          <tbody id="modalBody"></tbody>
+        </table>
+      </div>
 
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-            authDomain: "production1-ae85.firebaseapp.com",
-            projectId: "production1-ae85",
-            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
-            storageBucket: "production1-ae85.firebasestorage.app",
-            messagingSenderId: "490438031865",
-            appId: "1:490438031865:web:a4a69335989f30cd13a528"
-        };
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+      <div class="pagination-controls">
+        <button id="prevBtn" class="btn-pagination" onclick="window.prevPage && window.prevPage()" disabled>⬅️ السابق</button>
+        <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
+        <button id="nextBtn" class="btn-pagination" onclick="window.nextPage && window.nextPage()">التالي ➡️</button>
+      </div>
+    </div>
+  </template>
 
-        // Global State
-        window.allData = [];
-        window.existingMcoCache = new Set();
-        window.existingMeterNumbersCache = new Set();
+  <!-- Firebase JavaScript Logic System inside module -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
 
-        // التبديل بين الوضع الليلي والنهاري
-        const themeBtn = document.getElementById("themeToggleBtn");
-        themeBtn.addEventListener("click", () => {
-            document.body.classList.toggle("light-mode");
-            const isLight = document.body.classList.contains("light-mode");
-            themeBtn.innerHTML = isLight ? '<i class="fa-solid fa-sun"></i> <span>وضع ليلي</span>' : '<i class="fa-solid fa-moon"></i> <span>وضع نهاري</span>';
-        });
+    const firebaseConfig = {
+        apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+        authDomain: "production1-ae85.firebaseapp.com",
+        projectId: "production1-ae85",
+        storageBucket: "production1-ae85.firebasestorage.app",
+        messagingSenderId: "490438031865",
+        appId: "1:490438031865:web:a4a69335989f30cd13a528"
+    };
 
-        // مزامنة الـ Firebase بالوقت الفعلي
-        const meterDataRef = ref(database, "Ayat/meterdata");
-        onValue(meterDataRef, (snapshot) => {
-            const newArr = [];
-            const mcoSet = new Set();
-            const meterSet = new Set();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allData = [];
+    let filteredData = [];
+    let ayatEnterRawData = [];
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 20;
+    let currentEditOriginalIndex = null;
+    let duplicateReferenceMode = "metercode";
+
+    // ==================== HELPER STRINGS & DATES OPERATIONS ====================
+    function cleanNumericString(value) { return value ? String(value).replace(/\D/g, '').trim() : ""; }
+    function normalizeMeterCode(value) { return value ? String(value).replace(/\s+/g, '').trim() : ""; }
+    function normalizeText(value) { return value ? String(value).trim().toLowerCase() : ""; }
+    
+    function parseDate(dateStr) {
+        if (!dateStr) return null;
+        try {
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]);
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+            }
+            return new Date(dateStr);
+        } catch (e) { return null; }
+    }
+
+    function formatDateForDisplay(dateStr) {
+        if (!dateStr) return "—";
+        const d = parseDate(dateStr);
+        if (d && !isNaN(d.getTime())) {
+            return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+        }
+        return dateStr;
+    }
+
+    // ==================== LOAD AYAT_ENTER SIDEBAR DATA ====================
+    async function loadAyatEnterSidebarData() {
+        const tbody = document.getElementById("sidebarTableBody");
+        if (!tbody) return;
+        try {
+            const snapshot = await get(ref(db, 'Ayat_Enter'));
+            ayatEnterRawData = [];
             if (snapshot.exists()) {
-                const raw = snapshot.val();
-                const process = (item, key) => {
-                    if (item && typeof item === 'object') {
-                        const cleanMco = cleanNumericString(item.metercode);
-                        const cleanMeter = cleanNumericString(item.meternumber);
-                        if (cleanMco) mcoSet.add(cleanMco);
-                        if (cleanMeter) meterSet.add(cleanMeter);
-                        newArr.push({ ...item, __firebaseKey: String(key) });
-                    }
-                };
-                if (Array.isArray(raw)) raw.forEach((item, idx) => process(item, idx));
-                else Object.keys(raw).forEach(k => process(raw[k], k));
+                const data = snapshot.val();
+                Object.keys(data).forEach(key => { if(data[key]) ayatEnterRawData.push(data[key]); });
+                ayatEnterRawData.sort((a, b) => (b.enter_date || '').localeCompare(a.enter_date || ''));
+                renderSidebarTable(ayatEnterRawData);
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#888; padding:15px;">لا توجد سجلات بالعمل حالياً</td></tr>`;
             }
-            window.allData = newArr;
-            window.existingMcoCache = mcoSet;
-            window.existingMeterNumbersCache = meterSet;
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color:red;">خطأ أثناء تحميل لوحة Ayat_Enter</td></tr>`;
+        }
+    }
+
+    function renderSidebarTable(items) {
+        const tbody = document.getElementById("sidebarTableBody");
+        if(!tbody) return;
+        if(items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#888;">لا توجد نتائج مطابقة</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = items.map(item => {
+            return `
+                <tr style="cursor: pointer;" onclick="window.fillFormFromSidebar('${item.mno || ''}')" title="اضغط لنسخ بيانات هذا العداد تلقائياً">
+                    <td><strong>${item.mno || '—'}</strong></td>
+                    <td>${formatDateForDisplay(item.enter_date)}</td>
+                    <td>${item.handsa || '—'}</td>
+                    <td style="color:#0f766e; font-weight:600;">${item.status || '—'}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    window.filterSidebarTable = () => {
+        const val = document.getElementById("sidebarSearchInput").value.trim().toLowerCase();
+        if(!val) { renderSidebarTable(ayatEnterRawData); return; }
+        const matched = ayatEnterRawData.filter(i => String(i.mno || '').toLowerCase().includes(val));
+        renderSidebarTable(matched);
+    };
+
+    window.fillFormFromSidebar = (mno) => {
+        const record = ayatEnterRawData.find(r => r.mno === mno);
+        if(record) {
+            document.getElementById("mno").value = record.mno || "";
+            if(record.keta3) document.getElementById("keta3").value = record.keta3;
+            if(record.handsa) document.getElementById("handsa").value = record.handsa;
+            if(record.nashattype) document.getElementById("nashattype").value = record.nashattype;
+            if(record.mtype) document.getElementById("mtype").value = record.mtype;
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تم جلب بيانات العداد من قائمة Ayat_Enter بنجاح', showConfirmButton: false, timer: 2500 });
+        }
+    };
+
+    // ==================== BULK EXCEL UPLOAD HANDLER ====================
+    function normalizeExcelKey(value) { return String(value ?? "").replace(/\s+/g, "").toLowerCase().trim(); }
+    
+    function getExcelValue(row, aliases) {
+        const normalizedMap = Object.keys(row || {}).reduce((acc, key) => { acc[normalizeExcelKey(key)] = key; return acc; }, {});
+        for (const alias of aliases) {
+            const matchedKey = normalizedMap[normalizeExcelKey(alias)];
+            if (matchedKey !== undefined && row[matchedKey] !== null && String(row[matchedKey]).trim() !== "") {
+                return String(row[matchedKey]).trim();
+            }
+        }
+        return "";
+    }
+
+    window.handleBulkExcelUpload = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                if (rows.length === 0) return Swal.fire("ملف فارغ", "لا توجد أسطر بيانات داخل الملف.", "warning");
+
+                Swal.fire({ title: 'جاري فحص وتصفية البيانات المرفوعة...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                const snap = await get(ref(db, "Ayat/meterdata"));
+                let currentList = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val())) : [];
+
+                let savedCount = 0;
+                for (let rowObj of rows) {
+                    const mcoVal = normalizeMeterCode(getExcelValue(rowObj, ["كود المشترك", "كود", "metercode", "mco"]));
+                    const mNumber = cleanNumericString(getExcelValue(rowObj, ["رقم العداد", "meternumber", "mno"]));
+                    
+                    if (!mcoVal || !mNumber) continue;
+
+                    const prepared = {
+                        keta3: getExcelValue(rowObj, ["قطاع", "القطاع", "keta3"]),
+                        handsa: getExcelValue(rowObj, ["هندسة", "الهندسة", "handsa"]),
+                        calibrationdate: getExcelValue(rowObj, ["تاريخ الفحص", "تاريخ المعايرة", "calibrationdate"]),
+                        enterdate: getExcelValue(rowObj, ["تاريخ الإدخال", "تاريخ التسجيل", "enterdate"]) || new Date().toISOString().split('T')[0],
+                        metername: getExcelValue(rowObj, ["اسم المشترك", "المشترك", "metername"]),
+                        metercode: mcoVal,
+                        nashattype: getExcelValue(rowObj, ["نوع النشاط", "النشاط", "nashattype"]),
+                        metertype: getExcelValue(rowObj, ["نوع العداد", "metertype"]),
+                        meternumber: mNumber,
+                        result: getExcelValue(rowObj, ["نتيجة الفحص", "النتيجة", "result"]),
+                        notes: getExcelValue(rowObj, ["ملاحظات", "notes"])
+                    };
+
+                    const matchIdx = currentList.findIndex(item => normalizeMeterCode(item?.metercode) === mcoVal && cleanNumericString(item?.meternumber) === mNumber);
+                    if (matchIdx >= 0) {
+                        currentList[matchIdx] = { ...currentList[matchIdx], ...prepared };
+                    } else {
+                        currentList.push(prepared);
+                    }
+                    savedCount++;
+                }
+
+                if (savedCount > 0) {
+                    await set(ref(db, "Ayat/meterdata"), currentList);
+                    Swal.fire("اكتملت العملية", `تم رفع وتحديث ${savedCount} سجل بنجاح!`, "success");
+                    if (Swal.getPopup() && document.getElementById("modalBody")) await loadDataForModal();
+                } else {
+                    Swal.fire("تنبيه", "لم يتم العثور على أسطر صالحة للرفع (تأكد من وجود الأعمدة المطلوبة)", "warning");
+                }
+            } catch (err) { Swal.fire("خطأ", "حدث خلل أثناء معالجة ملف الـ Excel", "error"); }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    window.promptPassword = () => {
+        Swal.fire({
+            title: "كلمة مرور النظام لرفع الملفات",
+            input: "password",
+            inputPlaceholder: "أدخل كلمة المرور",
+            showCancelButton: true,
+            confirmButtonText: "تحقق"
+        }).then(result => {
+            if (result.isConfirmed && result.value === "1") {
+                let fileInput = document.getElementById("excelFileInput");
+                if (!fileInput) {
+                    fileInput = document.createElement("input");
+                    fileInput.type = "file";
+                    fileInput.id = "excelFileInput";
+                    fileInput.accept = ".xlsx, .xls";
+                    fileInput.style.display = "none";
+                    fileInput.setAttribute("onchange", "window.handleBulkExcelUpload(event)");
+                    document.body.appendChild(fileInput);
+                }
+                fileInput.click();
+            } else if (result.isConfirmed) { Swal.fire("خطأ", "كلمة المرور غير صحيحة!", "error"); }
+        });
+    };
+
+    // ==================== QUICK SAVE & FORM HANDLERS ====================
+    window.quickSave = async () => {
+        const saveBtn = document.getElementById("saveBtn");
+        const record = {
+            keta3: document.getElementById("keta3").value,
+            handsa: document.getElementById("handsa").value,
+            calibrationdate: document.getElementById("calib_date").value,
+            enterdate: document.getElementById("enter_date").value,
+            metername: document.getElementById("mname").value.trim(),
+            metercode: normalizeMeterCode(document.getElementById("mco").value),
+            nashattype: document.getElementById("nashattype").value,
+            metertype: document.getElementById("mtype").value,
+            meternumber: cleanNumericString(document.getElementById("mno").value),
+            result: document.getElementById("munip").value,
+            notes: document.getElementById("notes").value.trim()
+        };
+
+        if(!record.meternumber || !record.keta3 || !record.handsa || !record.result) {
+            return Swal.fire("تنبيه", "يرجى ملء الحقول الأساسية المطلوبة أولاً", "warning");
+        }
+
+        if(saveBtn) saveBtn.disabled = true;
+
+        try {
+            const snap = await get(ref(db, "Ayat/meterdata"));
+            let list = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val())) : [];
+
+            if (currentEditOriginalIndex !== null) {
+                list[currentEditOriginalIndex] = record;
+                await set(ref(db, "Ayat/meterdata"), list);
+                Swal.fire("تم التحديث", "تم تحديث السجل الحالي بنجاح", "success");
+            } else {
+                list.push(record);
+                await set(ref(db, "Ayat/meterdata"), list);
+                Swal.fire("تم الحفظ", "تم إضافة البيانات بنجاح لقاعدة البيانات", "success");
+            }
+
+            window.resetUI();
+            await loadAyatEnterSidebarData();
+        } catch (e) { Swal.fire("خطأ", "فشل في حفظ البيانات بقاعدة البيانات", "error"); }
+        finally { if(saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = "💾 حفظ البيانات"; } }
+    };
+
+    window.resetUI = () => {
+        currentEditOriginalIndex = null;
+        const fields = ["keta3", "handsa", "calib_date", "mname", "mco", "nashattype", "mtype", "mno", "munip", "notes"];
+        fields.forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ""; });
+        document.getElementById("enter_date").value = new Date().toISOString().split('T')[0];
+        const saveBtn = document.getElementById("saveBtn");
+        if(saveBtn) { saveBtn.innerHTML = "💾 حفظ البيانات"; saveBtn.style.background = ""; }
+    };
+
+    window.checkNewOption = async (selectEl) => {
+        if (selectEl.value === "ADD_NEW") {
+            const { value: newVal } = await Swal.fire({ title: "إضافة خيار جديد للقائمة", input: "text", showCancelButton: true });
+            if (newVal && newVal.trim()) {
+                selectEl.add(new Option(newVal.trim(), newVal.trim()), selectEl.options[selectEl.options.length - 1]);
+                selectEl.value = newVal.trim();
+            } else selectEl.value = "";
+        }
+    };
+
+    // ==================== CORE POPUP MODAL & REALTIME FILTERS ====================
+    window.showData = async () => {
+        Swal.fire({ title: 'جاري جلب الجدول الرئيسي...', didOpen: () => Swal.showLoading() });
+        try {
+            const snapshot = await get(ref(db, "Ayat/meterdata"));
+            allData = [];
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                allData = Array.isArray(val) ? val : Object.values(val);
+                allData = allData.filter(item => item !== null);
+            }
+
+            Swal.fire({
+                title: '📋 سجل البيانات والعدادات المسجلة بالتلاعبات',
+                html: document.getElementById("tableTemplate").innerHTML,
+                customClass: { popup: 'swal-large-popup' },
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: async () => {
+                    bindModalEventDelegation();
+                    await loadDataForModal();
+                }
+            });
+        } catch (error) { Swal.fire("خطأ", "فشل تحميل البيانات التابع لـ Swal Fire", "error"); }
+    };
+
+    window.loadDataForModal = async () => {
+        try {
+            const snapshot = await get(ref(db, "Ayat/meterdata"));
+            allData = [];
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                allData = (Array.isArray(val) ? val : Object.values(val)).filter(i => i !== null);
+            }
+            window.filterTable();
+        } catch (e) { console.error("Error refreshing table data:", e); }
+    };
+
+    window.filterTable = () => {
+        const fKeta3 = normalizeText(document.getElementById("f0")?.value);
+        const fHandsa = normalizeText(document.getElementById("f1")?.value);
+        
+        const fCalibFrom = document.getElementById("f2")?.value;
+        const fCalibTo = document.getElementById("f3")?.value;
+        const fEnterFrom = document.getElementById("f11")?.value;
+        const fEnterTo = document.getElementById("f12")?.value;
+
+        const fName = normalizeText(document.getElementById("f4")?.value);
+        const fCode = normalizeText(document.getElementById("f5")?.value);
+        const fNashat = normalizeText(document.getElementById("f6")?.value);
+        const fMType = normalizeText(document.getElementById("f7")?.value);
+        const fMNo = normalizeText(document.getElementById("f8")?.value);
+        const fResult = normalizeText(document.getElementById("f9")?.value);
+        const fNotes = normalizeText(document.getElementById("f10")?.value);
+
+        filteredData = allData.map((item, idx) => ({ ...item, __originalIndex: idx })).filter(item => {
+            const cDate = parseDate(item.calibrationdate);
+            const eDate = parseDate(item.enterdate);
+
+            if (fKeta3 && normalizeText(item.keta3) !== fKeta3) return false;
+            if (fHandsa && normalizeText(item.handsa) !== fHandsa) return false;
             
-            if (window.modalFilteredData !== undefined) {
-                window.filterTable();
+            if (fCalibFrom && (!cDate || cDate < new Date(fCalibFrom))) return false;
+            if (fCalibTo && (!cDate || cDate > new Date(fCalibTo + "T23:59:59"))) return false;
+            if (fEnterFrom && (!eDate || eDate < new Date(fEnterFrom))) return false;
+            if (fEnterTo && (!eDate || eDate > new Date(fEnterTo + "T23:59:59"))) return false;
+
+            if (fName && !normalizeText(item.metername).includes(fName)) return false;
+            if (fCode && !normalizeText(item.metercode).includes(fCode)) return false;
+            if (fNashat && !normalizeText(item.nashattype).includes(fNashat)) return false;
+            if (fMType && !normalizeText(item.metertype).includes(fMType)) return false;
+            if (fMNo && !normalizeText(item.meternumber).includes(fMNo)) return false;
+            if (fResult && !normalizeText(item.result).includes(fResult)) return false;
+            if (fNotes && !normalizeText(item.notes).includes(fNotes)) return false;
+
+            return true;
+        });
+
+        filteredData.sort((a, b) => (parseDate(b.calibrationdate) || new Date(0)) - (parseDate(a.calibrationdate) || new Date(0)));
+        currentPage = 1;
+        renderPage();
+        checkAndMarkDuplicates();
+    };
+
+    function renderPage() {
+        const tbody = document.getElementById("modalBody");
+        if (!tbody) return;
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="13" style="padding:30px; color:#888;">لا توجد سجلات مطابقة للفلاتر الحالية</td></tr>`;
+            document.getElementById("rowCount").innerText = "0";
+            updatePaginationControls();
+            return;
+        }
+
+        document.getElementById("rowCount").innerText = filteredData.length;
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const pageItems = filteredData.slice(start, start + ITEMS_PER_PAGE);
+
+        tbody.innerHTML = pageItems.map((item, index) => {
+            const globalIndex = start + index;
+            return `
+                <tr id="row-${globalIndex}">
+                    <td>${globalIndex + 1}</td>
+                    <td><b>${item.keta3 || '—'}</b></td>
+                    <td>${item.handsa || '—'}</td>
+                    <td>${formatDateForDisplay(item.calibrationdate)}</td>
+                    <td>${formatDateForDisplay(item.enterdate)}</td>
+                    <td>${item.metername || '—'}</td>
+                    <td><code>${item.metercode || '—'}</code></td>
+                    <td>${item.nashattype || '—'}</td>
+                    <td>${item.metertype || '—'}</td>
+                    <td><strong style="color:#2563eb;">${item.meternumber || '—'}</strong></td>
+                    <td><span style="font-weight:700; color:${item.result==='تلاعب'?'#ef4444':'#10b981'}">${item.result || '—'}</span></td>
+                    <td><small>${item.notes || '—'}</small></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit" data-idx="${globalIndex}">✏️</button>
+                            <button class="btn-del" data-idx="${globalIndex}">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        updatePaginationControls();
+    }
+
+    function updatePaginationControls() {
+        const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        const pageInfo = document.getElementById("pageInfo");
+
+        if (pageInfo) pageInfo.textContent = `الصفحة ${currentPage} من ${totalPages}`;
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+    }
+
+    window.nextPage = () => { if (currentPage < Math.ceil(filteredData.length / ITEMS_PER_PAGE)) { currentPage++; renderPage(); checkAndMarkDuplicates(); } };
+    window.prevPage = () => { if (currentPage > 1) { currentPage--; renderPage(); checkAndMarkDuplicates(); } };
+
+    window.clearFilters = () => {
+        for(let i=0; i<=12; i++) {
+            const el = document.getElementById("f" + i);
+            if(el) el.value = "";
+        }
+        window.filterTable();
+    };
+
+    // ==================== DETECT & REPORT DUPLICATES ====================
+    window.setDuplicateReferenceMode = (val) => {
+        duplicateReferenceMode = val;
+        checkAndMarkDuplicates();
+    };
+
+    function checkAndMarkDuplicates() {
+        const dupCountEl = document.getElementById("duplicateCount");
+        const dupNumEl = document.getElementById("duplicateNum");
+        const dupBtn = document.getElementById("showDuplicatesBtn");
+
+        const counts = new Map();
+        filteredData.forEach(item => {
+            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
+            if (!val) return;
+            counts.set(val, (counts.get(val) || 0) + 1);
+        });
+
+        let totalDups = 0;
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const pageItems = filteredData.slice(start, start + ITEMS_PER_PAGE);
+
+        pageItems.forEach((item, index) => {
+            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
+            const tr = document.getElementById(`row-${start + index}`);
+            if (val && counts.get(val) > 1) {
+                if (tr) tr.classList.add("duplicate-row");
+                totalDups++;
+            } else {
+                if (tr) tr.classList.remove("duplicate-row");
             }
         });
 
-        // تنظيف النصوص الرقمية لحمايتها
-        function cleanNumericString(val) { 
-            if (!val && val !== 0) return ""; 
-            return String(val).trim().replace(/['"`\s]/g, ""); 
+        counts.forEach(c => { if(c > 1) totalDups++; });
+
+        if (totalDups > 0) {
+            if(dupCountEl) dupCountEl.style.display = "inline";
+            if(dupNumEl) dupNumEl.innerText = totalDups;
+            if(dupBtn) dupBtn.style.display = "inline-flex";
+        } else {
+            if(dupCountEl) dupCountEl.style.display = "none";
+            if(dupBtn) dupBtn.style.display = "none";
         }
+    }
+
+    window.checkCurrentDuplicates = () => {
+        const counts = new Map();
+        const duplicates = [];
+        filteredData.forEach(item => {
+            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
+            if (!val) return;
+            if (!counts.has(val)) counts.set(val, []);
+            counts.get(val).push(item);
+        });
+
+        counts.forEach(items => { if (items.length > 1) duplicates.push(...items); });
+
+        if (duplicates.length === 0) return Swal.fire("لا توجد مكررات", "جميع البيانات الظاهرة فريدة تماماً.", "success");
+
+        let html = `
+            <div dir="rtl" style="text-align: right; max-height: 400px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th style="padding:6px; border:1px solid #ddd;">رقم العداد</th>
+                            <th style="padding:6px; border:1px solid #ddd;">كود المشترك</th>
+                            <th style="padding:6px; border:1px solid #ddd;">المهندسة</th>
+                            <th style="padding:6px; border:1px solid #ddd;">النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        duplicates.forEach(d => {
+            html += `
+                <tr>
+                    <td style="padding:6px; border:1px solid #ddd;"><b>${d.meternumber}</b></td>
+                    <td style="padding:6px; border:1px solid #ddd;">${d.metercode}</td>
+                    <td style="padding:6px; border:1px solid #ddd;">${d.handsa}</td>
+                    <td style="padding:6px; border:1px solid #ddd; color:red;">${d.result}</td>
+                </tr>
+            `;
+        });
+        html += `</tbody></table></div>`;
+
+        Swal.fire({ title: "⚠️ السجلات المكررة المكتشفة", html: html, width: "600px" });
+    };
+
+    // ==================== EDIT & DELETE BINDINGS (EVENT DELEGATION) ====================
+    function bindModalEventDelegation() {
+        const popup = Swal.getPopup();
+        if (!popup) return;
+        popup.addEventListener("click", async (e) => {
+            const editBtn = e.target.closest(".btn-edit");
+            const delBtn = e.target.closest(".btn-del");
+
+            if (editBtn) {
+                const item = filteredData[Number(editBtn.dataset.idx)];
+                if (item) {
+                    currentEditOriginalIndex = item.__originalIndex;
+                    document.getElementById("keta3").value = item.keta3 || "";
+                    document.getElementById("handsa").value = item.handsa || "";
+                    document.getElementById("calib_date").value = item.calibrationdate || "";
+                    document.getElementById("enter_date").value = item.enterdate || "";
+                    document.getElementById("mname").value = item.metername || "";
+                    document.getElementById("mco").value = item.metercode || "";
+                    document.getElementById("nashattype").value = item.nashattype || "";
+                    document.getElementById("mtype").value = item.metertype || "";
+                    document.getElementById("mno").value = item.meternumber || "";
+                    document.getElementById("munip").value = item.result || "";
+                    document.getElementById("notes").value = item.notes || "";
+
+                    const mainSaveBtn = document.getElementById("saveBtn");
+                    if (mainSaveBtn) {
+                        mainSaveBtn.innerHTML = "🔄 تحديث البيانات الحالية";
+                        mainSaveBtn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
+                    }
+                    Swal.close();
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'تم استدعاء السجل للفورم، قم بالتعديل ثم اضغط تحديث البيانات', showConfirmButton: false, timer: 3500 });
+                }
+            }
+
+            if (delBtn) {
+                const item = filteredData[Number(delBtn.dataset.idx)];
+                if (item) {
+                    const check = await Swal.fire({ title: 'هل أنت متأكد من حذف السجل؟', text: "لن تستطيع التراجع عن هذه العملية!", icon: 'warning', showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء' });
+                    if (check.isConfirmed) {
+                        allData.splice(item.__originalIndex, 1);
+                        await set(ref(db, "Ayat/meterdata"), allData);
+                        Swal.fire('تم الحذف', 'تم إزالة السجل من قاعدة البيانات', 'success');
+                        await loadDataForModal();
+                    }
+                }
+            }
+        });
+    }
+
+    // ==================== EXPORT EXCEL ====================
+    window.exportExcel = () => {
+        if(filteredData.length === 0) return Swal.fire("تنبيه", "لا توجد بيانات متاحة للتصدير", "warning");
+        const headers = ["م", "القطاع", "الهندسة", "تاريخ الفحص", "تاريخ الإدخال", "اسم المشترك", "كود المشترك", "النشاط", "نوع العداد", "رقم العداد", "نتيجة الفحص", "ملاحظات"];
+        const rows = [headers];
         
-        function formatDateToDDMMYYYY(dateStr) { 
-            if (!dateStr) return ""; 
-            const parts = dateStr.split("-"); 
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; 
-            return dateStr; 
-        }
+        filteredData.forEach((d, i) => {
+            rows.push([i + 1, d.keta3, d.handsa, d.calibrationdate, d.enterdate, d.metername, d.metercode, d.nashattype, d.metertype, d.meternumber, d.result, d.notes]);
+        });
 
-        // حفظ سجل فردي جديد
-        window.quickSave = async function () {
-            const keta3 = document.getElementById("keta3").value.trim();
-            const handsa = document.getElementById("handsa").value.trim();
-            const nashattype = document.getElementById("nashattype").value.trim();
-            const metertype = document.getElementById("mtype").value.trim();
-            const meternumber = cleanNumericString(document.getElementById("mno").value);
-            const metercode = cleanNumericString(document.getElementById("mco").value);
-            
-            if (!meternumber || !keta3 || !handsa) return Swal.fire("تنبيه", "رقم العداد، القطاع والهندسة إجبارية", "warning");
-            if (window.existingMeterNumbersCache.has(meternumber) || (metercode && window.existingMcoCache.has(metercode)))
-                return Swal.fire("سجل مكرر", "رقم العداد أو كود المشترك موجود مسبقاً في قاعدة البيانات!", "error");
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "بيانات الفحص والتلاعبات");
+        XLSX.writeFile(wb, `تقرير_التلاعبات_المصفى_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
 
-            const newRecord = {
-                keta3, handsa, nashattype, metertype, meternumber,
-                calibrationdate: formatDateToDDMMYYYY(document.getElementById("calib_date").value),
-                enterdate: formatDateToDDMMYYYY(document.getElementById("enter_date").value) || formatDateToDDMMYYYY(new Date().toISOString().split('T')[0]),
-                metername: document.getElementById("mname").value.trim(),
-                metercode, result: document.getElementById("munip").value.trim(),
-                notes: document.getElementById("notes").value.trim()
-            };
-            
-            try {
-                Swal.fire({ title: 'جاري الحفظ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                let nextIndex = window.allData.length;
-                const numericKeys = window.allData.map(d => parseInt(d.__firebaseKey)).filter(k => !isNaN(k));
-                if (numericKeys.length) nextIndex = Math.max(...numericKeys) + 1;
-
-                await update(ref(database), { [`Ayat/meterdata/${nextIndex}`]: newRecord });
-                Swal.fire("تم الحفظ", `السجل برقم ${nextIndex} تم تأمينه بنجاح`, "success");
-                
-                document.getElementById("mno").value = ""; 
-                document.getElementById("mco").value = ""; 
-                document.getElementById("notes").value = "";
-                document.getElementById("mname").value = "";
-            } catch { 
-                Swal.fire("خطأ", "فشل الحفظ، تحقق من اتصال الإنترنت", "error"); 
-            }
-        };
-
-        // رفع ملف Excel كبير
-        window.handleBulkExcelUpload = async function (event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const workbook = XLSX.read(e.target.result, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-                    if (!rows.length) return Swal.fire("ملف فارغ", "لا توجد بيانات بالمستند المعالج", "warning");
-                    
-                    Swal.fire({ title: 'معالجة الملف..', text: `تم قراءة ${rows.length} سجل. جاري التدقيق والرفع الزمني..`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-                    let nextIndex = 0;
-                    const numericKeys = window.allData.map(d => parseInt(d.__firebaseKey)).filter(k => !isNaN(k));
-                    nextIndex = numericKeys.length ? Math.max(...numericKeys) + 1 : window.allData.length;
-                    
-                    const batch = {};
-                    let duplicates = 0, added = 0;
-
-                    for (const row of rows) {
-                        const mcoVal = cleanNumericString(row["كود المشترك"] || row["metercode"] || row["الكود الموحد"] || row["MCO"]);
-                        const meterNum = cleanNumericString(row["الشاسيه"] || row["meternumber"] || row["رقم العداد"]);
-                        
-                        if (!meterNum && !mcoVal) continue;
-                        if ((meterNum && window.existingMeterNumbersCache.has(meterNum)) || (mcoVal && window.existingMcoCache.has(mcoVal))) { 
-                            duplicates++; 
-                            continue; 
-                        }
-
-                        const record = {
-                            keta3: String(row["القطاع"] || row["keta3"] || ""),
-                            handsa: String(row["الهندسة"] || row["handsa"] || ""),
-                            nashattype: String(row["النشاط"] || row["nashattype"] || ""),
-                            metertype: String(row["نوع العداد"] || row["metertype"] || ""),
-                            meternumber: meterNum,
-                            calibrationdate: String(row["تاريخ الفحص"] || row["calibrationdate"] || ""),
-                            enterdate: String(row["تاريخ التسجيل"] || row["enterdate"] || new Date().toISOString().split('T')[0]),
-                            metername: String(row["اسم المشترك"] || row["metername"] || ""),
-                            metercode: mcoVal,
-                            result: String(row["نتيجة الفحص"] || row["result"] || ""),
-                            notes: String(row["ملاحظات"] || row["notes"] || "")
-                        };
-                        
-                        batch[`Ayat/meterdata/${nextIndex}`] = record;
-                        if (meterNum) window.existingMeterNumbersCache.add(meterNum);
-                        if (mcoVal) window.existingMcoCache.add(mcoVal);
-                        nextIndex++; added++;
-                    }
-                    if (added > 0) await update(ref(database), batch);
-                    Swal.fire({ icon: added ? "success" : "warning", title: "اكتمال الرفع السحابي", html: `✅ تم رفع ${added} سجلات بنجاح.<br/>⚠️ تم تخطي ${duplicates} سجلات مكررة.` });
-                } catch (err) { 
-                    Swal.fire("خطأ", "فشل تحليل مستند الـ Excel المرفوع", "error"); 
-                }
-                document.getElementById('excelFileInput').value = "";
-            };
-            reader.readAsArrayBuffer(file);
-        };
-
-        // استعراض الأرشيف الذكي
-        window.showData = function () {
-            if (!window.allData.length) return Swal.fire("مستودع فارغ", "لا توجد سجلات حالية للاستعراض", "info");
-            const template = document.getElementById("tableTemplate").content.cloneNode(true);
-            
-            Swal.fire({
-                title: '📊 الأرشيف الذكي والفلاتر التفاعلية',
-                html: '<div id="modalDynamicRender"></div>',
-                width: '95vw',
-                showConfirmButton: false,
-                showCloseButton: true,
-                didOpen: () => {
-                    document.getElementById("modalDynamicRender").appendChild(template);
-                    window.modalCurrentPage = 1; 
-                    window.modalRowsPerPage = 12;
-                    window.modalFilteredData = [...window.allData];
-                    
-                    window.renderTableBody = () => {
-                        const tbody = document.getElementById("modalBody"); 
-                        if (!tbody) return;
-                        const total = window.modalFilteredData.length;
-                        if (document.getElementById("rowCount")) document.getElementById("rowCount").innerText = total;
-                        
-                        const start = (window.modalCurrentPage - 1) * window.modalRowsPerPage;
-                        const end = Math.min(start + window.modalRowsPerPage, total);
-                        const pageRows = window.modalFilteredData.slice(start, end);
-                        
-                        if (!pageRows.length && total) { 
-                            window.modalCurrentPage = Math.ceil(total / window.modalRowsPerPage); 
-                            return window.renderTableBody(); 
-                        }
-                        
-                        tbody.innerHTML = pageRows.map((item, idx) => `
-                            <tr>
-                                <td>${start + idx + 1}</td>
-                                <td>${item.keta3 || ''}</td>
-                                <td>${item.handsa || ''}</td>
-                                <td>${item.calibrationdate || ''}</td>
-                                <td>${item.enterdate || ''}</td>
-                                <td>${item.metername || ''}</td>
-                                <td style="color:var(--neon-purple); font-weight:bold;" class="numeric-field">${item.metercode || ''}</td>
-                                <td>${item.nashattype || ''}</td>
-                                <td>${item.metertype || ''}</td>
-                                <td style="color:var(--neon-blue); font-weight:bold;" class="numeric-field">${item.meternumber || ''}</td>
-                                <td><span style="background:rgba(88,166,255,0.15); padding:2px 8px; border-radius:20px;">${item.result || ''}</span></td>
-                                <td style="max-width:180px; white-space:normal; font-size:11px;">${item.notes || ''}</td>
-                                <td><button onclick="window.deleteRowFromServer('${item.__firebaseKey}')" style="background:transparent; border:none; color:var(--neon-red); cursor:pointer;"><i class="fa-regular fa-trash-can"></i></button></td>
-                            </tr>
-                        `).join('');
-                        
-                        const totalPages = Math.ceil(total / window.modalRowsPerPage) || 1;
-                        if (document.getElementById("pageInfo")) document.getElementById("pageInfo").innerHTML = `صفحة ${window.modalCurrentPage} من ${totalPages}`;
-                        
-                        const prevBtn = document.getElementById("prevBtn"); 
-                        const nextBtn = document.getElementById("nextBtn");
-                        if (prevBtn) prevBtn.disabled = (window.modalCurrentPage === 1);
-                        if (nextBtn) nextBtn.disabled = (window.modalCurrentPage === totalPages);
-                    };
-
-                    window.filterTable = function () {
-                        const filters = {
-                            f0: (document.getElementById("f0")?.value || "").toLowerCase(),
-                            f1: (document.getElementById("f1")?.value || "").toLowerCase(),
-                            f4: (document.getElementById("f4")?.value || "").toLowerCase(),
-                            f5: (document.getElementById("f5")?.value || "").toLowerCase(),
-                            f6: (document.getElementById("f6")?.value || "").toLowerCase(),
-                            f7: (document.getElementById("f7")?.value || "").toLowerCase(),
-                            f8: (document.getElementById("f8")?.value || "").toLowerCase(),
-                            f9: (document.getElementById("f9")?.value || "").toLowerCase(),
-                            f10: (document.getElementById("f10")?.value || "").toLowerCase()
-                        };
-                        
-                        window.modalFilteredData = window.allData.filter(item =>
-                            (!filters.f0 || (item.keta3 || "").toLowerCase().includes(filters.f0)) &&
-                            (!filters.f1 || (item.handsa || "").toLowerCase().includes(filters.f1)) &&
-                            (!filters.f4 || (item.metername || "").toLowerCase().includes(filters.f4)) &&
-                            (!filters.f5 || (item.metercode || "").toLowerCase().includes(filters.f5)) &&
-                            (!filters.f6 || (item.nashattype || "").toLowerCase().includes(filters.f6)) &&
-                            (!filters.f7 || (item.metertype || "").toLowerCase().includes(filters.f7)) &&
-                            (!filters.f8 || (item.meternumber || "").toLowerCase().includes(filters.f8)) &&
-                            (!filters.f9 || (item.result || "").toLowerCase().includes(filters.f9)) &&
-                            (!filters.f10 || (item.notes || "").toLowerCase().includes(filters.f10))
-                        );
-                        window.modalCurrentPage = 1; 
-                        window.renderTableBody();
-                    };
-
-                    const headerRow = document.querySelector("#excelTargetTable thead tr");
-                    if (headerRow) {
-                        const ths = headerRow.children;
-                        const filterIndices = [1, 2, 5, 6, 7, 8, 9, 10, 11]; // ربط الفلاتر بالأعمدة
-                        const fieldIds = {1:'f0', 2:'f1', 5:'f4', 6:'f5', 7:'f6', 8:'f7', 9:'f8', 10:'f9', 11:'f10'};
-                        
-                        for (let i = 0; i < ths.length; i++) {
-                            if (filterIndices.includes(i)) {
-                                const input = document.createElement("input");
-                                input.placeholder = `🔍 تصفية`;
-                                input.className = "filter-input";
-                                input.id = fieldIds[i];
-                                input.addEventListener("input", () => window.filterTable());
-                                ths[i].appendChild(input);
-                            }
-                        }
-                    }
-                    
-                    window.renderTableBody();
-                }
-            });
-        };
-
-        // التنقل بين الصفحات
-        window.nextPage = () => { 
-            const max = Math.ceil(window.modalFilteredData.length / window.modalRowsPerPage); 
-            if (window.modalCurrentPage < max) { window.modalCurrentPage++; window.renderTableBody(); } 
-        };
-        window.prevPage = () => { 
-            if (window.modalCurrentPage > 1) { window.modalCurrentPage--; window.renderTableBody(); } 
-        };
-
-        // مسح الفلاتر وإعادة التعيين بالكامل
-        window.clearFilters = () => {
-            const fields = ['f0', 'f1', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10'];
-            fields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = "";
-            });
-            window.modalFilteredData = [...window.allData];
-            window.modalCurrentPage = 1;
-            window.renderTableBody();
-        };
-
-        // حذف سجل من الخادم بالكامل
-        window.deleteRowFromServer = async function (key) {
-            const result = await Swal.fire({
-                title: 'هل أنت متأكد من الحذف؟',
-                text: "سيتم إزالة هذا السجل نهائياً من سيرفر قاعدة البيانات السحابية!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#f85149',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'نعم، احذفه',
-                cancelButtonText: 'إلغاء'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    await remove(ref(database, `Ayat/meterdata/${key}`));
-                    Swal.fire('تم الحذف!', 'تمت إزالة السجل من قاعدة البيانات السحابية بنجاح.', 'success');
-                } catch {
-                    Swal.fire('خطأ', 'تعذر الاتصال بالسيرفر لإتمام عملية الحذف', 'error');
-                }
-            }
-        };
-
-        // تصدير التقارير المفلترة الحالية إلى ملف Excel محمي من التشوهات
-        window.exportExcel = function () {
-            if (!window.modalFilteredData.length) return Swal.fire("تنبيه", "لا توجد بيانات متاحة للتصدير حالياً", "warning");
-            
-            const exportRows = window.modalFilteredData.map((item, idx) => ({
-                "م": idx + 1,
-                "القطاع": item.keta3 || "",
-                "الهندسة": item.handsa || "",
-                "تاريخ الفحص المعملي": item.calibrationdate || "",
-                "تاريخ التسجيل": item.enterdate || "",
-                "اسم المشترك": item.metername || "",
-                "كود المشترك (MCO)": item.metercode ? String(item.metercode) : "",
-                "نوع النشاط": item.nashattype || "",
-                "طراز العداد": item.metertype || "",
-                "رقم العداد (الشاسيه)": item.meternumber ? String(item.meternumber) : "",
-                "نتيجة الفحص": item.result || "",
-                "ملاحظات فنية": item.notes || ""
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportRows);
-            
-            // تأمين الحقول النصية الطويلة لمنع تحويلها لصيغة علمية (Scientific Notation) في الـ Excel
-            for (let cell in worksheet) {
-                if (cell[0] === '!') continue;
-                const colLetter = cell.replace(/[0-9]/g, '');
-                if (colLetter === 'G' || colLetter === 'J') { // أعمدة الكود الموحد ورقم الشاسيه
-                    worksheet[cell].t = 's'; // Force Text Format
-                }
-            }
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "بيانات تلاعبات العدادات");
-            XLSX.writeFile(workbook, `تقرير_التلاعبات_المحدث_${new Date().toISOString().split('T')[0]}.xlsx`);
-        };
-
-        // ميزة إضافة حقل جديد للقوائم المنسدلة ديناميكياً
-        window.checkAddNewOption = async function (selectElement) {
-            if (selectElement.value === "ADD_NEW") {
-                const { value: text } = await Swal.fire({
-                    title: 'إضافة خيار جديد',
-                    input: 'text',
-                    inputLabel: 'يرجى إدخال القيمة المراد إضافتها في القائمة:',
-                    inputPlaceholder: 'اكتب الاسم هنا...',
-                    showCancelButton: true,
-                    cancelButtonText: 'إلغاء'
-                });
-                
-                if (text && text.trim() !== "") {
-                    const newOpt = document.createElement("option");
-                    newOpt.value = text.trim();
-                    newOpt.textContent = text.trim();
-                    selectElement.insertBefore(newOpt, selectElement.lastElementChild);
-                    selectElement.value = text.trim();
-                } else {
-                    selectElement.value = "";
-                }
-            }
-        };
-    </script>
+    // ==================== APPLICATION INITIALIZATION ====================
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("enter_date").value = new Date().toISOString().split('T')[0];
+        loadAyatEnterSidebarData();
+    });
+  </script>
 </body>
 
 </html>
