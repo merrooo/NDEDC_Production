@@ -1,1138 +1,914 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title> إدارة تسجيل - التلاعبات</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Firebase Schema Architect | Auto-Edit on Add Row</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    /* ===== Ayat.css - Modern Minimalist Style ===== */
-
-    /* --- Base & Reset --- */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { font-family: 'Inter', system-ui, sans-serif; }
     body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #f4f6f9;
-      color: #2d3748;
-      padding: 24px;
-      line-height: 1.6;
-      transition: background-color 0.25s, color 0.25s;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
+      min-height: 100vh;
+      padding: 1rem;
+      margin: 0;
     }
-
-    /* --- Dark Mode Base --- */
-    body.dark-mode {
-      background-color: #0b0f19;
-      color: #e2e8f0;
+    body.dark {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     }
-
-    /* --- Main Split Layout Container --- */
-    .main-wrapper {
+    body.dark .card { background-color: #1e293b; border-color: #334155; }
+    body.dark th { color: #cbd5e1; border-bottom-color: #334155; }
+    body.dark td { color: #e2e8f0; border-color: #334155; }
+    body.dark .input-editable { background-color: #0f172a; border-color: #475569; color: #f1f5f9; }
+    body.dark .non-editable-cell { background-color: #0f172a; color: #94a3b8; }
+    .card {
+      width: 98%;
+      max-width: 1600px;
+      height: 90vh;
       display: flex;
-      gap: 24px;
-      max-width: 1750px;
+      flex-direction: column;
       margin: 0 auto;
-      align-items: flex-start;
+      background: white;
+      border-radius: 1.5rem;
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     }
-
-    /* --- Right Form Panel --- */
-    .entry-card {
-      background-color: #ffffff;
-      flex: 1;
-      padding: 28px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      transition: background-color 0.25s;
+    .table-container { flex: 1; overflow: auto; min-height: 0; border-radius: 1rem; }
+    .input-editable {
+      width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+      border: 1px solid #8b5cf6; background: white; font-size: 0.875rem;
+      transition: all 0.15s;
     }
-
-    /* --- Left Sidebar Table Panel --- */
-    .left-sidebar-panel {
-      background-color: #ffffff;
-      width: 990px;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      transition: background-color 0.25s;
-      position: sticky;
-      top: 24px;
+    .input-editable:focus { outline: none; border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); }
+    .non-editable-cell { padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 0.5rem; font-size: 0.875rem; color: #1e293b; }
+    body.dark .non-editable-cell { background: #0f172a; color: #cbd5e1; }
+    th { user-select: none; cursor: pointer; transition: color 0.1s; }
+    th:hover { color: #8b5cf6; }
+    .toast-notify {
+      position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
+      padding: 10px 20px; border-radius: 40px; font-size: 13px; z-index: 999;
+      font-weight: 500; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
-
-    body.dark-mode .entry-card,
-    body.dark-mode .left-sidebar-panel {
-      background-color: #151d30;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
-    .entry-card h2, .left-sidebar-panel h3 {
-      text-align: center;
-      margin-bottom: 24px;
-      font-weight: 700;
-      color: #1a202c;
-    }
-
-    .entry-card h2 { font-size: 1.5rem; }
-    .left-sidebar-panel h3 { font-size: 1.15rem; color: #0f766e; display: flex; align-items: center; justify-content: center; gap: 8px;}
-    body.dark-mode .left-sidebar-panel h3 { color: #38bdf8; }
-
-    body.dark-mode .entry-card h2,
-    body.dark-mode .left-sidebar-panel h3 {
-      color: #ffffff;
-    }
-
-    /* --- Form Fields (Grid Layout) --- */
-    .inputs-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .input-with-label {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .input-with-label label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #4a5568;
-    }
-
-    body.dark-mode .input-with-label label {
-      color: #a0aec0;
-    }
-
-    .input-with-label input,
-    .input-with-label select,
-    .input-with-label textarea,
-    .filter-select,
-    .filter-input,
-    .sidebar-search {
-      width: 100%;
-      padding: 10px 14px;
-      font-family: 'Cairo', sans-serif;
-      font-size: 0.9rem;
-      background-color: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      color: inherit;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-
-    body.dark-mode .input-with-label input,
-    body.dark-mode .input-with-label select,
-    body.dark-mode .input-with-label textarea,
-    body.dark-mode .filter-select,
-    body.dark-mode .filter-input,
-    body.dark-mode .sidebar-search {
-      background-color: #0b0f19;
-      border-color: #2d3748;
-    }
-
-    .input-with-label input:focus,
-    .input-with-label select:focus,
-    .input-with-label textarea:focus {
-      outline: none;
-      border-color: #3182ce;
-      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
-    }
-
-    .full-width-container {
-      grid-column: 1 / -1;
-    }
-
-    textarea {
-      min-height: 70px;
-      resize: vertical;
-    }
-
-    /* --- Control Panels (Inside Modal) --- */
-    .data-modal-container .table-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .data-modal-container .controls-left,
-    .data-modal-container .controls-right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    /* --- Date Filter Columns --- */
-    .filter-date-col {
-      min-width: 140px;
-    }
-
-    .date-filter-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .date-filter-container input {
-      width: 100%;
-      padding: 6px 8px;
-      font-size: 0.8rem;
-    }
-
-    /* --- Buttons Layout --- */
-    button, 
-    .dark-toggle {
-      font-family: 'Cairo', sans-serif;
-      font-size: 0.9rem;
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      transition: transform 0.1s, filter 0.15s;
-    }
-
-    button:hover,
-    .dark-toggle:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.08);
-    }
-
-    button:active { transform: translateY(0); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-    .btn-save { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; }
-    .btn-view { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; }
-    .btn-excel { background: linear-gradient(135deg, #059669, #047857); color: #ffffff; }
-    .btn-refresh { background: linear-gradient(135deg, #4b5563, #374151); color: #ffffff; }
-    .btn-clear-filters { background: linear-gradient(135deg, #ea580c, #c2410c); color: #ffffff; }
-    .btn-pagination { background: linear-gradient(135deg, #475569, #334155); color: #ffffff; }
-    .btn-warning { background: linear-gradient(135deg, #fd7e14, #e8590c); color: #ffffff; }
-    .btn-edit { background: linear-gradient(135deg, #eab308, #ca8a04); color: #1e293b; padding: 6px 12px; font-size: 0.8rem; }
-    .btn-del { background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; padding: 6px 12px; font-size: 0.8rem; }
-
-    /* --- Dark Mode Toggle Look --- */
-    .dark-toggle {
-      background-color: #e2e8f0;
-      color: #1a202c;
-      padding: 8px 16px;
-    }
-
-    body.dark-mode .dark-toggle {
-      background-color: #2d3748;
-      color: #f7fafc;
-    }
-
-    .dark-toggle .switch {
-      width: 36px;
-      height: 18px;
-      background-color: #cbd5e0;
-      border-radius: 10px;
-      position: relative;
-      display: inline-block;
-    }
-
-    body.dark-mode .dark-toggle .switch { background-color: #4a5568; }
-    .dark-toggle .switch::after {
-      content: ""; position: absolute; top: 2px; width: 14px; height: 14px;
-      background-color: #ffffff; border-radius: 50%; transition: transform 0.2s ease; left: 2px;
-    }
-    body.dark-mode .dark-toggle .switch::after { transform: translateX(18px); }
-
-    /* --- Table Architecture --- */
-    .table-container, .sidebar-table-container {
-      overflow-x: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      margin-top: 16px;
-    }
-    .table-container { max-height: 60vh; }
-    .sidebar-table-container { max-height: 52vh; overflow-y: auto; }
-
-    body.dark-mode .table-container,
-    body.dark-mode .sidebar-table-container { border-color: #2d3748; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    #dataTable { min-width: 1300px; }
-    #sidebarTable { min-width: 100%; }
-
-    th, td {
-      padding: 10px 12px;
-      text-align: center;
-      border-bottom: 1px solid #e2e8f0;
-      vertical-align: middle;
-    }
-
-    body.dark-mode th, body.dark-mode td { border-bottom-color: #2d3748; }
-
-    thead th {
-      background: linear-gradient(135deg, #1a202c, #0f172a);
-      color: #ffffff;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    body.dark-mode thead th { background: linear-gradient(135deg, #0b0f19, #020617); }
-
-    .filter-row th { background-color: #f7fafc; padding: 12px 8px; }
-    body.dark-mode .filter-row th { background-color: #151d30; }
-    .filter-row th input, .filter-row th select { width: 100%; min-width: 100px; }
-
-    tbody tr:hover td { background-color: #f8fafc; }
-    body.dark-mode tbody tr:hover td { background-color: #1e293b; }
-
-    .duplicate-row td { background-color: #fee2e2 !important; color: #991b1b !important; }
-    body.dark-mode .duplicate-row td { background-color: #7f1d1d !important; color: #fee2e2 !important; }
-
-    .action-buttons { display: flex; gap: 8px; justify-content: center; white-space: nowrap; }
-    .action-buttons button { padding: 4px 10px; font-size: 0.75rem; min-width: auto; }
-
-    /* --- Pagination Elements --- */
-    .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding: 16px 0; }
-    .page-info { font-weight: 600; font-size: 0.95rem; }
-
-    /* --- SweetAlert2 Style Custom Adjustments --- */
-    .swal2-popup { font-family: 'Cairo', sans-serif !important; border-radius: 14px !important; }
-    .swal-large-popup { width: 98% !important; max-width: 1550px !important; padding: 15px !important; }
-
-    .add-new-option { color: #10b981; font-weight: 600; border-top: 1px solid #cbd5e1; margin-top: 4px; padding-top: 4px; }
-    body.dark-mode .add-new-option { color: #34d399; border-top-color: #374151; }
-
-    @media (max-width: 1200px) {
-      .main-wrapper { flex-direction: column; }
-      .left-sidebar-panel { width: 100%; position: static; }
-      .inputs-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 768px) {
-      .inputs-grid { grid-template-columns: 1fr; }
-      .data-modal-container .table-controls { flex-direction: column; align-items: stretch; }
-    }
+    .toast-notify.success { background: #059669; }
+    .toast-notify.error { background: #dc2626; }
+    .toast-notify.info { background: #3b82f6; }
+    .dropdown-animate { animation: fadeScale 0.12s ease-out; transform-origin: top right; }
+    @keyframes fadeScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .icon-btn { transition: all 0.15s; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
+    .icon-btn:hover { transform: scale(1.03); background-color: rgba(0,0,0,0.05); }
+    body.dark .icon-btn:hover { background-color: rgba(255,255,255,0.1); }
+    .editing-row { background-color: #fef9e3; }
+    body.dark .editing-row { background-color: #3b2e1e; }
+    .btn-disabled { opacity: 0.5; cursor: not-allowed !important; pointer-events: none; }
+    .firebase-badge { background: #FFCA28; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px; }
+    .action-buttons { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .action-btn { padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s; border: none; }
+    .action-btn:hover { transform: scale(1.05); }
+    .edit-mode-badge { background: #f59e0b; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 6px; }
   </style>
 </head>
-
 <body>
-
-  <div class="main-wrapper">
-    
-    <!-- Right Container (Main Form Panel) -->
-    <div class="entry-card">
-      <h2>⚡ تسجيل بيانات عداد - التلاعبات</h2>
-
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
-        <label class="dark-toggle" onclick="document.body.classList.toggle('dark-mode')">
-          <span class="icon">🌙</span>
-          <div class="switch"></div>
-          <span class="icon">☀️</span>
-        </label>
-
-        <button class="btn-view" onclick="window.location.href='index.html'">
-          ⬅️ الصفحة الرئيسية
-        </button>
-
-        <button class="btn-excel" id="uploadBtn" onclick="window.promptPassword && window.promptPassword()">
-          📥 رفع Excel
-        </button>
-
-        <div class="input-with-label" style="min-width: 180px; margin: 0;">
-          <input type="date" id="enter_date" style="padding: 6px 10px;" />
-        </div>
-      </div>
-
-      <div class="inputs-grid">
-        <div class="input-with-label">
-          <label>📍 القطاع</label>
-          <select id="keta3">
-            <option value="">اختر القطاع</option>
-            <option>دمياط</option>
-            <option>شمال الدقهلية</option>
-            <option>جنوب الدقهلية</option>
-            <option>كفر الشيخ</option>
-          </select>
-        </div>
-
-        <div class="input-with-label">
-          <label>🏗️ الهندسة</label>
-          <select id="handsa">
-            <option value="">اختر الهندسة</option>
-            <option>هندسة شمال دمياط</option><option>هندسة جنوب دمياط</option><option>هندسة عزبة البرج</option><option>هندسة كفر سعد</option><option>هندسة كفر البطيخ</option><option>هندسة راس البر</option><option>هندسة دمياط الجديدة</option><option>هندسة الزرقا</option><option>هندسة فارسكور</option><option>هندسة الروضة</option><option>هندسة الشعراء</option><option>هندسة مدينة شربين</option><option>هندسة قري شربين</option><option>هندسة دكرنس</option><option>هندسة جمصة</option><option>هندسة قري بلقاس</option><option>هندسة مدينة بلقاس</option><option>هندسة الستاموني</option><option>هندسة بني عبيد</option><option>هندسة منية النصر</option><option>هندسة ميت سلسيل</option><option>هندسة الجمالية</option><option>هندسة قري المنزلة</option><option>هندسة مدينة المنزلة</option><option>هندسة المطرية</option><option>هندسة شرق المنصورة</option><option>هندسة غرب المنصورة</option><option>هندسة طلخا</option><option>هندسة nبروه</option><option>هندسة قري المنصورة 1</option><option>هندسة قري المنصورة 2</option><option>هندسة اجا</option><option>هندسة مدينة السنبلاوين</option><option>هندسة قري السنبلاوين</option><option>هندسة تمي الامديد</option><option>هندسة مدينة ميت غمر</option><option>هندسة قري ميت غمر</option><option>هندسة كوم النور</option><option>هندسة مدينة كفر الشيخ</option><option>هندسة غرب كفر الشيخ</option><option>هندسة شرق كفر الشيخ</option><option>هندسة قلين</option><option>هندسة قرى سيدي سالم</option><option>هندسة مدينة سيدي سالم</option><option>هندسة الرياض</option><option>هندسة مدينة دسوق</option><option>هندسة قرى شمال دسوق</option><option>هندسة قرى جنوب دسوق</option><option>هندسة فوه</option><option>هندسة مطوبس</option><option>هندسة مدينة الحامول</option><option>هندسة قرى الحامول</option><option>هندسة بيلا</option><option>هندسة بلطيم</option><option>هندسة برج البرلس</option>
-          </select>
-        </div>
-
-        <div class="input-with-label">
-          <label>📋 نوع النشاط</label>
-          <select id="nashattype" onchange="window.checkNewOption && window.checkNewOption(this)">
-            <option value="">اختر نوع النشاط</option>
-            <option>منزلي</option><option>تجاري</option><option>قوى محركة</option><option>كودي مخالف</option><option>ري</option><option>مزارع</option><option>مساجد</option><option>استثمار صناعة</option><option>كبار</option><option>مصالح حكومية</option><option>مصالح حكوميه اخري</option>
-            <option value="ADD_NEW" class="add-new-option">➕ إضافة نوع جديد...</option>
-          </select>
-        </div>
-
-        <div class="input-with-label">
-          <label>⚙️ نوع العداد</label>
-          <select id="mtype" onchange="window.checkNewOption && window.checkNewOption(this)">
-            <option value="">اختر نوع العداد</option>
-            <option>سويدى ثلاثى مباشر</option><option>سويدي احادي</option><option>اسكرا احادي</option><option>المصريه احادي</option><option>جلوبال ثلاثى مباشر</option><option>جلوبال احادي</option><option>جلوبال ثلاثى غير مباشر</option>
-            <option value="ADD_NEW" class="add-new-option">➕ إضافة نوع جديد...</option>
-          </select>
-        </div>
-
-        <div class="input-with-label">
-          <label>🔢 رقم العداد</label>
-          <input id="mno" placeholder="رقم العداد" />
-        </div>
-
-        <div class="input-with-label">
-          <label>📅 تاريخ الفحص</label>
-          <input type="date" id="calib_date" />
-        </div>
-
-        <div class="input-with-label">
-          <label>👤 اسم المشترك</label>
-          <input id="mname" placeholder="اسم المشترك" />
-        </div>
-
-        <div class="input-with-label">
-          <label>🆔 كود المشترك</label>
-          <input id="mco" placeholder="كود المشترك" />
-        </div>
-
-        <div class="input-with-label">
-          <label>📍 نتيجة الفحص</label>
-          <select id="munip" onchange="window.checkNewOption && window.checkNewOption(this)">
-            <option value="">اختر نتيجة الفحص</option>
-            <option>تلاعب</option><option>سليم</option><option>مديونية</option><option>تكهين</option><option>تالف</option><option>محترق</option><option>صيانة</option><option>عاطل</option>
-            <option value="ADD_NEW" class="add-new-option">➕ إضافة نتيجة جديدة...</option>
-          </select>
-        </div>
-
-        <div class="input-with-label full-width-container">
-          <label>📝 ملاحظات الفحص</label>
-          <textarea id="notes" placeholder="ملاحظات الفحص"></textarea>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px; justify-content: center;">
-        <button class="btn-save" id="saveBtn" onclick="window.quickSave && window.quickSave()">💾 حفظ البيانات</button>
-        <button class="btn-view" id="viewBtn" onclick="window.showData && window.showData()">👁 عرض الجدول الرئيسي</button>
-      </div>
+<div class="card flex flex-col">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b p-3 bg-white/60 dark:bg-slate-800/40 flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <i class="fas fa-fire text-orange-500 text-xl"></i>
+      <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+        Complete Firebase DB Architect
+        <span class="firebase-badge"><i class="fas fa-database mr-1"></i>Auto-Edit on Add Row</span>
+      </h1>
     </div>
-
-    <!-- Left Side Panel (Ayat_Enter Data Sidebar) -->
-    <div class="left-sidebar-panel">
-      <h3>📥 العدادات الجارية بالمعمل (Ayat_Enter)</h3>
-      <input type="text" id="sidebarSearchInput" class="sidebar-search" placeholder="🔍 ابحث برقم العداد الجاري..." onkeyup="window.filterSidebarTable && window.filterSidebarTable()" style="margin-bottom: 12px; padding: 6px 12px; font-size:0.85rem;"/>
+    <div class="flex items-center gap-2 flex-wrap">
+      <div id="firebaseStatus" class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 px-2 py-1 rounded-full">
+        <i class="fas fa-link"></i> Firebase Live
+      </div>
       
-      <div class="sidebar-table-container">
-        <table id="sidebarTable">
-          <thead>
-            <tr>
-              <th>رقم العداد</th>
-              <th>تاريخ الاستلام</th>
-              <th>الهندسة</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="sidebarTableBody">
-            <tr><td colspan="4" style="padding:20px; color:#888;">جاري جلب البيانات...</td></tr>
-          </tbody>
-        </table>
+      <div class="relative inline-block dropdown-container" id="saveDbContainer">
+        <button id="saveDbBtn" disabled class="icon-btn rounded-lg bg-emerald-600 text-white px-3 w-auto gap-2 btn-disabled">
+          <i class="fas fa-save mr-1"></i> 💾 Save as DB
+        </button>
+        <div id="saveDbMenu" class="hidden absolute right-0 z-40 mt-2 w-80 rounded-xl border bg-white shadow-xl dark:bg-slate-800 p-4">
+          <div class="mb-2 text-sm font-bold">Save Current Table as Database</div>
+          <input type="text" id="newDbNameInput" placeholder="Database name (e.g., Employees)" class="w-full p-2 border rounded-lg text-sm mb-3">
+          <div class="text-xs text-gray-500 mb-2">Current structure:</div>
+          <div id="currentColumnsPreview" class="text-xs bg-gray-50 dark:bg-slate-700 p-2 rounded mb-3 max-h-32 overflow-y-auto"></div>
+          <button id="confirmSaveDb" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm">Save to Firebase</button>
+        </div>
+      </div>
+      
+      <div class="relative inline-block dropdown-container" id="dbSwitchContainer">
+        <button id="dbSwitchBtn" class="icon-btn rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white"><i class="fas fa-exchange-alt"></i></button>
+        <div id="dbSwitchMenu" class="hidden absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white shadow-lg dark:bg-slate-800">
+          <div class="py-2">
+            <div class="px-3 py-2 text-xs font-semibold border-b">Saved Databases</div>
+            <div id="databaseListContainer"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="relative inline-block dropdown-container" id="addColumnContainer">
+        <button id="addColumnBtn" class="icon-btn rounded-lg bg-purple-500 hover:bg-purple-600 text-white"><i class="fas fa-plus-circle"></i></button>
+        <div id="addColumnMenu" class="hidden absolute right-0 z-30 mt-2 w-72 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-3">
+          <div class="text-xs font-semibold mb-2">Add New Column</div>
+          <input type="text" id="newColumnName" placeholder="Column name" class="w-full p-2 border rounded mb-2 dark:bg-slate-700">
+          <select id="newColumnType" class="w-full p-2 border rounded mb-3 dark:bg-slate-700">
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="date">Date</option>
+          </select>
+          <button id="confirmAddColumn" class="w-full bg-purple-500 text-white py-1.5 rounded">Add Column</button>
+        </div>
+      </div>
+      
+      <div class="relative inline-block dropdown-container" id="removeColumnContainer">
+        <button id="removeColumnBtn" class="icon-btn rounded-lg bg-rose-500 hover:bg-rose-600 text-white"><i class="fas fa-trash-alt"></i></button>
+        <div id="removeColumnMenu" class="hidden absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-2">
+          <div class="text-xs font-semibold p-2">Remove Column</div>
+          <div id="removeColumnList"></div>
+        </div>
+      </div>
+      
+      <button id="refreshBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-sync-alt"></i></button>
+      <button id="themeToggle" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-moon"></i></button>
+      
+      <div class="relative inline-block dropdown-container" id="exportContainer">
+        <button id="exportBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-download"></i></button>
+        <div id="exportMenu" class="hidden absolute right-0 z-30 mt-2 w-56 rounded-xl border bg-white shadow-lg dark:bg-slate-800 py-2">
+          <button id="exportJsonSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📄 Export JSON</button>
+          <button id="exportExcelSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📊 Export Excel</button>
+          <div class="border-t my-1"></div>
+          <label class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer flex gap-2">
+            📥 Import Excel
+            <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
+          </label>
+        </div>
       </div>
     </div>
-
   </div>
 
-  <!-- Table Template Container (Popup Swal Content) -->
-  <template id="tableTemplate">
-    <div dir="rtl" class="data-modal-container">
-      <div class="table-controls">
-        <div class="controls-left">
-          <span>إجمالي السجلات: <b id="rowCount" style="color:#2563eb;">0</b></span>
-          <span id="duplicateCount" style="color: #dc3545; margin-right: 20px; display: none;">
-            🔴 <b id="duplicateNum">0</b> مكررات
-          </span>
-          <button id="showDuplicatesBtn" class="btn-warning" onclick="window.checkCurrentDuplicates && window.checkCurrentDuplicates()" style="display: none; padding: 4px 8px; border-radius: 4px; margin-right: 10px; font-size: 0.8rem;">
-            عرض المكررات
-          </button>
-          <select id="duplicateReferenceSelect" onchange="window.setDuplicateReferenceMode && window.setDuplicateReferenceMode(this.value)" style="margin-right: 10px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ccc; font-family:'Cairo'; font-size: 0.8rem;">
-            <option value="metercode">حسب كود المشترك</option>
-            <option value="meternumber">حسب رقم العداد</option>
-          </select>
-        </div>
-        <div class="controls-right">
-          <button class="btn-excel" onclick="window.exportExcel && window.exportExcel()">📊 تصدير Excel</button>
-          <button class="btn-refresh" onclick="window.loadDataForModal && window.loadDataForModal()">🔄 تحديث</button>
-          <button class="btn-clear-filters" onclick="window.clearFilters && window.clearFilters()">❌ مسح الفلاتر</button>
-        </div>
-      </div>
+  <div class="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 border-b">
+    <div class="text-xs text-amber-700 flex items-center justify-between">
+      <span><i class="fas fa-pencil-alt mr-2"></i><strong>Working Table</strong> - Add columns → Add rows (auto-enters edit mode) → Fill data → Save</span>
+      <span id="tempTableStatus" class="bg-amber-200 dark:bg-amber-800 px-2 py-0.5 rounded">No columns yet</span>
+    </div>
+  </div>
 
-      <div class="table-container">
-        <table id="dataTable">
-          <thead>
-            <tr>
-              <th>م</th>
-              <th>القطاع</th>
-              <th>الهندسة</th>
-              <th>تاريخ الفحص</th>
-              <th>تاريخ التسجيل</th>
-              <th>اسم المشترك</th>
-              <th>كود المشترك</th>
-              <th>النشاط</th>
-              <th>نوع العداد</th>
-              <th>رقم العداد</th>
-              <th>نتيجة الفحص</th>
-              <th>ملاحظات</th>
-              <th>إجراء</th>
-            </tr>
-            <tr class="filter-row">
-              <th>-</th>
-              <th>
-                <select id="f0" class="filter-select" onchange="window.filterTable && window.filterTable()">
-                  <option value="">الكل</option><option>دمياط</option><option>شمال الدقهلية</option><option>جنوب الدقهلية</option><option>كفر الشيخ</option>
-                </select>
-              </th>
-              <th>
-                <select id="f1" class="filter-select" onchange="window.filterTable && window.filterTable()">
-                  <option value="">الكل</option>
-                  <option>هندسة شمال دمياط</option><option>هندسة جنوب دمياط</option><option>هندسة عزبة البرج</option><option>هندسة كفر سعد</option><option>هندسة كفر البطيخ</option><option>هندسة راس البر</option><option>هندسة دمياط الجديدة</option><option>هندسة الزرقا</option><option>هندسة فارسكور</option><option>هندسة الروضة</option><option>هندسة الشعراء</option><option>هندسة مدينة شربين</option><option>هندسة قري شربين</option><option>هندسة دكرنس</option><option>هندسة جمصة</option><option>هندسة قري بلقاس</option><option>هندسة مدينة بلقاس</option><option>هندسة الستاموني</option><option>هندسة بني عبيد</option><option>هندسة منية النصر</option><option>هندسة ميت سلسيل</option><option>هندسة الجمالية</option><option>هندسة قري المنزلة</option><option>هندسة مدينة المنزلة</option><option>هندسة المطرية</option><option>هندسة شرق المنصورة</option><option>هندسة غرب المنصورة</option><option>هندسة طلخا</option><option>هندسة نبروه</option><option>هندسة قري المنصورة 1</option><option>هندسة قري المنصورة 2</option><option>هندسة اجا</option><option>هندسة مدينة السنبلاوين</option><option>هندسة قري السنبلاوين</option><option>هندسة تمي الامديد</option><option>هندسة مدينة ميت غمر</option><option>هندسة قري ميت غمر</option><option>هندسة كوم النور</option><option>هندسة مدينة كفر الشيخ</option><option>هندسة غرب كفر الشيخ</option><option>هندسة شرق كفر الشيخ</option><option>هندسة قلين</option><option>هندسة قرى سيدي سالم</option><option>هندسة مدينة سيدي سالم</option><option>هندسة الرياض</option><option>هندسة مدينة دسوق</option><option>هندسة قرى شمال دسوق</option><option>هندسة قرى جنوب دسوق</option><option>هندسة فوه</option><option>هندسة مطوبس</option><option>هندسة مدينة الحامول</option><option>هندسة قرى الحامول</option><option>هندسة بيلا</option><option>هندسة بلطيم</option><option>هندسة برج البرلس</option>
-                </select>
-              </th>
-              <th class="filter-date-col">
-                <div class="date-filter-container">
-                  <input type="date" id="f2" class="filter-input" onchange="window.filterTable && window.filterTable()" />
-                  <input type="date" id="f3" class="filter-input" onchange="window.filterTable && window.filterTable()" />
-                </div>
-              </th>
-              <th class="filter-date-col">
-                <div class="date-filter-container">
-                  <input type="date" id="f11" class="filter-input" onchange="window.filterTable && window.filterTable()" />
-                  <input type="date" id="f12" class="filter-input" onchange="window.filterTable && window.filterTable()" />
-                </div>
-              </th>
-              <th><input type="text" id="f4" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f5" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f6" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f7" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f8" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f9" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th><input type="text" id="f10" class="filter-input" placeholder="🔍" oninput="window.filterTable && window.filterTable()" /></th>
-              <th>-</th>
-            </tr>
-          </thead>
-          <tbody id="modalBody"></tbody>
-        </table>
-      </div>
-
-      <div class="pagination-controls">
-        <button id="prevBtn" class="btn-pagination" onclick="window.prevPage && window.prevPage()" disabled>⬅️ السابق</button>
-        <span id="pageInfo" class="page-info">الصفحة 1 من 1</span>
-        <button id="nextBtn" class="btn-pagination" onclick="window.nextPage && window.nextPage()">التالي ➡️</button>
+  <div class="table-container relative w-full overflow-auto px-1">
+    <div id="emptyDataState" class="text-center py-20 text-gray-400">
+      <i class="fas fa-table text-5xl mb-3 block"></i>
+      <span>No table structure yet!</span>
+      <div class="mt-4">
+        <button id="quickAddColumnBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
+          <i class="fas fa-plus-circle mr-2"></i>Add First Column
+        </button>
       </div>
     </div>
-  </template>
+    <table id="dynamicTable" class="w-full text-sm border-separate border-spacing-0 hidden">
+      <thead class="bg-gray-50/90 dark:bg-slate-800/60 sticky top-0 z-10">
+        <tr id="tableHeaderRow" class="border-b"></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
-  <!-- Firebase JavaScript Logic System inside module -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+  <div class="border-t px-4 py-2 flex justify-between items-center bg-gray-50/40 flex-shrink-0">
+    <div class="text-xs text-gray-500">
+      <i class="fas fa-info-circle mr-1"></i>
+      <span id="activeDbLabel">📝 Working on unsaved table</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="footerAddRowBtn" disabled class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-md btn-disabled">
+        <i class="fas fa-plus"></i> Add New Row
+      </button>
+      <span id="rowCount" class="text-xs font-mono bg-gray-100 px-3 py-1 rounded-full">📋 0 rows</span>
+    </div>
+  </div>
+</div>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-        authDomain: "production1-ae85.firebaseapp.com",
-        projectId: "production1-ae85",
-        storageBucket: "production1-ae85.firebasestorage.app",
-        messagingSenderId: "490438031865",
-        appId: "1:490438031865:web:a4a69335989f30cd13a528"
-    };
+<script>
+  // Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
+    authDomain: "codeae-85.firebaseapp.com",
+    databaseURL: "https://codeae-85-default-rtdb.firebaseio.com",
+    projectId: "codeae-85",
+    storageBucket: "codeae-85.firebasestorage.app",
+    messagingSenderId: "855701949624",
+    appId: "1:855701949624:web:2cf2ea8802a2d372f3384d"
+  };
+  
+  let firebaseDB = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    firebaseDB = firebase.database();
+    console.log("✅ Firebase connected!");
+  } catch(e) { console.warn(e); }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  // DATA STRUCTURE
+  let workingTableColumns = []; // { id, name, type, visible }
+  let workingTableRows = [];    // [{ colId: value, colId2: value }]
+  let savedDatabases = {};
+  let currentSort = { columnId: null, order: "asc" };
+  let editingRowIndex = null;
 
-    let allData = [];
-    let filteredData = [];
-    let ayatEnterRawData = [];
-    let currentPage = 1;
-    const ITEMS_PER_PAGE = 20;
-    let currentEditOriginalIndex = null;
-    let duplicateReferenceMode = "metercode";
+  function genColId() { return `col_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`; }
 
-    // ==================== HELPER STRINGS & DATES OPERATIONS ====================
-    function cleanNumericString(value) { return value ? String(value).replace(/\D/g, '').trim() : ""; }
-    function normalizeMeterCode(value) { return value ? String(value).replace(/\s+/g, '').trim() : ""; }
-    function normalizeText(value) { return value ? String(value).trim().toLowerCase() : ""; }
+  // Convert working table to Firebase nested structure
+  function workingTableToFirebaseStructure(dbName, columns, rows) {
+    const result = {};
+    result[dbName] = {};
     
-    function parseDate(dateStr) {
-        if (!dateStr) return null;
-        try {
-            if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
-            }
-            if (dateStr.includes('-')) {
-                const parts = dateStr.split('-');
-                if (parts.length === 3) {
-                    if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]);
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            }
-            return new Date(dateStr);
-        } catch (e) { return null; }
+    if (rows.length === 0) {
+      const emptyRowKey = `row_1`;
+      result[dbName][emptyRowKey] = {};
+      columns.forEach(col => {
+        result[dbName][emptyRowKey][col.name] = {
+          type: col.type,
+          visible: col.visible,
+          value: col.type === "number" ? 0 : ""
+        };
+      });
+    } else {
+      rows.forEach((row, rowIndex) => {
+        const rowKey = `row_${rowIndex + 1}`;
+        result[dbName][rowKey] = {};
+        columns.forEach(col => {
+          result[dbName][rowKey][col.name] = {
+            type: col.type,
+            visible: col.visible,
+            value: row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : "")
+          };
+        });
+      });
     }
-
-    function formatDateForDisplay(dateStr) {
-        if (!dateStr) return "—";
-        const d = parseDate(dateStr);
-        if (d && !isNaN(d.getTime())) {
-            return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-        }
-        return dateStr;
-    }
-
-    // ==================== LOAD AYAT_ENTER SIDEBAR DATA ====================
-    async function loadAyatEnterSidebarData() {
-        const tbody = document.getElementById("sidebarTableBody");
-        if (!tbody) return;
-        try {
-            const snapshot = await get(ref(db, 'Ayat_Enter'));
-            ayatEnterRawData = [];
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                Object.keys(data).forEach(key => { if(data[key]) ayatEnterRawData.push(data[key]); });
-                ayatEnterRawData.sort((a, b) => (b.enter_date || '').localeCompare(a.enter_date || ''));
-                renderSidebarTable(ayatEnterRawData);
-            } else {
-                tbody.innerHTML = `<tr><td colspan="4" style="color:#888; padding:15px;">لا توجد سجلات بالعمل حالياً</td></tr>`;
-            }
-        } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="4" style="color:red;">خطأ أثناء تحميل لوحة Ayat_Enter</td></tr>`;
-        }
-    }
-
-    function renderSidebarTable(items) {
-        const tbody = document.getElementById("sidebarTableBody");
-        if(!tbody) return;
-        if(items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="color:#888;">لا توجد نتائج مطابقة</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = items.map(item => {
-            return `
-                <tr style="cursor: pointer;" onclick="window.fillFormFromSidebar('${item.mno || ''}')" title="اضغط لنسخ بيانات هذا العداد تلقائياً">
-                    <td><strong>${item.mno || '—'}</strong></td>
-                    <td>${formatDateForDisplay(item.enter_date)}</td>
-                    <td>${item.handsa || '—'}</td>
-                    <td style="color:#0f766e; font-weight:600;">${item.status || '—'}</td>
-                </tr>
-            `;
-        }).join("");
-    }
-
-    window.filterSidebarTable = () => {
-        const val = document.getElementById("sidebarSearchInput").value.trim().toLowerCase();
-        if(!val) { renderSidebarTable(ayatEnterRawData); return; }
-        const matched = ayatEnterRawData.filter(i => String(i.mno || '').toLowerCase().includes(val));
-        renderSidebarTable(matched);
-    };
-
-    window.fillFormFromSidebar = (mno) => {
-        const record = ayatEnterRawData.find(r => r.mno === mno);
-        if(record) {
-            document.getElementById("mno").value = record.mno || "";
-            if(record.keta3) document.getElementById("keta3").value = record.keta3;
-            if(record.handsa) document.getElementById("handsa").value = record.handsa;
-            if(record.nashattype) document.getElementById("nashattype").value = record.nashattype;
-            if(record.mtype) document.getElementById("mtype").value = record.mtype;
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تم جلب بيانات العداد من قائمة Ayat_Enter بنجاح', showConfirmButton: false, timer: 2500 });
-        }
-    };
-
-    // ==================== BULK EXCEL UPLOAD HANDLER ====================
-    function normalizeExcelKey(value) { return String(value ?? "").replace(/\s+/g, "").toLowerCase().trim(); }
+    return result;
+  }
+  
+  // Convert Firebase nested structure back to working table format
+  function firebaseStructureToWorkingTable(firebaseData, dbName) {
+    const dbData = firebaseData[dbName];
+    if (!dbData) return { columns: [], rows: [] };
     
-    function getExcelValue(row, aliases) {
-        const normalizedMap = Object.keys(row || {}).reduce((acc, key) => { acc[normalizeExcelKey(key)] = key; return acc; }, {});
-        for (const alias of aliases) {
-            const matchedKey = normalizedMap[normalizeExcelKey(alias)];
-            if (matchedKey !== undefined && row[matchedKey] !== null && String(row[matchedKey]).trim() !== "") {
-                return String(row[matchedKey]).trim();
-            }
-        }
-        return "";
-    }
-
-    window.handleBulkExcelUpload = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                if (rows.length === 0) return Swal.fire("ملف فارغ", "لا توجد أسطر بيانات داخل الملف.", "warning");
-
-                Swal.fire({ title: 'جاري فحص وتصفية البيانات المرفوعة...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-                const snap = await get(ref(db, "Ayat/meterdata"));
-                let currentList = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val())) : [];
-
-                let savedCount = 0;
-                for (let rowObj of rows) {
-                    const mcoVal = normalizeMeterCode(getExcelValue(rowObj, ["كود المشترك", "كود", "metercode", "mco"]));
-                    const mNumber = cleanNumericString(getExcelValue(rowObj, ["رقم العداد", "meternumber", "mno"]));
-                    
-                    if (!mcoVal || !mNumber) continue;
-
-                    const prepared = {
-                        keta3: getExcelValue(rowObj, ["قطاع", "القطاع", "keta3"]),
-                        handsa: getExcelValue(rowObj, ["هندسة", "الهندسة", "handsa"]),
-                        calibrationdate: getExcelValue(rowObj, ["تاريخ الفحص", "تاريخ المعايرة", "calibrationdate"]),
-                        enterdate: getExcelValue(rowObj, ["تاريخ الإدخال", "تاريخ التسجيل", "enterdate"]) || new Date().toISOString().split('T')[0],
-                        metername: getExcelValue(rowObj, ["اسم المشترك", "المشترك", "metername"]),
-                        metercode: mcoVal,
-                        nashattype: getExcelValue(rowObj, ["نوع النشاط", "النشاط", "nashattype"]),
-                        metertype: getExcelValue(rowObj, ["نوع العداد", "metertype"]),
-                        meternumber: mNumber,
-                        result: getExcelValue(rowObj, ["نتيجة الفحص", "النتيجة", "result"]),
-                        notes: getExcelValue(rowObj, ["ملاحظات", "notes"])
-                    };
-
-                    const matchIdx = currentList.findIndex(item => normalizeMeterCode(item?.metercode) === mcoVal && cleanNumericString(item?.meternumber) === mNumber);
-                    if (matchIdx >= 0) {
-                        currentList[matchIdx] = { ...currentList[matchIdx], ...prepared };
-                    } else {
-                        currentList.push(prepared);
-                    }
-                    savedCount++;
-                }
-
-                if (savedCount > 0) {
-                    await set(ref(db, "Ayat/meterdata"), currentList);
-                    Swal.fire("اكتملت العملية", `تم رفع وتحديث ${savedCount} سجل بنجاح!`, "success");
-                    if (Swal.getPopup() && document.getElementById("modalBody")) await loadDataForModal();
-                } else {
-                    Swal.fire("تنبيه", "لم يتم العثور على أسطر صالحة للرفع (تأكد من وجود الأعمدة المطلوبة)", "warning");
-                }
-            } catch (err) { Swal.fire("خطأ", "حدث خلل أثناء معالجة ملف الـ Excel", "error"); }
-        };
-        reader.readAsArrayBuffer(file);
-    };
-
-    window.promptPassword = () => {
-        Swal.fire({
-            title: "كلمة مرور النظام لرفع الملفات",
-            input: "password",
-            inputPlaceholder: "أدخل كلمة المرور",
-            showCancelButton: true,
-            confirmButtonText: "تحقق"
-        }).then(result => {
-            if (result.isConfirmed && result.value === "1") {
-                let fileInput = document.getElementById("excelFileInput");
-                if (!fileInput) {
-                    fileInput = document.createElement("input");
-                    fileInput.type = "file";
-                    fileInput.id = "excelFileInput";
-                    fileInput.accept = ".xlsx, .xls";
-                    fileInput.style.display = "none";
-                    fileInput.setAttribute("onchange", "window.handleBulkExcelUpload(event)");
-                    document.body.appendChild(fileInput);
-                }
-                fileInput.click();
-            } else if (result.isConfirmed) { Swal.fire("خطأ", "كلمة المرور غير صحيحة!", "error"); }
-        });
-    };
-
-    // ==================== QUICK SAVE & FORM HANDLERS ====================
-    window.quickSave = async () => {
-        const saveBtn = document.getElementById("saveBtn");
-        const record = {
-            keta3: document.getElementById("keta3").value,
-            handsa: document.getElementById("handsa").value,
-            calibrationdate: document.getElementById("calib_date").value,
-            enterdate: document.getElementById("enter_date").value,
-            metername: document.getElementById("mname").value.trim(),
-            metercode: normalizeMeterCode(document.getElementById("mco").value),
-            nashattype: document.getElementById("nashattype").value,
-            metertype: document.getElementById("mtype").value,
-            meternumber: cleanNumericString(document.getElementById("mno").value),
-            result: document.getElementById("munip").value,
-            notes: document.getElementById("notes").value.trim()
-        };
-
-        if(!record.meternumber || !record.keta3 || !record.handsa || !record.result) {
-            return Swal.fire("تنبيه", "يرجى ملء الحقول الأساسية المطلوبة أولاً", "warning");
-        }
-
-        if(saveBtn) saveBtn.disabled = true;
-
-        try {
-            const snap = await get(ref(db, "Ayat/meterdata"));
-            let list = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val())) : [];
-
-            if (currentEditOriginalIndex !== null) {
-                list[currentEditOriginalIndex] = record;
-                await set(ref(db, "Ayat/meterdata"), list);
-                Swal.fire("تم التحديث", "تم تحديث السجل الحالي بنجاح", "success");
-            } else {
-                list.push(record);
-                await set(ref(db, "Ayat/meterdata"), list);
-                Swal.fire("تم الحفظ", "تم إضافة البيانات بنجاح لقاعدة البيانات", "success");
-            }
-
-            window.resetUI();
-            await loadAyatEnterSidebarData();
-        } catch (e) { Swal.fire("خطأ", "فشل في حفظ البيانات بقاعدة البيانات", "error"); }
-        finally { if(saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = "💾 حفظ البيانات"; } }
-    };
-
-    window.resetUI = () => {
-        currentEditOriginalIndex = null;
-        const fields = ["keta3", "handsa", "calib_date", "mname", "mco", "nashattype", "mtype", "mno", "munip", "notes"];
-        fields.forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ""; });
-        document.getElementById("enter_date").value = new Date().toISOString().split('T')[0];
-        const saveBtn = document.getElementById("saveBtn");
-        if(saveBtn) { saveBtn.innerHTML = "💾 حفظ البيانات"; saveBtn.style.background = ""; }
-    };
-
-    window.checkNewOption = async (selectEl) => {
-        if (selectEl.value === "ADD_NEW") {
-            const { value: newVal } = await Swal.fire({ title: "إضافة خيار جديد للقائمة", input: "text", showCancelButton: true });
-            if (newVal && newVal.trim()) {
-                selectEl.add(new Option(newVal.trim(), newVal.trim()), selectEl.options[selectEl.options.length - 1]);
-                selectEl.value = newVal.trim();
-            } else selectEl.value = "";
-        }
-    };
-
-    // ==================== CORE POPUP MODAL & REALTIME FILTERS ====================
-    window.showData = async () => {
-        Swal.fire({ title: 'جاري جلب الجدول الرئيسي...', didOpen: () => Swal.showLoading() });
-        try {
-            const snapshot = await get(ref(db, "Ayat/meterdata"));
-            allData = [];
-            if (snapshot.exists()) {
-                const val = snapshot.val();
-                allData = Array.isArray(val) ? val : Object.values(val);
-                allData = allData.filter(item => item !== null);
-            }
-
-            Swal.fire({
-                title: '📋 سجل البيانات والعدادات المسجلة بالتلاعبات',
-                html: document.getElementById("tableTemplate").innerHTML,
-                customClass: { popup: 'swal-large-popup' },
-                showCloseButton: true,
-                showConfirmButton: false,
-                didOpen: async () => {
-                    bindModalEventDelegation();
-                    await loadDataForModal();
-                }
-            });
-        } catch (error) { Swal.fire("خطأ", "فشل تحميل البيانات التابع لـ Swal Fire", "error"); }
-    };
-
-    window.loadDataForModal = async () => {
-        try {
-            const snapshot = await get(ref(db, "Ayat/meterdata"));
-            allData = [];
-            if (snapshot.exists()) {
-                const val = snapshot.val();
-                allData = (Array.isArray(val) ? val : Object.values(val)).filter(i => i !== null);
-            }
-            window.filterTable();
-        } catch (e) { console.error("Error refreshing table data:", e); }
-    };
-
-    window.filterTable = () => {
-        const fKeta3 = normalizeText(document.getElementById("f0")?.value);
-        const fHandsa = normalizeText(document.getElementById("f1")?.value);
-        
-        const fCalibFrom = document.getElementById("f2")?.value;
-        const fCalibTo = document.getElementById("f3")?.value;
-        const fEnterFrom = document.getElementById("f11")?.value;
-        const fEnterTo = document.getElementById("f12")?.value;
-
-        const fName = normalizeText(document.getElementById("f4")?.value);
-        const fCode = normalizeText(document.getElementById("f5")?.value);
-        const fNashat = normalizeText(document.getElementById("f6")?.value);
-        const fMType = normalizeText(document.getElementById("f7")?.value);
-        const fMNo = normalizeText(document.getElementById("f8")?.value);
-        const fResult = normalizeText(document.getElementById("f9")?.value);
-        const fNotes = normalizeText(document.getElementById("f10")?.value);
-
-        filteredData = allData.map((item, idx) => ({ ...item, __originalIndex: idx })).filter(item => {
-            const cDate = parseDate(item.calibrationdate);
-            const eDate = parseDate(item.enterdate);
-
-            if (fKeta3 && normalizeText(item.keta3) !== fKeta3) return false;
-            if (fHandsa && normalizeText(item.handsa) !== fHandsa) return false;
-            
-            if (fCalibFrom && (!cDate || cDate < new Date(fCalibFrom))) return false;
-            if (fCalibTo && (!cDate || cDate > new Date(fCalibTo + "T23:59:59"))) return false;
-            if (fEnterFrom && (!eDate || eDate < new Date(fEnterFrom))) return false;
-            if (fEnterTo && (!eDate || eDate > new Date(fEnterTo + "T23:59:59"))) return false;
-
-            if (fName && !normalizeText(item.metername).includes(fName)) return false;
-            if (fCode && !normalizeText(item.metercode).includes(fCode)) return false;
-            if (fNashat && !normalizeText(item.nashattype).includes(fNashat)) return false;
-            if (fMType && !normalizeText(item.metertype).includes(fMType)) return false;
-            if (fMNo && !normalizeText(item.meternumber).includes(fMNo)) return false;
-            if (fResult && !normalizeText(item.result).includes(fResult)) return false;
-            if (fNotes && !normalizeText(item.notes).includes(fNotes)) return false;
-
-            return true;
-        });
-
-        filteredData.sort((a, b) => (parseDate(b.calibrationdate) || new Date(0)) - (parseDate(a.calibrationdate) || new Date(0)));
-        currentPage = 1;
-        renderPage();
-        checkAndMarkDuplicates();
-    };
-
-    function renderPage() {
-        const tbody = document.getElementById("modalBody");
-        if (!tbody) return;
-
-        if (filteredData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="13" style="padding:30px; color:#888;">لا توجد سجلات مطابقة للفلاتر الحالية</td></tr>`;
-            document.getElementById("rowCount").innerText = "0";
-            updatePaginationControls();
-            return;
-        }
-
-        document.getElementById("rowCount").innerText = filteredData.length;
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const pageItems = filteredData.slice(start, start + ITEMS_PER_PAGE);
-
-        tbody.innerHTML = pageItems.map((item, index) => {
-            const globalIndex = start + index;
-            return `
-                <tr id="row-${globalIndex}">
-                    <td>${globalIndex + 1}</td>
-                    <td><b>${item.keta3 || '—'}</b></td>
-                    <td>${item.handsa || '—'}</td>
-                    <td>${formatDateForDisplay(item.calibrationdate)}</td>
-                    <td>${formatDateForDisplay(item.enterdate)}</td>
-                    <td>${item.metername || '—'}</td>
-                    <td><code>${item.metercode || '—'}</code></td>
-                    <td>${item.nashattype || '—'}</td>
-                    <td>${item.metertype || '—'}</td>
-                    <td><strong style="color:#2563eb;">${item.meternumber || '—'}</strong></td>
-                    <td><span style="font-weight:700; color:${item.result==='تلاعب'?'#ef4444':'#10b981'}">${item.result || '—'}</span></td>
-                    <td><small>${item.notes || '—'}</small></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-edit" data-idx="${globalIndex}">✏️</button>
-                            <button class="btn-del" data-idx="${globalIndex}">🗑️</button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join("");
-
-        updatePaginationControls();
-    }
-
-    function updatePaginationControls() {
-        const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
-        const prevBtn = document.getElementById("prevBtn");
-        const nextBtn = document.getElementById("nextBtn");
-        const pageInfo = document.getElementById("pageInfo");
-
-        if (pageInfo) pageInfo.textContent = `الصفحة ${currentPage} من ${totalPages}`;
-        if (prevBtn) prevBtn.disabled = currentPage === 1;
-        if (nextBtn) nextBtn.disabled = currentPage === totalPages;
-    }
-
-    window.nextPage = () => { if (currentPage < Math.ceil(filteredData.length / ITEMS_PER_PAGE)) { currentPage++; renderPage(); checkAndMarkDuplicates(); } };
-    window.prevPage = () => { if (currentPage > 1) { currentPage--; renderPage(); checkAndMarkDuplicates(); } };
-
-    window.clearFilters = () => {
-        for(let i=0; i<=12; i++) {
-            const el = document.getElementById("f" + i);
-            if(el) el.value = "";
-        }
-        window.filterTable();
-    };
-
-    // ==================== DETECT & REPORT DUPLICATES ====================
-    window.setDuplicateReferenceMode = (val) => {
-        duplicateReferenceMode = val;
-        checkAndMarkDuplicates();
-    };
-
-    function checkAndMarkDuplicates() {
-        const dupCountEl = document.getElementById("duplicateCount");
-        const dupNumEl = document.getElementById("duplicateNum");
-        const dupBtn = document.getElementById("showDuplicatesBtn");
-
-        const counts = new Map();
-        filteredData.forEach(item => {
-            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
-            if (!val) return;
-            counts.set(val, (counts.get(val) || 0) + 1);
-        });
-
-        let totalDups = 0;
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const pageItems = filteredData.slice(start, start + ITEMS_PER_PAGE);
-
-        pageItems.forEach((item, index) => {
-            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
-            const tr = document.getElementById(`row-${start + index}`);
-            if (val && counts.get(val) > 1) {
-                if (tr) tr.classList.add("duplicate-row");
-                totalDups++;
-            } else {
-                if (tr) tr.classList.remove("duplicate-row");
-            }
-        });
-
-        counts.forEach(c => { if(c > 1) totalDups++; });
-
-        if (totalDups > 0) {
-            if(dupCountEl) dupCountEl.style.display = "inline";
-            if(dupNumEl) dupNumEl.innerText = totalDups;
-            if(dupBtn) dupBtn.style.display = "inline-flex";
+    const rowKeys = Object.keys(dbData).filter(key => key.startsWith('row_'));
+    if (rowKeys.length === 0) return { columns: [], rows: [] };
+    
+    const firstRow = dbData[rowKeys[0]];
+    const columnNames = Object.keys(firstRow);
+    
+    const columns = columnNames.map((colName, idx) => ({
+      id: genColId(),
+      name: colName,
+      type: firstRow[colName].type || "text",
+      visible: firstRow[colName].visible !== false
+    }));
+    
+    const rows = [];
+    rowKeys.forEach(rowKey => {
+      const rowData = dbData[rowKey];
+      const newRow = {};
+      columns.forEach(col => {
+        if (rowData[col.name]) {
+          newRow[col.id] = rowData[col.name].value;
         } else {
-            if(dupCountEl) dupCountEl.style.display = "none";
-            if(dupBtn) dupBtn.style.display = "none";
+          newRow[col.id] = col.type === "number" ? 0 : "";
         }
-    }
-
-    window.checkCurrentDuplicates = () => {
-        const counts = new Map();
-        const duplicates = [];
-        filteredData.forEach(item => {
-            let val = duplicateReferenceMode === "meternumber" ? cleanNumericString(item.meternumber) : normalizeMeterCode(item.metercode);
-            if (!val) return;
-            if (!counts.has(val)) counts.set(val, []);
-            counts.get(val).push(item);
-        });
-
-        counts.forEach(items => { if (items.length > 1) duplicates.push(...items); });
-
-        if (duplicates.length === 0) return Swal.fire("لا توجد مكررات", "جميع البيانات الظاهرة فريدة تماماً.", "success");
-
-        let html = `
-            <div dir="rtl" style="text-align: right; max-height: 400px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                    <thead>
-                        <tr style="background: #f1f5f9;">
-                            <th style="padding:6px; border:1px solid #ddd;">رقم العداد</th>
-                            <th style="padding:6px; border:1px solid #ddd;">كود المشترك</th>
-                            <th style="padding:6px; border:1px solid #ddd;">المهندسة</th>
-                            <th style="padding:6px; border:1px solid #ddd;">النتيجة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        duplicates.forEach(d => {
-            html += `
-                <tr>
-                    <td style="padding:6px; border:1px solid #ddd;"><b>${d.meternumber}</b></td>
-                    <td style="padding:6px; border:1px solid #ddd;">${d.metercode}</td>
-                    <td style="padding:6px; border:1px solid #ddd;">${d.handsa}</td>
-                    <td style="padding:6px; border:1px solid #ddd; color:red;">${d.result}</td>
-                </tr>
-            `;
-        });
-        html += `</tbody></table></div>`;
-
-        Swal.fire({ title: "⚠️ السجلات المكررة المكتشفة", html: html, width: "600px" });
-    };
-
-    // ==================== EDIT & DELETE BINDINGS (EVENT DELEGATION) ====================
-    function bindModalEventDelegation() {
-        const popup = Swal.getPopup();
-        if (!popup) return;
-        popup.addEventListener("click", async (e) => {
-            const editBtn = e.target.closest(".btn-edit");
-            const delBtn = e.target.closest(".btn-del");
-
-            if (editBtn) {
-                const item = filteredData[Number(editBtn.dataset.idx)];
-                if (item) {
-                    currentEditOriginalIndex = item.__originalIndex;
-                    document.getElementById("keta3").value = item.keta3 || "";
-                    document.getElementById("handsa").value = item.handsa || "";
-                    document.getElementById("calib_date").value = item.calibrationdate || "";
-                    document.getElementById("enter_date").value = item.enterdate || "";
-                    document.getElementById("mname").value = item.metername || "";
-                    document.getElementById("mco").value = item.metercode || "";
-                    document.getElementById("nashattype").value = item.nashattype || "";
-                    document.getElementById("mtype").value = item.metertype || "";
-                    document.getElementById("mno").value = item.meternumber || "";
-                    document.getElementById("munip").value = item.result || "";
-                    document.getElementById("notes").value = item.notes || "";
-
-                    const mainSaveBtn = document.getElementById("saveBtn");
-                    if (mainSaveBtn) {
-                        mainSaveBtn.innerHTML = "🔄 تحديث البيانات الحالية";
-                        mainSaveBtn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
-                    }
-                    Swal.close();
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'تم استدعاء السجل للفورم، قم بالتعديل ثم اضغط تحديث البيانات', showConfirmButton: false, timer: 3500 });
-                }
-            }
-
-            if (delBtn) {
-                const item = filteredData[Number(delBtn.dataset.idx)];
-                if (item) {
-                    const check = await Swal.fire({ title: 'هل أنت متأكد من حذف السجل؟', text: "لن تستطيع التراجع عن هذه العملية!", icon: 'warning', showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء' });
-                    if (check.isConfirmed) {
-                        allData.splice(item.__originalIndex, 1);
-                        await set(ref(db, "Ayat/meterdata"), allData);
-                        Swal.fire('تم الحذف', 'تم إزالة السجل من قاعدة البيانات', 'success');
-                        await loadDataForModal();
-                    }
-                }
-            }
-        });
-    }
-
-    // ==================== EXPORT EXCEL ====================
-    window.exportExcel = () => {
-        if(filteredData.length === 0) return Swal.fire("تنبيه", "لا توجد بيانات متاحة للتصدير", "warning");
-        const headers = ["م", "القطاع", "الهندسة", "تاريخ الفحص", "تاريخ الإدخال", "اسم المشترك", "كود المشترك", "النشاط", "نوع العداد", "رقم العداد", "نتيجة الفحص", "ملاحظات"];
-        const rows = [headers];
-        
-        filteredData.forEach((d, i) => {
-            rows.push([i + 1, d.keta3, d.handsa, d.calibrationdate, d.enterdate, d.metername, d.metercode, d.nashattype, d.metertype, d.meternumber, d.result, d.notes]);
-        });
-
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "بيانات الفحص والتلاعبات");
-        XLSX.writeFile(wb, `تقرير_التلاعبات_المصفى_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
-
-    // ==================== APPLICATION INITIALIZATION ====================
-    document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("enter_date").value = new Date().toISOString().split('T')[0];
-        loadAyatEnterSidebarData();
+      });
+      rows.push(newRow);
     });
-  </script>
-</body>
+    
+    return { columns, rows };
+  }
 
+  // Save to Firebase
+  async function saveToFirebase() {
+    if (!firebaseDB) return;
+    try {
+      await firebaseDB.ref('databases').set(savedDatabases);
+      console.log("💾 Saved to Firebase");
+    } catch(error) { console.error("Firebase error:", error); }
+  }
+
+  async function loadFromFirebase() {
+    if (!firebaseDB) return;
+    try {
+      const snapshot = await firebaseDB.ref('databases').get();
+      if (snapshot.exists()) {
+        savedDatabases = snapshot.val();
+        console.log("📥 Loaded from Firebase:", savedDatabases);
+      } else {
+        savedDatabases = {};
+      }
+      renderDatabaseList();
+    } catch(error) { console.error("Load error:", error); }
+  }
+
+  function updateSaveButtonState() {
+    const saveBtn = document.getElementById("saveDbBtn");
+    const hasColumns = workingTableColumns.length > 0;
+    
+    if (hasColumns) {
+      saveBtn.disabled = false;
+      saveBtn.classList.remove("btn-disabled");
+      const preview = document.getElementById("currentColumnsPreview");
+      if (preview) {
+        preview.innerHTML = `<strong>${workingTableColumns.length} column(s):</strong> ${workingTableColumns.map(c => c.name).join(', ')}<br><small>${workingTableRows.length} row(s) will be saved</small>`;
+      }
+      document.getElementById("tempTableStatus").innerHTML = `${workingTableColumns.length} col(s) | ${workingTableRows.length} row(s)`;
+    } else {
+      saveBtn.disabled = true;
+      saveBtn.classList.add("btn-disabled");
+      document.getElementById("tempTableStatus").innerHTML = "No columns yet";
+    }
+  }
+
+  // RENDER TABLE WITH INPUT FIELDS FOR EDITING ROWS
+  function renderTable() {
+    const emptyState = document.getElementById("emptyDataState");
+    const tableElem = document.getElementById("dynamicTable");
+    const addRowBtn = document.getElementById("footerAddRowBtn");
+    
+    if (workingTableColumns.length === 0) {
+      emptyState.classList.remove("hidden");
+      tableElem.classList.add("hidden");
+      addRowBtn.disabled = true;
+      addRowBtn.classList.add("btn-disabled");
+      document.getElementById("rowCount").innerText = `📋 0 rows`;
+      return;
+    }
+    
+    emptyState.classList.add("hidden");
+    tableElem.classList.remove("hidden");
+    addRowBtn.disabled = false;
+    addRowBtn.classList.remove("btn-disabled");
+
+    // Build header
+    let headerHtml = `<th class="h-12 px-3 text-center font-semibold w-12 bg-gray-50/90">#</th>`;
+    workingTableColumns.forEach(col => {
+      const sortIndicator = (currentSort.columnId === col.id) ? (currentSort.order === "asc" ? " ↑" : " ↓") : "";
+      headerHtml += `<th class="h-12 px-3 text-left font-semibold cursor-pointer hover:text-purple-600" onclick="window.handleSort('${col.id}')">${escapeHtml(col.name)}${sortIndicator}</th>`;
+    });
+    headerHtml += `<th class="h-12 px-3 text-center font-semibold w-56 bg-gray-50/90">Actions</th>`;
+    document.getElementById("tableHeaderRow").innerHTML = headerHtml;
+
+    if (workingTableRows.length === 0) {
+      document.getElementById("tableBody").innerHTML = `<tr><td colspan="${workingTableColumns.length + 2}" class="text-center py-10 text-gray-400">📭 No rows. Click "Add New Row" to insert data. The new row will automatically show input fields!</div></td>`;
+      document.getElementById("rowCount").innerText = `📊 0 records`;
+      return;
+    }
+
+    // Build rows with INPUT FIELDS for rows in edit mode
+    let tbodyHtml = "";
+    for(let idx = 0; idx < workingTableRows.length; idx++) {
+      const row = workingTableRows[idx];
+      const isEditing = (editingRowIndex === idx);
+      const rowClass = isEditing ? 'editing-row' : '';
+      tbodyHtml += `<tr class="border-b ${rowClass}">`;
+      tbodyHtml += `<td class="px-3 py-2 text-center text-xs font-mono">${idx+1}${isEditing ? ' <span class="edit-mode-badge"><i class="fas fa-edit"></i> EDITING</span>' : ''}</td>`;
+      
+      // Render each cell - INPUT FIELDS if editing, otherwise display text
+      for (let col of workingTableColumns) {
+        let rawValue = row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : "");
+        if (isEditing) {
+          // EDITING MODE - show INPUT FIELDS
+          if (col.type === "date") {
+            let dateVal = rawValue && typeof rawValue === 'string' && rawValue.match(/^\d{4}-\d{2}-\d{2}/) ? rawValue.slice(0,10) : "";
+            tbodyHtml += `<td class="px-3 py-2"><input type="date" value="${escapeHtml(dateVal)}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+          } else if (col.type === "number") {
+            tbodyHtml += `<td class="px-3 py-2"><input type="number" value="${rawValue}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+          } else {
+            tbodyHtml += `<td class="px-3 py-2"><input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)" placeholder="Enter ${col.name}"></td>`;
+          }
+        } else {
+          // VIEW MODE - show text
+          let display = (rawValue === "" || rawValue === undefined) ? "—" : rawValue;
+          tbodyHtml += `<td class="px-3 py-2"><div class="non-editable-cell">${escapeHtml(String(display))}</div></td>`;
+        }
+      }
+      
+      // ACTION BUTTONS
+      tbodyHtml += `<td class="px-3 py-2 text-center">
+        <div class="action-buttons">
+          ${!isEditing ? 
+            `<button class="action-btn bg-indigo-100 hover:bg-indigo-200 text-indigo-700" onclick="window.startEditRow(${idx})" title="Edit Row">
+               <i class="fas fa-edit"></i> Edit
+             </button>` : 
+            `<button class="action-btn bg-green-100 hover:bg-green-200 text-green-700" onclick="window.saveEditRow(${idx})" title="Save Row">
+               <i class="fas fa-save"></i> Save
+             </button>`
+          }
+          <button class="action-btn bg-rose-100 hover:bg-rose-200 text-rose-700" onclick="window.deleteRow(${idx})" title="Delete Row">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+          <button class="action-btn bg-blue-100 hover:bg-blue-200 text-blue-700" onclick="window.showShiftMenu(${idx})" title="Shift Row to Another DB">
+            <i class="fas fa-exchange-alt"></i> Shift
+          </button>
+        </div>
+        <div id="shiftMenu-${idx}" class="hidden absolute right-0 mt-1 z-30 w-56 rounded-lg border bg-white shadow-xl dark:bg-slate-800 p-2">
+          <div class="text-xs font-bold mb-2">Shift row to:</div>
+          <div id="shiftTargets-${idx}"></div>
+        </div>
+       </td>`;
+      tbodyHtml += `</tr>`;
+    }
+    document.getElementById("tableBody").innerHTML = tbodyHtml;
+    document.getElementById("rowCount").innerText = `📊 ${workingTableRows.length} records`;
+    
+    // Build shift menus for each row
+    for(let idx = 0; idx < workingTableRows.length; idx++) {
+      const shiftContainer = document.getElementById(`shiftTargets-${idx}`);
+      if (shiftContainer && Object.keys(savedDatabases).length > 0) {
+        let shiftHtml = '';
+        for (let [dbId, db] of Object.entries(savedDatabases)) {
+          shiftHtml += `<button class="shift-target-btn w-full text-left px-2 py-1 text-xs hover:bg-gray-100 rounded mb-1" data-db-id="${dbId}" data-row-idx="${idx}">
+            <i class="fas fa-database mr-1"></i> ${escapeHtml(dbId)}
+          </button>`;
+        }
+        shiftContainer.innerHTML = shiftHtml;
+        
+        // Attach shift event listeners
+        document.querySelectorAll(`.shift-target-btn`).forEach(btn => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const targetDbId = btn.getAttribute('data-db-id');
+            const rowIdx = parseInt(btn.getAttribute('data-row-idx'));
+            shiftRowToDatabase(rowIdx, targetDbId);
+            document.getElementById(`shiftMenu-${rowIdx}`).classList.add('hidden');
+          };
+        });
+      }
+    }
+  }
+
+  // ROW ACTION FUNCTIONS
+  window.startEditRow = function(rowIndex) {
+    editingRowIndex = rowIndex;
+    renderTable();
+    // Focus on first input after render
+    setTimeout(() => {
+      const firstInput = document.querySelector(`.editing-row .input-editable`);
+      if (firstInput) firstInput.focus();
+    }, 50);
+    showToast(`✏️ Editing row ${rowIndex+1} - fill in the input fields then click Save`, "info");
+  };
+  
+  window.saveEditRow = function(rowIndex) {
+    editingRowIndex = null;
+    renderTable();
+    updateSaveButtonState();
+    showToast(`✅ Row ${rowIndex+1} saved successfully`, "success");
+  };
+  
+  window.deleteRow = function(rowIndex) {
+    if(confirm(`Delete row ${rowIndex+1}? This action cannot be undone.`)) {
+      workingTableRows.splice(rowIndex, 1);
+      if(editingRowIndex !== null && editingRowIndex >= workingTableRows.length) {
+        editingRowIndex = null;
+      }
+      renderTable();
+      updateSaveButtonState();
+      showToast(`🗑️ Row ${rowIndex+1} deleted`, "success");
+    }
+  };
+  
+  window.showShiftMenu = function(rowIndex) {
+    // Hide all other shift menus
+    document.querySelectorAll('[id^="shiftMenu-"]').forEach(menu => {
+      menu.classList.add('hidden');
+    });
+    const menu = document.getElementById(`shiftMenu-${rowIndex}`);
+    if (menu) {
+      menu.classList.toggle('hidden');
+    }
+  };
+  
+  function shiftRowToDatabase(rowIndex, targetDbName) {
+    if (!savedDatabases[targetDbName]) {
+      showToast("Target database not found", "error");
+      return;
+    }
+    
+    const sourceRow = workingTableRows[rowIndex];
+    const targetDb = savedDatabases[targetDbName];
+    
+    // Convert target DB structure to understand its columns
+    const { columns: targetColumns } = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
+    
+    // Create a new row for target database with matching column names
+    const shiftedRow = {};
+    targetColumns.forEach(col => {
+      // Try to find matching column by name
+      const matchingSourceCol = workingTableColumns.find(sc => sc.name.toLowerCase() === col.name.toLowerCase());
+      if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) {
+        shiftedRow[col.id] = sourceRow[matchingSourceCol.id];
+      } else {
+        shiftedRow[col.id] = col.type === "number" ? 0 : "";
+      }
+    });
+    
+    // Convert target DB from Firebase format to working format
+    const targetWorking = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
+    targetWorking.rows.push(shiftedRow);
+    
+    // Convert back to Firebase format
+    const newFirebaseStructure = workingTableToFirebaseStructure(targetDbName, targetWorking.columns, targetWorking.rows);
+    savedDatabases[targetDbName] = newFirebaseStructure[targetDbName];
+    
+    saveToFirebase();
+    renderDatabaseList();
+    showToast(`🚀 Row shifted to "${targetDbName}"`, "success");
+  }
+  
+  window.updateCellValue = function(rowIdx, colId, val) {
+    if(editingRowIndex === rowIdx) {
+      const col = workingTableColumns.find(c => c.id === colId);
+      if(col && col.type === "number") {
+        const num = parseFloat(val);
+        workingTableRows[rowIdx][colId] = isNaN(num) ? 0 : num;
+      } else {
+        workingTableRows[rowIdx][colId] = val;
+      }
+    }
+  };
+  
+  window.handleSort = function(colId) {
+    if(workingTableRows.length === 0) return;
+    const colDef = workingTableColumns.find(c => c.id === colId);
+    if(!colDef) return;
+    
+    if(currentSort.columnId === colId) {
+      currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
+    } else {
+      currentSort.columnId = colId;
+      currentSort.order = "asc";
+    }
+    
+    workingTableRows.sort((a, b) => {
+      let valA = a[colId] !== undefined ? a[colId] : (colDef.type === "number" ? 0 : "");
+      let valB = b[colId] !== undefined ? b[colId] : (colDef.type === "number" ? 0 : "");
+      
+      if(colDef.type === "number") {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+        return currentSort.order === "asc" ? valA - valB : valB - valA;
+      } else {
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+        if(valA < valB) return currentSort.order === "asc" ? -1 : 1;
+        if(valA > valB) return currentSort.order === "asc" ? 1 : -1;
+        return 0;
+      }
+    });
+    renderTable();
+    showToast(`📊 Sorted by ${colDef.name} ${currentSort.order === "asc" ? "↑" : "↓"}`, "info");
+  };
+
+  // ADD NEW ROW - AUTOMATICALLY ENTERS EDIT MODE!
+  function addNewRow() {
+    if (workingTableColumns.length === 0) {
+      showToast("❌ Add columns first", "error");
+      return;
+    }
+    const newRow = {};
+    workingTableColumns.forEach(col => {
+      newRow[col.id] = col.type === "number" ? 0 : "";
+    });
+    workingTableRows.push(newRow);
+    // IMPORTANT: Auto-enter edit mode on the new row
+    editingRowIndex = workingTableRows.length - 1;
+    renderTable();
+    updateSaveButtonState();
+    showToast(`✨ New row added! The row is now in EDIT MODE - fill in the input fields and click Save`, "success");
+    
+    // Focus on first input after render
+    setTimeout(() => {
+      const firstInput = document.querySelector(`.editing-row .input-editable`);
+      if (firstInput) firstInput.focus();
+    }, 100);
+  }
+
+  function addColumnToWorkingTable() {
+    const colName = document.getElementById("newColumnName").value.trim();
+    const colType = document.getElementById("newColumnType").value;
+    if(!colName) {
+      showToast("Enter column name", "error");
+      return;
+    }
+    
+    const newCol = { id: genColId(), name: colName, type: colType, visible: true };
+    workingTableColumns.push(newCol);
+    
+    // Add this column to all existing rows
+    workingTableRows.forEach(row => {
+      row[newCol.id] = colType === "number" ? 0 : "";
+    });
+    
+    document.getElementById("newColumnName").value = "";
+    document.getElementById("addColumnMenu").classList.add("hidden");
+    renderTable();
+    updateSaveButtonState();
+    showToast(`➕ Column "${colName}" added! You can now add rows.`, "success");
+  }
+
+  function removeColumnFromWorkingTable(colId) {
+    const col = workingTableColumns.find(c => c.id === colId);
+    if(!col) return;
+    if(confirm(`Remove column "${col.name}"? This will delete all data in this column.`)) {
+      workingTableColumns = workingTableColumns.filter(c => c.id !== colId);
+      workingTableRows.forEach(row => delete row[colId]);
+      if(editingRowIndex !== null) editingRowIndex = null;
+      renderTable();
+      updateSaveButtonState();
+      showToast(`🗑️ Removed column "${col.name}"`, "success");
+    }
+  }
+  
+  function updateRemoveList() {
+    const container = document.getElementById("removeColumnList");
+    if(!container) return;
+    if(workingTableColumns.length === 0) {
+      container.innerHTML = "<div class='p-2 text-gray-400'>No columns to remove</div>";
+      return;
+    }
+    let html = '';
+    workingTableColumns.forEach(col => {
+      html += `<button class="remove-col-item w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex justify-between" data-col-id="${col.id}">
+        <span>${escapeHtml(col.name)}</span>
+        <i class="fas fa-times text-rose-400"></i>
+      </button>`;
+    });
+    container.innerHTML = html;
+    document.querySelectorAll('.remove-col-item').forEach(btn => {
+      btn.onclick = () => {
+        removeColumnFromWorkingTable(btn.getAttribute('data-col-id'));
+        document.getElementById("removeColumnMenu").classList.add("hidden");
+      };
+    });
+  }
+  
+  function saveCurrentTableAsDatabase() {
+    const dbName = document.getElementById("newDbNameInput").value.trim();
+    if(!dbName) {
+      showToast("Enter database name", "error");
+      return;
+    }
+    if(workingTableColumns.length === 0) {
+      showToast("No columns to save! Add columns first.", "error");
+      return;
+    }
+    
+    const firebaseStructure = workingTableToFirebaseStructure(dbName, workingTableColumns, workingTableRows);
+    savedDatabases[dbName] = firebaseStructure[dbName];
+    
+    saveToFirebase();
+    renderDatabaseList();
+    document.getElementById("saveDbMenu").classList.add("hidden");
+    document.getElementById("newDbNameInput").value = "";
+    showToast(`✅ Database "${dbName}" saved to Firebase with ${workingTableColumns.length} columns and ${workingTableRows.length} rows!`, "success");
+  }
+
+  function loadSavedDatabase(dbName) {
+    if(savedDatabases[dbName]) {
+      const { columns, rows } = firebaseStructureToWorkingTable({ [dbName]: savedDatabases[dbName] }, dbName);
+      workingTableColumns = columns;
+      workingTableRows = rows;
+      editingRowIndex = null;
+      currentSort = { columnId: null, order: "asc" };
+      renderTable();
+      updateSaveButtonState();
+      document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
+      showToast(`📂 Loaded database "${dbName}" into working table`, "success");
+    }
+  }
+  
+  function deleteSavedDatabase(dbName) {
+    if(confirm(`Delete database "${dbName}" permanently from Firebase?`)) {
+      delete savedDatabases[dbName];
+      saveToFirebase();
+      renderDatabaseList();
+      showToast(`🗑️ Database "${dbName}" deleted from Firebase`, "success");
+    }
+  }
+  
+  function renderDatabaseList() {
+    const container = document.getElementById("databaseListContainer");
+    if(!container) return;
+    if(Object.keys(savedDatabases).length === 0) {
+      container.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">No saved databases yet. Create one first!</div>';
+      return;
+    }
+    let html = '';
+    for(let [dbName, db] of Object.entries(savedDatabases)){
+      html += `<div class="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-50">
+        <button class="db-switch-item flex-1 text-left text-sm" data-db-name="${dbName}">
+          <i class="fas fa-database mr-2 text-indigo-500"></i>${escapeHtml(dbName)}
+        </button>
+        <button class="db-delete-btn text-rose-500 hover:text-rose-700 text-xs px-2" data-db-name="${dbName}" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>`;
+    }
+    container.innerHTML = html;
+    
+    document.querySelectorAll('.db-switch-item').forEach(btn => {
+      btn.onclick = () => {
+        loadSavedDatabase(btn.getAttribute('data-db-name'));
+        document.getElementById("dbSwitchMenu").classList.add("hidden");
+      };
+    });
+    document.querySelectorAll('.db-delete-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        deleteSavedDatabase(btn.getAttribute('data-db-name'));
+        document.getElementById("dbSwitchMenu").classList.add("hidden");
+      };
+    });
+  }
+
+  // Excel Import
+  function importExcelAsNewDatabase(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+        if(!jsonData.length) {
+          alert("Empty spreadsheet.");
+          return;
+        }
+        
+        const headers = Object.keys(jsonData[0]);
+        const columns = headers.map((h, idx) => ({
+          id: genColId(),
+          name: h,
+          type: "text",
+          visible: true
+        }));
+        
+        const rows = [];
+        for(let row of jsonData) {
+          const newRow = {};
+          columns.forEach(col => {
+            newRow[col.id] = row[col.name] !== undefined ? row[col.name] : "";
+          });
+          rows.push(newRow);
+        }
+        
+        const dbName = file.name.split('.')[0] || "Imported Data";
+        const firebaseStructure = {};
+        firebaseStructure[dbName] = {};
+        
+        rows.forEach((row, rowIndex) => {
+          const rowKey = `row_${rowIndex + 1}`;
+          firebaseStructure[dbName][rowKey] = {};
+          columns.forEach(col => {
+            firebaseStructure[dbName][rowKey][col.name] = {
+              type: col.type,
+              visible: col.visible,
+              value: row[col.id]
+            };
+          });
+        });
+        
+        savedDatabases[dbName] = firebaseStructure[dbName];
+        saveToFirebase();
+        
+        // Load into working table
+        workingTableColumns = columns;
+        workingTableRows = rows;
+        renderTable();
+        updateSaveButtonState();
+        renderDatabaseList();
+        showToast(`✅ Imported ${rows.length} rows with ${columns.length} columns!`, "success");
+      } catch(err) {
+        alert("Excel import error: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function exportJSONData() {
+    const dataToExport = {
+      name: "Working Table",
+      columns: workingTableColumns,
+      rows: workingTableRows
+    };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `working_table_export.json`;
+    a.click();
+    showToast("JSON exported", "success");
+  }
+  
+  function exportExcel() {
+    if(workingTableColumns.length === 0) {
+      showToast("No data to export", "error");
+      return;
+    }
+    const sheetData = workingTableRows.map(row => {
+      const obj = {};
+      workingTableColumns.forEach(c => {
+        obj[c.name] = row[c.id] !== undefined ? row[c.id] : "";
+      });
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    XLSX.writeFile(wb, `working_table_export.xlsx`);
+    showToast("Excel exported", "success");
+  }
+
+  function escapeHtml(str) {
+    if(str === undefined || str === null) return '';
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  }
+  
+  function showToast(msg, type = "info") {
+    let toast = document.querySelector(".toast-notify");
+    if(toast) toast.remove();
+    const div = document.createElement("div");
+    div.className = `toast-notify ${type}`;
+    div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-circle-info'} mr-2"></i>${msg}`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+  }
+
+  // EVENT LISTENERS
+  document.getElementById("saveDbBtn").onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById("saveDbMenu").classList.toggle("hidden");
+  };
+  document.getElementById("confirmSaveDb").onclick = saveCurrentTableAsDatabase;
+  document.getElementById("dbSwitchBtn").onclick = (e) => {
+    e.stopPropagation();
+    renderDatabaseList();
+    document.getElementById("dbSwitchMenu").classList.toggle("hidden");
+  };
+  document.getElementById("addColumnBtn").onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById("addColumnMenu").classList.toggle("hidden");
+  };
+  document.getElementById("confirmAddColumn").onclick = addColumnToWorkingTable;
+  document.getElementById("removeColumnBtn").onclick = (e) => {
+    e.stopPropagation();
+    updateRemoveList();
+    document.getElementById("removeColumnMenu").classList.toggle("hidden");
+  };
+  document.getElementById("footerAddRowBtn").onclick = addNewRow;
+  document.getElementById("refreshBtn").onclick = () => {
+    renderTable();
+    showToast("🔄 Table refreshed", "info");
+  };
+  document.getElementById("quickAddColumnBtn").onclick = () => {
+    document.getElementById("addColumnBtn").click();
+  };
+  document.getElementById("exportBtn").onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById("exportMenu").classList.toggle("hidden");
+  };
+  document.getElementById("exportJsonSubBtn").onclick = () => {
+    exportJSONData();
+    document.getElementById("exportMenu").classList.add("hidden");
+  };
+  document.getElementById("exportExcelSubBtn").onclick = () => {
+    exportExcel();
+    document.getElementById("exportMenu").classList.add("hidden");
+  };
+  document.getElementById("importExcelInput").onchange = (e) => {
+    importExcelAsNewDatabase(e.target.files[0]);
+    e.target.value = "";
+    document.getElementById("exportMenu").classList.add("hidden");
+  };
+  document.getElementById("themeToggle").onclick = () => {
+    document.body.classList.toggle("dark");
+  };
+  
+  document.addEventListener("click", (e) => {
+    if(e.target.closest('.dropdown-container')) return;
+    if(e.target.closest('[id^="shiftMenu-"]')) return;
+    document.getElementById("saveDbMenu").classList.add("hidden");
+    document.getElementById("dbSwitchMenu").classList.add("hidden");
+    document.getElementById("addColumnMenu").classList.add("hidden");
+    document.getElementById("removeColumnMenu").classList.add("hidden");
+    document.getElementById("exportMenu").classList.add("hidden");
+    document.querySelectorAll('[id^="shiftMenu-"]').forEach(menu => {
+      menu.classList.add('hidden');
+    });
+  });
+  
+  // Initialize
+  workingTableColumns = [];
+  workingTableRows = [];
+  loadFromFirebase();
+  renderTable();
+  updateSaveButtonState();
+</script>
+</body>
 </html>
