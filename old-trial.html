@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Firebase Schema Architect | Dynamic DB Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      transition: background-color 0.2s ease;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    body.dark {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+
+    body.dark .card {
+      background-color: #1e293b;
+      border-color: #334155;
+    }
+
+    body.dark th {
+      color: #cbd5e1;
+      border-bottom-color: #334155;
+    }
+
+    body.dark td {
+      color: #e2e8f0;
+      border-color: #334155;
+    }
+
+    body.dark .input-editable {
+      background-color: #0f172a;
+      border-color: #475569;
+      color: #f1f5f9;
+    }
+
+    body.dark .non-editable-cell {
+      background-color: #0f172a;
+      color: #94a3b8;
+    }
+
+    body.dark .dropdown-panel {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    .card {
+      transition: all 0.2s;
+      width: 98%;
+      max-width: 1600px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0 auto;
+      backdrop-filter: blur(2px);
+    }
+
+    .table-container {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      border-radius: 1rem;
+    }
+
+    .input-editable {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #8b5cf6;
+      background: white;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+
+    .input-editable:focus {
+      outline: none;
+      border-color: #6d28d9;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .non-editable-cell {
+      padding: 0.5rem 0.75rem;
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: #1e293b;
+    }
+
+    body.dark .non-editable-cell {
+      background: #0f172a;
+      color: #cbd5e1;
+    }
+
+    th {
+      user-select: none;
+      cursor: pointer;
+      transition: color 0.1s;
+    }
+
+    th:hover {
+      color: #8b5cf6;
+    }
+
+    .toast-notify {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 13px;
+      z-index: 999;
+      font-weight: 500;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .dropdown-animate {
+      animation: fadeScale 0.12s ease-out;
+      transform-origin: top right;
+    }
+
+    @keyframes fadeScale {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .icon-btn {
+      transition: all 0.15s;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    .icon-btn:hover {
+      transform: scale(1.03);
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark .icon-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .editing-row {
+      background-color: #fef9e3;
+    }
+
+    body.dark .editing-row {
+      background-color: #3b2e1e;
+    }
+
+    .new-db-badge {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .date-picker-input {
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card bg-white rounded-2xl border border-gray-200/70 shadow-2xl overflow-hidden flex flex-col">
+
+    <div
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 p-3 bg-white/60 dark:bg-slate-800/40 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-fire text-orange-500 text-xl"></i>
+        <h1
+          class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent hidden sm:block">
+          Dynamic DB Architect
+        </h1>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative inline-block dropdown-wrapper" id="createDbWrapper">
+          <button id="createDbDropdownBtn"
+            class="icon-btn rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition px-3 w-auto gap-2"
+            style="width: auto;">
+            <i class="fas fa-database mr-1"></i> + New DB
+          </button>
+          <div id="createDbMenu"
+            class="hidden absolute right-0 z-40 mt-2 w-80 origin-top-right rounded-xl border border-gray-200 bg-white shadow-xl dark:bg-slate-800 dark:border-slate-700 dropdown-animate p-4">
+            <div class="mb-2 text-sm font-bold text-gray-700 dark:text-gray-200"><i
+                class="fas fa-layer-group mr-2"></i>Create new database schema</div>
+            <input type="text" id="newDbNameInput" placeholder="Database name (e.g. Employees, Orders)"
+              class="w-full p-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 mb-3">
+            <div class="text-xs text-gray-500 mb-2">Pre-define columns (comma separated)</div>
+            <input type="text" id="newDbColumnsInput" placeholder="Columns: name, age, email, join_date"
+              class="w-full p-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 mb-3">
+            <button id="confirmCreateDb"
+              class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm transition flex items-center justify-center gap-2"><i
+                class="fas fa-check-circle"></i> Create Database & Switch</button>
+          </div>
+        </div>
+
+        <div class="relative inline-block dropdown-wrapper" id="dbSwitchWrapper">
+          <button id="dbSwitchBtn"
+            class="icon-btn rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white shadow-md transition"
+            title="Switch Schema">
+            <i class="fas fa-exchange-alt text-base"></i>
+          </button>
+          <div id="dbSwitchMenu"
+            class="hidden absolute right-0 z-30 mt-2 w-64 origin-top-right rounded-xl border border-gray-200 bg-white shadow-lg dark:bg-slate-800 dropdown-animate">
+            <div class="py-2">
+              <div class="px-3 py-2 text-xs font-semibold text-gray-500 border-b">Available Databases</div>
+              <div id="databaseListContainer"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative inline-block dropdown-wrapper" id="addColumnWrapper">
+          <button id="addColumnBtn"
+            class="icon-btn rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-md"><i
+              class="fas fa-plus-circle"></i></button>
+          <div id="addColumnMenu"
+            class="hidden absolute right-0 z-30 mt-2 w-72 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-3">
+            <div class="text-xs font-semibold mb-2">Add New Column</div>
+            <input type="text" id="newColumnName" placeholder="Column name"
+              class="w-full p-2 border rounded mb-2 dark:bg-slate-700">
+            <select id="newColumnType" class="w-full p-2 border rounded mb-3 dark:bg-slate-700">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+            </select>
+            <button id="confirmAddColumn" class="w-full bg-purple-500 text-white py-1.5 rounded">Add Column</button>
+          </div>
+        </div>
+
+        <div class="relative inline-block dropdown-wrapper" id="removeColumnWrapper">
+          <button id="removeColumnBtn" class="icon-btn rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-md"><i
+              class="fas fa-trash-alt"></i></button>
+          <div id="removeColumnMenu"
+            class="hidden absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-2">
+            <div class="text-xs font-semibold p-2">Remove Column</div>
+            <div id="removeColumnList"></div>
+          </div>
+        </div>
+
+        <button id="refreshBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700"
+          title="Refresh UI & Database"><i class="fas fa-sync-alt"></i></button>
+        <button id="themeToggle" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700"><i
+            id="themeIcon" class="fas fa-moon"></i></button>
+
+        <div class="relative inline-block dropdown-wrapper" id="exportWrapper">
+          <button id="exportBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700"><i
+              class="fas fa-download"></i></button>
+          <div id="exportMenu"
+            class="hidden absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-xl border border-gray-200 bg-white shadow-lg dark:bg-slate-800 dropdown-animate py-1">
+            <button id="exportJsonSubBtn"
+              class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center text-gray-700 dark:text-gray-200">
+              <i class="fas fa-file-code text-amber-500"></i> Export JSON
+            </button>
+            <button id="exportExcelSubBtn"
+              class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center text-gray-700 dark:text-gray-200">
+              <i class="fas fa-file-excel text-emerald-600"></i> Export Excel
+            </button>
+            <div class="border-t dark:border-slate-700 my-1"></div>
+            <label
+              class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center cursor-pointer text-gray-700 dark:text-gray-200">
+              <i class="fas fa-file-upload text-blue-500"></i> Upload Excel
+              <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container relative w-full overflow-auto px-1">
+      <div id="emptyStateContainer" class="hidden text-center py-12 text-gray-400 dark:text-slate-500">
+        <i class="fas fa-folder-open text-4xl mb-2"></i>
+        <p class="text-sm">No rows found in this database schema. Click gear actions to add dynamic rows.</p>
+      </div>
+      <table id="dynamicTable" class="w-full text-sm border-separate border-spacing-0">
+        <thead class="bg-gray-50/90 dark:bg-slate-800/60 sticky top-0 z-10 backdrop-blur-sm">
+          <tr id="tableHeaderRow" class="border-b"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div
+      class="border-t border-gray-200 dark:border-slate-700 px-4 py-2 flex justify-between items-center bg-gray-50/40 dark:bg-slate-900/30 flex-shrink-0">
+      <div class="text-xs text-gray-500 flex gap-2">
+        <i class="fas fa-info-circle"></i> <span id="activeDbLabel">Active: default_db</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="footerAddRowBtn"
+          class="bg-indigo-600 text-white text-xs px-3 py-1 rounded-md hover:bg-indigo-700 transition flex items-center gap-1">
+          <i class="fas fa-plus text-xxs"></i> Add Row
+        </button>
+        <span id="rowCount" class="text-xs font-mono bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">📋 0
+          rows</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const noop = () => { };
+      window.console.log = noop;
+      window.console.warn = noop;
+      window.console.error = noop;
+    })();
+
+    // ---------- FIREBASE INIT ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
+      authDomain: "codeae-85.firebaseapp.com",
+      databaseURL: "https://codeae-85-default-rtdb.firebaseio.com",
+      projectId: "codeae-85",
+      storageBucket: "codeae-85.firebasestorage.app",
+      messagingSenderId: "855701949624",
+      appId: "1:855701949624:web:2cf2ea8802a2d372f3384d",
+      measurementId: "G-LL3X996JHP"
+    };
+    let firebaseApp = null, firebaseDB = null;
+    try {
+      firebaseApp = firebase.initializeApp(firebaseConfig);
+      firebaseDB = firebase.database(firebaseApp);
+      firebase.analytics(firebaseApp);
+    } catch (e) { /* silent */ }
+
+    // ---------- GLOBAL STATE ----------
+    let currentDatabaseId = "default_db";
+    let databases = {
+      default_db: {
+        name: "MainDB",
+        columns: [
+          { id: "col_name", name: "Full Name", type: "text", visible: true },
+          { id: "col_age", name: "Age", type: "number", visible: true },
+          { id: "col_date", name: "Joining Date", type: "date", visible: true }
+        ],
+        data: [] // Default placeholder row explicitly removed
+      }
+    };
+
+    let currentSort = { columnId: null, order: "asc" };
+    let editingRowIndex = null;
+
+    function genColId() { return `c_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`; }
+
+    function persistDatabases() {
+      try {
+        const toStore = {};
+        for (let [key, val] of Object.entries(databases)) {
+          toStore[key] = { name: val.name, columns: val.columns, data: val.data };
+        }
+        localStorage.setItem("firebase_schema_databases", JSON.stringify(toStore));
+      } catch (e) { }
+    }
+
+    function loadPersisted() {
+      const saved = localStorage.getItem("firebase_schema_databases");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Object.keys(parsed).length) databases = parsed;
+          if (!databases[currentDatabaseId]) currentDatabaseId = Object.keys(databases)[0] || "default_db";
+          if (!databases.default_db) {
+            databases.default_db = { name: "MainDB", columns: [{ id: "col_name", name: "Full Name", type: "text", visible: true }, { id: "col_age", name: "Age", type: "number", visible: true }, { id: "col_date", name: "Joining Date", type: "date", visible: true }], data: [] };
+          }
+        } catch (e) { }
+      }
+    }
+    loadPersisted();
+
+    function getCurrentDB() { return databases[currentDatabaseId]; }
+
+    function syncCurrentDB() {
+      persistDatabases();
+      renderTable();
+      updateDbLabel();
+    }
+
+    function renderTable() {
+      const db = getCurrentDB();
+      if (!db) return;
+      const columns = db.columns.filter(c => c.visible);
+      const dataRows = db.data || [];
+
+      const headerRow = document.getElementById("tableHeaderRow");
+      const emptyState = document.getElementById("emptyStateContainer");
+      const tableElem = document.getElementById("dynamicTable");
+
+      if (dataRows.length === 0) {
+        emptyState.classList.remove("hidden");
+        tableElem.classList.add("hidden");
+        document.getElementById("rowCount").innerText = `📋 0 rows`;
+        return;
+      } else {
+        emptyState.classList.add("hidden");
+        tableElem.classList.remove("hidden");
+      }
+
+      let headerHtml = `<th class="h-12 px-3 text-center font-semibold text-gray-700 w-12 bg-gray-50/90 dark:bg-slate-800/60">#</th>`;
+      columns.forEach(col => {
+        const sortIndicator = (currentSort.columnId === col.id) ? (currentSort.order === "asc" ? " ↑" : " ↓") : "";
+        headerHtml += `<th class="h-12 px-3 text-left font-semibold text-gray-700 cursor-pointer hover:text-indigo-600" onclick="window.handleSort('${col.id}')">
+          ${escapeHtml(col.name)}<span class="sort-indicator text-xs">${sortIndicator}</span>
+        </th>`;
+      });
+      headerHtml += `<th class="h-12 px-3 text-center font-semibold text-gray-700 w-32">Actions</th>`;
+      headerRow.innerHTML = headerHtml;
+
+      let tbodyHtml = "";
+      dataRows.forEach((row, idx) => {
+        const isEditing = (editingRowIndex === idx);
+        const rowClass = isEditing ? 'editing-row' : '';
+        tbodyHtml += `<tr class="border-b hover:bg-gray-50 dark:hover:bg-slate-800/40 transition ${rowClass}">`;
+        tbodyHtml += `<td class="px-3 py-2 text-center text-xs font-mono">${idx + 1}</td>`;
+        for (let col of columns) {
+          let rawValue = row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : "");
+          if (isEditing) {
+            if (col.type === "date") {
+              let dateVal = rawValue;
+              if (dateVal && !dateVal.match(/^\d{4}-\d{2}-\d{2}$/)) dateVal = "";
+              tbodyHtml += `<td class="px-3 py-2"><input type="date" value="${escapeHtml(dateVal)}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+            } else if (col.type === "number") {
+              tbodyHtml += `<td class="px-3 py-2"><input type="number" value="${rawValue}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+            } else {
+              tbodyHtml += `<td class="px-3 py-2"><input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+            }
+          } else {
+            let display = rawValue === "" ? "—" : rawValue;
+            tbodyHtml += `<td class="px-3 py-2"><div class="non-editable-cell">${escapeHtml(String(display))}</div></td>`;
+          }
+        }
+
+        tbodyHtml += `<td class="px-3 py-2 text-center">
+          <div class="relative inline-block text-left row-dropdown-container">
+            <button class="row-gear-btn p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700" data-row-index="${idx}"><i class="fas fa-cog text-indigo-500 text-base"></i></button>
+            <div id="rowMenu-${idx}" class="hidden absolute right-0 z-30 mt-1 w-56 rounded-lg border bg-white shadow-lg dark:bg-slate-800 dropdown-animate">
+              <div class="py-1 text-left">
+                <button class="row-add-row w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center text-gray-700 dark:text-gray-200"><i class="fas fa-plus-circle text-emerald-500"></i>Add Row</button>
+                <button class="row-edit-row w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center text-gray-700 dark:text-gray-200"><i class="fas ${isEditing ? 'fa-save' : 'fa-edit'} text-indigo-500"></i>${isEditing ? 'Save Row' : 'Edit Row'}</button>
+                <button class="row-delete-row w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex gap-2 items-center text-gray-700 dark:text-gray-200"><i class="fas fa-trash-alt text-rose-500"></i>Delete Row</button>
+                <div class="border-t dark:border-slate-700 my-1"></div>
+                
+                <div class="px-3 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-exchange-alt mr-1"></i> Shift Row Data</div>
+                <div class="max-h-32 overflow-y-auto">`;
+
+        for (let [dbId, item] of Object.entries(databases)) {
+          const isCurrent = (dbId === currentDatabaseId);
+          tbodyHtml += `<button class="row-shift-target w-full text-left px-4 py-1.5 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/40 flex items-center justify-between ${isCurrent ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-slate-700 text-gray-400' : 'text-gray-600 dark:text-slate-300'}" data-target-db="${dbId}" data-row-source="${idx}" ${isCurrent ? 'disabled' : ''}>
+                    <span class="truncate mr-1"><i class="fas fa-database opacity-70 mr-1"></i>To ${escapeHtml(item.name)}</span>
+                    ${isCurrent ? '<span class="text-xxs border px-1 rounded">Active</span>' : ''}
+                  </button>`;
+        }
+
+        tbodyHtml += `  </div>
+              </div>
+            </div>
+          </div>
+        </td>`;
+        tbodyHtml += `</tr>`;
+      });
+      document.getElementById("tableBody").innerHTML = tbodyHtml;
+      document.getElementById("rowCount").innerText = `📊 ${dataRows.length} rows`;
+      attachRowEvents();
+    }
+
+    function attachRowEvents() {
+      document.querySelectorAll('.row-gear-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const idx = btn.getAttribute('data-row-index');
+          document.querySelectorAll('[id^="rowMenu-"]').forEach(m => {
+            if (m.id !== `rowMenu-${idx}`) m.classList.add('hidden');
+          });
+          const menu = document.getElementById(`rowMenu-${idx}`);
+          if (menu) menu.classList.toggle('hidden');
+        };
+      });
+
+      document.querySelectorAll('.row-add-row').forEach(btn => { btn.onclick = () => { addNewRow(); }; });
+      document.querySelectorAll('.row-edit-row').forEach(btn => {
+        btn.onclick = (e) => {
+          const gear = e.currentTarget.closest('.row-dropdown-container').querySelector('.row-gear-btn');
+          const idx = gear ? gear.getAttribute('data-row-index') : null;
+          if (idx !== null) toggleEditRow(parseInt(idx));
+        };
+      });
+      document.querySelectorAll('.row-delete-row').forEach(btn => {
+        btn.onclick = (e) => {
+          const gear = e.currentTarget.closest('.row-dropdown-container').querySelector('.row-gear-btn');
+          const idx = gear ? gear.getAttribute('data-row-index') : null;
+          if (idx !== null) deleteRowByIdx(parseInt(idx));
+        };
+      });
+
+      document.querySelectorAll('.row-shift-target').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const targetDbId = btn.getAttribute('data-target-db');
+          const srcRowIdx = parseInt(btn.getAttribute('data-row-source'));
+          shiftRowToDatabase(srcRowIdx, targetDbId);
+          document.querySelectorAll('[id^="rowMenu-"]').forEach(m => m.classList.add('hidden'));
+        };
+      });
+    }
+
+    function addNewRow() {
+      const db = getCurrentDB();
+      const newRow = {};
+      db.columns.forEach(col => { newRow[col.id] = col.type === "number" ? 0 : ""; });
+      db.data.push(newRow);
+      editingRowIndex = db.data.length - 1;
+      syncCurrentDB();
+      showToast("✨ New row added. Click Save to finalize data.");
+    }
+
+    function toggleEditRow(rowIndex) {
+      if (editingRowIndex === rowIndex) {
+        editingRowIndex = null;
+        syncCurrentDB();
+        showToast("✅ Row changes saved locally.");
+      } else {
+        editingRowIndex = rowIndex;
+        syncCurrentDB();
+        showToast(`✏️ Editing row ${rowIndex + 1} — modify fields.`);
+      }
+    }
+
+    function deleteRowByIdx(rowIndex) {
+      if (confirm("Delete this row permanently?")) {
+        const db = getCurrentDB();
+        db.data.splice(rowIndex, 1);
+        if (editingRowIndex !== null && editingRowIndex >= db.data.length) editingRowIndex = null;
+        syncCurrentDB();
+        showToast("🗑 Row removed");
+      }
+    }
+
+    function shiftRowToDatabase(rowIndex, targetDbId) {
+      const sourceDb = getCurrentDB();
+      const targetDb = databases[targetDbId];
+      if (!sourceDb || !targetDb || !sourceDb.data[rowIndex]) return;
+
+      const sourceRow = sourceDb.data[rowIndex];
+      const transposedRow = {};
+
+      targetDb.columns.forEach(targetCol => {
+        const matchingSourceCol = sourceDb.columns.find(sc => sc.name.toLowerCase() === targetCol.name.toLowerCase() || sc.id === targetCol.id);
+        if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) {
+          transposedRow[targetCol.id] = sourceRow[matchingSourceCol.id];
+        } else {
+          transposedRow[targetCol.id] = targetCol.type === "number" ? 0 : "";
+        }
+      });
+
+      targetDb.data.push(transposedRow);
+      showToast(`🚀 Row shifted completely to architecture: ${targetDb.name}`);
+      persistDatabases();
+    }
+
+    window.updateCellValue = function (rowIdx, colId, val) {
+      const db = getCurrentDB();
+      if (db.data[rowIdx] && editingRowIndex === rowIdx) {
+        const col = db.columns.find(c => c.id === colId);
+        if (col && col.type === "number") {
+          const num = parseFloat(val);
+          db.data[rowIdx][colId] = isNaN(num) ? 0 : num;
+        } else {
+          db.data[rowIdx][colId] = val;
+        }
+        renderTable();
+      }
+    };
+
+    window.handleSort = function (colId) {
+      const db = getCurrentDB();
+      const columnDef = db.columns.find(c => c.id === colId);
+      if (!columnDef) return;
+      if (currentSort.columnId === colId) {
+        currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
+      } else {
+        currentSort.columnId = colId;
+        currentSort.order = "asc";
+      }
+      const colType = columnDef.type;
+      db.data.sort((a, b) => {
+        let valA = a[colId] !== undefined ? a[colId] : (colType === "number" ? 0 : "");
+        let valB = b[colId] !== undefined ? b[colId] : (colType === "number" ? 0 : "");
+        if (colType === "number") { valA = Number(valA) || 0; valB = Number(valB) || 0; return currentSort.order === "asc" ? valA - valB : valB - valA; }
+        else { valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase(); if (valA < valB) return currentSort.order === "asc" ? -1 : 1; if (valA > valB) return currentSort.order === "asc" ? 1 : -1; return 0; }
+      });
+      syncCurrentDB();
+    };
+
+    function addColumnUI() {
+      const colName = document.getElementById("newColumnName").value.trim();
+      const colType = document.getElementById("newColumnType").value;
+      if (!colName) { showToast("Enter column name"); return; }
+      const db = getCurrentDB();
+      const newCol = { id: genColId(), name: colName, type: colType, visible: true };
+      db.columns.push(newCol);
+      db.data.forEach(row => { row[newCol.id] = (colType === "number" ? 0 : ""); });
+      document.getElementById("newColumnName").value = "";
+      document.getElementById("addColumnMenu").classList.add("hidden");
+      syncCurrentDB();
+      showToast(`➕ Column "${colName}" added`);
+    }
+
+    function removeColumnById(colId) {
+      const db = getCurrentDB();
+      const col = db.columns.find(c => c.id === colId);
+      if (!col) return;
+      if (confirm(`Remove column "${col.name}"?`)) {
+        db.columns = db.columns.filter(c => c.id !== colId);
+        db.data.forEach(row => delete row[colId]);
+        if (editingRowIndex !== null) editingRowIndex = null;
+        syncCurrentDB();
+        showToast(`🗑️ Removed ${col.name}`);
+      }
+    }
+
+    function updateRemoveList() {
+      const db = getCurrentDB();
+      const container = document.getElementById("removeColumnList");
+      if (!container) return;
+      let html = '';
+      db.columns.forEach(col => {
+        html += `<button class="remove-col-item w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex justify-between" data-col-id="${col.id}"><span>${escapeHtml(col.name)}</span><i class="fas fa-times text-rose-400"></i></button>`;
+      });
+      container.innerHTML = html || "<div class='p-2 text-gray-400'>No columns</div>";
+      document.querySelectorAll('.remove-col-item').forEach(btn => {
+        btn.onclick = () => { removeColumnById(btn.getAttribute('data-col-id')); document.getElementById("removeColumnMenu").classList.add("hidden"); };
+      });
+    }
+
+    function createNewDatabase() {
+      const dbNameRaw = document.getElementById("newDbNameInput").value.trim();
+      if (!dbNameRaw) { showToast("Please enter a database name"); return; }
+
+      const sanitizedId = dbNameRaw.replace(/\s+/g, '_').toLowerCase() + "_" + Date.now();
+      const columnsRaw = document.getElementById("newDbColumnsInput").value.trim();
+      let columnsArray = [];
+      if (columnsRaw) {
+        const colNames = columnsRaw.split(',').map(s => s.trim()).filter(s => s);
+        columnsArray = colNames.map((name, idx) => ({ id: `col_${idx}_${name.replace(/\s/g, '')}`, name: name, type: "text", visible: true }));
+      } else {
+        columnsArray = [
+          { id: "col_name", name: "Name", type: "text", visible: true },
+          { id: "col_date_joined", name: "Date", type: "date", visible: true },
+          { id: "col_value", name: "Value", type: "number", visible: true }
+        ];
+      }
+      const newDb = {
+        name: dbNameRaw,
+        columns: columnsArray,
+        data: [] // Zero-placeholder alignment tracking
+      };
+      databases[sanitizedId] = newDb;
+      currentDatabaseId = sanitizedId;
+      editingRowIndex = null;
+      currentSort = { columnId: null, order: "asc" };
+      syncCurrentDB();
+      document.getElementById("createDbMenu").classList.add("hidden");
+      document.getElementById("newDbNameInput").value = "";
+      document.getElementById("newDbColumnsInput").value = "";
+      showToast(`🏛️ New database "${dbNameRaw}" created and activated!`);
+      renderDatabaseList();
+    }
+
+    function switchDatabase(dbId) {
+      if (databases[dbId]) {
+        currentDatabaseId = dbId;
+        editingRowIndex = null;
+        currentSort = { columnId: null, order: "asc" };
+        syncCurrentDB();
+        showToast(`🔄 Switched to "${databases[dbId].name}"`);
+      }
+    }
+
+    function renderDatabaseList() {
+      const container = document.getElementById("databaseListContainer");
+      if (!container) return;
+      let html = '';
+      for (let [id, db] of Object.entries(databases)) {
+        const isCurrent = (id === currentDatabaseId);
+        const activeClass = isCurrent ? 'bg-indigo-50 dark:bg-indigo-900/30 font-semibold' : '';
+        html += `<button class="db-switch-item w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex justify-between items-center ${activeClass} ${isCurrent ? 'opacity-50 cursor-not-allowed' : ''}" data-db-id="${id}" ${isCurrent ? 'disabled' : ''}>
+          <span><i class="fas fa-database mr-2 text-indigo-500"></i>${escapeHtml(db.name)}</span>
+          ${isCurrent ? '<i class="fas fa-check text-indigo-500 text-xs"></i>' : ''}
+        </button>`;
+      }
+      container.innerHTML = html;
+      document.querySelectorAll('.db-switch-item').forEach(btn => {
+        if (!btn.disabled) {
+          btn.onclick = () => { switchDatabase(btn.getAttribute('data-db-id')); document.getElementById("dbSwitchMenu").classList.add("hidden"); };
+        }
+      });
+    }
+
+    function updateDbLabel() {
+      const db = getCurrentDB();
+      if (db) document.getElementById("activeDbLabel").innerHTML = `<i class="fas fa-database mr-1"></i> Active: ${escapeHtml(db.name)}`;
+    }
+
+    function triggerDataRefresh() {
+      editingRowIndex = null;
+      currentSort = { columnId: null, order: "asc" };
+      loadPersisted();
+      renderTable();
+      updateDbLabel();
+      showToast("🔄 Table data and layout architectures fully refreshed.");
+    }
+
+    function processExcelExport() {
+      const db = getCurrentDB();
+      if (db.data.length === 0) {
+        showToast("⚠️ No row data to export.");
+        return;
+      }
+      const rawHeaders = db.columns.map(c => c.name);
+      const rowsData = db.data.map(row => {
+        const formattedRow = {};
+        db.columns.forEach(c => {
+          formattedRow[c.name] = row[c.id] !== undefined ? row[c.id] : "";
+        });
+        return formattedRow;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rowsData, { header: rawHeaders });
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, db.name.substring(0, 30));
+      XLSX.writeFile(workbook, `${db.name.replace(/\s+/g, '_')}_export.xlsx`);
+      showToast("📊 Excel document compiled successfully.");
+    }
+
+    function processExcelImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+          if (!jsonData || jsonData.length === 0) {
+            alert("The selected spreadsheet does not contain valid record data rows.");
+            return;
+          }
+
+          const db = getCurrentDB();
+          const parsedHeaders = Object.keys(jsonData[0]);
+
+          if (confirm("Do you want to map Excel columns directly into this active Schema?")) {
+            db.columns = parsedHeaders.map((header, idx) => ({
+              id: `c_xl_${Date.now()}_${idx}`,
+              name: header,
+              type: "text",
+              visible: true
+            }));
+
+            db.data = jsonData.map(row => {
+              const rowObj = {};
+              db.columns.forEach(col => {
+                rowObj[col.id] = row[col.name] !== undefined ? row[col.name] : "";
+              });
+              return rowObj;
+            });
+          } else {
+            jsonData.forEach(row => {
+              const appendedRow = {};
+              db.columns.forEach(col => {
+                const sheetVal = row[col.name];
+                appendedRow[col.id] = sheetVal !== undefined ? sheetVal : "";
+              });
+              db.data.push(appendedRow);
+            });
+          }
+
+          syncCurrentDB();
+          showToast("📥 Excel structured rows integrated cleanly.");
+          event.target.value = "";
+        } catch (error) {
+          alert("Error parsing document dataset.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function escapeHtml(str) { if (!str && str !== 0) return ''; return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+
+    function showToast(msg, type = "info") {
+      let toast = document.querySelector(".toast-notify"); if (toast) toast.remove();
+      const div = document.createElement("div"); div.className = "toast-notify"; div.innerHTML = `<i class="fas ${type === 'info' ? 'fa-circle-info' : 'fa-check'} mr-2"></i>${msg}`;
+      document.body.appendChild(div); setTimeout(() => div.remove(), 2100);
+    }
+
+    function exportJSONData() {
+      const db = getCurrentDB();
+      const exp = { databaseName: db.name, columns: db.columns, data: db.data };
+      const blob = new Blob([JSON.stringify(exp, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `db_${currentDatabaseId}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast("Exported JSON");
+    }
+
+    // Toggle logic with precise propagation protection
+    document.getElementById("createDbDropdownBtn").onclick = (e) => { e.stopPropagation(); document.getElementById("createDbMenu").classList.toggle("hidden"); };
+    document.getElementById("confirmCreateDb").onclick = createNewDatabase;
+
+    document.getElementById("dbSwitchBtn").onclick = (e) => { e.stopPropagation(); renderDatabaseList(); document.getElementById("dbSwitchMenu").classList.toggle("hidden"); };
+    document.getElementById("addColumnBtn").onclick = (e) => { e.stopPropagation(); document.getElementById("addColumnMenu").classList.toggle("hidden"); };
+    document.getElementById("confirmAddColumn").onclick = addColumnUI;
+    document.getElementById("removeColumnBtn").onclick = (e) => { e.stopPropagation(); updateRemoveList(); document.getElementById("removeColumnMenu").classList.toggle("hidden"); };
+    document.getElementById("footerAddRowBtn").onclick = addNewRow;
+
+    document.getElementById("refreshBtn").onclick = triggerDataRefresh;
+
+    document.getElementById("exportBtn").onclick = (e) => { e.stopPropagation(); document.getElementById("exportMenu").classList.toggle("hidden"); };
+    document.getElementById("exportJsonSubBtn").onclick = () => { exportJSONData(); document.getElementById("exportMenu").classList.add("hidden"); };
+    document.getElementById("exportExcelSubBtn").onclick = () => { processExcelExport(); document.getElementById("exportMenu").classList.add("hidden"); };
+    document.getElementById("importExcelInput").onchange = processExcelImport;
+
+    document.getElementById("themeToggle").onclick = () => { document.body.classList.toggle("dark"); const icon = document.getElementById("themeIcon"); if (document.body.classList.contains("dark")) { icon.classList.remove("fa-moon"); icon.classList.add("fa-sun"); } else { icon.classList.remove("fa-sun"); icon.classList.add("fa-moon"); } };
+
+    // Globally safely captures window focus clicks without collapsing lists when selecting internal inputs
+    document.addEventListener("click", (e) => {
+      const wrapper = e.target.closest('.dropdown-wrapper');
+      const rowContainer = e.target.closest('.row-dropdown-container');
+
+      if (!wrapper) {
+        document.getElementById("createDbMenu").classList.add("hidden");
+        document.getElementById("dbSwitchMenu").classList.add("hidden");
+        document.getElementById("addColumnMenu").classList.add("hidden");
+        document.getElementById("removeColumnMenu").classList.add("hidden");
+        document.getElementById("exportMenu").classList.add("hidden");
+      } else {
+        const activeId = wrapper.id;
+        if (activeId !== 'createDbWrapper') document.getElementById("createDbMenu").classList.add("hidden");
+        if (activeId !== 'dbSwitchWrapper') document.getElementById("dbSwitchMenu").classList.add("hidden");
+        if (activeId !== 'addColumnWrapper') document.getElementById("addColumnMenu").classList.add("hidden");
+        if (activeId !== 'removeColumnWrapper') document.getElementById("removeColumnMenu").classList.add("hidden");
+        if (activeId !== 'exportWrapper') document.getElementById("exportMenu").classList.add("hidden");
+      }
+
+      if (!rowContainer) {
+        document.querySelectorAll('[id^="rowMenu-"]').forEach(m => m.classList.add('hidden'));
+      }
+    });
+
+    renderDatabaseList();
+    syncCurrentDB();
+    showToast("🚀 System Ready | Connected Data Infrastructure Tools.");
+  </script>
+</body>
+
+</html>

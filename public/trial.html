@@ -1,31 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Firebase Schema Architect | Auto-Edit on Add Row</title>
+  <title>Firebase Schema Architect | Complete Version</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    * { font-family: 'Inter', system-ui, sans-serif; }
+    * {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
     body {
-      background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
       min-height: 100vh;
       padding: 1rem;
       margin: 0;
+      transition: all 0.3s;
     }
-    body.dark {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+
+    /* Sleep/Hibernate Mode */
+    body.sleep-mode {
+      filter: blur(8px);
+      pointer-events: none;
+      user-select: none;
     }
-    body.dark .card { background-color: #1e293b; border-color: #334155; }
-    body.dark th { color: #cbd5e1; border-bottom-color: #334155; }
-    body.dark td { color: #e2e8f0; border-color: #334155; }
-    body.dark .input-editable { background-color: #0f172a; border-color: #475569; color: #f1f5f9; }
-    body.dark .non-editable-cell { background-color: #0f172a; color: #94a3b8; }
+    
+    body.sleep-mode .card {
+      pointer-events: none;
+    }
+    
+    .sleep-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .sleep-message {
+      background: white;
+      padding: 30px 50px;
+      border-radius: 20px;
+      text-align: center;
+      animation: pulse 2s infinite;
+    }
+    
+    .sleep-message i {
+      font-size: 60px;
+      color: #8b5cf6;
+      margin-bottom: 20px;
+    }
+    
+    .sleep-message h2 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .sleep-message p {
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+    
+    .wake-btn {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 30px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    .wake-btn:hover {
+      background: #6d28d9;
+      transform: scale(1.05);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    /* Login Modal */
+    .login-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 2001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .login-modal {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      width: 350px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    .login-modal h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: #1e293b;
+    }
+    
+    .login-modal input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    
+    .login-modal input:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+    
+    .login-error {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .login-success {
+      color: #10b981;
+      font-size: 0.875rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    /* Themes */
+    body.theme-forest { background: #064e3b; }
+    body.theme-forest .card { background: #065f46; border-color: #34d399; }
+    body.theme-forest .data-card { background: #047857; border-color: #34d399; }
+    body.theme-forest .card-header { background: #065f46; border-bottom-color: #34d399; }
+    body.theme-forest .field-label, body.theme-ocean .field-label,
+    body.theme-sunset .field-label, body.theme-midnight .field-label,
+    body.theme-rose .field-label { color: #a7f3d0; }
+    body.theme-forest .field-value, body.theme-ocean .field-value,
+    body.theme-sunset .field-value, body.theme-midnight .field-value,
+    body.theme-rose .field-value { color: #f1f5f9; }
+
+    body.theme-ocean { background: #075985; }
+    body.theme-ocean .card { background: #0c4a6e; border-color: #38bdf8; }
+    body.theme-ocean .data-card { background: #0284c7; border-color: #38bdf8; }
+    body.theme-ocean .card-header { background: #0c4a6e; border-bottom-color: #38bdf8; }
+
+    body.theme-sunset { background: #7c2d12; }
+    body.theme-sunset .card { background: #9a3412; border-color: #f97316; }
+    body.theme-sunset .data-card { background: #c2410c; border-color: #f97316; }
+    body.theme-sunset .card-header { background: #9a3412; border-bottom-color: #f97316; }
+
+    body.theme-midnight { background: #1e1b4b; }
+    body.theme-midnight .card { background: #312e81; border-color: #818cf8; }
+    body.theme-midnight .data-card { background: #4338ca; border-color: #818cf8; }
+    body.theme-midnight .card-header { background: #312e81; border-bottom-color: #818cf8; }
+
+    body.theme-rose { background: #881337; }
+    body.theme-rose .card { background: #9f1239; border-color: #fb7185; }
+    body.theme-rose .data-card { background: #be123c; border-color: #fb7185; }
+    body.theme-rose .card-header { background: #9f1239; border-bottom-color: #fb7185; }
+
+    body.theme-light { background: #f1f5f9; }
+    body.theme-light .card { background: white; border-color: #cbd5e1; }
+    body.theme-light .data-card { background: #f8fafc; border-color: #cbd5e1; }
+    body.theme-light .card-header { background: #f1f5f9; border-bottom-color: #cbd5e1; }
+
+    body.theme-dark { background: #0f172a; }
+    body.theme-dark .card { background: #1e293b; border-color: #334155; }
+    body.theme-dark .data-card { background: #334155; border-color: #475569; }
+    body.theme-dark .card-header { background: #1e293b; border-bottom-color: #334155; }
+
     .card {
       width: 98%;
       max-width: 1600px;
@@ -33,882 +206,1810 @@
       display: flex;
       flex-direction: column;
       margin: 0 auto;
-      background: white;
       border-radius: 1.5rem;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      border: 1px solid;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      position: relative;
     }
-    .table-container { flex: 1; overflow: auto; min-height: 0; border-radius: 1rem; }
-    .input-editable {
-      width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem;
-      border: 1px solid #8b5cf6; background: white; font-size: 0.875rem;
+
+    .cards-container {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .data-card {
+      border-radius: 1rem;
+      border: 1px solid;
+      transition: all 0.2s;
+      overflow: hidden;
+      animation: slideIn 0.3s ease-out;
+      position: relative;
+      width: 100%;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .data-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-body {
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .card-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .field-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .field-value {
+      font-size: 0.875rem;
+      word-break: break-word;
+    }
+
+    .card-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .editing-card {
+      border: 2px solid #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    }
+
+    .input-editable-card {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid #8b5cf6;
+      font-size: 0.8rem;
       transition: all 0.15s;
+      background: white;
     }
-    .input-editable:focus { outline: none; border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); }
-    .non-editable-cell { padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 0.5rem; font-size: 0.875rem; color: #1e293b; }
-    body.dark .non-editable-cell { background: #0f172a; color: #cbd5e1; }
-    th { user-select: none; cursor: pointer; transition: color 0.1s; }
-    th:hover { color: #8b5cf6; }
-    .toast-notify {
-      position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
-      padding: 10px 20px; border-radius: 40px; font-size: 13px; z-index: 999;
-      font-weight: 500; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+
+    .input-editable-card:focus {
+      outline: none;
+      border-color: #6d28d9;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     }
-    .toast-notify.success { background: #059669; }
-    .toast-notify.error { background: #dc2626; }
-    .toast-notify.info { background: #3b82f6; }
-    .dropdown-animate { animation: fadeScale 0.12s ease-out; transform-origin: top right; }
-    @keyframes fadeScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    .icon-btn { transition: all 0.15s; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
-    .icon-btn:hover { transform: scale(1.03); background-color: rgba(0,0,0,0.05); }
-    body.dark .icon-btn:hover { background-color: rgba(255,255,255,0.1); }
-    .editing-row { background-color: #fef9e3; }
-    body.dark .editing-row { background-color: #3b2e1e; }
-    .btn-disabled { opacity: 0.5; cursor: not-allowed !important; pointer-events: none; }
-    .firebase-badge { background: #FFCA28; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px; }
-    .action-buttons { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
-    .action-btn { padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s; border: none; }
-    .action-btn:hover { transform: scale(1.05); }
-    .edit-mode-badge { background: #f59e0b; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 6px; }
+
+    .comment-badge {
+      background: #3b82f6;
+      color: white;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+
+    .modern-btn {
+      transition: all 0.2s;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      font-size: 0.75rem;
+      padding: 0.375rem 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modern-btn:hover { transform: translateY(-1px); filter: brightness(105%); }
+    .modern-btn:active { transform: translateY(0); }
+
+    .btn-primary { background-color: #6366f1; color: white; }
+    .btn-secondary { background-color: #64748b; color: white; }
+    .btn-success { background-color: #10b981; color: white; }
+    .btn-danger { background-color: #ef4444; color: white; }
+    .btn-warning { background-color: #f59e0b; color: white; }
+    .btn-purple { background-color: #8b5cf6; color: white; }
+    .btn-info { background-color: #3b82f6; color: white; }
+    .btn-outline { background-color: transparent; border: 1px solid #cbd5e1; color: #475569; }
+    .btn-dropdown { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; }
+
+    .dropdown-menu {
+      position: fixed;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      min-width: 200px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+
+    .stats-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 420px;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      transition: all 0.3s;
+      border: 1px solid #e2e8f0;
+      resize: both;
+      overflow: auto;
+      cursor: move;
+    }
+
+    .stats-panel.hidden { display: none; }
+
+    .stats-header {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border-radius: 1rem 1rem 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    }
+
+    .stats-content { padding: 12px; max-height: 350px; overflow-y: auto; }
+
+    .stat-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.05);
+    }
+
+    .stat-item:hover { transform: translateX(4px); background: rgba(139, 92, 246, 0.1); }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+
+    .modal-content {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .priority-indicator {
+      width: 4px;
+      height: 40px;
+      background: #10b981;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .checkbox-container {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #9ca3af;
+    }
+
+    .theme-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 8px;
+    }
+
+    .theme-option:hover { background: rgba(0, 0, 0, 0.1); }
+
+    .radio-group { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .radio-option { display: flex; align-items: center; gap: 0.5rem; }
+    .starred-card { background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #8b5cf6;
+      border-radius: 50%;
+      animation: spin 0.5s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .activity-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 11px;
+    }
+
+    .activity-item {
+      padding: 4px 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      font-family: monospace;
+    }
+
+    .activity-time { color: #8b5cf6; font-weight: 600; }
+
+    .floating-menu {
+      position: fixed;
+      z-index: 1000;
+    }
+    
+    .link-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    
+    .link-input:focus {
+      outline: none;
+      border-color: #8b5cf6;
+    }
   </style>
 </head>
-<body>
-<div class="card flex flex-col">
-  <div class="flex flex-wrap items-center justify-between gap-2 border-b p-3 bg-white/60 dark:bg-slate-800/40 flex-shrink-0">
-    <div class="flex items-center gap-3">
-      <i class="fas fa-fire text-orange-500 text-xl"></i>
-      <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
-        Complete Firebase DB Architect
-        <span class="firebase-badge"><i class="fas fa-database mr-1"></i>Auto-Edit on Add Row</span>
-      </h1>
-    </div>
-    <div class="flex items-center gap-2 flex-wrap">
-      <div id="firebaseStatus" class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 px-2 py-1 rounded-full">
-        <i class="fas fa-link"></i> Firebase Live
+
+<body class="theme-light">
+  <div class="card flex flex-col">
+    <!-- Header with Activity Log -->
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b p-3 flex-shrink-0"
+      style="background: rgba(0,0,0,0.03);">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-fire text-orange-500 text-xl"></i>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+          Complete Firebase DB Architect
+          <span class="firebase-badge"
+            style="background: #FFCA28; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px;"><i
+              class="fas fa-database mr-1"></i>v5.0</span>
+        </h1>
       </div>
-      
-      <div class="relative inline-block dropdown-container" id="saveDbContainer">
-        <button id="saveDbBtn" disabled class="icon-btn rounded-lg bg-emerald-600 text-white px-3 w-auto gap-2 btn-disabled">
-          <i class="fas fa-save mr-1"></i> 💾 Save as DB
-        </button>
-        <div id="saveDbMenu" class="hidden absolute right-0 z-40 mt-2 w-80 rounded-xl border bg-white shadow-xl dark:bg-slate-800 p-4">
-          <div class="mb-2 text-sm font-bold">Save Current Table as Database</div>
-          <input type="text" id="newDbNameInput" placeholder="Database name (e.g., Employees)" class="w-full p-2 border rounded-lg text-sm mb-3">
-          <div class="text-xs text-gray-500 mb-2">Current structure:</div>
-          <div id="currentColumnsPreview" class="text-xs bg-gray-50 dark:bg-slate-700 p-2 rounded mb-3 max-h-32 overflow-y-auto"></div>
-          <button id="confirmSaveDb" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm">Save to Firebase</button>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div id="firebaseStatus" class="modern-btn" style="background-color: #10b98120; color: #10b981;">
+          <i class="fas fa-link"></i> Firebase Live
         </div>
-      </div>
-      
-      <div class="relative inline-block dropdown-container" id="dbSwitchContainer">
-        <button id="dbSwitchBtn" class="icon-btn rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white"><i class="fas fa-exchange-alt"></i></button>
-        <div id="dbSwitchMenu" class="hidden absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white shadow-lg dark:bg-slate-800">
-          <div class="py-2">
-            <div class="px-3 py-2 text-xs font-semibold border-b">Saved Databases</div>
-            <div id="databaseListContainer"></div>
+
+        <!-- Database Actions Dropdown - Only Create New and Load Database -->
+        <div class="relative inline-block" id="dbActionsContainer">
+          <button id="dbActionsBtn" class="modern-btn btn-primary"><i class="fas fa-database"></i> Database <i
+              class="fas fa-chevron-down text-xs ml-1"></i></button>
+          <div id="dbActionsMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 200px;">
+            <button id="createNewDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <i class="fas fa-plus-circle text-green-500 mr-2"></i> Create New Database
+            </button>
+            <button id="loadExistingDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <i class="fas fa-folder-open text-blue-500 mr-2"></i> Load Database
+            </button>
           </div>
         </div>
+
+        <div class="relative inline-block" id="saveDbContainer">
+          <button id="saveDbBtn" disabled class="modern-btn btn-dropdown btn-disabled">
+            <i class="fas fa-save"></i> Save as DB <i class="fas fa-chevron-down text-xs ml-1"></i>
+          </button>
+          <div id="saveDbMenu" class="dropdown-menu hidden mt-1 p-3" style="position: absolute; right: 0; min-width: 280px;">
+            <div class="text-sm font-bold mb-2">Save as Database</div>
+            <input type="text" id="newDbNameInput" placeholder="Database name" class="w-full p-2 border rounded text-sm mb-2">
+            <div id="currentColumnsPreview" class="text-xs bg-gray-50 p-2 rounded mb-2 max-h-32 overflow-y-auto"></div>
+            <button id="confirmSaveDb" class="modern-btn btn-success w-full">Save to Firebase</button>
+          </div>
+        </div>
+
+        <div class="relative inline-block" id="dbSwitchContainer">
+          <button id="dbSwitchBtn" class="modern-btn btn-dropdown"><i class="fas fa-exchange-alt"></i> Switch DB <i
+              class="fas fa-chevron-down text-xs ml-1"></i></button>
+          <div id="dbSwitchMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 240px;">
+            <div class="p-2 border-b flex justify-between items-center">
+              <span class="text-xs font-semibold">Saved Databases</span>
+              <button id="refreshDbList" class="text-indigo-500 text-xs"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div id="databaseListContainer" class="max-h-64 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <div class="relative inline-block" id="addColumnContainer">
+          <button id="addColumnBtn" class="modern-btn btn-dropdown"><i class="fas fa-plus-circle"></i> Add Column <i
+              class="fas fa-chevron-down text-xs ml-1"></i></button>
+          <div id="addColumnMenu" class="dropdown-menu hidden mt-1 p-3" style="position: absolute; right: 0; min-width: 380px;">
+            <div class="text-sm font-bold mb-2">Add New Column</div>
+            <input type="text" id="newColumnName" placeholder="Column name" class="w-full p-2 border rounded mb-2">
+            <select id="newColumnType" class="w-full p-2 border rounded mb-2">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+              <option value="checkbox">Checkbox</option>
+              <option value="radio">Radio Button</option>
+              <option value="dropdown">Dropdown</option>
+              <option value="multi-select">Multi-Select</option>
+              <option value="textarea">Text Area</option>
+            </select>
+            <div id="dateFormatContainer" class="hidden mb-2">
+              <label class="text-xs font-semibold">Date Format:</label>
+              <select id="dateFormat" class="w-full p-2 border rounded text-sm mt-1">
+                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+              </select>
+            </div>
+            <div id="radioOptionsContainer" class="hidden mb-2">
+              <label class="text-xs font-semibold">Radio Options:</label>
+              <input type="text" id="radioOptions" placeholder="Male, Female, Other" class="w-full p-2 border rounded text-sm mt-1">
+            </div>
+            <div id="columnOptionsContainer" class="hidden mb-2">
+              <label class="text-xs font-semibold">Options:</label>
+              <input type="text" id="columnOptions" placeholder="Option 1, Option 2" class="w-full p-2 border rounded text-sm mt-1">
+            </div>
+            <button id="confirmAddColumn" class="modern-btn btn-purple w-full">Add Column</button>
+          </div>
+        </div>
+
+        <div class="relative inline-block" id="userMenuContainer">
+          <button id="userMenuBtn" class="modern-btn btn-primary"><i class="fas fa-user-circle"></i> Account <i
+              class="fas fa-chevron-down text-xs ml-1"></i></button>
+          <div id="userMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 220px;">
+            <button id="loginBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <i class="fas fa-sign-in-alt mr-2 text-green-500"></i> Login
+            </button>
+            <div class="border-t my-1"></div>
+            <button id="sleepBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <i class="fas fa-bed mr-2 text-purple-500"></i> Sleep / Hibernate
+            </button>
+            <div class="border-t my-1"></div>
+            <div class="px-3 py-2">
+              <div class="text-xs font-semibold text-gray-500 mb-1">Quick Link:</div>
+              <input type="text" id="quickLinkInput" class="link-input" placeholder="Enter URL (e.g., https://google.com)">
+              <button id="openLinkBtn" class="modern-btn btn-info w-full mt-2 text-xs py-1">Open Link <i class="fas fa-external-link-alt"></i></button>
+            </div>
+            <div class="border-t my-1"></div>
+            <button id="logoutBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <i class="fas fa-sign-out-alt mr-2 text-red-500"></i> Logout
+            </button>
+          </div>
+        </div>
+
+        <div class="relative inline-block" id="themeContainer">
+          <button id="themeBtn" class="modern-btn btn-primary"><i class="fas fa-palette"></i> Themes <i
+              class="fas fa-chevron-down text-xs ml-1"></i></button>
+          <div id="themeMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 160px;">
+            <div class="theme-option" data-theme="light"><i class="fas fa-sun"></i> Light</div>
+            <div class="theme-option" data-theme="dark"><i class="fas fa-moon"></i> Dark</div>
+            <div class="theme-option" data-theme="forest"><i class="fas fa-tree"></i> Forest</div>
+            <div class="theme-option" data-theme="ocean"><i class="fas fa-water"></i> Ocean</div>
+            <div class="theme-option" data-theme="sunset"><i class="fas fa-sunset"></i> Sunset</div>
+            <div class="theme-option" data-theme="midnight"><i class="fas fa-moon"></i> Midnight</div>
+            <div class="theme-option" data-theme="rose"><i class="fas fa-heart"></i> Rose</div>
+          </div>
+        </div>
+
+        <button id="refreshBtn" class="modern-btn btn-success"><i class="fas fa-sync-alt"></i> Refresh</button>
       </div>
-      
-      <div class="relative inline-block dropdown-container" id="addColumnContainer">
-        <button id="addColumnBtn" class="icon-btn rounded-lg bg-purple-500 hover:bg-purple-600 text-white"><i class="fas fa-plus-circle"></i></button>
-        <div id="addColumnMenu" class="hidden absolute right-0 z-30 mt-2 w-72 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-3">
-          <div class="text-xs font-semibold mb-2">Add New Column</div>
-          <input type="text" id="newColumnName" placeholder="Column name" class="w-full p-2 border rounded mb-2 dark:bg-slate-700">
-          <select id="newColumnType" class="w-full p-2 border rounded mb-3 dark:bg-slate-700">
-            <option value="text">Text</option>
-            <option value="number">Number</option>
-            <option value="date">Date</option>
-          </select>
-          <button id="confirmAddColumn" class="w-full bg-purple-500 text-white py-1.5 rounded">Add Column</button>
+    </div>
+
+    <!-- Activity Log Section -->
+    <div class="border-b px-3 py-2" style="background: rgba(139, 92, 246, 0.05);">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-history text-purple-500 text-sm"></i>
+          <span class="text-xs font-semibold">Activity Log</span>
+          <span id="activityCount" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">0</span>
+        </div>
+        <button id="clearActivityBtn" class="text-xs text-gray-500 hover:text-gray-700"><i class="fas fa-trash-alt"></i> Clear</button>
+      </div>
+      <div id="activityLog" class="activity-log mt-1 max-h-24 overflow-y-auto"></div>
+    </div>
+
+    <div class="cards-container" id="cardsContainer">
+      <div id="emptyDataState" class="empty-state">
+        <i class="fas fa-table text-5xl mb-3 block"></i>
+        <span>No table structure yet!</span>
+        <div class="mt-4">
+          <button id="quickAddColumnBtn" class="modern-btn btn-purple"><i class="fas fa-plus-circle"></i>Add First Column</button>
         </div>
       </div>
-      
-      <div class="relative inline-block dropdown-container" id="removeColumnContainer">
-        <button id="removeColumnBtn" class="icon-btn rounded-lg bg-rose-500 hover:bg-rose-600 text-white"><i class="fas fa-trash-alt"></i></button>
-        <div id="removeColumnMenu" class="hidden absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white dark:bg-slate-800 shadow-lg p-2">
-          <div class="text-xs font-semibold p-2">Remove Column</div>
-          <div id="removeColumnList"></div>
+      <div id="cardsWrapper" class="hidden w-full"></div>
+    </div>
+
+    <div class="border-t px-4 py-2 flex justify-between items-center flex-shrink-0" style="background: rgba(0,0,0,0.03);">
+      <div class="flex items-center gap-3">
+        <div class="text-xs">
+          <i class="fas fa-info-circle mr-1"></i>
+          <span id="activeDbLabel">📝 Working on unsaved table</span>
         </div>
-      </div>
-      
-      <button id="refreshBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-sync-alt"></i></button>
-      <button id="themeToggle" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-moon"></i></button>
-      
-      <div class="relative inline-block dropdown-container" id="exportContainer">
-        <button id="exportBtn" class="icon-btn rounded-lg text-gray-600 hover:bg-gray-100"><i class="fas fa-download"></i></button>
-        <div id="exportMenu" class="hidden absolute right-0 z-30 mt-2 w-56 rounded-xl border bg-white shadow-lg dark:bg-slate-800 py-2">
-          <button id="exportJsonSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📄 Export JSON</button>
-          <button id="exportExcelSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📊 Export Excel</button>
-          <div class="border-t my-1"></div>
-          <label class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer flex gap-2">
-            📥 Import Excel
-            <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
-          </label>
+        <div class="relative inline-block" id="exportContainer">
+          <button id="exportBtn" class="modern-btn btn-outline"><i class="fas fa-download"></i> Export</button>
+          <div id="exportMenu" class="dropdown-menu hidden bottom-full mb-1" style="position: absolute; left: 0; bottom: 100%;">
+            <button id="exportJsonSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📄 Export JSON</button>
+            <button id="exportExcelSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📊 Export Excel</button>
+            <div class="border-t my-1"></div>
+            <label class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer flex gap-2">
+              📥 Import Excel
+              <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
+            </label>
+          </div>
         </div>
+        <button id="bulkShiftBtn" class="modern-btn btn-warning"><i class="fas fa-exchange-alt"></i> Bulk Shift</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="removeColumnBtn" class="modern-btn btn-danger"><i class="fas fa-trash-alt"></i> Remove Column</button>
+        <button id="addRowBtn" class="modern-btn btn-success"><i class="fas fa-plus"></i> Add Row</button>
+        <span id="rowCount" class="text-xs font-mono bg-gray-100 px-3 py-1 rounded-full">📋 0 rows</span>
+        <button id="showStatsBtn" class="modern-btn btn-info"><i class="fas fa-chart-bar"></i> Stats</button>
       </div>
     </div>
   </div>
 
-  <div class="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 border-b">
-    <div class="text-xs text-amber-700 flex items-center justify-between">
-      <span><i class="fas fa-pencil-alt mr-2"></i><strong>Working Table</strong> - Add columns → Add rows (auto-enters edit mode) → Fill data → Save</span>
-      <span id="tempTableStatus" class="bg-amber-200 dark:bg-amber-800 px-2 py-0.5 rounded">No columns yet</span>
-    </div>
-  </div>
-
-  <div class="table-container relative w-full overflow-auto px-1">
-    <div id="emptyDataState" class="text-center py-20 text-gray-400">
-      <i class="fas fa-table text-5xl mb-3 block"></i>
-      <span>No table structure yet!</span>
-      <div class="mt-4">
-        <button id="quickAddColumnBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
-          <i class="fas fa-plus-circle mr-2"></i>Add First Column
-        </button>
+  <!-- Smart Floating Stats Panel -->
+  <div id="statsPanel" class="stats-panel hidden">
+    <div class="stats-header" id="statsHeader">
+      <span><i class="fas fa-chart-line mr-2"></i>Column Statistics</span>
+      <div class="flex gap-2">
+        <button id="minimizeStatsBtn" class="text-white hover:text-gray-200"><i class="fas fa-minus"></i></button>
+        <button id="closeStatsBtn" class="text-white hover:text-gray-200">&times;</button>
       </div>
     </div>
-    <table id="dynamicTable" class="w-full text-sm border-separate border-spacing-0 hidden">
-      <thead class="bg-gray-50/90 dark:bg-slate-800/60 sticky top-0 z-10">
-        <tr id="tableHeaderRow" class="border-b"></tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+    <div id="statsContent" class="stats-content"></div>
   </div>
 
-  <div class="border-t px-4 py-2 flex justify-between items-center bg-gray-50/40 flex-shrink-0">
-    <div class="text-xs text-gray-500">
-      <i class="fas fa-info-circle mr-1"></i>
-      <span id="activeDbLabel">📝 Working on unsaved table</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="footerAddRowBtn" disabled class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-md btn-disabled">
-        <i class="fas fa-plus"></i> Add New Row
-      </button>
-      <span id="rowCount" class="text-xs font-mono bg-gray-100 px-3 py-1 rounded-full">📋 0 rows</span>
-    </div>
-  </div>
-</div>
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
+      authDomain: "codeae-85.firebaseapp.com",
+      databaseURL: "https://codeae-85-default-rtdb.firebaseio.com",
+      projectId: "codeae-85",
+      storageBucket: "codeae-85.firebasestorage.app",
+      messagingSenderId: "855701949624",
+      appId: "1:855701949624:web:2cf2ea8802a2d372f3384d"
+    };
 
-<script>
-  // Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
-    authDomain: "codeae-85.firebaseapp.com",
-    databaseURL: "https://codeae-85-default-rtdb.firebaseio.com",
-    projectId: "codeae-85",
-    storageBucket: "codeae-85.firebasestorage.app",
-    messagingSenderId: "855701949624",
-    appId: "1:855701949624:web:2cf2ea8802a2d372f3384d"
-  };
-  
-  let firebaseDB = null;
-  try {
-    firebase.initializeApp(firebaseConfig);
-    firebaseDB = firebase.database();
-    console.log("✅ Firebase connected!");
-  } catch(e) { console.warn(e); }
+    let firebaseDB = null;
+    let currentLoadedDbName = null;
+    let isLoading = false;
+    let selectedRows = new Set();
+    let starredRows = new Set();
+    let rowComments = new Map();
+    let rowPriorities = new Map();
+    let activityLogs = [];
+    let isLoggedIn = false;
 
-  // DATA STRUCTURE
-  let workingTableColumns = []; // { id, name, type, visible }
-  let workingTableRows = [];    // [{ colId: value, colId2: value }]
-  let savedDatabases = {};
-  let currentSort = { columnId: null, order: "asc" };
-  let editingRowIndex = null;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      firebaseDB = firebase.database();
+      console.log("Firebase initialized");
+    } catch (e) { console.warn(e); }
 
-  function genColId() { return `col_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`; }
+    let workingTableColumns = [];
+    let workingTableRows = [];
+    let savedDatabases = {};
+    let editingRowIndex = null;
+    let originalRowData = null;
 
-  // Convert working table to Firebase nested structure
-  function workingTableToFirebaseStructure(dbName, columns, rows) {
-    const result = {};
-    result[dbName] = {};
-    
-    if (rows.length === 0) {
-      const emptyRowKey = `row_1`;
-      result[dbName][emptyRowKey] = {};
-      columns.forEach(col => {
-        result[dbName][emptyRowKey][col.name] = {
-          type: col.type,
-          visible: col.visible,
-          value: col.type === "number" ? 0 : ""
-        };
-      });
-    } else {
-      rows.forEach((row, rowIndex) => {
+    function genColId() { return `col_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`; }
+
+    function getCurrentTimestamp() {
+      const now = new Date();
+      return now.toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function getISOTimestamp() {
+      return new Date().toISOString();
+    }
+
+    async function addActivityLog(action, details, type = 'info') {
+      const timestamp = getCurrentTimestamp();
+      const isoTime = getISOTimestamp();
+      const log = { timestamp, isoTime, action, details, type };
+      activityLogs.unshift(log);
+      if (activityLogs.length > 100) activityLogs.pop();
+      renderActivityLog();
+
+      if (firebaseDB) {
+        try {
+          const activityRef = firebaseDB.ref('activity_logs');
+          const newLogRef = activityRef.push();
+          await newLogRef.set(log);
+        } catch (e) { console.warn('Failed to save activity log to Firebase:', e); }
+      }
+    }
+
+    async function loadActivityLogsFromFirebase() {
+      if (!firebaseDB) return;
+      try {
+        const snapshot = await firebaseDB.ref('activity_logs').limitToLast(50).get();
+        if (snapshot.exists()) {
+          const logs = Object.values(snapshot.val());
+          logs.sort((a, b) => new Date(b.isoTime) - new Date(a.isoTime));
+          activityLogs = logs;
+          renderActivityLog();
+        }
+      } catch (e) { console.warn('Failed to load activity logs:', e); }
+    }
+
+    function renderActivityLog() {
+      const container = document.getElementById('activityLog');
+      const countSpan = document.getElementById('activityCount');
+      if (!container) return;
+
+      if (activityLogs.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 text-xs py-2">No activities yet</div>';
+        countSpan.textContent = '0';
+        return;
+      }
+
+      countSpan.textContent = activityLogs.length;
+      let html = '';
+      for (let log of activityLogs.slice(0, 20)) {
+        const icon = log.type === 'success' ? 'fa-check-circle' : (log.type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
+        const color = log.type === 'success' ? 'text-green-500' : (log.type === 'error' ? 'text-red-500' : 'text-purple-500');
+        html += `<div class="activity-item">
+          <span class="activity-time">[${log.timestamp}]</span>
+          <i class="fas ${icon} ${color} text-xs mx-1"></i>
+          <span class="text-xs"><strong>${escapeHtml(log.action)}</strong>: ${escapeHtml(log.details)}</span>
+        </div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function formatDate(value, format) {
+      if (!value) return '';
+      let date;
+      if (typeof value === 'string') {
+        if (value.includes('/')) {
+          let parts = value.split('/');
+          if (format === 'DD/MM/YYYY') date = new Date(parts[2], parts[1] - 1, parts[0]);
+          else if (format === 'MM/DD/YYYY') date = new Date(parts[2], parts[0] - 1, parts[1]);
+          else date = new Date(value);
+        } else if (value.includes('-')) {
+          let parts = value.split('-');
+          if (format === 'DD-MM-YYYY') date = new Date(parts[2], parts[1] - 1, parts[0]);
+          else if (format === 'YYYY-MM-DD') date = new Date(parts[0], parts[1] - 1, parts[2]);
+          else date = new Date(value);
+        } else {
+          date = new Date(value);
+        }
+      } else {
+        date = new Date(value);
+      }
+
+      if (isNaN(date.getTime())) return value;
+
+      let day = date.getDate().toString().padStart(2, '0');
+      let month = (date.getMonth() + 1).toString().padStart(2, '0');
+      let year = date.getFullYear();
+
+      if (format === 'DD/MM/YYYY') return `${day}/${month}/${year}`;
+      if (format === 'DD-MM-YYYY') return `${day}-${month}-${year}`;
+      if (format === 'MM/DD/YYYY') return `${month}/${day}/${year}`;
+      if (format === 'YYYY-MM-DD') return `${year}-${month}-${day}`;
+      return value;
+    }
+
+    function workingTableToFirebaseStructure(dbName, columns, rows) {
+      const result = {};
+      result[dbName] = {};
+      const processRows = rows.length === 0 ? [{}] : rows;
+      processRows.forEach((row, rowIndex) => {
         const rowKey = `row_${rowIndex + 1}`;
         result[dbName][rowKey] = {};
         columns.forEach(col => {
+          let value = row[col.id];
+          if (col.type === 'date' && col.dateFormat && value) {
+            value = formatDate(value, col.dateFormat);
+          }
           result[dbName][rowKey][col.name] = {
             type: col.type,
-            visible: col.visible,
-            value: row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : "")
+            options: col.options || [],
+            dateFormat: col.dateFormat || null,
+            value: value !== undefined && value !== null ? value : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : ""))
           };
         });
       });
-    }
-    return result;
-  }
-  
-  // Convert Firebase nested structure back to working table format
-  function firebaseStructureToWorkingTable(firebaseData, dbName) {
-    const dbData = firebaseData[dbName];
-    if (!dbData) return { columns: [], rows: [] };
-    
-    const rowKeys = Object.keys(dbData).filter(key => key.startsWith('row_'));
-    if (rowKeys.length === 0) return { columns: [], rows: [] };
-    
-    const firstRow = dbData[rowKeys[0]];
-    const columnNames = Object.keys(firstRow);
-    
-    const columns = columnNames.map((colName, idx) => ({
-      id: genColId(),
-      name: colName,
-      type: firstRow[colName].type || "text",
-      visible: firstRow[colName].visible !== false
-    }));
-    
-    const rows = [];
-    rowKeys.forEach(rowKey => {
-      const rowData = dbData[rowKey];
-      const newRow = {};
-      columns.forEach(col => {
-        if (rowData[col.name]) {
-          newRow[col.id] = rowData[col.name].value;
-        } else {
-          newRow[col.id] = col.type === "number" ? 0 : "";
-        }
-      });
-      rows.push(newRow);
-    });
-    
-    return { columns, rows };
-  }
-
-  // Save to Firebase
-  async function saveToFirebase() {
-    if (!firebaseDB) return;
-    try {
-      await firebaseDB.ref('databases').set(savedDatabases);
-      console.log("💾 Saved to Firebase");
-    } catch(error) { console.error("Firebase error:", error); }
-  }
-
-  async function loadFromFirebase() {
-    if (!firebaseDB) return;
-    try {
-      const snapshot = await firebaseDB.ref('databases').get();
-      if (snapshot.exists()) {
-        savedDatabases = snapshot.val();
-        console.log("📥 Loaded from Firebase:", savedDatabases);
-      } else {
-        savedDatabases = {};
-      }
-      renderDatabaseList();
-    } catch(error) { console.error("Load error:", error); }
-  }
-
-  function updateSaveButtonState() {
-    const saveBtn = document.getElementById("saveDbBtn");
-    const hasColumns = workingTableColumns.length > 0;
-    
-    if (hasColumns) {
-      saveBtn.disabled = false;
-      saveBtn.classList.remove("btn-disabled");
-      const preview = document.getElementById("currentColumnsPreview");
-      if (preview) {
-        preview.innerHTML = `<strong>${workingTableColumns.length} column(s):</strong> ${workingTableColumns.map(c => c.name).join(', ')}<br><small>${workingTableRows.length} row(s) will be saved</small>`;
-      }
-      document.getElementById("tempTableStatus").innerHTML = `${workingTableColumns.length} col(s) | ${workingTableRows.length} row(s)`;
-    } else {
-      saveBtn.disabled = true;
-      saveBtn.classList.add("btn-disabled");
-      document.getElementById("tempTableStatus").innerHTML = "No columns yet";
-    }
-  }
-
-  // RENDER TABLE WITH INPUT FIELDS FOR EDITING ROWS
-  function renderTable() {
-    const emptyState = document.getElementById("emptyDataState");
-    const tableElem = document.getElementById("dynamicTable");
-    const addRowBtn = document.getElementById("footerAddRowBtn");
-    
-    if (workingTableColumns.length === 0) {
-      emptyState.classList.remove("hidden");
-      tableElem.classList.add("hidden");
-      addRowBtn.disabled = true;
-      addRowBtn.classList.add("btn-disabled");
-      document.getElementById("rowCount").innerText = `📋 0 rows`;
-      return;
-    }
-    
-    emptyState.classList.add("hidden");
-    tableElem.classList.remove("hidden");
-    addRowBtn.disabled = false;
-    addRowBtn.classList.remove("btn-disabled");
-
-    // Build header
-    let headerHtml = `<th class="h-12 px-3 text-center font-semibold w-12 bg-gray-50/90">#</th>`;
-    workingTableColumns.forEach(col => {
-      const sortIndicator = (currentSort.columnId === col.id) ? (currentSort.order === "asc" ? " ↑" : " ↓") : "";
-      headerHtml += `<th class="h-12 px-3 text-left font-semibold cursor-pointer hover:text-purple-600" onclick="window.handleSort('${col.id}')">${escapeHtml(col.name)}${sortIndicator}</th>`;
-    });
-    headerHtml += `<th class="h-12 px-3 text-center font-semibold w-56 bg-gray-50/90">Actions</th>`;
-    document.getElementById("tableHeaderRow").innerHTML = headerHtml;
-
-    if (workingTableRows.length === 0) {
-      document.getElementById("tableBody").innerHTML = `<tr><td colspan="${workingTableColumns.length + 2}" class="text-center py-10 text-gray-400">📭 No rows. Click "Add New Row" to insert data. The new row will automatically show input fields!</div></td>`;
-      document.getElementById("rowCount").innerText = `📊 0 records`;
-      return;
+      return result;
     }
 
-    // Build rows with INPUT FIELDS for rows in edit mode
-    let tbodyHtml = "";
-    for(let idx = 0; idx < workingTableRows.length; idx++) {
-      const row = workingTableRows[idx];
-      const isEditing = (editingRowIndex === idx);
-      const rowClass = isEditing ? 'editing-row' : '';
-      tbodyHtml += `<tr class="border-b ${rowClass}">`;
-      tbodyHtml += `<td class="px-3 py-2 text-center text-xs font-mono">${idx+1}${isEditing ? ' <span class="edit-mode-badge"><i class="fas fa-edit"></i> EDITING</span>' : ''}</td>`;
-      
-      // Render each cell - INPUT FIELDS if editing, otherwise display text
-      for (let col of workingTableColumns) {
-        let rawValue = row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : "");
-        if (isEditing) {
-          // EDITING MODE - show INPUT FIELDS
-          if (col.type === "date") {
-            let dateVal = rawValue && typeof rawValue === 'string' && rawValue.match(/^\d{4}-\d{2}-\d{2}/) ? rawValue.slice(0,10) : "";
-            tbodyHtml += `<td class="px-3 py-2"><input type="date" value="${escapeHtml(dateVal)}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
-          } else if (col.type === "number") {
-            tbodyHtml += `<td class="px-3 py-2"><input type="number" value="${rawValue}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)"></td>`;
+    function firebaseStructureToWorkingTable(firebaseData, dbName) {
+      const dbData = firebaseData[dbName];
+      if (!dbData) return { columns: [], rows: [] };
+      const rowKeys = Object.keys(dbData).filter(key => key.startsWith('row_')).sort();
+      if (rowKeys.length === 0) return { columns: [], rows: [] };
+      const firstRow = dbData[rowKeys[0]];
+      const columnNames = Object.keys(firstRow);
+      const columns = columnNames.map((colName) => ({
+        id: genColId(),
+        name: colName,
+        type: firstRow[colName].type || "text",
+        options: firstRow[colName].options || [],
+        dateFormat: firstRow[colName].dateFormat || null
+      }));
+      const rows = [];
+      rowKeys.forEach(rowKey => {
+        const rowData = dbData[rowKey];
+        const newRow = {};
+        columns.forEach(col => {
+          if (rowData[col.name]) {
+            newRow[col.id] = rowData[col.name].value;
           } else {
-            tbodyHtml += `<td class="px-3 py-2"><input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)" placeholder="Enter ${col.name}"></td>`;
+            newRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : "");
           }
-        } else {
-          // VIEW MODE - show text
-          let display = (rawValue === "" || rawValue === undefined) ? "—" : rawValue;
-          tbodyHtml += `<td class="px-3 py-2"><div class="non-editable-cell">${escapeHtml(String(display))}</div></td>`;
-        }
-      }
-      
-      // ACTION BUTTONS
-      tbodyHtml += `<td class="px-3 py-2 text-center">
-        <div class="action-buttons">
-          ${!isEditing ? 
-            `<button class="action-btn bg-indigo-100 hover:bg-indigo-200 text-indigo-700" onclick="window.startEditRow(${idx})" title="Edit Row">
-               <i class="fas fa-edit"></i> Edit
-             </button>` : 
-            `<button class="action-btn bg-green-100 hover:bg-green-200 text-green-700" onclick="window.saveEditRow(${idx})" title="Save Row">
-               <i class="fas fa-save"></i> Save
-             </button>`
-          }
-          <button class="action-btn bg-rose-100 hover:bg-rose-200 text-rose-700" onclick="window.deleteRow(${idx})" title="Delete Row">
-            <i class="fas fa-trash"></i> Delete
-          </button>
-          <button class="action-btn bg-blue-100 hover:bg-blue-200 text-blue-700" onclick="window.showShiftMenu(${idx})" title="Shift Row to Another DB">
-            <i class="fas fa-exchange-alt"></i> Shift
-          </button>
-        </div>
-        <div id="shiftMenu-${idx}" class="hidden absolute right-0 mt-1 z-30 w-56 rounded-lg border bg-white shadow-xl dark:bg-slate-800 p-2">
-          <div class="text-xs font-bold mb-2">Shift row to:</div>
-          <div id="shiftTargets-${idx}"></div>
-        </div>
-       </td>`;
-      tbodyHtml += `</tr>`;
-    }
-    document.getElementById("tableBody").innerHTML = tbodyHtml;
-    document.getElementById("rowCount").innerText = `📊 ${workingTableRows.length} records`;
-    
-    // Build shift menus for each row
-    for(let idx = 0; idx < workingTableRows.length; idx++) {
-      const shiftContainer = document.getElementById(`shiftTargets-${idx}`);
-      if (shiftContainer && Object.keys(savedDatabases).length > 0) {
-        let shiftHtml = '';
-        for (let [dbId, db] of Object.entries(savedDatabases)) {
-          shiftHtml += `<button class="shift-target-btn w-full text-left px-2 py-1 text-xs hover:bg-gray-100 rounded mb-1" data-db-id="${dbId}" data-row-idx="${idx}">
-            <i class="fas fa-database mr-1"></i> ${escapeHtml(dbId)}
-          </button>`;
-        }
-        shiftContainer.innerHTML = shiftHtml;
-        
-        // Attach shift event listeners
-        document.querySelectorAll(`.shift-target-btn`).forEach(btn => {
-          btn.onclick = (e) => {
-            e.stopPropagation();
-            const targetDbId = btn.getAttribute('data-db-id');
-            const rowIdx = parseInt(btn.getAttribute('data-row-idx'));
-            shiftRowToDatabase(rowIdx, targetDbId);
-            document.getElementById(`shiftMenu-${rowIdx}`).classList.add('hidden');
-          };
         });
-      }
+        rows.push(newRow);
+      });
+      return { columns, rows };
     }
-  }
 
-  // ROW ACTION FUNCTIONS
-  window.startEditRow = function(rowIndex) {
-    editingRowIndex = rowIndex;
-    renderTable();
-    // Focus on first input after render
-    setTimeout(() => {
-      const firstInput = document.querySelector(`.editing-row .input-editable`);
-      if (firstInput) firstInput.focus();
-    }, 50);
-    showToast(`✏️ Editing row ${rowIndex+1} - fill in the input fields then click Save`, "info");
-  };
-  
-  window.saveEditRow = function(rowIndex) {
-    editingRowIndex = null;
-    renderTable();
-    updateSaveButtonState();
-    showToast(`✅ Row ${rowIndex+1} saved successfully`, "success");
-  };
-  
-  window.deleteRow = function(rowIndex) {
-    if(confirm(`Delete row ${rowIndex+1}? This action cannot be undone.`)) {
-      workingTableRows.splice(rowIndex, 1);
-      if(editingRowIndex !== null && editingRowIndex >= workingTableRows.length) {
-        editingRowIndex = null;
-      }
-      renderTable();
-      updateSaveButtonState();
-      showToast(`🗑️ Row ${rowIndex+1} deleted`, "success");
-    }
-  };
-  
-  window.showShiftMenu = function(rowIndex) {
-    // Hide all other shift menus
-    document.querySelectorAll('[id^="shiftMenu-"]').forEach(menu => {
-      menu.classList.add('hidden');
-    });
-    const menu = document.getElementById(`shiftMenu-${rowIndex}`);
-    if (menu) {
-      menu.classList.toggle('hidden');
-    }
-  };
-  
-  function shiftRowToDatabase(rowIndex, targetDbName) {
-    if (!savedDatabases[targetDbName]) {
-      showToast("Target database not found", "error");
-      return;
-    }
-    
-    const sourceRow = workingTableRows[rowIndex];
-    const targetDb = savedDatabases[targetDbName];
-    
-    // Convert target DB structure to understand its columns
-    const { columns: targetColumns } = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
-    
-    // Create a new row for target database with matching column names
-    const shiftedRow = {};
-    targetColumns.forEach(col => {
-      // Try to find matching column by name
-      const matchingSourceCol = workingTableColumns.find(sc => sc.name.toLowerCase() === col.name.toLowerCase());
-      if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) {
-        shiftedRow[col.id] = sourceRow[matchingSourceCol.id];
-      } else {
-        shiftedRow[col.id] = col.type === "number" ? 0 : "";
-      }
-    });
-    
-    // Convert target DB from Firebase format to working format
-    const targetWorking = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
-    targetWorking.rows.push(shiftedRow);
-    
-    // Convert back to Firebase format
-    const newFirebaseStructure = workingTableToFirebaseStructure(targetDbName, targetWorking.columns, targetWorking.rows);
-    savedDatabases[targetDbName] = newFirebaseStructure[targetDbName];
-    
-    saveToFirebase();
-    renderDatabaseList();
-    showToast(`🚀 Row shifted to "${targetDbName}"`, "success");
-  }
-  
-  window.updateCellValue = function(rowIdx, colId, val) {
-    if(editingRowIndex === rowIdx) {
-      const col = workingTableColumns.find(c => c.id === colId);
-      if(col && col.type === "number") {
-        const num = parseFloat(val);
-        workingTableRows[rowIdx][colId] = isNaN(num) ? 0 : num;
-      } else {
-        workingTableRows[rowIdx][colId] = val;
-      }
-    }
-  };
-  
-  window.handleSort = function(colId) {
-    if(workingTableRows.length === 0) return;
-    const colDef = workingTableColumns.find(c => c.id === colId);
-    if(!colDef) return;
-    
-    if(currentSort.columnId === colId) {
-      currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
-    } else {
-      currentSort.columnId = colId;
-      currentSort.order = "asc";
-    }
-    
-    workingTableRows.sort((a, b) => {
-      let valA = a[colId] !== undefined ? a[colId] : (colDef.type === "number" ? 0 : "");
-      let valB = b[colId] !== undefined ? b[colId] : (colDef.type === "number" ? 0 : "");
-      
-      if(colDef.type === "number") {
-        valA = Number(valA) || 0;
-        valB = Number(valB) || 0;
-        return currentSort.order === "asc" ? valA - valB : valB - valA;
-      } else {
-        valA = String(valA).toLowerCase();
-        valB = String(valB).toLowerCase();
-        if(valA < valB) return currentSort.order === "asc" ? -1 : 1;
-        if(valA > valB) return currentSort.order === "asc" ? 1 : -1;
-        return 0;
-      }
-    });
-    renderTable();
-    showToast(`📊 Sorted by ${colDef.name} ${currentSort.order === "asc" ? "↑" : "↓"}`, "info");
-  };
-
-  // ADD NEW ROW - AUTOMATICALLY ENTERS EDIT MODE!
-  function addNewRow() {
-    if (workingTableColumns.length === 0) {
-      showToast("❌ Add columns first", "error");
-      return;
-    }
-    const newRow = {};
-    workingTableColumns.forEach(col => {
-      newRow[col.id] = col.type === "number" ? 0 : "";
-    });
-    workingTableRows.push(newRow);
-    // IMPORTANT: Auto-enter edit mode on the new row
-    editingRowIndex = workingTableRows.length - 1;
-    renderTable();
-    updateSaveButtonState();
-    showToast(`✨ New row added! The row is now in EDIT MODE - fill in the input fields and click Save`, "success");
-    
-    // Focus on first input after render
-    setTimeout(() => {
-      const firstInput = document.querySelector(`.editing-row .input-editable`);
-      if (firstInput) firstInput.focus();
-    }, 100);
-  }
-
-  function addColumnToWorkingTable() {
-    const colName = document.getElementById("newColumnName").value.trim();
-    const colType = document.getElementById("newColumnType").value;
-    if(!colName) {
-      showToast("Enter column name", "error");
-      return;
-    }
-    
-    const newCol = { id: genColId(), name: colName, type: colType, visible: true };
-    workingTableColumns.push(newCol);
-    
-    // Add this column to all existing rows
-    workingTableRows.forEach(row => {
-      row[newCol.id] = colType === "number" ? 0 : "";
-    });
-    
-    document.getElementById("newColumnName").value = "";
-    document.getElementById("addColumnMenu").classList.add("hidden");
-    renderTable();
-    updateSaveButtonState();
-    showToast(`➕ Column "${colName}" added! You can now add rows.`, "success");
-  }
-
-  function removeColumnFromWorkingTable(colId) {
-    const col = workingTableColumns.find(c => c.id === colId);
-    if(!col) return;
-    if(confirm(`Remove column "${col.name}"? This will delete all data in this column.`)) {
-      workingTableColumns = workingTableColumns.filter(c => c.id !== colId);
-      workingTableRows.forEach(row => delete row[colId]);
-      if(editingRowIndex !== null) editingRowIndex = null;
-      renderTable();
-      updateSaveButtonState();
-      showToast(`🗑️ Removed column "${col.name}"`, "success");
-    }
-  }
-  
-  function updateRemoveList() {
-    const container = document.getElementById("removeColumnList");
-    if(!container) return;
-    if(workingTableColumns.length === 0) {
-      container.innerHTML = "<div class='p-2 text-gray-400'>No columns to remove</div>";
-      return;
-    }
-    let html = '';
-    workingTableColumns.forEach(col => {
-      html += `<button class="remove-col-item w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex justify-between" data-col-id="${col.id}">
-        <span>${escapeHtml(col.name)}</span>
-        <i class="fas fa-times text-rose-400"></i>
-      </button>`;
-    });
-    container.innerHTML = html;
-    document.querySelectorAll('.remove-col-item').forEach(btn => {
-      btn.onclick = () => {
-        removeColumnFromWorkingTable(btn.getAttribute('data-col-id'));
-        document.getElementById("removeColumnMenu").classList.add("hidden");
-      };
-    });
-  }
-  
-  function saveCurrentTableAsDatabase() {
-    const dbName = document.getElementById("newDbNameInput").value.trim();
-    if(!dbName) {
-      showToast("Enter database name", "error");
-      return;
-    }
-    if(workingTableColumns.length === 0) {
-      showToast("No columns to save! Add columns first.", "error");
-      return;
-    }
-    
-    const firebaseStructure = workingTableToFirebaseStructure(dbName, workingTableColumns, workingTableRows);
-    savedDatabases[dbName] = firebaseStructure[dbName];
-    
-    saveToFirebase();
-    renderDatabaseList();
-    document.getElementById("saveDbMenu").classList.add("hidden");
-    document.getElementById("newDbNameInput").value = "";
-    showToast(`✅ Database "${dbName}" saved to Firebase with ${workingTableColumns.length} columns and ${workingTableRows.length} rows!`, "success");
-  }
-
-  function loadSavedDatabase(dbName) {
-    if(savedDatabases[dbName]) {
-      const { columns, rows } = firebaseStructureToWorkingTable({ [dbName]: savedDatabases[dbName] }, dbName);
-      workingTableColumns = columns;
-      workingTableRows = rows;
-      editingRowIndex = null;
-      currentSort = { columnId: null, order: "asc" };
-      renderTable();
-      updateSaveButtonState();
-      document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
-      showToast(`📂 Loaded database "${dbName}" into working table`, "success");
-    }
-  }
-  
-  function deleteSavedDatabase(dbName) {
-    if(confirm(`Delete database "${dbName}" permanently from Firebase?`)) {
-      delete savedDatabases[dbName];
-      saveToFirebase();
-      renderDatabaseList();
-      showToast(`🗑️ Database "${dbName}" deleted from Firebase`, "success");
-    }
-  }
-  
-  function renderDatabaseList() {
-    const container = document.getElementById("databaseListContainer");
-    if(!container) return;
-    if(Object.keys(savedDatabases).length === 0) {
-      container.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">No saved databases yet. Create one first!</div>';
-      return;
-    }
-    let html = '';
-    for(let [dbName, db] of Object.entries(savedDatabases)){
-      html += `<div class="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-50">
-        <button class="db-switch-item flex-1 text-left text-sm" data-db-name="${dbName}">
-          <i class="fas fa-database mr-2 text-indigo-500"></i>${escapeHtml(dbName)}
-        </button>
-        <button class="db-delete-btn text-rose-500 hover:text-rose-700 text-xs px-2" data-db-name="${dbName}" title="Delete">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>`;
-    }
-    container.innerHTML = html;
-    
-    document.querySelectorAll('.db-switch-item').forEach(btn => {
-      btn.onclick = () => {
-        loadSavedDatabase(btn.getAttribute('data-db-name'));
-        document.getElementById("dbSwitchMenu").classList.add("hidden");
-      };
-    });
-    document.querySelectorAll('.db-delete-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        deleteSavedDatabase(btn.getAttribute('data-db-name'));
-        document.getElementById("dbSwitchMenu").classList.add("hidden");
-      };
-    });
-  }
-
-  // Excel Import
-  function importExcelAsNewDatabase(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    async function saveToFirebase() {
+      if (!firebaseDB) return false;
       try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
-        if(!jsonData.length) {
-          alert("Empty spreadsheet.");
-          return;
+        await firebaseDB.ref('databases').set(savedDatabases);
+        await addActivityLog('Save to Firebase', 'All databases saved successfully', 'success');
+        return true;
+      } catch (error) {
+        await addActivityLog('Save Error', error.message, 'error');
+        return false;
+      }
+    }
+
+    async function loadFromFirebase() {
+      if (!firebaseDB || isLoading) return;
+      isLoading = true;
+      try {
+        const snapshot = await firebaseDB.ref('databases').get();
+        if (snapshot.exists()) savedDatabases = snapshot.val();
+        else savedDatabases = {};
+        await addActivityLog('Load from Firebase', `Loaded ${Object.keys(savedDatabases).length} databases`, 'success');
+        return true;
+      } catch (error) { return false; }
+      finally { isLoading = false; }
+    }
+
+    async function saveCurrentWorkingTableToFirebase() {
+      if (!currentLoadedDbName) { await addActivityLog('Save Error', 'No database loaded', 'error'); return false; }
+      const firebaseStructure = workingTableToFirebaseStructure(currentLoadedDbName, workingTableColumns, workingTableRows);
+      savedDatabases[currentLoadedDbName] = firebaseStructure[currentLoadedDbName];
+      const success = await saveToFirebase();
+      if (success) await addActivityLog('Save Database', `Saved "${currentLoadedDbName}" with ${workingTableRows.length} rows`, 'success');
+      return success;
+    }
+
+    // Create New Database - Start Fresh
+    function createNewDatabase() {
+      const dbName = prompt("Enter new database name:", "MyNewDatabase");
+      if (!dbName) return;
+      
+      workingTableColumns = [];
+      workingTableRows = [];
+      currentLoadedDbName = null;
+      editingRowIndex = null;
+      selectedRows.clear();
+      starredRows.clear();
+      rowComments.clear();
+      rowPriorities.clear();
+      
+      renderCards();
+      updateSaveButtonState();
+      document.getElementById("activeDbLabel").innerHTML = `📝 Creating new database: ${escapeHtml(dbName)} - Add columns to start`;
+      addActivityLog('Create Database', `Started creating new database "${dbName}"`, 'success');
+      showToast(`Creating new database "${dbName}". Add columns to get started!`, "success");
+      
+      setTimeout(() => {
+        document.getElementById("addColumnBtn").click();
+      }, 500);
+    }
+
+    // Load Existing Database
+    function loadExistingDatabase() {
+      document.getElementById("dbSwitchBtn").click();
+    }
+
+    // Sleep/Hibernate Mode
+    let isSleeping = false;
+    function sleepMode() {
+      if (isSleeping) return;
+      isSleeping = true;
+      document.body.classList.add('sleep-mode');
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'sleep-overlay';
+      overlay.id = 'sleepOverlay';
+      overlay.innerHTML = `
+        <div class="sleep-message">
+          <i class="fas fa-bed"></i>
+          <h2>Hibernate Mode</h2>
+          <p>The application is in sleep mode. Click below to wake up.</p>
+          <button class="wake-btn" id="wakeBtn">Wake Up <i class="fas fa-sun"></i></button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      document.getElementById('wakeBtn').onclick = () => {
+        document.body.classList.remove('sleep-mode');
+        overlay.remove();
+        isSleeping = false;
+        addActivityLog('System', 'Woke up from sleep mode', 'info');
+        showToast('Welcome back! System is awake.', 'success');
+      };
+      
+      addActivityLog('System', 'Entered sleep/hibernate mode', 'info');
+    }
+
+    // Login Modal
+    function showLoginModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'login-modal-overlay';
+      overlay.id = 'loginOverlay';
+      overlay.innerHTML = `
+        <div class="login-modal">
+          <h2><i class="fas fa-lock mr-2"></i>Login Required</h2>
+          <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
+          <input type="password" id="loginPassword" placeholder="Password">
+          <div id="loginError" class="login-error"></div>
+          <button id="loginSubmitBtn" class="modern-btn btn-primary w-full">Login <i class="fas fa-arrow-right"></i></button>
+          <button id="loginCancelBtn" class="modern-btn btn-outline w-full mt-2">Cancel</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      document.getElementById('loginSubmitBtn').onclick = () => {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('loginError');
+        
+        if (username === 'amir' && password === '1') {
+          isLoggedIn = true;
+          errorDiv.innerHTML = '<div class="login-success"><i class="fas fa-check-circle"></i> Login successful!</div>';
+          addActivityLog('Login', 'User amir logged in successfully', 'success');
+          showToast('Login successful!', 'success');
+          setTimeout(() => {
+            overlay.remove();
+          }, 1000);
+        } else {
+          errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid username or password';
+          addActivityLog('Login Failed', 'Failed login attempt', 'error');
         }
-        
-        const headers = Object.keys(jsonData[0]);
-        const columns = headers.map((h, idx) => ({
-          id: genColId(),
-          name: h,
-          type: "text",
-          visible: true
-        }));
-        
-        const rows = [];
-        for(let row of jsonData) {
-          const newRow = {};
-          columns.forEach(col => {
-            newRow[col.id] = row[col.name] !== undefined ? row[col.name] : "";
-          });
-          rows.push(newRow);
+      };
+      
+      document.getElementById('loginCancelBtn').onclick = () => overlay.remove();
+    }
+
+    // Open Link
+    function openLink() {
+      const linkInput = document.getElementById('quickLinkInput');
+      let url = linkInput.value.trim();
+      if (!url) {
+        showToast('Please enter a URL', 'error');
+        return;
+      }
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      window.open(url, '_blank');
+      addActivityLog('Open Link', `Opened: ${url}`, 'info');
+      showToast(`Opening: ${url}`, 'success');
+    }
+
+    function updateSaveButtonState() {
+      const saveBtn = document.getElementById("saveDbBtn");
+      const hasColumns = workingTableColumns.length > 0;
+      if (hasColumns) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove("btn-disabled");
+        const preview = document.getElementById("currentColumnsPreview");
+        if (preview) {
+          preview.innerHTML = `<strong>${workingTableColumns.length} column(s):</strong> ${workingTableColumns.map(c => c.name).join(', ')}<br><small>${workingTableRows.length} row(s) will be saved</small>`;
         }
-        
-        const dbName = file.name.split('.')[0] || "Imported Data";
-        const firebaseStructure = {};
-        firebaseStructure[dbName] = {};
-        
-        rows.forEach((row, rowIndex) => {
-          const rowKey = `row_${rowIndex + 1}`;
-          firebaseStructure[dbName][rowKey] = {};
-          columns.forEach(col => {
-            firebaseStructure[dbName][rowKey][col.name] = {
-              type: col.type,
-              visible: col.visible,
-              value: row[col.id]
-            };
+      } else {
+        saveBtn.disabled = true;
+        saveBtn.classList.add("btn-disabled");
+      }
+    }
+
+    function showConfirmModal(message, onConfirm) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-content">
+          <p class="mb-4 text-sm">${message}</p>
+          <div class="flex gap-2 justify-end">
+            <button class="cancel-btn modern-btn btn-secondary">Cancel</button>
+            <button class="confirm-btn modern-btn btn-danger">Confirm</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('.cancel-btn').onclick = () => overlay.remove();
+      overlay.querySelector('.confirm-btn').onclick = () => { overlay.remove(); onConfirm(); };
+    }
+
+    function showAddRowModal() {
+      if (workingTableColumns.length === 0) {
+        addActivityLog('Add Row Error', 'Add columns first', 'error');
+        showToast("Add columns first", "error");
+        return;
+      }
+      
+      const newRow = {};
+      workingTableColumns.forEach(col => newRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : (col.type === "multi-select" ? [] : "")));
+      workingTableRows.unshift(newRow);
+      updatePriority(0);
+      editingRowIndex = 0;
+      renderCards();
+      if (currentLoadedDbName) saveCurrentWorkingTableToFirebase();
+      addActivityLog('Add Row', `Added new row to current database at top position`, 'success');
+      setTimeout(() => { const firstInput = document.querySelector('.input-editable-card'); if (firstInput) firstInput.focus(); }, 100);
+    }
+
+    function showRemoveColumnModal() {
+      if (workingTableColumns.length === 0) {
+        addActivityLog('Remove Column Error', 'No columns to remove', 'error');
+        showToast("No columns to remove", "error");
+        return;
+      }
+      const colName = prompt(`Enter column name to remove:\n\nAvailable: ${workingTableColumns.map(c => c.name).join(', ')}`);
+      if (colName) {
+        const colToRemove = workingTableColumns.find(c => c.name.toLowerCase() === colName.toLowerCase());
+        if (colToRemove) {
+          showConfirmModal(`Remove column "${colToRemove.name}"? This will delete all data in this column.`, async () => {
+            workingTableColumns = workingTableColumns.filter(c => c.id !== colToRemove.id);
+            workingTableRows.forEach(row => delete row[colToRemove.id]);
+            if (editingRowIndex !== null) editingRowIndex = null;
+            renderCards();
+            if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+            addActivityLog('Remove Column', `Removed column "${colToRemove.name}"`, 'success');
+            showToast(`Removed "${colToRemove.name}"`, "success");
           });
+        } else {
+          showToast(`Column "${colName}" not found`, "error");
+        }
+      }
+    }
+
+    function updatePriority(rowIndex) {
+      rowPriorities.set(rowIndex, Date.now());
+      reorderRowsByPriority();
+    }
+
+    function reorderRowsByPriority() {
+      const rowsWithPriority = workingTableRows.map((row, idx) => ({
+        row,
+        originalIndex: idx,
+        priority: rowPriorities.get(idx) || 0
+      }));
+      rowsWithPriority.sort((a, b) => b.priority - a.priority);
+      const newRows = rowsWithPriority.map(item => item.row);
+      const newPriorities = new Map();
+      const newComments = new Map();
+      const newStarred = new Set();
+      const newSelected = new Set();
+
+      rowsWithPriority.forEach((item, newIdx) => {
+        const oldIdx = item.originalIndex;
+        if (rowPriorities.has(oldIdx)) newPriorities.set(newIdx, rowPriorities.get(oldIdx));
+        if (rowComments.has(oldIdx)) newComments.set(newIdx, rowComments.get(oldIdx));
+        if (starredRows.has(oldIdx)) newStarred.add(newIdx);
+        if (selectedRows.has(oldIdx)) newSelected.add(newIdx);
+      });
+
+      workingTableRows = newRows;
+      rowPriorities = newPriorities;
+      rowComments = newComments;
+      starredRows = newStarred;
+      selectedRows = newSelected;
+    }
+
+    function updateStatistics() {
+      if (workingTableColumns.length === 0 || workingTableRows.length === 0) {
+        document.getElementById('statsContent').innerHTML = '<div class="text-center text-gray-500 py-4">No data available</div>';
+        return;
+      }
+
+      let html = '';
+      for (let col of workingTableColumns) {
+        if (col.type === 'number') {
+          let sum = 0, count = 0, min = Infinity, max = -Infinity;
+          workingTableRows.forEach(row => {
+            let val = parseFloat(row[col.id]);
+            if (!isNaN(val) && val !== null && val !== '') {
+              sum += val;
+              count++;
+              if (val < min) min = val;
+              if (val > max) max = val;
+            }
+          });
+          if (count > 0) {
+            let avg = sum / count;
+            html += `<div class="stat-item">
+              <div class="font-semibold text-sm"><i class="fas fa-calculator mr-1"></i>${escapeHtml(col.name)}</div>
+              <div class="text-xs mt-1 flex flex-wrap gap-2">
+                <span>Sum: ${sum.toLocaleString()}</span>
+                <span>Avg: ${avg.toFixed(2)}</span>
+                <span>Count: ${count}</span>
+                <span>Min: ${min}</span>
+                <span>Max: ${max}</span>
+              </div>
+            </div>`;
+          }
+        } else if (col.type === 'checkbox') {
+          let checked = workingTableRows.filter(row => row[col.id] === true).length;
+          html += `<div class="stat-item">
+            <div class="font-semibold text-sm"><i class="fas fa-check-square mr-1"></i>${escapeHtml(col.name)}</div>
+            <div class="text-xs mt-1 flex gap-2">
+              <span>Checked: ${checked}</span>
+              <span>Unchecked: ${workingTableRows.length - checked}</span>
+              <span>${((checked / workingTableRows.length) * 100).toFixed(1)}%</span>
+            </div>
+          </div>`;
+        } else {
+          let uniqueValues = new Set();
+          let filled = 0;
+          workingTableRows.forEach(row => {
+            let val = row[col.id];
+            if (val && val !== '') {
+              uniqueValues.add(String(val));
+              filled++;
+            }
+          });
+          html += `<div class="stat-item">
+            <div class="font-semibold text-sm"><i class="fas fa-tag mr-1"></i>${escapeHtml(col.name)}</div>
+            <div class="text-xs mt-1 flex gap-2">
+              <span>Total: ${workingTableRows.length}</span>
+              <span>Unique: ${uniqueValues.size}</span>
+              <span>Fill: ${Math.round((filled / workingTableRows.length) * 100)}%</span>
+            </div>
+          </div>`;
+        }
+      }
+      document.getElementById('statsContent').innerHTML = html || '<div class="text-center text-gray-500 py-4">No data for statistics</div>';
+    }
+
+    function renderCards() {
+      const emptyState = document.getElementById("emptyDataState");
+      const cardsWrapper = document.getElementById("cardsWrapper");
+
+      if (workingTableColumns.length === 0) {
+        emptyState.classList.remove("hidden");
+        if (cardsWrapper) cardsWrapper.classList.add("hidden");
+        document.getElementById("rowCount").innerText = `📋 0 rows`;
+        updateSaveButtonState();
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      if (cardsWrapper) cardsWrapper.classList.remove("hidden");
+
+      if (workingTableRows.length === 0) {
+        cardsWrapper.innerHTML = '<div class="empty-state">📭 No rows. Click "Add Row"</div>';
+        document.getElementById("rowCount").innerText = `📊 0 records`;
+        updateSaveButtonState();
+        return;
+      }
+
+      let cardsHtml = '';
+      for (let idx = 0; idx < workingTableRows.length; idx++) {
+        const row = workingTableRows[idx];
+        const isEditing = (editingRowIndex === idx);
+        const isSelected = selectedRows.has(idx);
+        const isStarred = starredRows.has(idx);
+        const comment = rowComments.get(idx);
+        const hasPriority = rowPriorities.has(idx);
+
+        cardsHtml += `
+          <div class="data-card ${isEditing ? 'editing-card' : ''} ${isStarred ? 'starred-card' : ''}" data-row-idx="${idx}" style="position: relative;">
+            ${hasPriority ? '<div class="priority-indicator"></div>' : ''}
+            <div class="checkbox-container">
+              <input type="checkbox" class="row-checkbox" data-row="${idx}" ${isSelected ? 'checked' : ''}>
+            </div>
+            <div class="card-header">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-sm">#${idx + 1}</span>
+                ${isStarred ? '<i class="fas fa-star text-yellow-500"></i>' : ''}
+                ${comment ? `<span class="comment-badge" onclick="window.showCommentModal(${idx})"><i class="fas fa-comment"></i> ${comment.length > 20 ? comment.substring(0, 20) + '...' : comment}</span>` : ''}
+              </div>
+              <div class="flex gap-1">
+                ${!isEditing ? `
+                  <div class="relative">
+                    <button class="modern-btn btn-icon text-xs" style="background: rgba(139,92,246,0.1); padding: 4px 8px;" onclick="window.showFloatingMenu(${idx}, event)"><i class="fas fa-ellipsis-v"></i></button>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+            <div class="card-body">
+        `;
+
+        for (let col of workingTableColumns) {
+          let rawValue = row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : ""));
+
+          if (col.type === 'date' && col.dateFormat && rawValue && !isEditing) {
+            rawValue = formatDate(rawValue, col.dateFormat);
+          }
+
+          if (isEditing) {
+            if (col.type === "number") {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <input type="number" value="${rawValue}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
+              </div>`;
+            } else if (col.type === "date") {
+              let dateVal = rawValue || "";
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <input type="date" value="${escapeHtml(dateVal)}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
+              </div>`;
+            } else if (col.type === "checkbox") {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <input type="checkbox" ${rawValue ? 'checked' : ''} class="input-editable-card" style="width: auto;" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.checked)">
+              </div>`;
+            } else if (col.type === "radio" && col.options && col.options.length) {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <div class="radio-group">`;
+              col.options.forEach(opt => {
+                cardsHtml += `<label class="radio-option">
+                  <input type="radio" name="radio_${col.id}_${idx}" value="${escapeHtml(opt)}" ${rawValue === opt ? 'checked' : ''} onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
+                  <span>${escapeHtml(opt)}</span>
+                </label>`;
+              });
+              cardsHtml += `</div></div>`;
+            } else if (col.type === "dropdown" && col.options && col.options.length) {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <select class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
+                  <option value="">Select...</option>`;
+              col.options.forEach(opt => cardsHtml += `<option value="${escapeHtml(opt)}" ${rawValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`);
+              cardsHtml += `</select></div>`;
+            } else if (col.type === "textarea") {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <textarea class="input-editable-card" rows="2" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">${escapeHtml(String(rawValue))}</textarea>
+              </div>`;
+            } else {
+              cardsHtml += `<div class="card-field">
+                <label class="field-label">${escapeHtml(col.name)}</label>
+                <input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
+              </div>`;
+            }
+          } else {
+            let display = (rawValue === "" || rawValue === undefined) ? "—" : rawValue;
+            if (col.type === "checkbox") display = rawValue ? '<i class="fas fa-check-circle text-green-500"></i> Yes' : '<i class="fas fa-times-circle text-red-500"></i> No';
+            if (col.type === "multi-select" && Array.isArray(rawValue)) display = rawValue.join(', ');
+            if (col.type === "radio") display = rawValue || "—";
+            cardsHtml += `<div class="card-field">
+              <div class="field-label">${escapeHtml(col.name)}</div>
+              <div class="field-value">${display}</div>
+            </div>`;
+          }
+        }
+
+        if (isEditing) {
+          cardsHtml += `
+            </div>
+            <div class="card-footer">
+              <button class="modern-btn btn-secondary text-xs" onclick="window.cancelEditRow(${idx})"><i class="fas fa-times"></i> Cancel</button>
+              <button class="modern-btn btn-success text-xs" onclick="window.saveEditRow(${idx})"><i class="fas fa-save"></i> Save</button>
+            </div>
+          </div>`;
+        } else {
+          cardsHtml += `
+            </div>
+          </div>`;
+        }
+      }
+
+      cardsWrapper.innerHTML = cardsHtml;
+      document.getElementById("rowCount").innerHTML = `📊 ${workingTableRows.length} records | ⭐ ${starredRows.size} starred | 💬 ${rowComments.size} comments`;
+      updateSaveButtonState();
+
+      document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.onchange = (e) => {
+          const rowIdx = parseInt(e.target.getAttribute('data-row'));
+          if (e.target.checked) selectedRows.add(rowIdx);
+          else selectedRows.delete(rowIdx);
+        };
+      });
+
+      updateStatistics();
+    }
+
+    window.showFloatingMenu = function (rowIndex, event) {
+      event.stopPropagation();
+      const existingMenu = document.querySelector('.floating-menu');
+      if (existingMenu) existingMenu.remove();
+
+      const rect = event.target.getBoundingClientRect();
+      const isStarred = starredRows.has(rowIndex);
+      const comment = rowComments.get(rowIndex);
+
+      const menu = document.createElement('div');
+      menu.className = 'floating-menu dropdown-menu';
+      menu.style.position = 'fixed';
+      menu.style.top = `${rect.bottom + 5}px`;
+      menu.style.left = `${rect.left - 100}px`;
+      menu.style.minWidth = '160px';
+      menu.innerHTML = `
+        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.startEditRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-edit"></i> Edit</button>
+        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.duplicateRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-copy"></i> Duplicate</button>
+        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.toggleStarRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-star"></i> ${isStarred ? 'Unstar' : 'Star'}</button>
+        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.showCommentModal(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-comment"></i> ${comment ? 'Edit' : 'Add'} Comment</button>
+        <div class="border-t my-1"></div>
+        <button class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100" onclick="window.deleteRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-trash"></i> Delete</button>
+      `;
+      document.body.appendChild(menu);
+
+      setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+          if (!menu.contains(e.target) && !event.target.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          }
         });
-        
-        savedDatabases[dbName] = firebaseStructure[dbName];
-        saveToFirebase();
-        
-        // Load into working table
+      }, 10);
+    };
+
+    window.removeFloatingMenu = function () {
+      const menu = document.querySelector('.floating-menu');
+      if (menu) menu.remove();
+    };
+
+    window.duplicateRow = async function (rowIndex) {
+      const sourceRow = workingTableRows[rowIndex];
+      const newRow = {};
+      workingTableColumns.forEach(col => newRow[col.id] = sourceRow[col.id]);
+      workingTableRows.unshift(newRow);
+      updatePriority(0);
+      renderCards();
+      if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+      await addActivityLog('Duplicate Row', `Duplicated row #${rowIndex + 1} to top position`, 'success');
+      showToast(`Row duplicated and moved to top`, "success");
+    };
+
+    window.toggleStarRow = async function (rowIndex) {
+      if (starredRows.has(rowIndex)) starredRows.delete(rowIndex);
+      else starredRows.add(rowIndex);
+      updatePriority(rowIndex);
+      renderCards();
+      if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+      await addActivityLog('Star Row', `${starredRows.has(rowIndex) ? 'Starred' : 'Unstarred'} row #${rowIndex + 1}`, 'info');
+      showToast(starredRows.has(rowIndex) ? "Row starred" : "Row unstarred", "info");
+    };
+
+    window.showCommentModal = function (rowIndex) {
+      const currentComment = rowComments.get(rowIndex) || '';
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-content">
+          <h3 class="font-bold mb-3"><i class="fas fa-comment mr-2"></i>Add Comment for Row #${rowIndex + 1}</h3>
+          <textarea id="commentInput" class="w-full p-2 border rounded mb-3" rows="4" placeholder="Enter your comment here...">${escapeHtml(currentComment)}</textarea>
+          <div class="flex gap-2 justify-end">
+            <button class="cancel-comment-btn modern-btn btn-secondary">Cancel</button>
+            <button class="save-comment-btn modern-btn btn-primary">Save Comment</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('.cancel-comment-btn').onclick = () => overlay.remove();
+      overlay.querySelector('.save-comment-btn').onclick = async () => {
+        const comment = overlay.querySelector('#commentInput').value.trim();
+        if (comment) {
+          rowComments.set(rowIndex, comment);
+          await addActivityLog('Add Comment', `Added comment to row #${rowIndex + 1}: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`, 'info');
+        } else {
+          rowComments.delete(rowIndex);
+          await addActivityLog('Remove Comment', `Removed comment from row #${rowIndex + 1}`, 'info');
+        }
+        updatePriority(rowIndex);
+        renderCards();
+        overlay.remove();
+        if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+        showToast(comment ? "Comment saved" : "Comment removed", "success");
+      };
+    };
+
+    window.startEditRow = async function (rowIndex) {
+      closeAllDropdowns();
+      window.removeFloatingMenu();
+      originalRowData = JSON.parse(JSON.stringify(workingTableRows[rowIndex]));
+      editingRowIndex = rowIndex;
+      renderCards();
+      await addActivityLog('Start Edit', `Started editing row #${rowIndex + 1}`, 'info');
+      showToast(`Editing row ${rowIndex + 1}`, "info");
+    };
+
+    window.cancelEditRow = async function (rowIndex) {
+      if (originalRowData) {
+        workingTableRows[rowIndex] = originalRowData;
+        originalRowData = null;
+      }
+      editingRowIndex = null;
+      renderCards();
+      await addActivityLog('Cancel Edit', `Cancelled editing row #${rowIndex + 1}`, 'info');
+      showToast(`Edit cancelled`, "info");
+    };
+
+    window.saveEditRow = async function (rowIndex) {
+      editingRowIndex = null;
+      originalRowData = null;
+      updatePriority(rowIndex);
+      renderCards();
+      if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+      await addActivityLog('Save Edit', `Saved changes to row #${rowIndex + 1}`, 'success');
+      showToast(`Row ${rowIndex + 1} saved and moved to top`, "success");
+    };
+
+    window.deleteRow = async function (rowIndex) {
+      window.removeFloatingMenu();
+      showConfirmModal(`Delete row ${rowIndex + 1}?`, async () => {
+        workingTableRows.splice(rowIndex, 1);
+        const newSelected = new Set();
+        const newStarred = new Set();
+        const newComments = new Map();
+        const newPriorities = new Map();
+
+        selectedRows.forEach(r => { if (r > rowIndex) newSelected.add(r - 1); else if (r < rowIndex) newSelected.add(r); });
+        starredRows.forEach(r => { if (r > rowIndex) newStarred.add(r - 1); else if (r < rowIndex) newStarred.add(r); });
+        rowComments.forEach((v, k) => { if (k > rowIndex) newComments.set(k - 1, v); else if (k < rowIndex) newComments.set(k, v); });
+        rowPriorities.forEach((v, k) => { if (k > rowIndex) newPriorities.set(k - 1, v); else if (k < rowIndex) newPriorities.set(k, v); });
+
+        selectedRows = newSelected;
+        starredRows = newStarred;
+        rowComments = newComments;
+        rowPriorities = newPriorities;
+
+        if (editingRowIndex !== null && editingRowIndex >= workingTableRows.length) editingRowIndex = null;
+        renderCards();
+        if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+        await addActivityLog('Delete Row', `Deleted row #${rowIndex + 1}`, 'success');
+        showToast(`Row ${rowIndex + 1} deleted`, "success");
+      });
+    };
+
+    window.updateCellValue = function (rowIdx, colId, val) {
+      if (editingRowIndex === rowIdx) {
+        const col = workingTableColumns.find(c => c.id === colId);
+        if (col && col.type === "number") {
+          const num = parseFloat(val);
+          workingTableRows[rowIdx][colId] = isNaN(num) ? 0 : num;
+        } else {
+          workingTableRows[rowIdx][colId] = val;
+        }
+        updatePriority(rowIdx);
+      }
+    };
+
+    function closeAllDropdowns() {
+      const menus = document.querySelectorAll('.dropdown-menu');
+      menus.forEach(menu => menu.classList.add('hidden'));
+      window.removeFloatingMenu();
+    }
+
+    document.getElementById('newColumnType').addEventListener('change', function () {
+      const optionsContainer = document.getElementById('columnOptionsContainer');
+      const radioOptionsContainer = document.getElementById('radioOptionsContainer');
+      const dateFormatContainer = document.getElementById('dateFormatContainer');
+      const type = this.value;
+
+      optionsContainer.classList.add('hidden');
+      radioOptionsContainer.classList.add('hidden');
+      dateFormatContainer.classList.add('hidden');
+
+      if (type === 'dropdown' || type === 'multi-select') {
+        optionsContainer.classList.remove('hidden');
+      } else if (type === 'radio') {
+        radioOptionsContainer.classList.remove('hidden');
+      } else if (type === 'date') {
+        dateFormatContainer.classList.remove('hidden');
+      }
+    });
+
+    function addColumnToWorkingTable() {
+      const colName = document.getElementById("newColumnName").value.trim();
+      const colType = document.getElementById("newColumnType").value;
+      if (!colName) { showToast("Enter column name", "error"); return; }
+      let options = [];
+      let dateFormat = null;
+
+      if (colType === 'date') {
+        dateFormat = document.getElementById("dateFormat").value;
+      }
+
+      if (colType === 'radio') {
+        const optionsStr = document.getElementById("radioOptions").value;
+        options = optionsStr.split(',').map(s => s.trim()).filter(s => s);
+        if (options.length === 0) { showToast("Enter radio options", "error"); return; }
+      }
+
+      if (colType === 'dropdown' || colType === 'multi-select') {
+        const optionsStr = document.getElementById("columnOptions").value;
+        options = optionsStr.split(',').map(s => s.trim()).filter(s => s);
+        if (options.length === 0) { showToast("Enter options", "error"); return; }
+      }
+
+      const newCol = { id: genColId(), name: colName, type: colType, options: options, dateFormat: dateFormat };
+      workingTableColumns.push(newCol);
+      workingTableRows.forEach(row => row[newCol.id] = colType === "number" ? 0 : (colType === "checkbox" ? false : (colType === "multi-select" ? [] : "")));
+      document.getElementById("newColumnName").value = "";
+      document.getElementById("columnOptions").value = "";
+      document.getElementById("radioOptions").value = "";
+      closeAllDropdowns();
+      renderCards();
+      addActivityLog('Add Column', `Added column "${colName}" (${colType})`, 'success');
+      showToast(`Added "${colName}" (${colType})`, "success");
+    }
+
+    async function saveCurrentTableAsDatabase() {
+      const dbName = document.getElementById("newDbNameInput").value.trim();
+      if (!dbName) { showToast("Enter database name", "error"); return; }
+      if (workingTableColumns.length === 0) { showToast("Add columns first", "error"); return; }
+      const firebaseStructure = workingTableToFirebaseStructure(dbName, workingTableColumns, workingTableRows);
+      savedDatabases[dbName] = firebaseStructure[dbName];
+      await saveToFirebase();
+      currentLoadedDbName = dbName;
+      await renderDatabaseList();
+      closeAllDropdowns();
+      document.getElementById("newDbNameInput").value = "";
+      document.getElementById("activeDbLabel").innerHTML = `📁 Working on: ${escapeHtml(dbName)}`;
+      await addActivityLog('Save Database', `Saved "${dbName}" with ${workingTableColumns.length} columns and ${workingTableRows.length} rows`, 'success');
+      showToast(`Saved "${dbName}"`, "success");
+    }
+
+    async function loadSavedDatabase(dbName) {
+      await addActivityLog('Load Database', `Loading "${dbName}"...`, 'info');
+      if (savedDatabases[dbName]) {
+        const { columns, rows } = firebaseStructureToWorkingTable({ [dbName]: savedDatabases[dbName] }, dbName);
         workingTableColumns = columns;
         workingTableRows = rows;
-        renderTable();
-        updateSaveButtonState();
-        renderDatabaseList();
-        showToast(`✅ Imported ${rows.length} rows with ${columns.length} columns!`, "success");
-      } catch(err) {
-        alert("Excel import error: " + err.message);
+        editingRowIndex = null;
+        currentLoadedDbName = dbName;
+        selectedRows.clear();
+        starredRows.clear();
+        rowComments.clear();
+        rowPriorities.clear();
+        workingTableRows.forEach((_, idx) => rowPriorities.set(idx, 0));
+        renderCards();
+        document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
+        await addActivityLog('Load Database', `Successfully loaded "${dbName}" with ${rows.length} rows`, 'success');
+        showToast(`Loaded "${dbName}"`, "success");
+      }
+    }
+
+    async function deleteSavedDatabase(dbName) {
+      showConfirmModal(`Delete "${dbName}" permanently?`, async () => {
+        delete savedDatabases[dbName];
+        if (currentLoadedDbName === dbName) {
+          currentLoadedDbName = null;
+          workingTableColumns = [];
+          workingTableRows = [];
+          editingRowIndex = null;
+          selectedRows.clear();
+          starredRows.clear();
+          rowComments.clear();
+          rowPriorities.clear();
+          renderCards();
+          document.getElementById("activeDbLabel").innerHTML = `📝 Working on unsaved table`;
+        }
+        await saveToFirebase();
+        await renderDatabaseList();
+        await addActivityLog('Delete Database', `Deleted database "${dbName}"`, 'success');
+        showToast(`Deleted "${dbName}"`, "success");
+      });
+    }
+
+    async function renderDatabaseList() {
+      const container = document.getElementById("databaseListContainer");
+      if (!container) return;
+      container.innerHTML = '<div class="text-center py-4"><div class="loading-spinner"></div></div>';
+      await loadFromFirebase();
+      if (Object.keys(savedDatabases).length === 0) { container.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400 text-center">No saved databases</div>'; return; }
+      let html = '';
+      for (let [dbName, db] of Object.entries(savedDatabases)) {
+        const isActive = (currentLoadedDbName === dbName);
+        html += `<div class="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-100">
+          <button class="db-switch-item flex-1 text-left text-sm ${isActive ? 'font-bold text-indigo-600' : ''}" data-db-name="${dbName}">
+            <i class="fas fa-database mr-2"></i>${escapeHtml(dbName)} ${isActive ? '<span class="text-xs">(active)</span>' : ''}
+          </button>
+          <button class="db-delete-btn text-rose-500 hover:text-rose-700 text-xs px-2" data-db-name="${dbName}"><i class="fas fa-trash"></i></button>
+        </div>`;
+      }
+      container.innerHTML = html;
+      document.querySelectorAll('.db-switch-item').forEach(btn => { btn.onclick = async () => { await loadSavedDatabase(btn.getAttribute('data-db-name')); closeAllDropdowns(); }; });
+      document.querySelectorAll('.db-delete-btn').forEach(btn => { btn.onclick = async (e) => { e.stopPropagation(); await deleteSavedDatabase(btn.getAttribute('data-db-name')); }; });
+    }
+
+    async function performBulkShift(targetDbName, action) {
+      if (!savedDatabases[targetDbName]) { showToast("Target not found", "error"); return false; }
+      const selectedRowsArray = Array.from(selectedRows).sort((a, b) => a - b);
+      if (selectedRowsArray.length === 0) { showToast("No rows selected", "error"); return false; }
+
+      await addActivityLog('Bulk Shift', `Processing ${selectedRowsArray.length} row(s) to "${targetDbName}" (${action === 'move' ? 'Move & Delete' : 'Copy Only'})`, 'info');
+
+      let targetDb = savedDatabases[targetDbName];
+      let { columns: targetColumns, rows: targetRows } = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
+
+      for (let sourceCol of workingTableColumns) {
+        const existingTargetCol = targetColumns.find(tc => tc.name.toLowerCase() === sourceCol.name.toLowerCase());
+        if (!existingTargetCol) {
+          targetColumns.push({
+            id: genColId(),
+            name: sourceCol.name,
+            type: sourceCol.type,
+            options: sourceCol.options || [],
+            dateFormat: sourceCol.dateFormat || null
+          });
+        }
+      }
+
+      for (let rowIndex of selectedRowsArray) {
+        const sourceRow = workingTableRows[rowIndex];
+        const shiftedRow = {};
+        targetColumns.forEach(col => {
+          const matchingSourceCol = workingTableColumns.find(sc => sc.name.toLowerCase() === col.name.toLowerCase());
+          if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) {
+            shiftedRow[col.id] = sourceRow[matchingSourceCol.id];
+          } else {
+            shiftedRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : (col.type === "multi-select" ? [] : ""));
+          }
+        });
+        targetRows.push(shiftedRow);
+        if (action === 'move') workingTableRows.splice(rowIndex, 1);
+      }
+
+      if (action === 'move') {
+        selectedRows.clear();
+        if (editingRowIndex !== null) editingRowIndex = null;
+      }
+
+      const newFirebaseStructure = workingTableToFirebaseStructure(targetDbName, targetColumns, targetRows);
+      savedDatabases[targetDbName] = newFirebaseStructure[targetDbName];
+      if (action === 'move' && currentLoadedDbName) {
+        const updatedStructure = workingTableToFirebaseStructure(currentLoadedDbName, workingTableColumns, workingTableRows);
+        savedDatabases[currentLoadedDbName] = updatedStructure[currentLoadedDbName];
+      }
+
+      await saveToFirebase();
+      renderCards();
+      await renderDatabaseList();
+      await addActivityLog('Bulk Shift', `Successfully ${action === 'move' ? 'moved' : 'copied'} ${selectedRowsArray.length} row(s) to "${targetDbName}"`, 'success');
+      showToast(`${selectedRowsArray.length} row(s) ${action === 'move' ? 'moved' : 'copied'} to "${targetDbName}"`, "success");
+      return true;
+    }
+
+    async function bulkShift() {
+      if (selectedRows.size === 0) { showToast("Select rows first using checkboxes", "error"); return; }
+      await loadFromFirebase();
+      const dbNames = Object.keys(savedDatabases).filter(name => name !== currentLoadedDbName);
+      if (dbNames.length === 0) { showToast("No other databases available", "error"); return; }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-content">
+          <h3 class="font-bold mb-3"><i class="fas fa-exchange-alt mr-2"></i>Bulk Shift (${selectedRows.size} rows)</h3>
+          <select id="targetDbSelect" class="w-full p-2 border rounded mb-3">
+            <option value="">Select target database</option>
+            ${dbNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}
+          </select>
+          <div class="flex gap-4 mb-3">
+            <label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="move" checked> <i class="fas fa-cut"></i> Move & Delete</label>
+            <label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="copy"> <i class="fas fa-copy"></i> Copy Only</label>
+          </div>
+          <div class="flex gap-2 justify-end">
+            <button class="cancel-bulk-btn modern-btn btn-secondary">Cancel</button>
+            <button class="confirm-bulk-btn modern-btn btn-primary">Shift</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('.cancel-bulk-btn').onclick = () => overlay.remove();
+      overlay.querySelector('.confirm-bulk-btn').onclick = async () => {
+        const targetDbName = overlay.querySelector('#targetDbSelect').value;
+        const action = overlay.querySelector('input[name="shiftAction"]:checked').value;
+        if (!targetDbName) { showToast("Select target database", "error"); return; }
+        overlay.remove();
+        await performBulkShift(targetDbName, action);
+      };
+    }
+
+    async function importExcel(file) {
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+          if (!jsonData.length) throw new Error("Empty");
+          const headers = Object.keys(jsonData[0]);
+          const columns = headers.map((h) => ({ id: genColId(), name: h, type: "text", options: [] }));
+          const rows = [];
+          for (let row of jsonData) { const newRow = {}; columns.forEach(col => { newRow[col.id] = row[col.name] !== undefined ? row[col.name] : ""; }); rows.push(newRow); }
+
+          const modal = document.createElement('div');
+          modal.className = 'modal-overlay';
+          modal.innerHTML = `
+            <div class="modal-content">
+              <h3 class="font-bold mb-3">Import: ${file.name}</h3>
+              <p class="text-sm mb-3">${rows.length} rows, ${columns.length} columns</p>
+              <div class="flex gap-2 mb-3">
+                <button id="importNewBtn" class="modern-btn btn-primary flex-1">New Table</button>
+                <button id="importAppendBtn" class="modern-btn btn-secondary flex-1">Append</button>
+              </div>
+              <button id="importCancelBtn" class="modern-btn btn-outline w-full mt-2">Cancel</button>
+            </div>
+          `;
+          document.body.appendChild(modal);
+
+          modal.querySelector('#importNewBtn').onclick = async () => {
+            modal.remove();
+            const dbName = file.name.split('.')[0] || "Imported";
+            const firebaseStructure = workingTableToFirebaseStructure(dbName, columns, rows);
+            savedDatabases[dbName] = firebaseStructure[dbName];
+            await saveToFirebase();
+            workingTableColumns = columns;
+            workingTableRows = rows;
+            rowPriorities.clear();
+            workingTableRows.forEach((_, idx) => rowPriorities.set(idx, Date.now() - idx));
+            currentLoadedDbName = dbName;
+            renderCards();
+            await renderDatabaseList();
+            document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
+            await addActivityLog('Import Excel', `Imported ${rows.length} rows as new database "${dbName}"`, 'success');
+            showToast(`Imported ${rows.length} rows`, "success");
+          };
+
+          modal.querySelector('#importAppendBtn').onclick = async () => {
+            modal.remove();
+            if (workingTableColumns.length === 0) { workingTableColumns = columns; workingTableRows = rows; }
+            else {
+              for (let col of columns) { if (!workingTableColumns.find(c => c.name === col.name)) workingTableColumns.push(col); }
+              for (let newRow of rows) {
+                const appendedRow = {};
+                workingTableColumns.forEach(col => { const match = columns.find(c => c.name === col.name); appendedRow[col.id] = match ? newRow[match.id] : ""; });
+                workingTableRows.unshift(appendedRow);
+                rowPriorities.set(0, Date.now());
+              }
+            }
+            reorderRowsByPriority();
+            renderCards();
+            if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
+            await addActivityLog('Import Excel', `Appended ${rows.length} rows to current table`, 'success');
+            showToast(`Appended ${rows.length} rows to top`, "success");
+          };
+          modal.querySelector('#importCancelBtn').onclick = () => modal.remove();
+        } catch (err) { await addActivityLog('Import Error', err.message, 'error'); showToast("Import error", "error"); }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function exportJSONData() {
+      const dataToExport = { name: currentLoadedDbName || "Working Table", columns: workingTableColumns, rows: workingTableRows };
+      const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${currentLoadedDbName || 'working_table'}_export.json`;
+      a.click();
+      addActivityLog('Export JSON', `Exported ${workingTableRows.length} rows to JSON`, 'success');
+      showToast("JSON exported", "success");
+    }
+
+    function exportExcel() {
+      if (workingTableColumns.length === 0) { showToast("No data", "error"); return; }
+      const sheetData = workingTableRows.map(row => {
+        const obj = {};
+        workingTableColumns.forEach(c => {
+          let val = row[c.id];
+          if (c.type === "checkbox") val = val ? "Yes" : "No";
+          if (c.type === "multi-select" && Array.isArray(val)) val = val.join(', ');
+          if (c.type === "radio") val = val || "";
+          obj[c.name] = val !== undefined && val !== null && val !== "" ? val : "";
+        });
+        return obj;
+      });
+      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
+      XLSX.writeFile(wb, `${currentLoadedDbName || 'working_table'}_export.xlsx`);
+      addActivityLog('Export Excel', `Exported ${workingTableRows.length} rows to Excel`, 'success');
+      showToast("Excel exported", "success");
+    }
+
+    function escapeHtml(str) {
+      if (str === undefined || str === null) return '';
+      return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+
+    function showToast(msg, type = "info") {
+      let toast = document.querySelector(".toast-notify");
+      if (toast) toast.remove();
+      const div = document.createElement("div");
+      div.className = `toast-notify ${type}`;
+      div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-circle-info'} mr-2"></i>${msg}`;
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
+    }
+
+    function setTheme(theme) {
+      document.body.className = `theme-${theme}`;
+      localStorage.setItem('selectedTheme', theme);
+      addActivityLog('Theme Change', `Applied ${theme} theme`, 'info');
+    }
+
+    // Draggable stats panel
+    let isDragging = false;
+    let dragOffsetX, dragOffsetY;
+    const statsPanel = document.getElementById('statsPanel');
+    const statsHeader = document.getElementById('statsHeader');
+
+    if (statsHeader) {
+      statsHeader.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button')) return;
+        isDragging = true;
+        const rect = statsPanel.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        statsPanel.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const newLeft = e.clientX - dragOffsetX;
+        const newTop = e.clientY - dragOffsetY;
+        statsPanel.style.position = 'fixed';
+        statsPanel.style.left = `${newLeft}px`;
+        statsPanel.style.top = `${newTop}px`;
+        statsPanel.style.right = 'auto';
+        statsPanel.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        if (statsPanel) statsPanel.style.cursor = '';
+      });
+    }
+
+    // Event Listeners
+    document.getElementById("saveDbBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("saveDbMenu").classList.toggle("hidden"); };
+    document.getElementById("confirmSaveDb").onclick = saveCurrentTableAsDatabase;
+    document.getElementById("dbSwitchBtn").onclick = async (e) => { e.stopPropagation(); closeAllDropdowns(); await renderDatabaseList(); document.getElementById("dbSwitchMenu").classList.toggle("hidden"); };
+    document.getElementById("refreshDbList")?.addEventListener('click', async () => { await renderDatabaseList(); showToast("Refreshed", "success"); });
+    document.getElementById("addColumnBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("addColumnMenu").classList.toggle("hidden"); };
+    document.getElementById("confirmAddColumn").onclick = addColumnToWorkingTable;
+    document.getElementById("removeColumnBtn").onclick = showRemoveColumnModal;
+    document.getElementById("addRowBtn").onclick = showAddRowModal;
+    document.getElementById("bulkShiftBtn").onclick = bulkShift;
+    document.getElementById("refreshBtn").onclick = () => { renderCards(); addActivityLog('Refresh', 'Manual refresh performed', 'info'); showToast("Refreshed", "info"); };
+    document.getElementById("quickAddColumnBtn").onclick = () => { document.getElementById("addColumnBtn").click(); };
+    document.getElementById("exportBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("exportMenu").classList.toggle("hidden"); };
+    document.getElementById("exportJsonSubBtn").onclick = () => { exportJSONData(); closeAllDropdowns(); };
+    document.getElementById("exportExcelSubBtn").onclick = () => { exportExcel(); closeAllDropdowns(); };
+    document.getElementById("importExcelInput").onchange = (e) => { importExcel(e.target.files[0]); e.target.value = ""; closeAllDropdowns(); };
+    document.getElementById("showStatsBtn").onclick = () => { document.getElementById("statsPanel").classList.toggle("hidden"); updateStatistics(); };
+    document.getElementById("closeStatsBtn").onclick = () => { document.getElementById("statsPanel").classList.add("hidden"); };
+    document.getElementById("minimizeStatsBtn").onclick = () => {
+      const content = document.getElementById("statsContent");
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-minus"></i>';
+      } else {
+        content.style.display = 'none';
+        document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-plus"></i>';
       }
     };
-    reader.readAsArrayBuffer(file);
-  }
-
-  function exportJSONData() {
-    const dataToExport = {
-      name: "Working Table",
-      columns: workingTableColumns,
-      rows: workingTableRows
+    document.getElementById("clearActivityBtn").onclick = async () => {
+      activityLogs = [];
+      renderActivityLog();
+      await addActivityLog('Clear Log', 'Activity log cleared', 'info');
+      showToast("Activity log cleared", "success");
     };
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `working_table_export.json`;
-    a.click();
-    showToast("JSON exported", "success");
-  }
-  
-  function exportExcel() {
-    if(workingTableColumns.length === 0) {
-      showToast("No data to export", "error");
-      return;
-    }
-    const sheetData = workingTableRows.map(row => {
-      const obj = {};
-      workingTableColumns.forEach(c => {
-        obj[c.name] = row[c.id] !== undefined ? row[c.id] : "";
-      });
-      return obj;
-    });
-    const ws = XLSX.utils.json_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, `working_table_export.xlsx`);
-    showToast("Excel exported", "success");
-  }
+    document.getElementById("themeBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("themeMenu").classList.toggle("hidden"); };
 
-  function escapeHtml(str) {
-    if(str === undefined || str === null) return '';
-    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-  }
-  
-  function showToast(msg, type = "info") {
-    let toast = document.querySelector(".toast-notify");
-    if(toast) toast.remove();
-    const div = document.createElement("div");
-    div.className = `toast-notify ${type}`;
-    div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-circle-info'} mr-2"></i>${msg}`;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
-  }
+    // Database Actions Events
+    document.getElementById("dbActionsBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("dbActionsMenu").classList.toggle("hidden"); };
+    document.getElementById("createNewDbBtn").onclick = () => { closeAllDropdowns(); createNewDatabase(); };
+    document.getElementById("loadExistingDbBtn").onclick = () => { closeAllDropdowns(); loadExistingDatabase(); };
 
-  // EVENT LISTENERS
-  document.getElementById("saveDbBtn").onclick = (e) => {
-    e.stopPropagation();
-    document.getElementById("saveDbMenu").classList.toggle("hidden");
-  };
-  document.getElementById("confirmSaveDb").onclick = saveCurrentTableAsDatabase;
-  document.getElementById("dbSwitchBtn").onclick = (e) => {
-    e.stopPropagation();
-    renderDatabaseList();
-    document.getElementById("dbSwitchMenu").classList.toggle("hidden");
-  };
-  document.getElementById("addColumnBtn").onclick = (e) => {
-    e.stopPropagation();
-    document.getElementById("addColumnMenu").classList.toggle("hidden");
-  };
-  document.getElementById("confirmAddColumn").onclick = addColumnToWorkingTable;
-  document.getElementById("removeColumnBtn").onclick = (e) => {
-    e.stopPropagation();
-    updateRemoveList();
-    document.getElementById("removeColumnMenu").classList.toggle("hidden");
-  };
-  document.getElementById("footerAddRowBtn").onclick = addNewRow;
-  document.getElementById("refreshBtn").onclick = () => {
-    renderTable();
-    showToast("🔄 Table refreshed", "info");
-  };
-  document.getElementById("quickAddColumnBtn").onclick = () => {
-    document.getElementById("addColumnBtn").click();
-  };
-  document.getElementById("exportBtn").onclick = (e) => {
-    e.stopPropagation();
-    document.getElementById("exportMenu").classList.toggle("hidden");
-  };
-  document.getElementById("exportJsonSubBtn").onclick = () => {
-    exportJSONData();
-    document.getElementById("exportMenu").classList.add("hidden");
-  };
-  document.getElementById("exportExcelSubBtn").onclick = () => {
-    exportExcel();
-    document.getElementById("exportMenu").classList.add("hidden");
-  };
-  document.getElementById("importExcelInput").onchange = (e) => {
-    importExcelAsNewDatabase(e.target.files[0]);
-    e.target.value = "";
-    document.getElementById("exportMenu").classList.add("hidden");
-  };
-  document.getElementById("themeToggle").onclick = () => {
-    document.body.classList.toggle("dark");
-  };
-  
-  document.addEventListener("click", (e) => {
-    if(e.target.closest('.dropdown-container')) return;
-    if(e.target.closest('[id^="shiftMenu-"]')) return;
-    document.getElementById("saveDbMenu").classList.add("hidden");
-    document.getElementById("dbSwitchMenu").classList.add("hidden");
-    document.getElementById("addColumnMenu").classList.add("hidden");
-    document.getElementById("removeColumnMenu").classList.add("hidden");
-    document.getElementById("exportMenu").classList.add("hidden");
-    document.querySelectorAll('[id^="shiftMenu-"]').forEach(menu => {
-      menu.classList.add('hidden');
+    // User menu events
+    document.getElementById("userMenuBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("userMenu").classList.toggle("hidden"); };
+    document.getElementById("loginBtn").onclick = () => { closeAllDropdowns(); showLoginModal(); };
+    document.getElementById("sleepBtn").onclick = () => { closeAllDropdowns(); sleepMode(); };
+    document.getElementById("openLinkBtn").onclick = () => { closeAllDropdowns(); openLink(); };
+    document.getElementById("logoutBtn").onclick = () => {
+      isLoggedIn = false;
+      addActivityLog('Logout', 'User logged out', 'info');
+      showToast("Logged out successfully", "success");
+    };
+
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.onclick = () => {
+        const theme = option.getAttribute('data-theme');
+        setTheme(theme);
+        closeAllDropdowns();
+      };
     });
-  });
-  
-  // Initialize
-  workingTableColumns = [];
-  workingTableRows = [];
-  loadFromFirebase();
-  renderTable();
-  updateSaveButtonState();
-</script>
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest('.relative') && !e.target.closest('.dropdown-menu') && !e.target.closest('.floating-menu')) {
+        closeAllDropdowns();
+      }
+    });
+
+    // Load saved theme and activity logs
+    const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+    setTheme(savedTheme);
+
+    // Initialize
+    workingTableColumns = [];
+    workingTableRows = [];
+    loadFromFirebase();
+    loadActivityLogsFromFirebase();
+
+    const cardsContainer = document.getElementById("cardsContainer");
+    const cardsWrapper = document.createElement("div");
+    cardsWrapper.id = "cardsWrapper";
+    cardsWrapper.className = "hidden w-full";
+    cardsContainer.appendChild(cardsWrapper);
+
+    renderCards();
+    addActivityLog('Application Start', 'Firebase Schema Architect initialized', 'success');
+  </script>
 </body>
+
 </html>
