@@ -4,10 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Firebase Schema Architect | Complete Version</title>
+  <title>Firebase Schema Architect | Complete Auth System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
     rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -24,17 +25,140 @@
       transition: all 0.3s;
     }
 
+    /* Auth Overlay Styles */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.5s ease;
+    }
+
+    .auth-overlay.hidden {
+      display: none;
+    }
+
+    .auth-container {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      width: 450px;
+      max-width: 90%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-container h2 {
+      font-size: 1.8rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .auth-container input,
+    .auth-container select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .auth-container input:focus,
+    .auth-container select:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    .auth-container button {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .auth-container button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .auth-error {
+      color: #ef4444;
+      font-size: 0.75rem;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .auth-success {
+      color: #10b981;
+      font-size: 0.875rem;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    .auth-switch {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+    }
+
+    .auth-switch a {
+      color: #8b5cf6;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .auth-switch a:hover {
+      text-decoration: underline;
+    }
+
+    .code-display {
+      background: #f3f4f6;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .timer {
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 10px;
+    }
+
     /* Sleep/Hibernate Mode */
     body.sleep-mode {
       filter: blur(8px);
       pointer-events: none;
       user-select: none;
     }
-    
+
     body.sleep-mode .card {
       pointer-events: none;
     }
-    
+
     .sleep-overlay {
       position: fixed;
       top: 0;
@@ -49,7 +173,7 @@
       flex-direction: column;
       gap: 20px;
     }
-    
+
     .sleep-message {
       background: white;
       padding: 30px 50px;
@@ -57,24 +181,24 @@
       text-align: center;
       animation: pulse 2s infinite;
     }
-    
+
     .sleep-message i {
       font-size: 60px;
       color: #8b5cf6;
       margin-bottom: 20px;
     }
-    
+
     .sleep-message h2 {
       font-size: 24px;
       font-weight: bold;
       margin-bottom: 10px;
     }
-    
+
     .sleep-message p {
       color: #6b7280;
       margin-bottom: 20px;
     }
-    
+
     .wake-btn {
       background: #8b5cf6;
       color: white;
@@ -85,119 +209,192 @@
       font-weight: bold;
       transition: all 0.3s;
     }
-    
+
     .wake-btn:hover {
       background: #6d28d9;
       transform: scale(1.05);
     }
-    
+
     @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.02);
+      }
     }
 
-    /* Login Modal */
-    .login-modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 2001;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* Firebase Connection Flash Animation */
+    @keyframes blinkLive {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      50% {
+        opacity: 0.8;
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.3);
+      }
     }
-    
-    .login-modal {
-      background: white;
-      border-radius: 1.5rem;
-      padding: 2rem;
-      width: 350px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      animation: slideIn 0.3s ease-out;
-    }
-    
-    .login-modal h2 {
-      font-size: 1.5rem;
-      font-weight: bold;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      color: #1e293b;
-    }
-    
-    .login-modal input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      margin-bottom: 1rem;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-    
-    .login-modal input:focus {
-      outline: none;
-      border-color: #8b5cf6;
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-    }
-    
-    .login-error {
-      color: #ef4444;
-      font-size: 0.75rem;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-    
-    .login-success {
-      color: #10b981;
-      font-size: 0.875rem;
-      text-align: center;
-      margin-bottom: 1rem;
+
+    .firebase-live {
+      animation: blinkLive 1.5s infinite;
     }
 
     /* Themes */
-    body.theme-forest { background: #064e3b; }
-    body.theme-forest .card { background: #065f46; border-color: #34d399; }
-    body.theme-forest .data-card { background: #047857; border-color: #34d399; }
-    body.theme-forest .card-header { background: #065f46; border-bottom-color: #34d399; }
-    body.theme-forest .field-label, body.theme-ocean .field-label,
-    body.theme-sunset .field-label, body.theme-midnight .field-label,
-    body.theme-rose .field-label { color: #a7f3d0; }
-    body.theme-forest .field-value, body.theme-ocean .field-value,
-    body.theme-sunset .field-value, body.theme-midnight .field-value,
-    body.theme-rose .field-value { color: #f1f5f9; }
+    body.theme-forest {
+      background: #064e3b;
+    }
 
-    body.theme-ocean { background: #075985; }
-    body.theme-ocean .card { background: #0c4a6e; border-color: #38bdf8; }
-    body.theme-ocean .data-card { background: #0284c7; border-color: #38bdf8; }
-    body.theme-ocean .card-header { background: #0c4a6e; border-bottom-color: #38bdf8; }
+    body.theme-forest .card {
+      background: #065f46;
+      border-color: #34d399;
+    }
 
-    body.theme-sunset { background: #7c2d12; }
-    body.theme-sunset .card { background: #9a3412; border-color: #f97316; }
-    body.theme-sunset .data-card { background: #c2410c; border-color: #f97316; }
-    body.theme-sunset .card-header { background: #9a3412; border-bottom-color: #f97316; }
+    body.theme-forest .data-card {
+      background: #047857;
+      border-color: #34d399;
+    }
 
-    body.theme-midnight { background: #1e1b4b; }
-    body.theme-midnight .card { background: #312e81; border-color: #818cf8; }
-    body.theme-midnight .data-card { background: #4338ca; border-color: #818cf8; }
-    body.theme-midnight .card-header { background: #312e81; border-bottom-color: #818cf8; }
+    body.theme-forest .card-header {
+      background: #065f46;
+      border-bottom-color: #34d399;
+    }
 
-    body.theme-rose { background: #881337; }
-    body.theme-rose .card { background: #9f1239; border-color: #fb7185; }
-    body.theme-rose .data-card { background: #be123c; border-color: #fb7185; }
-    body.theme-rose .card-header { background: #9f1239; border-bottom-color: #fb7185; }
+    body.theme-forest .field-label,
+    body.theme-ocean .field-label,
+    body.theme-sunset .field-label,
+    body.theme-midnight .field-label,
+    body.theme-rose .field-label {
+      color: #a7f3d0;
+    }
 
-    body.theme-light { background: #f1f5f9; }
-    body.theme-light .card { background: white; border-color: #cbd5e1; }
-    body.theme-light .data-card { background: #f8fafc; border-color: #cbd5e1; }
-    body.theme-light .card-header { background: #f1f5f9; border-bottom-color: #cbd5e1; }
+    body.theme-forest .field-value,
+    body.theme-ocean .field-value,
+    body.theme-sunset .field-value,
+    body.theme-midnight .field-value,
+    body.theme-rose .field-value {
+      color: #f1f5f9;
+    }
 
-    body.theme-dark { background: #0f172a; }
-    body.theme-dark .card { background: #1e293b; border-color: #334155; }
-    body.theme-dark .data-card { background: #334155; border-color: #475569; }
-    body.theme-dark .card-header { background: #1e293b; border-bottom-color: #334155; }
+    body.theme-ocean {
+      background: #075985;
+    }
+
+    body.theme-ocean .card {
+      background: #0c4a6e;
+      border-color: #38bdf8;
+    }
+
+    body.theme-ocean .data-card {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    body.theme-ocean .card-header {
+      background: #0c4a6e;
+      border-bottom-color: #38bdf8;
+    }
+
+    body.theme-sunset {
+      background: #7c2d12;
+    }
+
+    body.theme-sunset .card {
+      background: #9a3412;
+      border-color: #f97316;
+    }
+
+    body.theme-sunset .data-card {
+      background: #c2410c;
+      border-color: #f97316;
+    }
+
+    body.theme-sunset .card-header {
+      background: #9a3412;
+      border-bottom-color: #f97316;
+    }
+
+    body.theme-midnight {
+      background: #1e1b4b;
+    }
+
+    body.theme-midnight .card {
+      background: #312e81;
+      border-color: #818cf8;
+    }
+
+    body.theme-midnight .data-card {
+      background: #4338ca;
+      border-color: #818cf8;
+    }
+
+    body.theme-midnight .card-header {
+      background: #312e81;
+      border-bottom-color: #818cf8;
+    }
+
+    body.theme-rose {
+      background: #881337;
+    }
+
+    body.theme-rose .card {
+      background: #9f1239;
+      border-color: #fb7185;
+    }
+
+    body.theme-rose .data-card {
+      background: #be123c;
+      border-color: #fb7185;
+    }
+
+    body.theme-rose .card-header {
+      background: #9f1239;
+      border-bottom-color: #fb7185;
+    }
+
+    body.theme-light {
+      background: #f1f5f9;
+    }
+
+    body.theme-light .card {
+      background: white;
+      border-color: #cbd5e1;
+    }
+
+    body.theme-light .data-card {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    body.theme-light .card-header {
+      background: #f1f5f9;
+      border-bottom-color: #cbd5e1;
+    }
+
+    body.theme-dark {
+      background: #0f172a;
+    }
+
+    body.theme-dark .card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    body.theme-dark .data-card {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    body.theme-dark .card-header {
+      background: #1e293b;
+      border-bottom-color: #334155;
+    }
 
     .card {
       width: 98%;
@@ -233,8 +430,15 @@
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .data-card:hover {
@@ -326,18 +530,60 @@
       gap: 0.5rem;
     }
 
-    .modern-btn:hover { transform: translateY(-1px); filter: brightness(105%); }
-    .modern-btn:active { transform: translateY(0); }
+    .modern-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(105%);
+    }
 
-    .btn-primary { background-color: #6366f1; color: white; }
-    .btn-secondary { background-color: #64748b; color: white; }
-    .btn-success { background-color: #10b981; color: white; }
-    .btn-danger { background-color: #ef4444; color: white; }
-    .btn-warning { background-color: #f59e0b; color: white; }
-    .btn-purple { background-color: #8b5cf6; color: white; }
-    .btn-info { background-color: #3b82f6; color: white; }
-    .btn-outline { background-color: transparent; border: 1px solid #cbd5e1; color: #475569; }
-    .btn-dropdown { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; }
+    .modern-btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background-color: #6366f1;
+      color: white;
+    }
+
+    .btn-secondary {
+      background-color: #64748b;
+      color: white;
+    }
+
+    .btn-success {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .btn-warning {
+      background-color: #f59e0b;
+      color: white;
+    }
+
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+
+    .btn-info {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+    }
+
+    .btn-dropdown {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+    }
 
     .dropdown-menu {
       position: fixed;
@@ -366,7 +612,9 @@
       cursor: move;
     }
 
-    .stats-panel.hidden { display: none; }
+    .stats-panel.hidden {
+      display: none;
+    }
 
     .stats-header {
       padding: 12px 16px;
@@ -379,7 +627,11 @@
       cursor: move;
     }
 
-    .stats-content { padding: 12px; max-height: 350px; overflow-y: auto; }
+    .stats-content {
+      padding: 12px;
+      max-height: 350px;
+      overflow-y: auto;
+    }
 
     .stat-item {
       padding: 10px;
@@ -391,7 +643,10 @@
       background: rgba(139, 92, 246, 0.05);
     }
 
-    .stat-item:hover { transform: translateX(4px); background: rgba(139, 92, 246, 0.1); }
+    .stat-item:hover {
+      transform: translateX(4px);
+      background: rgba(139, 92, 246, 0.1);
+    }
 
     .modal-overlay {
       position: fixed;
@@ -450,11 +705,27 @@
       border-radius: 8px;
     }
 
-    .theme-option:hover { background: rgba(0, 0, 0, 0.1); }
+    .theme-option:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
 
-    .radio-group { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-    .radio-option { display: flex; align-items: center; gap: 0.5rem; }
-    .starred-card { background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; }
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .starred-card {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid #f59e0b;
+    }
 
     .loading-spinner {
       display: inline-block;
@@ -467,8 +738,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .activity-log {
@@ -483,13 +759,16 @@
       font-family: monospace;
     }
 
-    .activity-time { color: #8b5cf6; font-weight: 600; }
+    .activity-time {
+      color: #8b5cf6;
+      font-weight: 600;
+    }
 
     .floating-menu {
       position: fixed;
       z-index: 1000;
     }
-    
+
     .link-input {
       width: 100%;
       padding: 8px 12px;
@@ -498,199 +777,276 @@
       font-size: 12px;
       margin-top: 5px;
     }
-    
+
     .link-input:focus {
       outline: none;
       border-color: #8b5cf6;
+    }
+
+    /* Smart search input styles */
+    .smart-search-container {
+      background: rgba(139, 92, 246, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.5rem 1rem;
     }
   </style>
 </head>
 
 <body class="theme-light">
-  <div class="card flex flex-col">
-    <!-- Header with Activity Log -->
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b p-3 flex-shrink-0"
-      style="background: rgba(0,0,0,0.03);">
-      <div class="flex items-center gap-3">
-        <i class="fas fa-fire text-orange-500 text-xl"></i>
-        <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
-          Complete Firebase DB Architect
-          <span class="firebase-badge"
-            style="background: #FFCA28; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px;"><i
-              class="fas fa-database mr-1"></i>v5.0</span>
-        </h1>
-      </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <div id="firebaseStatus" class="modern-btn" style="background-color: #10b98120; color: #10b981;">
-          <i class="fas fa-link"></i> Firebase Live
+  <!-- Main App Content (Hidden until login) -->
+  <div id="mainApp" style="display: none;">
+    <div class="card flex flex-col">
+      <!-- Header -->
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b p-3 flex-shrink-0"
+        style="background: rgba(0,0,0,0.03);">
+        <div class="flex items-center gap-3">
+          <i class="fas fa-fire text-orange-500 text-xl"></i>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+            Complete Firebase DB Architect
+            <span class="firebase-badge"
+              style="background: #FFCA28; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px;"><i
+                class="fas fa-database mr-1"></i>Secure</span>
+          </h1>
         </div>
-
-        <!-- Database Actions Dropdown - Only Create New and Load Database -->
-        <div class="relative inline-block" id="dbActionsContainer">
-          <button id="dbActionsBtn" class="modern-btn btn-primary"><i class="fas fa-database"></i> Database <i
-              class="fas fa-chevron-down text-xs ml-1"></i></button>
-          <div id="dbActionsMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 200px;">
-            <button id="createNewDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
-              <i class="fas fa-plus-circle text-green-500 mr-2"></i> Create New Database
-            </button>
-            <button id="loadExistingDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
-              <i class="fas fa-folder-open text-blue-500 mr-2"></i> Load Database
-            </button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Firebase Status with flashing animation -->
+          <div id="firebaseStatus" class="modern-btn" style="background-color: #10b98120; color: #10b981;">
+            <i class="fas fa-link"></i> <span id="firebaseStatusText">● LIVE</span>
           </div>
-        </div>
 
-        <div class="relative inline-block" id="saveDbContainer">
-          <button id="saveDbBtn" disabled class="modern-btn btn-dropdown btn-disabled">
-            <i class="fas fa-save"></i> Save as DB <i class="fas fa-chevron-down text-xs ml-1"></i>
-          </button>
-          <div id="saveDbMenu" class="dropdown-menu hidden mt-1 p-3" style="position: absolute; right: 0; min-width: 280px;">
-            <div class="text-sm font-bold mb-2">Save as Database</div>
-            <input type="text" id="newDbNameInput" placeholder="Database name" class="w-full p-2 border rounded text-sm mb-2">
-            <div id="currentColumnsPreview" class="text-xs bg-gray-50 p-2 rounded mb-2 max-h-32 overflow-y-auto"></div>
-            <button id="confirmSaveDb" class="modern-btn btn-success w-full">Save to Firebase</button>
+          <!-- User Indicator (shifted from bulk button area) -->
+          <div id="userDisplay" class="modern-btn btn-primary"
+            style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <i class="fas fa-user-circle"></i> <span id="userName">User</span>
           </div>
-        </div>
 
-        <div class="relative inline-block" id="dbSwitchContainer">
-          <button id="dbSwitchBtn" class="modern-btn btn-dropdown"><i class="fas fa-exchange-alt"></i> Switch DB <i
-              class="fas fa-chevron-down text-xs ml-1"></i></button>
-          <div id="dbSwitchMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 240px;">
-            <div class="p-2 border-b flex justify-between items-center">
-              <span class="text-xs font-semibold">Saved Databases</span>
-              <button id="refreshDbList" class="text-indigo-500 text-xs"><i class="fas fa-sync-alt"></i></button>
+          <!-- Database Actions Dropdown -->
+          <div class="relative inline-block" id="dbActionsContainer">
+            <button id="dbActionsBtn" class="modern-btn btn-dropdown"><i class="fas fa-database"></i> Database <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="dbActionsMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; right: 0; min-width: 200px;">
+              <button id="createNewDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"><i
+                  class="fas fa-plus-circle text-green-500 mr-2"></i> Create New Database</button>
+              <button id="loadExistingDbBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"><i
+                  class="fas fa-folder-open text-blue-500 mr-2"></i> Load Database</button>
             </div>
-            <div id="databaseListContainer" class="max-h-64 overflow-y-auto"></div>
+          </div>
+
+          <div class="relative inline-block" id="saveDbContainer">
+            <button id="saveDbBtn" disabled class="modern-btn btn-dropdown btn-disabled"><i class="fas fa-save"></i>
+              Save as DB <i class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="saveDbMenu" class="dropdown-menu hidden mt-1 p-3"
+              style="position: absolute; right: 0; min-width: 280px;">
+              <div class="text-sm font-bold mb-2">Save as Database</div>
+              <input type="text" id="newDbNameInput" placeholder="Database name"
+                class="w-full p-2 border rounded text-sm mb-2">
+              <div id="currentColumnsPreview" class="text-xs bg-gray-50 p-2 rounded mb-2 max-h-32 overflow-y-auto">
+              </div>
+              <button id="confirmSaveDb" class="modern-btn btn-success w-full">Save to Firebase</button>
+            </div>
+          </div>
+
+          <div class="relative inline-block" id="dbSwitchContainer">
+            <button id="dbSwitchBtn" class="modern-btn btn-dropdown"><i class="fas fa-exchange-alt"></i> Switch DB <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="dbSwitchMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; right: 0; min-width: 240px;">
+              <div class="p-2 border-b flex justify-between items-center">
+                <span class="text-xs font-semibold">Saved Databases</span>
+                <button id="refreshDbList" class="text-indigo-500 text-xs"><i class="fas fa-sync-alt"></i></button>
+              </div>
+              <div id="databaseListContainer" class="max-h-64 overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <!-- Account Button (shifted) -->
+          <div class="relative inline-block" id="userMenuContainer">
+            <button id="userMenuBtn" class="modern-btn btn-primary"><i class="fas fa-user-circle"></i> Account <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="userMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; right: 0; min-width: 220px;">
+              <div class="px-3 py-2 border-b">
+                <div class="text-xs text-gray-500">Logged in as</div>
+                <div class="text-sm font-semibold" id="menuUserName">User</div>
+                <div class="text-xs text-gray-400" id="menuUserRole"></div>
+              </div>
+              <div class="border-t my-1"></div>
+              <button id="sleepBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"><i
+                  class="fas fa-bed mr-2 text-purple-500"></i> Sleep / Hibernate</button>
+              <div class="border-t my-1"></div>
+              <div class="px-3 py-2">
+                <div class="text-xs font-semibold text-gray-500 mb-1">Quick Link:</div>
+                <input type="text" id="quickLinkInput" class="link-input"
+                  placeholder="Enter URL (e.g., https://google.com)">
+                <button id="openLinkBtn" class="modern-btn btn-info w-full mt-2 text-xs py-1">Open Link <i
+                    class="fas fa-external-link-alt"></i></button>
+              </div>
+              <div class="border-t my-1"></div>
+              <button id="logoutBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600"><i
+                  class="fas fa-sign-out-alt mr-2"></i> Logout</button>
+            </div>
+          </div>
+
+          <!-- Import Excel button shifted to right up (inside export dropdown) -->
+          <div class="relative inline-block" id="exportContainer">
+            <button id="exportBtn" class="modern-btn btn-outline"><i class="fas fa-download"></i> Export/Import</button>
+            <div id="exportMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; right: 0; min-width: 200px;">
+              <button id="exportJsonSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📄 Export
+                JSON</button>
+              <button id="exportExcelSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📊 Export
+                Excel</button>
+              <div class="border-t my-1"></div>
+              <label class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer flex gap-2">📥 Import
+                Excel<i class="fas fa-upload"></i><input type="file" id="importExcelInput" accept=".xlsx, .xls"
+                  class="hidden"></label>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="relative inline-block" id="addColumnContainer">
-          <button id="addColumnBtn" class="modern-btn btn-dropdown"><i class="fas fa-plus-circle"></i> Add Column <i
-              class="fas fa-chevron-down text-xs ml-1"></i></button>
-          <div id="addColumnMenu" class="dropdown-menu hidden mt-1 p-3" style="position: absolute; right: 0; min-width: 380px;">
-            <div class="text-sm font-bold mb-2">Add New Column</div>
-            <input type="text" id="newColumnName" placeholder="Column name" class="w-full p-2 border rounded mb-2">
-            <select id="newColumnType" class="w-full p-2 border rounded mb-2">
-              <option value="text">Text</option>
-              <option value="number">Number</option>
-              <option value="date">Date</option>
-              <option value="checkbox">Checkbox</option>
-              <option value="radio">Radio Button</option>
-              <option value="dropdown">Dropdown</option>
-              <option value="multi-select">Multi-Select</option>
-              <option value="textarea">Text Area</option>
-            </select>
-            <div id="dateFormatContainer" class="hidden mb-2">
-              <label class="text-xs font-semibold">Date Format:</label>
-              <select id="dateFormat" class="w-full p-2 border rounded text-sm mt-1">
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="DD-MM-YYYY">DD-MM-YYYY</option>
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+      <!-- Smart Header Dropdown for Column Search -->
+      <div class="smart-search-container border-b px-3 py-2 flex items-center gap-3 flex-wrap">
+        <i class="fas fa-search text-purple-500"></i>
+        <select id="searchColumnSelect" class="px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-gray-800">
+          <option value="">Select column to search...</option>
+        </select>
+        <input type="text" id="smartSearchInput" placeholder="Type to search in selected column..."
+          class="flex-1 px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <button id="clearSearchBtn" class="modern-btn btn-secondary text-xs"><i class="fas fa-times"></i> Clear</button>
+      </div>
+
+      <!-- Activity Log Section -->
+      <div class="border-b px-3 py-2" style="background: rgba(139, 92, 246, 0.05);">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-history text-purple-500 text-sm"></i>
+            <span class="text-xs font-semibold">Activity Log</span>
+            <span id="activityCount" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <button id="clearActivityBtn" class="text-xs text-gray-500 hover:text-gray-700"><i
+              class="fas fa-trash-alt"></i> Clear</button>
+        </div>
+        <div id="activityLog" class="activity-log mt-1 max-h-24 overflow-y-auto"></div>
+      </div>
+
+      <div class="cards-container" id="cardsContainer">
+        <div id="emptyDataState" class="empty-state">
+          <i class="fas fa-table text-5xl mb-3 block"></i>
+          <span>No table structure yet!</span>
+          <div class="mt-4">
+            <button id="quickAddColumnBtn" class="modern-btn btn-purple"><i class="fas fa-plus-circle"></i>Add First
+              Column</button>
+          </div>
+        </div>
+        <div id="cardsWrapper" class="hidden w-full"></div>
+      </div>
+
+      <!-- Footer with shifted buttons -->
+      <div class="border-t px-4 py-2 flex justify-between items-center flex-shrink-0"
+        style="background: rgba(0,0,0,0.03);">
+        <div class="flex items-center gap-3">
+          <div class="text-xs"><i class="fas fa-info-circle mr-1"></i><span id="activeDbLabel">📝 Working on unsaved
+              table</span></div>
+          <!-- Add Column and Remove Column buttons shifted down together -->
+          <div class="relative inline-block" id="addColumnContainer">
+            <button id="addColumnBtn" class="modern-btn btn-success"><i class="fas fa-plus-circle"></i> Add Column <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="addColumnMenu" class="dropdown-menu hidden mt-1 p-3"
+              style="position: absolute; left: 0; bottom: 100%; min-width: 380px;">
+              <div class="text-sm font-bold mb-2">Add New Column</div>
+              <input type="text" id="newColumnName" placeholder="Column name" class="w-full p-2 border rounded mb-2">
+              <select id="newColumnType" class="w-full p-2 border rounded mb-2">
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="radio">Radio Button</option>
+                <option value="dropdown">Dropdown</option>
+                <option value="multi-select">Multi-Select</option>
+                <option value="textarea">Text Area</option>
               </select>
+              <div id="dateFormatContainer" class="hidden mb-2">
+                <label class="text-xs font-semibold">Date Format:</label>
+                <select id="dateFormat" class="w-full p-2 border rounded text-sm mt-1">
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                </select>
+              </div>
+              <div id="radioOptionsContainer" class="hidden mb-2">
+                <label class="text-xs font-semibold">Radio Options:</label>
+                <input type="text" id="radioOptions" placeholder="Male, Female, Other"
+                  class="w-full p-2 border rounded text-sm mt-1">
+              </div>
+              <div id="columnOptionsContainer" class="hidden mb-2">
+                <label class="text-xs font-semibold">Options:</label>
+                <input type="text" id="columnOptions" placeholder="Option 1, Option 2"
+                  class="w-full p-2 border rounded text-sm mt-1">
+              </div>
+              <button id="confirmAddColumn" class="modern-btn btn-purple w-full">Add Column</button>
             </div>
-            <div id="radioOptionsContainer" class="hidden mb-2">
-              <label class="text-xs font-semibold">Radio Options:</label>
-              <input type="text" id="radioOptions" placeholder="Male, Female, Other" class="w-full p-2 border rounded text-sm mt-1">
-            </div>
-            <div id="columnOptionsContainer" class="hidden mb-2">
-              <label class="text-xs font-semibold">Options:</label>
-              <input type="text" id="columnOptions" placeholder="Option 1, Option 2" class="w-full p-2 border rounded text-sm mt-1">
-            </div>
-            <button id="confirmAddColumn" class="modern-btn btn-purple w-full">Add Column</button>
           </div>
+          <button id="removeColumnBtn" class="modern-btn btn-danger"><i class="fas fa-trash-alt"></i> Remove
+            Column</button>
         </div>
-
-        <div class="relative inline-block" id="userMenuContainer">
-          <button id="userMenuBtn" class="modern-btn btn-primary"><i class="fas fa-user-circle"></i> Account <i
-              class="fas fa-chevron-down text-xs ml-1"></i></button>
-          <div id="userMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 220px;">
-            <button id="loginBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
-              <i class="fas fa-sign-in-alt mr-2 text-green-500"></i> Login
-            </button>
-            <div class="border-t my-1"></div>
-            <button id="sleepBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
-              <i class="fas fa-bed mr-2 text-purple-500"></i> Sleep / Hibernate
-            </button>
-            <div class="border-t my-1"></div>
-            <div class="px-3 py-2">
-              <div class="text-xs font-semibold text-gray-500 mb-1">Quick Link:</div>
-              <input type="text" id="quickLinkInput" class="link-input" placeholder="Enter URL (e.g., https://google.com)">
-              <button id="openLinkBtn" class="modern-btn btn-info w-full mt-2 text-xs py-1">Open Link <i class="fas fa-external-link-alt"></i></button>
-            </div>
-            <div class="border-t my-1"></div>
-            <button id="logoutBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
-              <i class="fas fa-sign-out-alt mr-2 text-red-500"></i> Logout
-            </button>
-          </div>
-        </div>
-
-        <div class="relative inline-block" id="themeContainer">
-          <button id="themeBtn" class="modern-btn btn-primary"><i class="fas fa-palette"></i> Themes <i
-              class="fas fa-chevron-down text-xs ml-1"></i></button>
-          <div id="themeMenu" class="dropdown-menu hidden mt-1" style="position: absolute; right: 0; min-width: 160px;">
-            <div class="theme-option" data-theme="light"><i class="fas fa-sun"></i> Light</div>
-            <div class="theme-option" data-theme="dark"><i class="fas fa-moon"></i> Dark</div>
-            <div class="theme-option" data-theme="forest"><i class="fas fa-tree"></i> Forest</div>
-            <div class="theme-option" data-theme="ocean"><i class="fas fa-water"></i> Ocean</div>
-            <div class="theme-option" data-theme="sunset"><i class="fas fa-sunset"></i> Sunset</div>
-            <div class="theme-option" data-theme="midnight"><i class="fas fa-moon"></i> Midnight</div>
-            <div class="theme-option" data-theme="rose"><i class="fas fa-heart"></i> Rose</div>
-          </div>
-        </div>
-
-        <button id="refreshBtn" class="modern-btn btn-success"><i class="fas fa-sync-alt"></i> Refresh</button>
-      </div>
-    </div>
-
-    <!-- Activity Log Section -->
-    <div class="border-b px-3 py-2" style="background: rgba(139, 92, 246, 0.05);">
-      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <i class="fas fa-history text-purple-500 text-sm"></i>
-          <span class="text-xs font-semibold">Activity Log</span>
-          <span id="activityCount" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">0</span>
-        </div>
-        <button id="clearActivityBtn" class="text-xs text-gray-500 hover:text-gray-700"><i class="fas fa-trash-alt"></i> Clear</button>
-      </div>
-      <div id="activityLog" class="activity-log mt-1 max-h-24 overflow-y-auto"></div>
-    </div>
-
-    <div class="cards-container" id="cardsContainer">
-      <div id="emptyDataState" class="empty-state">
-        <i class="fas fa-table text-5xl mb-3 block"></i>
-        <span>No table structure yet!</span>
-        <div class="mt-4">
-          <button id="quickAddColumnBtn" class="modern-btn btn-purple"><i class="fas fa-plus-circle"></i>Add First Column</button>
+          <!-- Bulk Shift button moved to right side -->
+          <button id="bulkShiftBtn" class="modern-btn btn-warning"><i class="fas fa-exchange-alt"></i> Bulk
+            Shift</button>
+          <!-- Stats button (replaced clear logs button) -->
+          <button id="showStatsBtn" class="modern-btn btn-info"><i class="fas fa-chart-bar"></i> Stats</button>
+          <button id="addRowBtn" class="modern-btn btn-success"><i class="fas fa-plus"></i> Add Row</button>
+          <span id="rowCount" class="text-xs font-mono bg-gray-100 px-3 py-1 rounded-full">📋 0 rows</span>
         </div>
       </div>
-      <div id="cardsWrapper" class="hidden w-full"></div>
-    </div>
 
-    <div class="border-t px-4 py-2 flex justify-between items-center flex-shrink-0" style="background: rgba(0,0,0,0.03);">
-      <div class="flex items-center gap-3">
-        <div class="text-xs">
-          <i class="fas fa-info-circle mr-1"></i>
-          <span id="activeDbLabel">📝 Working on unsaved table</span>
-        </div>
-        <div class="relative inline-block" id="exportContainer">
-          <button id="exportBtn" class="modern-btn btn-outline"><i class="fas fa-download"></i> Export</button>
-          <div id="exportMenu" class="dropdown-menu hidden bottom-full mb-1" style="position: absolute; left: 0; bottom: 100%;">
-            <button id="exportJsonSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📄 Export JSON</button>
-            <button id="exportExcelSubBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">📊 Export Excel</button>
-            <div class="border-t my-1"></div>
-            <label class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer flex gap-2">
-              📥 Import Excel
-              <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
-            </label>
+      <!-- Bottom left: Themes button + Page redirect dropdown -->
+      <div class="border-t px-4 py-2 flex justify-between items-center flex-shrink-0"
+        style="background: rgba(0,0,0,0.02);">
+        <div class="flex items-center gap-2">
+          <!-- Themes button in left down -->
+          <div class="relative inline-block" id="themeContainer">
+            <button id="themeBtn" class="modern-btn btn-primary"><i class="fas fa-palette"></i> Themes <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="themeMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; left: 0; bottom: 100%; min-width: 180px;">
+              <div class="theme-option" data-theme="light"><i class="fas fa-sun"></i> Light</div>
+              <div class="theme-option" data-theme="dark"><i class="fas fa-moon"></i> Dark</div>
+              <div class="theme-option" data-theme="forest"><i class="fas fa-tree"></i> Forest</div>
+              <div class="theme-option" data-theme="ocean"><i class="fas fa-water"></i> Ocean</div>
+              <div class="theme-option" data-theme="sunset"><i class="fas fa-sunset"></i> Sunset</div>
+              <div class="theme-option" data-theme="midnight"><i class="fas fa-moon"></i> Midnight</div>
+              <div class="theme-option" data-theme="rose"><i class="fas fa-heart"></i> Rose</div>
+            </div>
+          </div>
+
+          <!-- Page redirect dropdown (replaces refresh button) -->
+          <div class="relative inline-block">
+            <button id="pageRedirectBtn" class="modern-btn btn-secondary"><i class="fas fa-globe"></i> Pages <i
+                class="fas fa-chevron-down text-xs ml-1"></i></button>
+            <div id="pageRedirectMenu" class="dropdown-menu hidden mt-1"
+              style="position: absolute; left: 0; bottom: 100%; min-width: 180px;">
+              <button class="page-link w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                data-url="https://dashboard.example.com"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</button>
+              <button class="page-link w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                data-url="https://analytics.example.com"><i class="fas fa-chart-line mr-2"></i> Analytics</button>
+              <button class="page-link w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                data-url="https://settings.example.com"><i class="fas fa-cog mr-2"></i> Settings</button>
+              <div class="border-t my-1"></div>
+              <div class="px-3 py-2">
+                <input type="text" id="customPageUrl" placeholder="Custom URL"
+                  class="w-full p-1 border rounded text-xs">
+                <button id="goCustomUrlBtn" class="modern-btn btn-info w-full mt-1 text-xs py-1">Go</button>
+              </div>
+            </div>
           </div>
         </div>
-        <button id="bulkShiftBtn" class="modern-btn btn-warning"><i class="fas fa-exchange-alt"></i> Bulk Shift</button>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="removeColumnBtn" class="modern-btn btn-danger"><i class="fas fa-trash-alt"></i> Remove Column</button>
-        <button id="addRowBtn" class="modern-btn btn-success"><i class="fas fa-plus"></i> Add Row</button>
-        <span id="rowCount" class="text-xs font-mono bg-gray-100 px-3 py-1 rounded-full">📋 0 rows</span>
-        <button id="showStatsBtn" class="modern-btn btn-info"><i class="fas fa-chart-bar"></i> Stats</button>
+        <div class="text-xs text-gray-400">
+          <i class="fas fa-shield-alt mr-1"></i> Secure Connection
+        </div>
       </div>
     </div>
   </div>
@@ -707,8 +1063,45 @@
     <div id="statsContent" class="stats-content"></div>
   </div>
 
+  <!-- Auth Overlay -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-container">
+      <h2 id="formTitle">Welcome Back</h2>
+
+      <!-- Login Form -->
+      <div id="loginFormDiv">
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <select id="loginAuthor">
+          <option value="">Select Role</option>
+          <option value="admin">Admin (الفحص)</option>
+          <option value="user">User (الصيانة)</option>
+        </select>
+        <button id="doLoginBtn">Login</button>
+        <div class="auth-switch">Don't have an account? <a id="showSignupBtn">Sign Up</a></div>
+        <div id="loginMessage" class="auth-error"></div>
+      </div>
+
+      <!-- Signup Form -->
+      <div id="signupFormDiv" style="display: none;">
+        <input type="text" id="signupUsername" placeholder="Username">
+        <input type="email" id="signupEmail" placeholder="Email">
+        <select id="signupAuthor">
+          <option value="">Select Role</option>
+          <option value="admin">Admin (الفحص)</option>
+          <option value="user">User (الصيانة)</option>
+        </select>
+        <button id="doSignupBtn">Generate Code</button>
+        <div id="generatedCode" class="code-display" style="display: none;"></div>
+        <div id="signupTimer" class="timer"></div>
+        <div class="auth-switch">Already have an account? <a id="showLoginBtn">Login</a></div>
+        <div id="signupMessage" class="auth-error"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Firebase Config
+    // Firebase Config - UPDATED with your new config
     const firebaseConfig = {
       apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
       authDomain: "codeae-85.firebaseapp.com",
@@ -716,30 +1109,40 @@
       projectId: "codeae-85",
       storageBucket: "codeae-85.firebasestorage.app",
       messagingSenderId: "855701949624",
-      appId: "1:855701949624:web:2cf2ea8802a2d372f3384d"
+      appId: "1:855701949624:web:2cf2ea8802a2d372f3384d",
+      measurementId: "G-LL3X996JHP"
     };
 
     let firebaseDB = null;
-    let currentLoadedDbName = null;
+    let currentUser = null;
     let isLoading = false;
     let selectedRows = new Set();
     let starredRows = new Set();
     let rowComments = new Map();
     let rowPriorities = new Map();
     let activityLogs = [];
-    let isLoggedIn = false;
+    let isSleeping = false;
+    let countdownInterval = null;
+    let firebaseConnectionInterval = null;
+    const DEFAULT_PASSWORD = "@!#koko$*%&^%%&$%^&#";
+    const EXPIRATION_TIME = 25;
 
     try {
       firebase.initializeApp(firebaseConfig);
       firebaseDB = firebase.database();
       console.log("Firebase initialized");
+      startFirebaseConnectionMonitor();
     } catch (e) { console.warn(e); }
 
     let workingTableColumns = [];
     let workingTableRows = [];
     let savedDatabases = {};
+    let currentLoadedDbName = null;
     let editingRowIndex = null;
     let originalRowData = null;
+    let currentSort = { columnId: null, order: "asc" };
+    let currentSearchColumn = "";
+    let currentSearchTerm = "";
 
     function genColId() { return `col_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`; }
 
@@ -748,65 +1151,283 @@
       return now.toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    function getISOTimestamp() {
-      return new Date().toISOString();
+    // Firebase connection monitor - checks every 3 seconds
+    function startFirebaseConnectionMonitor() {
+      if (!firebaseDB) return;
+      firebaseConnectionInterval = setInterval(() => {
+        const connectedRef = firebaseDB.ref('.info/connected');
+        connectedRef.once('value', (snap) => {
+          const isConnected = snap.val();
+          updateFirebaseStatus(isConnected);
+        });
+      }, 3000);
     }
 
-    async function addActivityLog(action, details, type = 'info') {
-      const timestamp = getCurrentTimestamp();
-      const isoTime = getISOTimestamp();
-      const log = { timestamp, isoTime, action, details, type };
-      activityLogs.unshift(log);
-      if (activityLogs.length > 100) activityLogs.pop();
-      renderActivityLog();
+    function updateFirebaseStatus(isConnected) {
+      const statusDiv = document.getElementById('firebaseStatus');
+      const statusText = document.getElementById('firebaseStatusText');
+      if (!statusDiv || !statusText) return;
 
-      if (firebaseDB) {
-        try {
-          const activityRef = firebaseDB.ref('activity_logs');
-          const newLogRef = activityRef.push();
-          await newLogRef.set(log);
-        } catch (e) { console.warn('Failed to save activity log to Firebase:', e); }
+      if (isConnected) {
+        statusDiv.style.backgroundColor = '#10b98120';
+        statusDiv.style.color = '#10b981';
+        statusText.innerHTML = '● LIVE';
+        statusDiv.classList.add('firebase-live');
+      } else {
+        statusDiv.style.backgroundColor = '#ef444420';
+        statusDiv.style.color = '#ef4444';
+        statusText.innerHTML = '● OFFLINE';
+        statusDiv.classList.remove('firebase-live');
       }
     }
 
-    async function loadActivityLogsFromFirebase() {
-      if (!firebaseDB) return;
-      try {
-        const snapshot = await firebaseDB.ref('activity_logs').limitToLast(50).get();
-        if (snapshot.exists()) {
-          const logs = Object.values(snapshot.val());
-          logs.sort((a, b) => new Date(b.isoTime) - new Date(a.isoTime));
-          activityLogs = logs;
-          renderActivityLog();
-        }
-      } catch (e) { console.warn('Failed to load activity logs:', e); }
+    // Smart search functionality
+    function updateSearchDropdown() {
+      const select = document.getElementById('searchColumnSelect');
+      if (!select) return;
+      select.innerHTML = '<option value="">Select column to search...</option>';
+      workingTableColumns.forEach(col => {
+        select.innerHTML += `<option value="${col.id}">${escapeHtml(col.name)} (${col.type})</option>`;
+      });
+    }
+
+    function filterRowsBySearch() {
+      if (!currentSearchColumn || !currentSearchTerm) {
+        renderCards();
+        return;
+      }
+      const filteredRows = workingTableRows.filter(row => {
+        const value = row[currentSearchColumn];
+        if (value === undefined || value === null) return false;
+        return String(value).toLowerCase().includes(currentSearchTerm.toLowerCase());
+      });
+      // Temporarily render filtered rows
+      const originalRows = workingTableRows;
+      workingTableRows = filteredRows;
+      renderCards();
+      workingTableRows = originalRows;
+      // Show filtered count
+      const rowCountSpan = document.getElementById('rowCount');
+      if (rowCountSpan && filteredRows.length !== originalRows.length) {
+        rowCountSpan.innerHTML = `📊 ${filteredRows.length} / ${originalRows.length} records (filtered)`;
+        setTimeout(() => {
+          if (rowCountSpan) rowCountSpan.innerHTML = `📊 ${originalRows.length} records | ⭐ ${starredRows.size} starred | 💬 ${rowComments.size} comments`;
+        }, 2000);
+      } else {
+        renderCards();
+      }
+    }
+
+    // ==================== AUTH FUNCTIONS ====================
+    function addActivityLog(action, details, type = 'info') {
+      const timestamp = getCurrentTimestamp();
+      const log = { timestamp, action, details, type };
+      activityLogs.unshift(log);
+      if (activityLogs.length > 100) activityLogs.pop();
+      renderActivityLog();
     }
 
     function renderActivityLog() {
       const container = document.getElementById('activityLog');
       const countSpan = document.getElementById('activityCount');
       if (!container) return;
-
       if (activityLogs.length === 0) {
         container.innerHTML = '<div class="text-center text-gray-400 text-xs py-2">No activities yet</div>';
         countSpan.textContent = '0';
         return;
       }
-
       countSpan.textContent = activityLogs.length;
       let html = '';
       for (let log of activityLogs.slice(0, 20)) {
         const icon = log.type === 'success' ? 'fa-check-circle' : (log.type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
         const color = log.type === 'success' ? 'text-green-500' : (log.type === 'error' ? 'text-red-500' : 'text-purple-500');
-        html += `<div class="activity-item">
-          <span class="activity-time">[${log.timestamp}]</span>
-          <i class="fas ${icon} ${color} text-xs mx-1"></i>
-          <span class="text-xs"><strong>${escapeHtml(log.action)}</strong>: ${escapeHtml(log.details)}</span>
-        </div>`;
+        html += `<div class="activity-item"><span class="activity-time">[${log.timestamp}]</span><i class="fas ${icon} ${color} text-xs mx-1"></i><span class="text-xs"><strong>${escapeHtml(log.action)}</strong>: ${escapeHtml(log.details)}</span></div>`;
       }
       container.innerHTML = html;
     }
 
+    function checkSession() {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          showMainApp();
+        } catch (e) { showAuthOverlay(); }
+      } else { showAuthOverlay(); }
+    }
+
+    function showMainApp() {
+      document.getElementById('authOverlay').classList.add('hidden');
+      document.getElementById('mainApp').style.display = 'block';
+      document.getElementById('userName').innerText = currentUser?.username || 'User';
+      document.getElementById('menuUserName').innerText = currentUser?.username || 'User';
+      document.getElementById('menuUserRole').innerText = currentUser?.author === 'admin' ? 'Admin (الفحص)' : 'User (الصيانة)';
+      loadFromFirebase();
+      renderCards();
+    }
+
+    function showAuthOverlay() {
+      document.getElementById('authOverlay').classList.remove('hidden');
+      document.getElementById('mainApp').style.display = 'none';
+    }
+
+    function showLoginForm() {
+      document.getElementById('loginFormDiv').style.display = 'block';
+      document.getElementById('signupFormDiv').style.display = 'none';
+      document.getElementById('formTitle').innerText = 'Welcome Back';
+    }
+
+    function showSignupForm() {
+      document.getElementById('loginFormDiv').style.display = 'none';
+      document.getElementById('signupFormDiv').style.display = 'block';
+      document.getElementById('formTitle').innerText = 'Create Account';
+      document.getElementById('generatedCode').style.display = 'none';
+      document.getElementById('signupTimer').innerHTML = '';
+    }
+
+    function generateCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+
+    function startCountdown(generatedCode, timeLeft) {
+      const timerDisplay = document.getElementById('signupTimer');
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(async () => {
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          try {
+            const codeRef = firebaseDB.ref('users-generatedcode/' + generatedCode);
+            const snapshot = await codeRef.once('value');
+            if (snapshot.exists()) {
+              const record = snapshot.val();
+              if (record.password === DEFAULT_PASSWORD) {
+                await codeRef.remove();
+                timerDisplay.innerHTML = '⏱️ Code expired. Please sign up again.';
+                timerDisplay.style.color = '#ef4444';
+              }
+            }
+          } catch (e) { console.warn(e); }
+          return;
+        }
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.innerHTML = `⏳ Code expires in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        timeLeft--;
+      }, 1000);
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const author = document.getElementById('loginAuthor').value;
+      const messageEl = document.getElementById('loginMessage');
+      if (!email || !password || !author) { messageEl.innerText = 'Please fill all fields'; return; }
+      try {
+        const snapshot = await firebaseDB.ref('users-generatedcode').once('value');
+        const users = snapshot.val();
+        let found = null;
+        for (let key in users) {
+          if (users[key].email === email && users[key].author === author) {
+            found = users[key];
+            found.id = key;
+            break;
+          }
+        }
+        if (!found) { messageEl.innerText = 'Invalid credentials'; return; }
+        let storedPassword = "";
+        if (typeof found.password === "string") storedPassword = found.password;
+        else if (typeof found.password === "object") storedPassword = found.password.password || found.password.value || JSON.stringify(found.password);
+        else storedPassword = String(found.password);
+        if (String(storedPassword) === String(password)) {
+          currentUser = found;
+          localStorage.setItem('currentUser', JSON.stringify(found));
+          messageEl.innerText = '';
+          showMainApp();
+          addActivityLog('Login', `User ${found.username} logged in successfully`, 'success');
+        } else { messageEl.innerText = 'Invalid password'; }
+      } catch (error) { messageEl.innerText = 'Error connecting to server'; console.error(error); }
+    }
+
+    async function handleSignup() {
+      const username = document.getElementById('signupUsername').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const author = document.getElementById('signupAuthor').value;
+      const messageEl = document.getElementById('signupMessage');
+      const codeDisplay = document.getElementById('generatedCode');
+
+      if (!username || !email || !author) {
+        messageEl.innerText = 'Please fill all fields';
+        return;
+      }
+
+      try {
+        const allCodes = await firebaseDB.ref('users-generatedcode').once('value');
+        if (allCodes.exists()) {
+          const data = allCodes.val();
+          const existingKey = Object.keys(data).find(key => data[key].username === username || data[key].email === email);
+          if (existingKey) {
+            messageEl.innerText = 'Username or email already exists';
+            return;
+          }
+        }
+
+        const generatedCode = `${username}-${generateCode()}`;
+        await firebaseDB.ref('users-generatedcode/' + generatedCode).set({
+          username: username,
+          email: email,
+          author: author,
+          password: DEFAULT_PASSWORD,
+          createdAt: new Date().toISOString()
+        });
+
+        codeDisplay.style.display = 'block';
+        codeDisplay.innerHTML = `✅ Your activation code:<br><strong>${generatedCode}</strong><br>Show this to admin for activation`;
+        messageEl.innerHTML = '<span style="color: #10b981;">Code generated! Share with admin to activate.</span>';
+        startCountdown(generatedCode, EXPIRATION_TIME);
+
+      } catch (error) {
+        messageEl.innerText = 'Error generating code: ' + error.message;
+        console.error(error);
+      }
+    }
+
+    function handleLogout() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      currentUser = null;
+      localStorage.removeItem('currentUser');
+      showAuthOverlay();
+      addActivityLog('Logout', 'User logged out', 'info');
+      showToast('Logged out successfully', 'success');
+    }
+
+    function sleepMode() {
+      if (isSleeping) return;
+      isSleeping = true;
+      document.body.classList.add('sleep-mode');
+      const overlay = document.createElement('div');
+      overlay.className = 'sleep-overlay';
+      overlay.id = 'sleepOverlay';
+      overlay.innerHTML = `<div class="sleep-message"><i class="fas fa-bed"></i><h2>Hibernate Mode</h2><p>The application is in sleep mode. Click below to wake up.</p><button class="wake-btn" id="wakeBtn">Wake Up <i class="fas fa-sun"></i></button></div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('wakeBtn').onclick = () => {
+        document.body.classList.remove('sleep-mode');
+        overlay.remove();
+        isSleeping = false;
+        addActivityLog('System', 'Woke up from sleep mode', 'info');
+        showToast('Welcome back! System is awake.', 'success');
+      };
+      addActivityLog('System', 'Entered sleep/hibernate mode', 'info');
+    }
+
+    function openLink() {
+      const linkInput = document.getElementById('quickLinkInput');
+      let url = linkInput.value.trim();
+      if (!url) { showToast('Please enter a URL', 'error'); return; }
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+      window.open(url, '_blank');
+      addActivityLog('Open Link', `Opened: ${url}`, 'info');
+      showToast(`Opening: ${url}`, 'success');
+    }
+
+    // ==================== MAIN APP FUNCTIONS ====================
     function formatDate(value, format) {
       if (!value) return '';
       let date;
@@ -821,19 +1442,12 @@
           if (format === 'DD-MM-YYYY') date = new Date(parts[2], parts[1] - 1, parts[0]);
           else if (format === 'YYYY-MM-DD') date = new Date(parts[0], parts[1] - 1, parts[2]);
           else date = new Date(value);
-        } else {
-          date = new Date(value);
-        }
-      } else {
-        date = new Date(value);
-      }
-
+        } else { date = new Date(value); }
+      } else { date = new Date(value); }
       if (isNaN(date.getTime())) return value;
-
       let day = date.getDate().toString().padStart(2, '0');
       let month = (date.getMonth() + 1).toString().padStart(2, '0');
       let year = date.getFullYear();
-
       if (format === 'DD/MM/YYYY') return `${day}/${month}/${year}`;
       if (format === 'DD-MM-YYYY') return `${day}-${month}-${year}`;
       if (format === 'MM/DD/YYYY') return `${month}/${day}/${year}`;
@@ -850,15 +1464,8 @@
         result[dbName][rowKey] = {};
         columns.forEach(col => {
           let value = row[col.id];
-          if (col.type === 'date' && col.dateFormat && value) {
-            value = formatDate(value, col.dateFormat);
-          }
-          result[dbName][rowKey][col.name] = {
-            type: col.type,
-            options: col.options || [],
-            dateFormat: col.dateFormat || null,
-            value: value !== undefined && value !== null ? value : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : ""))
-          };
+          if (col.type === 'date' && col.dateFormat && value) value = formatDate(value, col.dateFormat);
+          result[dbName][rowKey][col.name] = { type: col.type, options: col.options || [], dateFormat: col.dateFormat || null, value: value !== undefined && value !== null ? value : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : "")) };
         });
       });
       return result;
@@ -871,24 +1478,12 @@
       if (rowKeys.length === 0) return { columns: [], rows: [] };
       const firstRow = dbData[rowKeys[0]];
       const columnNames = Object.keys(firstRow);
-      const columns = columnNames.map((colName) => ({
-        id: genColId(),
-        name: colName,
-        type: firstRow[colName].type || "text",
-        options: firstRow[colName].options || [],
-        dateFormat: firstRow[colName].dateFormat || null
-      }));
+      const columns = columnNames.map((colName) => ({ id: genColId(), name: colName, type: firstRow[colName].type || "text", options: firstRow[colName].options || [], dateFormat: firstRow[colName].dateFormat || null }));
       const rows = [];
       rowKeys.forEach(rowKey => {
         const rowData = dbData[rowKey];
         const newRow = {};
-        columns.forEach(col => {
-          if (rowData[col.name]) {
-            newRow[col.id] = rowData[col.name].value;
-          } else {
-            newRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : "");
-          }
-        });
+        columns.forEach(col => { newRow[col.id] = rowData[col.name] ? rowData[col.name].value : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : "")); });
         rows.push(newRow);
       });
       return { columns, rows };
@@ -898,12 +1493,9 @@
       if (!firebaseDB) return false;
       try {
         await firebaseDB.ref('databases').set(savedDatabases);
-        await addActivityLog('Save to Firebase', 'All databases saved successfully', 'success');
+        addActivityLog('Save to Firebase', 'All databases saved successfully', 'success');
         return true;
-      } catch (error) {
-        await addActivityLog('Save Error', error.message, 'error');
-        return false;
-      }
+      } catch (error) { addActivityLog('Save Error', error.message, 'error'); return false; }
     }
 
     async function loadFromFirebase() {
@@ -913,26 +1505,23 @@
         const snapshot = await firebaseDB.ref('databases').get();
         if (snapshot.exists()) savedDatabases = snapshot.val();
         else savedDatabases = {};
-        await addActivityLog('Load from Firebase', `Loaded ${Object.keys(savedDatabases).length} databases`, 'success');
+        addActivityLog('Load from Firebase', `Loaded ${Object.keys(savedDatabases).length} databases`, 'success');
         return true;
-      } catch (error) { return false; }
-      finally { isLoading = false; }
+      } catch (error) { return false; } finally { isLoading = false; }
     }
 
     async function saveCurrentWorkingTableToFirebase() {
-      if (!currentLoadedDbName) { await addActivityLog('Save Error', 'No database loaded', 'error'); return false; }
+      if (!currentLoadedDbName) { addActivityLog('Save Error', 'No database loaded', 'error'); return false; }
       const firebaseStructure = workingTableToFirebaseStructure(currentLoadedDbName, workingTableColumns, workingTableRows);
       savedDatabases[currentLoadedDbName] = firebaseStructure[currentLoadedDbName];
       const success = await saveToFirebase();
-      if (success) await addActivityLog('Save Database', `Saved "${currentLoadedDbName}" with ${workingTableRows.length} rows`, 'success');
+      if (success) addActivityLog('Save Database', `Saved "${currentLoadedDbName}" with ${workingTableRows.length} rows`, 'success');
       return success;
     }
 
-    // Create New Database - Start Fresh
     function createNewDatabase() {
       const dbName = prompt("Enter new database name:", "MyNewDatabase");
       if (!dbName) return;
-      
       workingTableColumns = [];
       workingTableRows = [];
       currentLoadedDbName = null;
@@ -941,108 +1530,15 @@
       starredRows.clear();
       rowComments.clear();
       rowPriorities.clear();
-      
       renderCards();
       updateSaveButtonState();
       document.getElementById("activeDbLabel").innerHTML = `📝 Creating new database: ${escapeHtml(dbName)} - Add columns to start`;
       addActivityLog('Create Database', `Started creating new database "${dbName}"`, 'success');
       showToast(`Creating new database "${dbName}". Add columns to get started!`, "success");
-      
-      setTimeout(() => {
-        document.getElementById("addColumnBtn").click();
-      }, 500);
+      setTimeout(() => { document.getElementById("addColumnBtn").click(); }, 500);
     }
 
-    // Load Existing Database
-    function loadExistingDatabase() {
-      document.getElementById("dbSwitchBtn").click();
-    }
-
-    // Sleep/Hibernate Mode
-    let isSleeping = false;
-    function sleepMode() {
-      if (isSleeping) return;
-      isSleeping = true;
-      document.body.classList.add('sleep-mode');
-      
-      const overlay = document.createElement('div');
-      overlay.className = 'sleep-overlay';
-      overlay.id = 'sleepOverlay';
-      overlay.innerHTML = `
-        <div class="sleep-message">
-          <i class="fas fa-bed"></i>
-          <h2>Hibernate Mode</h2>
-          <p>The application is in sleep mode. Click below to wake up.</p>
-          <button class="wake-btn" id="wakeBtn">Wake Up <i class="fas fa-sun"></i></button>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-      
-      document.getElementById('wakeBtn').onclick = () => {
-        document.body.classList.remove('sleep-mode');
-        overlay.remove();
-        isSleeping = false;
-        addActivityLog('System', 'Woke up from sleep mode', 'info');
-        showToast('Welcome back! System is awake.', 'success');
-      };
-      
-      addActivityLog('System', 'Entered sleep/hibernate mode', 'info');
-    }
-
-    // Login Modal
-    function showLoginModal() {
-      const overlay = document.createElement('div');
-      overlay.className = 'login-modal-overlay';
-      overlay.id = 'loginOverlay';
-      overlay.innerHTML = `
-        <div class="login-modal">
-          <h2><i class="fas fa-lock mr-2"></i>Login Required</h2>
-          <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
-          <input type="password" id="loginPassword" placeholder="Password">
-          <div id="loginError" class="login-error"></div>
-          <button id="loginSubmitBtn" class="modern-btn btn-primary w-full">Login <i class="fas fa-arrow-right"></i></button>
-          <button id="loginCancelBtn" class="modern-btn btn-outline w-full mt-2">Cancel</button>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-      
-      document.getElementById('loginSubmitBtn').onclick = () => {
-        const username = document.getElementById('loginUsername').value;
-        const password = document.getElementById('loginPassword').value;
-        const errorDiv = document.getElementById('loginError');
-        
-        if (username === 'amir' && password === '1') {
-          isLoggedIn = true;
-          errorDiv.innerHTML = '<div class="login-success"><i class="fas fa-check-circle"></i> Login successful!</div>';
-          addActivityLog('Login', 'User amir logged in successfully', 'success');
-          showToast('Login successful!', 'success');
-          setTimeout(() => {
-            overlay.remove();
-          }, 1000);
-        } else {
-          errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid username or password';
-          addActivityLog('Login Failed', 'Failed login attempt', 'error');
-        }
-      };
-      
-      document.getElementById('loginCancelBtn').onclick = () => overlay.remove();
-    }
-
-    // Open Link
-    function openLink() {
-      const linkInput = document.getElementById('quickLinkInput');
-      let url = linkInput.value.trim();
-      if (!url) {
-        showToast('Please enter a URL', 'error');
-        return;
-      }
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-      window.open(url, '_blank');
-      addActivityLog('Open Link', `Opened: ${url}`, 'info');
-      showToast(`Opening: ${url}`, 'success');
-    }
+    function loadExistingDatabase() { document.getElementById("dbSwitchBtn").click(); }
 
     function updateSaveButtonState() {
       const saveBtn = document.getElementById("saveDbBtn");
@@ -1051,39 +1547,21 @@
         saveBtn.disabled = false;
         saveBtn.classList.remove("btn-disabled");
         const preview = document.getElementById("currentColumnsPreview");
-        if (preview) {
-          preview.innerHTML = `<strong>${workingTableColumns.length} column(s):</strong> ${workingTableColumns.map(c => c.name).join(', ')}<br><small>${workingTableRows.length} row(s) will be saved</small>`;
-        }
-      } else {
-        saveBtn.disabled = true;
-        saveBtn.classList.add("btn-disabled");
-      }
+        if (preview) preview.innerHTML = `<strong>${workingTableColumns.length} column(s):</strong> ${workingTableColumns.map(c => c.name).join(', ')}<br><small>${workingTableRows.length} row(s) will be saved</small>`;
+      } else { saveBtn.disabled = true; saveBtn.classList.add("btn-disabled"); }
     }
 
     function showConfirmModal(message, onConfirm) {
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="modal-content">
-          <p class="mb-4 text-sm">${message}</p>
-          <div class="flex gap-2 justify-end">
-            <button class="cancel-btn modern-btn btn-secondary">Cancel</button>
-            <button class="confirm-btn modern-btn btn-danger">Confirm</button>
-          </div>
-        </div>
-      `;
+      overlay.innerHTML = `<div class="modal-content"><p class="mb-4 text-sm">${message}</p><div class="flex gap-2 justify-end"><button class="cancel-btn modern-btn btn-secondary">Cancel</button><button class="confirm-btn modern-btn btn-danger">Confirm</button></div></div>`;
       document.body.appendChild(overlay);
       overlay.querySelector('.cancel-btn').onclick = () => overlay.remove();
       overlay.querySelector('.confirm-btn').onclick = () => { overlay.remove(); onConfirm(); };
     }
 
     function showAddRowModal() {
-      if (workingTableColumns.length === 0) {
-        addActivityLog('Add Row Error', 'Add columns first', 'error');
-        showToast("Add columns first", "error");
-        return;
-      }
-      
+      if (workingTableColumns.length === 0) { addActivityLog('Add Row Error', 'Add columns first', 'error'); showToast("Add columns first", "error"); return; }
       const newRow = {};
       workingTableColumns.forEach(col => newRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : (col.type === "multi-select" ? [] : "")));
       workingTableRows.unshift(newRow);
@@ -1096,11 +1574,7 @@
     }
 
     function showRemoveColumnModal() {
-      if (workingTableColumns.length === 0) {
-        addActivityLog('Remove Column Error', 'No columns to remove', 'error');
-        showToast("No columns to remove", "error");
-        return;
-      }
+      if (workingTableColumns.length === 0) { addActivityLog('Remove Column Error', 'No columns to remove', 'error'); showToast("No columns to remove", "error"); return; }
       const colName = prompt(`Enter column name to remove:\n\nAvailable: ${workingTableColumns.map(c => c.name).join(', ')}`);
       if (colName) {
         const colToRemove = workingTableColumns.find(c => c.name.toLowerCase() === colName.toLowerCase());
@@ -1114,30 +1588,17 @@
             addActivityLog('Remove Column', `Removed column "${colToRemove.name}"`, 'success');
             showToast(`Removed "${colToRemove.name}"`, "success");
           });
-        } else {
-          showToast(`Column "${colName}" not found`, "error");
-        }
+        } else { showToast(`Column "${colName}" not found`, "error"); }
       }
     }
 
-    function updatePriority(rowIndex) {
-      rowPriorities.set(rowIndex, Date.now());
-      reorderRowsByPriority();
-    }
+    function updatePriority(rowIndex) { rowPriorities.set(rowIndex, Date.now()); reorderRowsByPriority(); }
 
     function reorderRowsByPriority() {
-      const rowsWithPriority = workingTableRows.map((row, idx) => ({
-        row,
-        originalIndex: idx,
-        priority: rowPriorities.get(idx) || 0
-      }));
+      const rowsWithPriority = workingTableRows.map((row, idx) => ({ row, originalIndex: idx, priority: rowPriorities.get(idx) || 0 }));
       rowsWithPriority.sort((a, b) => b.priority - a.priority);
       const newRows = rowsWithPriority.map(item => item.row);
-      const newPriorities = new Map();
-      const newComments = new Map();
-      const newStarred = new Set();
-      const newSelected = new Set();
-
+      const newPriorities = new Map(), newComments = new Map(), newStarred = new Set(), newSelected = new Set();
       rowsWithPriority.forEach((item, newIdx) => {
         const oldIdx = item.originalIndex;
         if (rowPriorities.has(oldIdx)) newPriorities.set(newIdx, rowPriorities.get(oldIdx));
@@ -1145,7 +1606,6 @@
         if (starredRows.has(oldIdx)) newStarred.add(newIdx);
         if (selectedRows.has(oldIdx)) newSelected.add(newIdx);
       });
-
       workingTableRows = newRows;
       rowPriorities = newPriorities;
       rowComments = newComments;
@@ -1158,61 +1618,25 @@
         document.getElementById('statsContent').innerHTML = '<div class="text-center text-gray-500 py-4">No data available</div>';
         return;
       }
-
       let html = '';
       for (let col of workingTableColumns) {
         if (col.type === 'number') {
           let sum = 0, count = 0, min = Infinity, max = -Infinity;
           workingTableRows.forEach(row => {
             let val = parseFloat(row[col.id]);
-            if (!isNaN(val) && val !== null && val !== '') {
-              sum += val;
-              count++;
-              if (val < min) min = val;
-              if (val > max) max = val;
-            }
+            if (!isNaN(val) && val !== null && val !== '') { sum += val; count++; if (val < min) min = val; if (val > max) max = val; }
           });
           if (count > 0) {
             let avg = sum / count;
-            html += `<div class="stat-item">
-              <div class="font-semibold text-sm"><i class="fas fa-calculator mr-1"></i>${escapeHtml(col.name)}</div>
-              <div class="text-xs mt-1 flex flex-wrap gap-2">
-                <span>Sum: ${sum.toLocaleString()}</span>
-                <span>Avg: ${avg.toFixed(2)}</span>
-                <span>Count: ${count}</span>
-                <span>Min: ${min}</span>
-                <span>Max: ${max}</span>
-              </div>
-            </div>`;
+            html += `<div class="stat-item"><div class="font-semibold text-sm"><i class="fas fa-calculator mr-1"></i>${escapeHtml(col.name)}</div><div class="text-xs mt-1 flex flex-wrap gap-2"><span>Sum: ${sum.toLocaleString()}</span><span>Avg: ${avg.toFixed(2)}</span><span>Count: ${count}</span><span>Min: ${min}</span><span>Max: ${max}</span></div></div>`;
           }
         } else if (col.type === 'checkbox') {
           let checked = workingTableRows.filter(row => row[col.id] === true).length;
-          html += `<div class="stat-item">
-            <div class="font-semibold text-sm"><i class="fas fa-check-square mr-1"></i>${escapeHtml(col.name)}</div>
-            <div class="text-xs mt-1 flex gap-2">
-              <span>Checked: ${checked}</span>
-              <span>Unchecked: ${workingTableRows.length - checked}</span>
-              <span>${((checked / workingTableRows.length) * 100).toFixed(1)}%</span>
-            </div>
-          </div>`;
+          html += `<div class="stat-item"><div class="font-semibold text-sm"><i class="fas fa-check-square mr-1"></i>${escapeHtml(col.name)}</div><div class="text-xs mt-1 flex gap-2"><span>Checked: ${checked}</span><span>Unchecked: ${workingTableRows.length - checked}</span><span>${((checked / workingTableRows.length) * 100).toFixed(1)}%</span></div></div>`;
         } else {
-          let uniqueValues = new Set();
-          let filled = 0;
-          workingTableRows.forEach(row => {
-            let val = row[col.id];
-            if (val && val !== '') {
-              uniqueValues.add(String(val));
-              filled++;
-            }
-          });
-          html += `<div class="stat-item">
-            <div class="font-semibold text-sm"><i class="fas fa-tag mr-1"></i>${escapeHtml(col.name)}</div>
-            <div class="text-xs mt-1 flex gap-2">
-              <span>Total: ${workingTableRows.length}</span>
-              <span>Unique: ${uniqueValues.size}</span>
-              <span>Fill: ${Math.round((filled / workingTableRows.length) * 100)}%</span>
-            </div>
-          </div>`;
+          let uniqueValues = new Set(), filled = 0;
+          workingTableRows.forEach(row => { let val = row[col.id]; if (val && val !== '') { uniqueValues.add(String(val)); filled++; } });
+          html += `<div class="stat-item"><div class="font-semibold text-sm"><i class="fas fa-tag mr-1"></i>${escapeHtml(col.name)}</div><div class="text-xs mt-1 flex gap-2"><span>Total: ${workingTableRows.length}</span><span>Unique: ${uniqueValues.size}</span><span>Fill: ${Math.round((filled / workingTableRows.length) * 100)}%</span></div></div>`;
         }
       }
       document.getElementById('statsContent').innerHTML = html || '<div class="text-center text-gray-500 py-4">No data for statistics</div>';
@@ -1221,149 +1645,93 @@
     function renderCards() {
       const emptyState = document.getElementById("emptyDataState");
       const cardsWrapper = document.getElementById("cardsWrapper");
-
       if (workingTableColumns.length === 0) {
         emptyState.classList.remove("hidden");
         if (cardsWrapper) cardsWrapper.classList.add("hidden");
         document.getElementById("rowCount").innerText = `📋 0 rows`;
         updateSaveButtonState();
+        updateSearchDropdown();
         return;
       }
-
       emptyState.classList.add("hidden");
       if (cardsWrapper) cardsWrapper.classList.remove("hidden");
-
       if (workingTableRows.length === 0) {
         cardsWrapper.innerHTML = '<div class="empty-state">📭 No rows. Click "Add Row"</div>';
         document.getElementById("rowCount").innerText = `📊 0 records`;
         updateSaveButtonState();
+        updateSearchDropdown();
         return;
       }
 
+      // Apply search filter if active
+      let rowsToRender = workingTableRows;
+      if (currentSearchColumn && currentSearchTerm) {
+        rowsToRender = workingTableRows.filter(row => {
+          const value = row[currentSearchColumn];
+          if (value === undefined || value === null) return false;
+          return String(value).toLowerCase().includes(currentSearchTerm.toLowerCase());
+        });
+      }
+
       let cardsHtml = '';
-      for (let idx = 0; idx < workingTableRows.length; idx++) {
-        const row = workingTableRows[idx];
-        const isEditing = (editingRowIndex === idx);
-        const isSelected = selectedRows.has(idx);
-        const isStarred = starredRows.has(idx);
-        const comment = rowComments.get(idx);
-        const hasPriority = rowPriorities.has(idx);
-
-        cardsHtml += `
-          <div class="data-card ${isEditing ? 'editing-card' : ''} ${isStarred ? 'starred-card' : ''}" data-row-idx="${idx}" style="position: relative;">
-            ${hasPriority ? '<div class="priority-indicator"></div>' : ''}
-            <div class="checkbox-container">
-              <input type="checkbox" class="row-checkbox" data-row="${idx}" ${isSelected ? 'checked' : ''}>
-            </div>
-            <div class="card-header">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-bold text-sm">#${idx + 1}</span>
-                ${isStarred ? '<i class="fas fa-star text-yellow-500"></i>' : ''}
-                ${comment ? `<span class="comment-badge" onclick="window.showCommentModal(${idx})"><i class="fas fa-comment"></i> ${comment.length > 20 ? comment.substring(0, 20) + '...' : comment}</span>` : ''}
-              </div>
-              <div class="flex gap-1">
-                ${!isEditing ? `
-                  <div class="relative">
-                    <button class="modern-btn btn-icon text-xs" style="background: rgba(139,92,246,0.1); padding: 4px 8px;" onclick="window.showFloatingMenu(${idx}, event)"><i class="fas fa-ellipsis-v"></i></button>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-            <div class="card-body">
-        `;
-
+      for (let idx = 0; idx < rowsToRender.length; idx++) {
+        const row = rowsToRender[idx];
+        const originalIdx = workingTableRows.indexOf(row);
+        const isEditing = (editingRowIndex === originalIdx);
+        const isSelected = selectedRows.has(originalIdx);
+        const isStarred = starredRows.has(originalIdx);
+        const comment = rowComments.get(originalIdx);
+        const hasPriority = rowPriorities.has(originalIdx);
+        cardsHtml += `<div class="data-card ${isEditing ? 'editing-card' : ''} ${isStarred ? 'starred-card' : ''}" data-row-idx="${originalIdx}" style="position: relative;">${hasPriority ? '<div class="priority-indicator"></div>' : ''}<div class="checkbox-container"><input type="checkbox" class="row-checkbox" data-row="${originalIdx}" ${isSelected ? 'checked' : ''}></div><div class="card-header"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-sm">#${originalIdx + 1}</span>${isStarred ? '<i class="fas fa-star text-yellow-500"></i>' : ''}${comment ? `<span class="comment-badge" onclick="window.showCommentModal(${originalIdx})"><i class="fas fa-comment"></i> ${comment.length > 20 ? comment.substring(0, 20) + '...' : comment}</span>` : ''}</div><div class="flex gap-1">${!isEditing ? `<div class="relative"><button class="modern-btn btn-icon text-xs" style="background: rgba(139,92,246,0.1); padding: 4px 8px;" onclick="window.showFloatingMenu(${originalIdx}, event)"><i class="fas fa-ellipsis-v"></i></button></div>` : ''}</div></div><div class="card-body">`;
         for (let col of workingTableColumns) {
           let rawValue = row[col.id] !== undefined && row[col.id] !== null ? row[col.id] : (col.type === "number" ? 0 : (col.type === "checkbox" ? false : ""));
-
-          if (col.type === 'date' && col.dateFormat && rawValue && !isEditing) {
-            rawValue = formatDate(rawValue, col.dateFormat);
-          }
-
+          if (col.type === 'date' && col.dateFormat && rawValue && !isEditing) rawValue = formatDate(rawValue, col.dateFormat);
           if (isEditing) {
             if (col.type === "number") {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <input type="number" value="${rawValue}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
-              </div>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><input type="number" value="${rawValue}" class="input-editable-card" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)"></div>`;
             } else if (col.type === "date") {
               let dateVal = rawValue || "";
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <input type="date" value="${escapeHtml(dateVal)}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
-              </div>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><input type="date" value="${escapeHtml(dateVal)}" class="input-editable-card" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)"></div>`;
             } else if (col.type === "checkbox") {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <input type="checkbox" ${rawValue ? 'checked' : ''} class="input-editable-card" style="width: auto;" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.checked)">
-              </div>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><input type="checkbox" ${rawValue ? 'checked' : ''} class="input-editable-card" style="width: auto;" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.checked)"></div>`;
             } else if (col.type === "radio" && col.options && col.options.length) {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <div class="radio-group">`;
-              col.options.forEach(opt => {
-                cardsHtml += `<label class="radio-option">
-                  <input type="radio" name="radio_${col.id}_${idx}" value="${escapeHtml(opt)}" ${rawValue === opt ? 'checked' : ''} onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
-                  <span>${escapeHtml(opt)}</span>
-                </label>`;
-              });
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><div class="radio-group">`;
+              col.options.forEach(opt => { cardsHtml += `<label class="radio-option"><input type="radio" name="radio_${col.id}_${originalIdx}" value="${escapeHtml(opt)}" ${rawValue === opt ? 'checked' : ''} onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)"><span>${escapeHtml(opt)}</span></label>`; });
               cardsHtml += `</div></div>`;
             } else if (col.type === "dropdown" && col.options && col.options.length) {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <select class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
-                  <option value="">Select...</option>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><select class="input-editable-card" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)"><option value="">Select...</option>`;
               col.options.forEach(opt => cardsHtml += `<option value="${escapeHtml(opt)}" ${rawValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`);
               cardsHtml += `</select></div>`;
             } else if (col.type === "textarea") {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <textarea class="input-editable-card" rows="2" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">${escapeHtml(String(rawValue))}</textarea>
-              </div>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><textarea class="input-editable-card" rows="2" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)">${escapeHtml(String(rawValue))}</textarea></div>`;
             } else {
-              cardsHtml += `<div class="card-field">
-                <label class="field-label">${escapeHtml(col.name)}</label>
-                <input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable-card" data-row="${idx}" data-col="${col.id}" onchange="window.updateCellValue(${idx}, '${col.id}', this.value)">
-              </div>`;
+              cardsHtml += `<div class="card-field"><label class="field-label">${escapeHtml(col.name)}</label><input type="text" value="${escapeHtml(String(rawValue))}" class="input-editable-card" data-row="${originalIdx}" data-col="${col.id}" onchange="window.updateCellValue(${originalIdx}, '${col.id}', this.value)"></div>`;
             }
           } else {
             let display = (rawValue === "" || rawValue === undefined) ? "—" : rawValue;
             if (col.type === "checkbox") display = rawValue ? '<i class="fas fa-check-circle text-green-500"></i> Yes' : '<i class="fas fa-times-circle text-red-500"></i> No';
             if (col.type === "multi-select" && Array.isArray(rawValue)) display = rawValue.join(', ');
             if (col.type === "radio") display = rawValue || "—";
-            cardsHtml += `<div class="card-field">
-              <div class="field-label">${escapeHtml(col.name)}</div>
-              <div class="field-value">${display}</div>
-            </div>`;
+            cardsHtml += `<div class="card-field"><div class="field-label">${escapeHtml(col.name)}</div><div class="field-value">${display}</div></div>`;
           }
         }
-
         if (isEditing) {
-          cardsHtml += `
-            </div>
-            <div class="card-footer">
-              <button class="modern-btn btn-secondary text-xs" onclick="window.cancelEditRow(${idx})"><i class="fas fa-times"></i> Cancel</button>
-              <button class="modern-btn btn-success text-xs" onclick="window.saveEditRow(${idx})"><i class="fas fa-save"></i> Save</button>
-            </div>
-          </div>`;
-        } else {
-          cardsHtml += `
-            </div>
-          </div>`;
-        }
+          cardsHtml += `</div><div class="card-footer"><button class="modern-btn btn-secondary text-xs" onclick="window.cancelEditRow(${originalIdx})"><i class="fas fa-times"></i> Cancel</button><button class="modern-btn btn-success text-xs" onclick="window.saveEditRow(${originalIdx})"><i class="fas fa-save"></i> Save</button></div></div>`;
+        } else { cardsHtml += `</div></div>`; }
       }
-
       cardsWrapper.innerHTML = cardsHtml;
-      document.getElementById("rowCount").innerHTML = `📊 ${workingTableRows.length} records | ⭐ ${starredRows.size} starred | 💬 ${rowComments.size} comments`;
+      const displayCount = rowsToRender.length;
+      const totalCount = workingTableRows.length;
+      if (displayCount !== totalCount) {
+        document.getElementById("rowCount").innerHTML = `📊 ${displayCount} / ${totalCount} records (filtered) | ⭐ ${starredRows.size} starred | 💬 ${rowComments.size} comments`;
+      } else {
+        document.getElementById("rowCount").innerHTML = `📊 ${workingTableRows.length} records | ⭐ ${starredRows.size} starred | 💬 ${rowComments.size} comments`;
+      }
       updateSaveButtonState();
-
+      updateSearchDropdown();
       document.querySelectorAll('.row-checkbox').forEach(cb => {
-        cb.onchange = (e) => {
-          const rowIdx = parseInt(e.target.getAttribute('data-row'));
-          if (e.target.checked) selectedRows.add(rowIdx);
-          else selectedRows.delete(rowIdx);
-        };
+        cb.onchange = (e) => { const rowIdx = parseInt(e.target.getAttribute('data-row')); if (e.target.checked) selectedRows.add(rowIdx); else selectedRows.delete(rowIdx); };
       });
-
       updateStatistics();
     }
 
@@ -1371,41 +1739,23 @@
       event.stopPropagation();
       const existingMenu = document.querySelector('.floating-menu');
       if (existingMenu) existingMenu.remove();
-
       const rect = event.target.getBoundingClientRect();
       const isStarred = starredRows.has(rowIndex);
       const comment = rowComments.get(rowIndex);
-
       const menu = document.createElement('div');
       menu.className = 'floating-menu dropdown-menu';
       menu.style.position = 'fixed';
       menu.style.top = `${rect.bottom + 5}px`;
       menu.style.left = `${rect.left - 100}px`;
       menu.style.minWidth = '160px';
-      menu.innerHTML = `
-        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.startEditRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-edit"></i> Edit</button>
-        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.duplicateRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-copy"></i> Duplicate</button>
-        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.toggleStarRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-star"></i> ${isStarred ? 'Unstar' : 'Star'}</button>
-        <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.showCommentModal(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-comment"></i> ${comment ? 'Edit' : 'Add'} Comment</button>
-        <div class="border-t my-1"></div>
-        <button class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100" onclick="window.deleteRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-trash"></i> Delete</button>
-      `;
+      menu.innerHTML = `<button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.startEditRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-edit"></i> Edit</button><button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.duplicateRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-copy"></i> Duplicate</button><button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.toggleStarRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-star"></i> ${isStarred ? 'Unstar' : 'Star'}</button><button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100" onclick="window.showCommentModal(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-comment"></i> ${comment ? 'Edit' : 'Add'} Comment</button><div class="border-t my-1"></div><button class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100" onclick="window.deleteRow(${rowIndex}); window.removeFloatingMenu();"><i class="fas fa-trash"></i> Delete</button>`;
       document.body.appendChild(menu);
-
       setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-          if (!menu.contains(e.target) && !event.target.contains(e.target)) {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
-          }
-        });
+        document.addEventListener('click', function closeMenu(e) { if (!menu.contains(e.target) && !event.target.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } });
       }, 10);
     };
 
-    window.removeFloatingMenu = function () {
-      const menu = document.querySelector('.floating-menu');
-      if (menu) menu.remove();
-    };
+    window.removeFloatingMenu = function () { const menu = document.querySelector('.floating-menu'); if (menu) menu.remove(); };
 
     window.duplicateRow = async function (rowIndex) {
       const sourceRow = workingTableRows[rowIndex];
@@ -1415,7 +1765,7 @@
       updatePriority(0);
       renderCards();
       if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
-      await addActivityLog('Duplicate Row', `Duplicated row #${rowIndex + 1} to top position`, 'success');
+      addActivityLog('Duplicate Row', `Duplicated row #${rowIndex + 1} to top position`, 'success');
       showToast(`Row duplicated and moved to top`, "success");
     };
 
@@ -1425,7 +1775,7 @@
       updatePriority(rowIndex);
       renderCards();
       if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
-      await addActivityLog('Star Row', `${starredRows.has(rowIndex) ? 'Starred' : 'Unstarred'} row #${rowIndex + 1}`, 'info');
+      addActivityLog('Star Row', `${starredRows.has(rowIndex) ? 'Starred' : 'Unstarred'} row #${rowIndex + 1}`, 'info');
       showToast(starredRows.has(rowIndex) ? "Row starred" : "Row unstarred", "info");
     };
 
@@ -1433,28 +1783,13 @@
       const currentComment = rowComments.get(rowIndex) || '';
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="modal-content">
-          <h3 class="font-bold mb-3"><i class="fas fa-comment mr-2"></i>Add Comment for Row #${rowIndex + 1}</h3>
-          <textarea id="commentInput" class="w-full p-2 border rounded mb-3" rows="4" placeholder="Enter your comment here...">${escapeHtml(currentComment)}</textarea>
-          <div class="flex gap-2 justify-end">
-            <button class="cancel-comment-btn modern-btn btn-secondary">Cancel</button>
-            <button class="save-comment-btn modern-btn btn-primary">Save Comment</button>
-          </div>
-        </div>
-      `;
+      overlay.innerHTML = `<div class="modal-content"><h3 class="font-bold mb-3"><i class="fas fa-comment mr-2"></i>Add Comment for Row #${rowIndex + 1}</h3><textarea id="commentInput" class="w-full p-2 border rounded mb-3" rows="4" placeholder="Enter your comment here...">${escapeHtml(currentComment)}</textarea><div class="flex gap-2 justify-end"><button class="cancel-comment-btn modern-btn btn-secondary">Cancel</button><button class="save-comment-btn modern-btn btn-primary">Save Comment</button></div></div>`;
       document.body.appendChild(overlay);
-
       overlay.querySelector('.cancel-comment-btn').onclick = () => overlay.remove();
       overlay.querySelector('.save-comment-btn').onclick = async () => {
         const comment = overlay.querySelector('#commentInput').value.trim();
-        if (comment) {
-          rowComments.set(rowIndex, comment);
-          await addActivityLog('Add Comment', `Added comment to row #${rowIndex + 1}: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`, 'info');
-        } else {
-          rowComments.delete(rowIndex);
-          await addActivityLog('Remove Comment', `Removed comment from row #${rowIndex + 1}`, 'info');
-        }
+        if (comment) { rowComments.set(rowIndex, comment); addActivityLog('Add Comment', `Added comment to row #${rowIndex + 1}: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`, 'info'); }
+        else { rowComments.delete(rowIndex); addActivityLog('Remove Comment', `Removed comment from row #${rowIndex + 1}`, 'info'); }
         updatePriority(rowIndex);
         renderCards();
         overlay.remove();
@@ -1469,18 +1804,15 @@
       originalRowData = JSON.parse(JSON.stringify(workingTableRows[rowIndex]));
       editingRowIndex = rowIndex;
       renderCards();
-      await addActivityLog('Start Edit', `Started editing row #${rowIndex + 1}`, 'info');
+      addActivityLog('Start Edit', `Started editing row #${rowIndex + 1}`, 'info');
       showToast(`Editing row ${rowIndex + 1}`, "info");
     };
 
     window.cancelEditRow = async function (rowIndex) {
-      if (originalRowData) {
-        workingTableRows[rowIndex] = originalRowData;
-        originalRowData = null;
-      }
+      if (originalRowData) { workingTableRows[rowIndex] = originalRowData; originalRowData = null; }
       editingRowIndex = null;
       renderCards();
-      await addActivityLog('Cancel Edit', `Cancelled editing row #${rowIndex + 1}`, 'info');
+      addActivityLog('Cancel Edit', `Cancelled editing row #${rowIndex + 1}`, 'info');
       showToast(`Edit cancelled`, "info");
     };
 
@@ -1490,7 +1822,7 @@
       updatePriority(rowIndex);
       renderCards();
       if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
-      await addActivityLog('Save Edit', `Saved changes to row #${rowIndex + 1}`, 'success');
+      addActivityLog('Save Edit', `Saved changes to row #${rowIndex + 1}`, 'success');
       showToast(`Row ${rowIndex + 1} saved and moved to top`, "success");
     };
 
@@ -1498,25 +1830,16 @@
       window.removeFloatingMenu();
       showConfirmModal(`Delete row ${rowIndex + 1}?`, async () => {
         workingTableRows.splice(rowIndex, 1);
-        const newSelected = new Set();
-        const newStarred = new Set();
-        const newComments = new Map();
-        const newPriorities = new Map();
-
+        const newSelected = new Set(), newStarred = new Set(), newComments = new Map(), newPriorities = new Map();
         selectedRows.forEach(r => { if (r > rowIndex) newSelected.add(r - 1); else if (r < rowIndex) newSelected.add(r); });
         starredRows.forEach(r => { if (r > rowIndex) newStarred.add(r - 1); else if (r < rowIndex) newStarred.add(r); });
         rowComments.forEach((v, k) => { if (k > rowIndex) newComments.set(k - 1, v); else if (k < rowIndex) newComments.set(k, v); });
         rowPriorities.forEach((v, k) => { if (k > rowIndex) newPriorities.set(k - 1, v); else if (k < rowIndex) newPriorities.set(k, v); });
-
-        selectedRows = newSelected;
-        starredRows = newStarred;
-        rowComments = newComments;
-        rowPriorities = newPriorities;
-
+        selectedRows = newSelected; starredRows = newStarred; rowComments = newComments; rowPriorities = newPriorities;
         if (editingRowIndex !== null && editingRowIndex >= workingTableRows.length) editingRowIndex = null;
         renderCards();
         if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
-        await addActivityLog('Delete Row', `Deleted row #${rowIndex + 1}`, 'success');
+        addActivityLog('Delete Row', `Deleted row #${rowIndex + 1}`, 'success');
         showToast(`Row ${rowIndex + 1} deleted`, "success");
       });
     };
@@ -1524,19 +1847,37 @@
     window.updateCellValue = function (rowIdx, colId, val) {
       if (editingRowIndex === rowIdx) {
         const col = workingTableColumns.find(c => c.id === colId);
-        if (col && col.type === "number") {
-          const num = parseFloat(val);
-          workingTableRows[rowIdx][colId] = isNaN(num) ? 0 : num;
-        } else {
-          workingTableRows[rowIdx][colId] = val;
-        }
+        if (col && col.type === "number") { const num = parseFloat(val); workingTableRows[rowIdx][colId] = isNaN(num) ? 0 : num; }
+        else { workingTableRows[rowIdx][colId] = val; }
         updatePriority(rowIdx);
       }
     };
 
+    window.handleSort = function (colId) {
+      if (workingTableRows.length === 0) return;
+      const colDef = workingTableColumns.find(c => c.id === colId);
+      if (!colDef) return;
+      if (currentSort.columnId === colId) currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
+      else { currentSort.columnId = colId; currentSort.order = "asc"; }
+      workingTableRows.sort((a, b) => {
+        let valA = a[colId] !== undefined ? a[colId] : (colDef.type === "number" ? 0 : "");
+        let valB = b[colId] !== undefined ? b[colId] : (colDef.type === "number" ? 0 : "");
+        if (colDef.type === "number") {
+          valA = Number(valA) || 0; valB = Number(valB) || 0;
+          return currentSort.order === "asc" ? valA - valB : valB - valA;
+        } else {
+          valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase();
+          if (valA < valB) return currentSort.order === "asc" ? -1 : 1;
+          if (valA > valB) return currentSort.order === "asc" ? 1 : -1;
+          return 0;
+        }
+      });
+      renderCards();
+      addActivityLog('Sort', `Sorted by ${colDef.name} ${currentSort.order === "asc" ? "ascending" : "descending"}`, 'info');
+    };
+
     function closeAllDropdowns() {
-      const menus = document.querySelectorAll('.dropdown-menu');
-      menus.forEach(menu => menu.classList.add('hidden'));
+      document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
       window.removeFloatingMenu();
     }
 
@@ -1545,18 +1886,12 @@
       const radioOptionsContainer = document.getElementById('radioOptionsContainer');
       const dateFormatContainer = document.getElementById('dateFormatContainer');
       const type = this.value;
-
       optionsContainer.classList.add('hidden');
       radioOptionsContainer.classList.add('hidden');
       dateFormatContainer.classList.add('hidden');
-
-      if (type === 'dropdown' || type === 'multi-select') {
-        optionsContainer.classList.remove('hidden');
-      } else if (type === 'radio') {
-        radioOptionsContainer.classList.remove('hidden');
-      } else if (type === 'date') {
-        dateFormatContainer.classList.remove('hidden');
-      }
+      if (type === 'dropdown' || type === 'multi-select') optionsContainer.classList.remove('hidden');
+      else if (type === 'radio') radioOptionsContainer.classList.remove('hidden');
+      else if (type === 'date') dateFormatContainer.classList.remove('hidden');
     });
 
     function addColumnToWorkingTable() {
@@ -1565,23 +1900,17 @@
       if (!colName) { showToast("Enter column name", "error"); return; }
       let options = [];
       let dateFormat = null;
-
-      if (colType === 'date') {
-        dateFormat = document.getElementById("dateFormat").value;
-      }
-
+      if (colType === 'date') dateFormat = document.getElementById("dateFormat").value;
       if (colType === 'radio') {
         const optionsStr = document.getElementById("radioOptions").value;
         options = optionsStr.split(',').map(s => s.trim()).filter(s => s);
         if (options.length === 0) { showToast("Enter radio options", "error"); return; }
       }
-
       if (colType === 'dropdown' || colType === 'multi-select') {
         const optionsStr = document.getElementById("columnOptions").value;
         options = optionsStr.split(',').map(s => s.trim()).filter(s => s);
         if (options.length === 0) { showToast("Enter options", "error"); return; }
       }
-
       const newCol = { id: genColId(), name: colName, type: colType, options: options, dateFormat: dateFormat };
       workingTableColumns.push(newCol);
       workingTableRows.forEach(row => row[newCol.id] = colType === "number" ? 0 : (colType === "checkbox" ? false : (colType === "multi-select" ? [] : "")));
@@ -1606,17 +1935,18 @@
       closeAllDropdowns();
       document.getElementById("newDbNameInput").value = "";
       document.getElementById("activeDbLabel").innerHTML = `📁 Working on: ${escapeHtml(dbName)}`;
-      await addActivityLog('Save Database', `Saved "${dbName}" with ${workingTableColumns.length} columns and ${workingTableRows.length} rows`, 'success');
+      addActivityLog('Save Database', `Saved "${dbName}" with ${workingTableColumns.length} columns and ${workingTableRows.length} rows`, 'success');
       showToast(`Saved "${dbName}"`, "success");
     }
 
     async function loadSavedDatabase(dbName) {
-      await addActivityLog('Load Database', `Loading "${dbName}"...`, 'info');
+      addActivityLog('Load Database', `Loading "${dbName}"...`, 'info');
       if (savedDatabases[dbName]) {
         const { columns, rows } = firebaseStructureToWorkingTable({ [dbName]: savedDatabases[dbName] }, dbName);
         workingTableColumns = columns;
         workingTableRows = rows;
         editingRowIndex = null;
+        currentSort = { columnId: null, order: "asc" };
         currentLoadedDbName = dbName;
         selectedRows.clear();
         starredRows.clear();
@@ -1625,7 +1955,7 @@
         workingTableRows.forEach((_, idx) => rowPriorities.set(idx, 0));
         renderCards();
         document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
-        await addActivityLog('Load Database', `Successfully loaded "${dbName}" with ${rows.length} rows`, 'success');
+        addActivityLog('Load Database', `Successfully loaded "${dbName}" with ${rows.length} rows`, 'success');
         showToast(`Loaded "${dbName}"`, "success");
       }
     }
@@ -1647,7 +1977,7 @@
         }
         await saveToFirebase();
         await renderDatabaseList();
-        await addActivityLog('Delete Database', `Deleted database "${dbName}"`, 'success');
+        addActivityLog('Delete Database', `Deleted database "${dbName}"`, 'success');
         showToast(`Deleted "${dbName}"`, "success");
       });
     }
@@ -1661,12 +1991,7 @@
       let html = '';
       for (let [dbName, db] of Object.entries(savedDatabases)) {
         const isActive = (currentLoadedDbName === dbName);
-        html += `<div class="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-100">
-          <button class="db-switch-item flex-1 text-left text-sm ${isActive ? 'font-bold text-indigo-600' : ''}" data-db-name="${dbName}">
-            <i class="fas fa-database mr-2"></i>${escapeHtml(dbName)} ${isActive ? '<span class="text-xs">(active)</span>' : ''}
-          </button>
-          <button class="db-delete-btn text-rose-500 hover:text-rose-700 text-xs px-2" data-db-name="${dbName}"><i class="fas fa-trash"></i></button>
-        </div>`;
+        html += `<div class="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-100"><button class="db-switch-item flex-1 text-left text-sm ${isActive ? 'font-bold text-indigo-600' : ''}" data-db-name="${dbName}"><i class="fas fa-database mr-2"></i>${escapeHtml(dbName)} ${isActive ? '<span class="text-xs">(active)</span>' : ''}</button><button class="db-delete-btn text-rose-500 hover:text-rose-700 text-xs px-2" data-db-name="${dbName}"><i class="fas fa-trash"></i></button></div>`;
       }
       container.innerHTML = html;
       document.querySelectorAll('.db-switch-item').forEach(btn => { btn.onclick = async () => { await loadSavedDatabase(btn.getAttribute('data-db-name')); closeAllDropdowns(); }; });
@@ -1677,56 +2002,35 @@
       if (!savedDatabases[targetDbName]) { showToast("Target not found", "error"); return false; }
       const selectedRowsArray = Array.from(selectedRows).sort((a, b) => a - b);
       if (selectedRowsArray.length === 0) { showToast("No rows selected", "error"); return false; }
-
-      await addActivityLog('Bulk Shift', `Processing ${selectedRowsArray.length} row(s) to "${targetDbName}" (${action === 'move' ? 'Move & Delete' : 'Copy Only'})`, 'info');
-
+      addActivityLog('Bulk Shift', `Processing ${selectedRowsArray.length} row(s) to "${targetDbName}" (${action === 'move' ? 'Move & Delete' : 'Copy Only'})`, 'info');
       let targetDb = savedDatabases[targetDbName];
       let { columns: targetColumns, rows: targetRows } = firebaseStructureToWorkingTable({ [targetDbName]: targetDb }, targetDbName);
-
       for (let sourceCol of workingTableColumns) {
         const existingTargetCol = targetColumns.find(tc => tc.name.toLowerCase() === sourceCol.name.toLowerCase());
-        if (!existingTargetCol) {
-          targetColumns.push({
-            id: genColId(),
-            name: sourceCol.name,
-            type: sourceCol.type,
-            options: sourceCol.options || [],
-            dateFormat: sourceCol.dateFormat || null
-          });
-        }
+        if (!existingTargetCol) { targetColumns.push({ id: genColId(), name: sourceCol.name, type: sourceCol.type, options: sourceCol.options || [], dateFormat: sourceCol.dateFormat || null }); }
       }
-
       for (let rowIndex of selectedRowsArray) {
         const sourceRow = workingTableRows[rowIndex];
         const shiftedRow = {};
         targetColumns.forEach(col => {
           const matchingSourceCol = workingTableColumns.find(sc => sc.name.toLowerCase() === col.name.toLowerCase());
-          if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) {
-            shiftedRow[col.id] = sourceRow[matchingSourceCol.id];
-          } else {
-            shiftedRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : (col.type === "multi-select" ? [] : ""));
-          }
+          if (matchingSourceCol && sourceRow[matchingSourceCol.id] !== undefined) shiftedRow[col.id] = sourceRow[matchingSourceCol.id];
+          else shiftedRow[col.id] = col.type === "number" ? 0 : (col.type === "checkbox" ? false : (col.type === "multi-select" ? [] : ""));
         });
         targetRows.push(shiftedRow);
         if (action === 'move') workingTableRows.splice(rowIndex, 1);
       }
-
-      if (action === 'move') {
-        selectedRows.clear();
-        if (editingRowIndex !== null) editingRowIndex = null;
-      }
-
+      if (action === 'move') { selectedRows.clear(); if (editingRowIndex !== null) editingRowIndex = null; }
       const newFirebaseStructure = workingTableToFirebaseStructure(targetDbName, targetColumns, targetRows);
       savedDatabases[targetDbName] = newFirebaseStructure[targetDbName];
       if (action === 'move' && currentLoadedDbName) {
         const updatedStructure = workingTableToFirebaseStructure(currentLoadedDbName, workingTableColumns, workingTableRows);
         savedDatabases[currentLoadedDbName] = updatedStructure[currentLoadedDbName];
       }
-
       await saveToFirebase();
       renderCards();
       await renderDatabaseList();
-      await addActivityLog('Bulk Shift', `Successfully ${action === 'move' ? 'moved' : 'copied'} ${selectedRowsArray.length} row(s) to "${targetDbName}"`, 'success');
+      addActivityLog('Bulk Shift', `Successfully ${action === 'move' ? 'moved' : 'copied'} ${selectedRowsArray.length} row(s) to "${targetDbName}"`, 'success');
       showToast(`${selectedRowsArray.length} row(s) ${action === 'move' ? 'moved' : 'copied'} to "${targetDbName}"`, "success");
       return true;
     }
@@ -1736,26 +2040,9 @@
       await loadFromFirebase();
       const dbNames = Object.keys(savedDatabases).filter(name => name !== currentLoadedDbName);
       if (dbNames.length === 0) { showToast("No other databases available", "error"); return; }
-
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="modal-content">
-          <h3 class="font-bold mb-3"><i class="fas fa-exchange-alt mr-2"></i>Bulk Shift (${selectedRows.size} rows)</h3>
-          <select id="targetDbSelect" class="w-full p-2 border rounded mb-3">
-            <option value="">Select target database</option>
-            ${dbNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}
-          </select>
-          <div class="flex gap-4 mb-3">
-            <label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="move" checked> <i class="fas fa-cut"></i> Move & Delete</label>
-            <label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="copy"> <i class="fas fa-copy"></i> Copy Only</label>
-          </div>
-          <div class="flex gap-2 justify-end">
-            <button class="cancel-bulk-btn modern-btn btn-secondary">Cancel</button>
-            <button class="confirm-bulk-btn modern-btn btn-primary">Shift</button>
-          </div>
-        </div>
-      `;
+      overlay.innerHTML = `<div class="modal-content"><h3 class="font-bold mb-3"><i class="fas fa-exchange-alt mr-2"></i>Bulk Shift (${selectedRows.size} rows)</h3><select id="targetDbSelect" class="w-full p-2 border rounded mb-3"><option value="">Select target database</option>${dbNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</select><div class="flex gap-4 mb-3"><label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="move" checked> <i class="fas fa-cut"></i> Move & Delete</label><label class="flex items-center gap-2"><input type="radio" name="shiftAction" value="copy"> <i class="fas fa-copy"></i> Copy Only</label></div><div class="flex gap-2 justify-end"><button class="cancel-bulk-btn modern-btn btn-secondary">Cancel</button><button class="confirm-bulk-btn modern-btn btn-primary">Shift</button></div></div>`;
       document.body.appendChild(overlay);
       overlay.querySelector('.cancel-bulk-btn').onclick = () => overlay.remove();
       overlay.querySelector('.confirm-bulk-btn').onclick = async () => {
@@ -1780,22 +2067,10 @@
           const columns = headers.map((h) => ({ id: genColId(), name: h, type: "text", options: [] }));
           const rows = [];
           for (let row of jsonData) { const newRow = {}; columns.forEach(col => { newRow[col.id] = row[col.name] !== undefined ? row[col.name] : ""; }); rows.push(newRow); }
-
           const modal = document.createElement('div');
           modal.className = 'modal-overlay';
-          modal.innerHTML = `
-            <div class="modal-content">
-              <h3 class="font-bold mb-3">Import: ${file.name}</h3>
-              <p class="text-sm mb-3">${rows.length} rows, ${columns.length} columns</p>
-              <div class="flex gap-2 mb-3">
-                <button id="importNewBtn" class="modern-btn btn-primary flex-1">New Table</button>
-                <button id="importAppendBtn" class="modern-btn btn-secondary flex-1">Append</button>
-              </div>
-              <button id="importCancelBtn" class="modern-btn btn-outline w-full mt-2">Cancel</button>
-            </div>
-          `;
+          modal.innerHTML = `<div class="modal-content"><h3 class="font-bold mb-3">Import: ${file.name}</h3><p class="text-sm mb-3">${rows.length} rows, ${columns.length} columns</p><div class="flex gap-2 mb-3"><button id="importNewBtn" class="modern-btn btn-primary flex-1">New Table</button><button id="importAppendBtn" class="modern-btn btn-secondary flex-1">Append</button></div><button id="importCancelBtn" class="modern-btn btn-outline w-full mt-2">Cancel</button></div>`;
           document.body.appendChild(modal);
-
           modal.querySelector('#importNewBtn').onclick = async () => {
             modal.remove();
             const dbName = file.name.split('.')[0] || "Imported";
@@ -1810,10 +2085,9 @@
             renderCards();
             await renderDatabaseList();
             document.getElementById("activeDbLabel").innerHTML = `📁 Loaded: ${escapeHtml(dbName)}`;
-            await addActivityLog('Import Excel', `Imported ${rows.length} rows as new database "${dbName}"`, 'success');
+            addActivityLog('Import Excel', `Imported ${rows.length} rows as new database "${dbName}"`, 'success');
             showToast(`Imported ${rows.length} rows`, "success");
           };
-
           modal.querySelector('#importAppendBtn').onclick = async () => {
             modal.remove();
             if (workingTableColumns.length === 0) { workingTableColumns = columns; workingTableRows = rows; }
@@ -1829,11 +2103,11 @@
             reorderRowsByPriority();
             renderCards();
             if (currentLoadedDbName) await saveCurrentWorkingTableToFirebase();
-            await addActivityLog('Import Excel', `Appended ${rows.length} rows to current table`, 'success');
+            addActivityLog('Import Excel', `Appended ${rows.length} rows to current table`, 'success');
             showToast(`Appended ${rows.length} rows to top`, "success");
           };
           modal.querySelector('#importCancelBtn').onclick = () => modal.remove();
-        } catch (err) { await addActivityLog('Import Error', err.message, 'error'); showToast("Import error", "error"); }
+        } catch (err) { addActivityLog('Import Error', err.message, 'error'); showToast("Import error", "error"); }
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1892,24 +2166,22 @@
     }
 
     // Draggable stats panel
-    let isDragging = false;
+    let isDraggingStats = false;
     let dragOffsetX, dragOffsetY;
     const statsPanel = document.getElementById('statsPanel');
     const statsHeader = document.getElementById('statsHeader');
-
     if (statsHeader) {
       statsHeader.addEventListener('mousedown', (e) => {
         if (e.target.closest('button')) return;
-        isDragging = true;
+        isDraggingStats = true;
         const rect = statsPanel.getBoundingClientRect();
         dragOffsetX = e.clientX - rect.left;
         dragOffsetY = e.clientY - rect.top;
         statsPanel.style.cursor = 'grabbing';
         e.preventDefault();
       });
-
       document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
+        if (!isDraggingStats) return;
         const newLeft = e.clientX - dragOffsetX;
         const newTop = e.clientY - dragOffsetY;
         statsPanel.style.position = 'fixed';
@@ -1918,11 +2190,7 @@
         statsPanel.style.right = 'auto';
         statsPanel.style.bottom = 'auto';
       });
-
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-        if (statsPanel) statsPanel.style.cursor = '';
-      });
+      document.addEventListener('mouseup', () => { isDraggingStats = false; if (statsPanel) statsPanel.style.cursor = ''; });
     }
 
     // Event Listeners
@@ -1935,7 +2203,6 @@
     document.getElementById("removeColumnBtn").onclick = showRemoveColumnModal;
     document.getElementById("addRowBtn").onclick = showAddRowModal;
     document.getElementById("bulkShiftBtn").onclick = bulkShift;
-    document.getElementById("refreshBtn").onclick = () => { renderCards(); addActivityLog('Refresh', 'Manual refresh performed', 'info'); showToast("Refreshed", "info"); };
     document.getElementById("quickAddColumnBtn").onclick = () => { document.getElementById("addColumnBtn").click(); };
     document.getElementById("exportBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("exportMenu").classList.toggle("hidden"); };
     document.getElementById("exportJsonSubBtn").onclick = () => { exportJSONData(); closeAllDropdowns(); };
@@ -1945,70 +2212,86 @@
     document.getElementById("closeStatsBtn").onclick = () => { document.getElementById("statsPanel").classList.add("hidden"); };
     document.getElementById("minimizeStatsBtn").onclick = () => {
       const content = document.getElementById("statsContent");
-      if (content.style.display === 'none') {
-        content.style.display = 'block';
-        document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-minus"></i>';
-      } else {
-        content.style.display = 'none';
-        document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-plus"></i>';
-      }
+      if (content.style.display === 'none') { content.style.display = 'block'; document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-minus"></i>'; }
+      else { content.style.display = 'none'; document.getElementById("minimizeStatsBtn").innerHTML = '<i class="fas fa-plus"></i>'; }
     };
-    document.getElementById("clearActivityBtn").onclick = async () => {
-      activityLogs = [];
-      renderActivityLog();
-      await addActivityLog('Clear Log', 'Activity log cleared', 'info');
-      showToast("Activity log cleared", "success");
-    };
+    document.getElementById("clearActivityBtn").onclick = async () => { activityLogs = []; renderActivityLog(); addActivityLog('Clear Log', 'Activity log cleared', 'info'); showToast("Activity log cleared", "success"); };
     document.getElementById("themeBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("themeMenu").classList.toggle("hidden"); };
-
-    // Database Actions Events
     document.getElementById("dbActionsBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("dbActionsMenu").classList.toggle("hidden"); };
     document.getElementById("createNewDbBtn").onclick = () => { closeAllDropdowns(); createNewDatabase(); };
     document.getElementById("loadExistingDbBtn").onclick = () => { closeAllDropdowns(); loadExistingDatabase(); };
-
-    // User menu events
     document.getElementById("userMenuBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("userMenu").classList.toggle("hidden"); };
-    document.getElementById("loginBtn").onclick = () => { closeAllDropdowns(); showLoginModal(); };
     document.getElementById("sleepBtn").onclick = () => { closeAllDropdowns(); sleepMode(); };
     document.getElementById("openLinkBtn").onclick = () => { closeAllDropdowns(); openLink(); };
-    document.getElementById("logoutBtn").onclick = () => {
-      isLoggedIn = false;
-      addActivityLog('Logout', 'User logged out', 'info');
-      showToast("Logged out successfully", "success");
+    document.getElementById("logoutBtn").onclick = handleLogout;
+    document.getElementById("doLoginBtn").onclick = handleLogin;
+    document.getElementById("doSignupBtn").onclick = handleSignup;
+    document.getElementById("showSignupBtn").onclick = showSignupForm;
+    document.getElementById("showLoginBtn").onclick = showLoginForm;
+
+    // Page redirect functionality
+    document.getElementById("pageRedirectBtn").onclick = (e) => { e.stopPropagation(); closeAllDropdowns(); document.getElementById("pageRedirectMenu").classList.toggle("hidden"); };
+    document.querySelectorAll('.page-link').forEach(btn => {
+      btn.onclick = () => { const url = btn.getAttribute('data-url'); if (url) window.open(url, '_blank'); closeAllDropdowns(); };
+    });
+    document.getElementById("goCustomUrlBtn").onclick = () => {
+      const url = document.getElementById("customPageUrl").value.trim();
+      if (url) { window.open(url.startsWith('http') ? url : 'https://' + url, '_blank'); closeAllDropdowns(); }
+      else showToast("Enter a URL", "error");
+    };
+
+    // Smart search functionality
+    document.getElementById("searchColumnSelect").onchange = (e) => {
+      currentSearchColumn = e.target.value;
+      currentSearchTerm = document.getElementById("smartSearchInput").value;
+      filterRowsBySearch();
+    };
+    document.getElementById("smartSearchInput").oninput = (e) => {
+      currentSearchTerm = e.target.value;
+      if (currentSearchColumn) filterRowsBySearch();
+    };
+    document.getElementById("clearSearchBtn").onclick = () => {
+      document.getElementById("searchColumnSelect").value = "";
+      document.getElementById("smartSearchInput").value = "";
+      currentSearchColumn = "";
+      currentSearchTerm = "";
+      renderCards();
+      showToast("Search cleared", "info");
     };
 
     document.querySelectorAll('.theme-option').forEach(option => {
-      option.onclick = () => {
-        const theme = option.getAttribute('data-theme');
-        setTheme(theme);
-        closeAllDropdowns();
-      };
+      option.onclick = () => { setTheme(option.getAttribute('data-theme')); closeAllDropdowns(); };
     });
 
     document.addEventListener("click", (e) => {
-      if (!e.target.closest('.relative') && !e.target.closest('.dropdown-menu') && !e.target.closest('.floating-menu')) {
-        closeAllDropdowns();
-      }
+      if (!e.target.closest('.relative') && !e.target.closest('.dropdown-menu') && !e.target.closest('.floating-menu')) closeAllDropdowns();
     });
 
-    // Load saved theme and activity logs
+    // Initialize
     const savedTheme = localStorage.getItem('selectedTheme') || 'light';
     setTheme(savedTheme);
-
-    // Initialize
-    workingTableColumns = [];
-    workingTableRows = [];
-    loadFromFirebase();
-    loadActivityLogsFromFirebase();
-
     const cardsContainer = document.getElementById("cardsContainer");
     const cardsWrapper = document.createElement("div");
     cardsWrapper.id = "cardsWrapper";
     cardsWrapper.className = "hidden w-full";
     cardsContainer.appendChild(cardsWrapper);
 
-    renderCards();
-    addActivityLog('Application Start', 'Firebase Schema Architect initialized', 'success');
+    // Create default admin user if none exists
+    if (firebaseDB) {
+      firebaseDB.ref('users-generatedcode').once('value').then(snapshot => {
+        let hasAdmin = false;
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          for (let key in users) { if (users[key].username === 'amir' && users[key].author === 'admin') { hasAdmin = true; break; } }
+        }
+        if (!hasAdmin) {
+          firebaseDB.ref('users-generatedcode/amir-admin').set({ username: 'amir', email: 'amirmerrooo@gmail.com', author: 'admin', password: '1', createdAt: new Date().toISOString() });
+          console.log("Default admin user created - Username: amir, Password: 1, Role: admin");
+        }
+      });
+    }
+
+    checkSession();
   </script>
 </body>
 
