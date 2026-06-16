@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel | Firebase DB Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #0f172a; min-height: 100vh; padding: 1rem; }
+        
+        .glass-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+        .glass-card:hover {
+            border-color: rgba(139,92,246,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.1));
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #a78bfa;
+        }
+        .stat-card .label {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139,92,246,0.4);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(239,68,68,0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16,185,129,0.4);
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e2e8f0;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        input, select, textarea {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.2);
+        }
+        input::placeholder, textarea::placeholder {
+            color: #64748b;
+        }
+        
+        .user-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .user-card:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(139,92,246,0.3);
+        }
+        .user-card .user-info .name { color: #f1f5f9; font-weight: 600; }
+        .user-card .user-info .email { color: #94a3b8; font-size: 0.875rem; }
+        .user-card .user-info .role { 
+            font-size: 0.75rem; 
+            padding: 2px 12px; 
+            border-radius: 20px; 
+            background: rgba(139,92,246,0.2);
+            color: #a78bfa;
+        }
+        
+        .tab-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab-btn:hover { color: #e2e8f0; }
+        .tab-btn.active {
+            background: rgba(139,92,246,0.2);
+            color: #a78bfa;
+        }
+        
+        .permission-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            cursor: pointer;
+        }
+        .permission-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+            width: auto;
+        }
+        .permission-checkbox label {
+            color: #cbd5e1;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .role-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: rgba(139,92,246,0.15);
+            border-radius: 20px;
+            color: #a78bfa;
+            font-size: 0.75rem;
+            margin: 0.25rem;
+        }
+        .role-tag .remove-role {
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .role-tag .remove-role:hover { color: #dc2626; }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            z-index: 9999;
+            animation: slideUp 0.3s ease-out;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toast.success { border-left: 4px solid #10b981; }
+        .toast.error { border-left: 4px solid #ef4444; }
+        .toast.info { border-left: 4px solid #3b82f6; }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top: 2px solid #8b5cf6;
+            border-radius: 50%;
+            animation: spin 0.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-content {
+            background: #1e293b;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-content h3 {
+            color: #f1f5f9;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .modal-content .subtitle {
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
+        
+        .section-title {
+            color: #f1f5f9;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .password-display {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .password-display .label {
+            color: #10b981;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .password-display .value {
+            color: #f1f5f9;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        .password-display .copy-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #94a3b8;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .password-display .copy-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white"><i class="fas fa-shield-alt text-purple-400 mr-3"></i>Admin Control Panel</h1>
+                <p class="text-gray-400 text-sm mt-1">Manage users, roles, and permissions</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="connectionStatus" class="text-sm text-gray-400"><i class="fas fa-circle text-green-400 mr-1"></i> Connected</span>
+                <button onclick="window.location.href='main.html'" class="btn-secondary"><i class="fas fa-arrow-left mr-2"></i> Back to App</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card">
+                <div class="number" id="totalUsers">0</div>
+                <div class="label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalRoles">0</div>
+                <div class="label">Total Roles</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalPermissions">0</div>
+                <div class="label">Total Permissions</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalDatabases">0</div>
+                <div class="label">Total Databases</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button class="tab-btn active" data-tab="users"><i class="fas fa-users mr-2"></i> Users</button>
+            <button class="tab-btn" data-tab="roles"><i class="fas fa-user-tag mr-2"></i> Roles & Permissions</button>
+            <button class="tab-btn" data-tab="databases"><i class="fas fa-database mr-2"></i> Databases</button>
+            <button class="tab-btn" data-tab="activity"><i class="fas fa-history mr-2"></i> Activity Log</button>
+        </div>
+
+        <!-- Content -->
+        <div class="glass-card">
+            <!-- Users Tab -->
+            <div id="tab-users" class="tab-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="section-title"><i class="fas fa-users text-purple-400 mr-2"></i>User Management</h2>
+                    <button onclick="showAddUserModal()" class="btn-primary text-sm"><i class="fas fa-plus mr-2"></i> Add User</button>
+                </div>
+                <div id="usersList" class="space-y-3"></div>
+            </div>
+
+            <!-- Roles Tab -->
+            <div id="tab-roles" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="section-title"><i class="fas fa-user-tag text-purple-400 mr-2"></i>Role & Permission Management</h2>
+                    <button onclick="showAddRoleModal()" class="btn-primary text-sm"><i class="fas fa-plus mr-2"></i> Add Role</button>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="text-white font-semibold mb-2">Available Roles</h3>
+                    <div id="rolesContainer" class="flex flex-wrap gap-2"></div>
+                </div>
+                
+                <div>
+                    <h3 class="text-white font-semibold mb-2">Permissions for <span id="selectedRoleDisplay" class="text-purple-400">admin</span></h3>
+                    <div id="permissionsContainer" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+                    <button onclick="savePermissions()" class="btn-success mt-4"><i class="fas fa-save mr-2"></i> Save Permissions</button>
+                    <button onclick="syncPermissionsToMainApp()" class="btn-primary mt-4 ml-2"><i class="fas fa-sync mr-2"></i> Sync to Main App</button>
+                </div>
+            </div>
+
+            <!-- Databases Tab -->
+            <div id="tab-databases" class="tab-content hidden">
+                <h2 class="section-title"><i class="fas fa-database text-purple-400 mr-2"></i>Database Management</h2>
+                <div id="databasesList" class="space-y-2"></div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div id="tab-activity" class="tab-content hidden">
+                <h2 class="section-title"><i class="fas fa-history text-purple-400 mr-2"></i>Activity Log</h2>
+                <div id="activityLog" class="max-h-96 overflow-y-auto space-y-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+    <div id="addUserModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fas fa-user-plus text-purple-400 mr-2"></i>Add New User</h3>
+            <p class="subtitle">Create a new user account with specific role</p>
+            <div class="space-y-3">
+                <input type="text" id="newUserUsername" placeholder="Username" class="w-full">
+                <input type="text" id="newUserEmail" placeholder="Email (optional)" class="w-full">
+                <input type="password" id="newUserPassword" placeholder="Password" class="w-full">
+                <select id="newUserRole" class="w-full"></select>
+                <div class="flex gap-3 justify-end mt-4">
+                    <button onclick="closeModal('addUserModal')" class="btn-secondary">Cancel</button>
+                    <button onclick="addUser()" class="btn-success"><i class="fas fa-save mr-2"></i> Add User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fas fa-user-edit text-purple-400 mr-2"></i>Edit User</h3>
+            <p class="subtitle">Update user information</p>
+            <div class="space-y-3">
+                <input type="text" id="editUserUsername" placeholder="Username" class="w-full">
+                <input type="text" id="editUserEmail" placeholder="Email (optional)" class="w-full">
+                <input type="password" id="editUserPassword" placeholder="New password (leave blank to keep current)" class="w-full">
+                <select id="editUserRole" class="w-full"></select>
+                
+                <!-- Show current password (visible to admin) -->
+                <div class="password-display">
+                    <span class="label"><i class="fas fa-key mr-1"></i>Current Password:</span>
+                    <span class="value" id="editUserCurrentPassword">••••••••</span>
+                    <button class="copy-btn" onclick="copyPassword()" title="Copy password"><i class="fas fa-copy"></i></button>
+                </div>
+                
+                <input type="hidden" id="editUserId">
+                <div class="flex gap-3 justify-end mt-4">
+                    <button onclick="closeModal('editUserModal')" class="btn-secondary">Cancel</button>
+                    <button onclick="updateUser()" class="btn-primary"><i class="fas fa-save mr-2"></i> Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addRoleModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3><i class="fas fa-user-tag text-purple-400 mr-2"></i>Add New Role</h3>
+            <p class="subtitle">Create a new role with default permissions</p>
+            <div class="space-y-3">
+                <input type="text" id="newRoleName" placeholder="Role name (e.g., moderator)" class="w-full">
+                <div class="flex gap-3 justify-end mt-4">
+                    <button onclick="closeModal('addRoleModal')" class="btn-secondary">Cancel</button>
+                    <button onclick="addRole()" class="btn-success"><i class="fas fa-plus mr-2"></i> Add Role</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. CONFIGURATION
+        // ============================================================
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
+            authDomain: "codeae-85.firebaseapp.com",
+            databaseURL: "https://codeae-85-default-rtdb.firebaseio.com",
+            projectId: "codeae-85",
+            storageBucket: "codeae-85.firebasestorage.app",
+            messagingSenderId: "855701949624",
+            appId: "1:855701949624:web:2cf2ea8802a2d372f3384d",
+            measurementId: "G-LL3X996JHP"
+        };
+
+        let firebaseDB = null;
+        let users = {};
+        let rolePermissions = {};
+        let savedDatabases = {};
+        let activityLogs = [];
+        let selectedRole = 'admin';
+
+        // All available permissions - MUST MATCH main app
+        const ALL_PERMISSIONS = [
+            { id: 'db', label: 'Database Operations', icon: 'fa-database' },
+            { id: 'db-create', label: 'Create Database', icon: 'fa-plus-circle' },
+            { id: 'db-load', label: 'Load Database', icon: 'fa-folder-open' },
+            { id: 'db-switch', label: 'Switch Database', icon: 'fa-exchange-alt' },
+            { id: 'save', label: 'Save Database', icon: 'fa-save' },
+            { id: 'export', label: 'Export Data', icon: 'fa-download' },
+            { id: 'import', label: 'Import Data', icon: 'fa-upload' },
+            { id: 'add-column', label: 'Add Column', icon: 'fa-plus-circle' },
+            { id: 'remove-column', label: 'Remove Column', icon: 'fa-trash-alt' },
+            { id: 'add-row', label: 'Add Row', icon: 'fa-plus' },
+            { id: 'bulk', label: 'Bulk Shift', icon: 'fa-exchange-alt' },
+            { id: 'stats', label: 'View Statistics', icon: 'fa-chart-bar' },
+            { id: 'pages', label: 'Pages Management', icon: 'fa-globe' },
+            { id: 'sleep', label: 'Sleep/Hibernate', icon: 'fa-bed' },
+            { id: 'logout', label: 'Logout', icon: 'fa-sign-out-alt' },
+        ];
+
+        const DEFAULT_PERMISSIONS = {
+            admin: ALL_PERMISSIONS.map(p => p.id),
+            user: ['db', 'db-load', 'db-switch', 'export', 'add-row', 'stats', 'pages'],
+            visitor: ['db-load', 'export', 'stats']
+        };
+
+        // ============================================================
+        // 2. FIREBASE INIT
+        // ============================================================
+        function initFirebase() {
+            try {
+                firebase.initializeApp(FIREBASE_CONFIG);
+                firebaseDB = firebase.database();
+                console.log("Firebase initialized");
+                return true;
+            } catch (e) {
+                console.error("Firebase init error:", e);
+                showToast("Failed to connect to Firebase", "error");
+                return false;
+            }
+        }
+
+        // ============================================================
+        // 3. DATA LOADING
+        // ============================================================
+        async function loadAllData() {
+            if (!firebaseDB) return;
+            try {
+                // Load users
+                const usersSnap = await firebaseDB.ref('users-generatedcode').once('value');
+                users = usersSnap.val() || {};
+                
+                // Load permissions - from the same location the main app uses
+                const permsSnap = await firebaseDB.ref('rolePermissions').once('value');
+                const permsFromFirebase = permsSnap.val();
+                
+                if (permsFromFirebase && Object.keys(permsFromFirebase).length > 0) {
+                    rolePermissions = permsFromFirebase;
+                } else {
+                    // Check localStorage for permissions (main app stores here)
+                    const localPerms = localStorage.getItem('rolePermissions');
+                    if (localPerms) {
+                        try {
+                            rolePermissions = JSON.parse(localPerms);
+                            // Save to Firebase for persistence
+                            await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                        } catch (e) {
+                            rolePermissions = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+                        }
+                    } else {
+                        rolePermissions = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+                        // Save to Firebase
+                        await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                    }
+                }
+                
+                // Load Project_1
+                const dbSnap = await firebaseDB.ref('Project_1').once('value');
+                savedDatabases = dbSnap.val() || {};
+                
+                // Load activity log
+                const logSnap = await firebaseDB.ref('activityLogs').once('value');
+                activityLogs = logSnap.val() || [];
+                
+                updateUI();
+                showToast("Data loaded successfully", "success");
+            } catch (e) {
+                console.error("Load error:", e);
+                showToast("Error loading data", "error");
+            }
+        }
+
+        // ============================================================
+        // 4. UI UPDATE
+        // ============================================================
+        function updateUI() {
+            updateStats();
+            renderUsers();
+            renderRoles();
+            renderPermissions();
+            renderDatabases();
+            renderActivityLog();
+            populateRoleDropdowns();
+            updateConnectionStatus();
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = Object.keys(users).length;
+            document.getElementById('totalRoles').textContent = Object.keys(rolePermissions).length;
+            document.getElementById('totalPermissions').textContent = ALL_PERMISSIONS.length;
+            document.getElementById('totalDatabases').textContent = Object.keys(savedDatabases).length;
+        }
+
+        function renderUsers() {
+            const container = document.getElementById('usersList');
+            if (!container) return;
+            
+            const userEntries = Object.entries(users);
+            if (userEntries.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">No users found</div>';
+                return;
+            }
+            
+            let html = '';
+            userEntries.forEach(([key, user]) => {
+                html += `
+                    <div class="user-card">
+                        <div class="user-info flex items-center gap-3 flex-wrap">
+                            <span class="name"><i class="fas fa-user mr-2 text-gray-400"></i>${escapeHtml(user.username)}</span>
+                            ${user.email ? `<span class="email"><i class="fas fa-envelope mr-1 text-gray-500"></i>${escapeHtml(user.email)}</span>` : ''}
+                            <span class="role"><i class="fas fa-tag mr-1"></i>${escapeHtml(user.author || 'visitor')}</span>
+                            <span class="text-xs text-green-400"><i class="fas fa-key mr-1"></i>${user.password ? '••••••••' : 'No password'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editUser('${key}')" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-edit"></i></button>
+                            ${user.username !== 'amir' ? `<button onclick="deleteUser('${key}')" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-trash"></i></button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('rolesContainer');
+            if (!container) return;
+            
+            let html = '';
+            const roles = Object.keys(rolePermissions);
+            roles.forEach(role => {
+                const isAdmin = role === 'admin';
+                const roleNames = { admin: 'Admin', user: 'User', visitor: 'Visitor' };
+                const displayName = roleNames[role] || role;
+                html += `
+                    <span class="role-tag ${selectedRole === role ? 'border border-purple-400' : ''}" 
+                          onclick="selectRole('${role}')" style="cursor:pointer;">
+                        ${displayName}
+                        ${!isAdmin ? `<span class="remove-role" onclick="event.stopPropagation();deleteRole('${role}')"><i class="fas fa-times"></i></span>` : ''}
+                    </span>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsContainer');
+            if (!container) return;
+            
+            const perms = rolePermissions[selectedRole] || [];
+            document.getElementById('selectedRoleDisplay').textContent = selectedRole;
+            
+            let html = '';
+            ALL_PERMISSIONS.forEach(perm => {
+                const checked = perms.includes(perm.id) ? 'checked' : '';
+                html += `
+                    <div class="permission-checkbox">
+                        <input type="checkbox" class="perm-checkbox" data-role="${selectedRole}" data-perm="${perm.id}" ${checked}>
+                        <label><i class="fas ${perm.icon} mr-2 text-purple-400"></i>${perm.label}</label>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            
+            // Add event listeners
+            document.querySelectorAll('.perm-checkbox').forEach(cb => {
+                cb.onchange = function() {
+                    const role = this.getAttribute('data-role');
+                    const perm = this.getAttribute('data-perm');
+                    if (!rolePermissions[role]) rolePermissions[role] = [];
+                    if (this.checked) {
+                        if (!rolePermissions[role].includes(perm)) {
+                            rolePermissions[role].push(perm);
+                        }
+                    } else {
+                        rolePermissions[role] = rolePermissions[role].filter(p => p !== perm);
+                    }
+                };
+            });
+        }
+
+        function renderDatabases() {
+            const container = document.getElementById('databasesList');
+            if (!container) return;
+            
+            const dbEntries = Object.entries(savedDatabases);
+            if (dbEntries.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">No databases found</div>';
+                return;
+            }
+            
+            let html = '';
+            dbEntries.forEach(([name, data]) => {
+                const rowCount = data ? Object.keys(data).filter(k => k.startsWith('row_')).length : 0;
+                const colCount = data && data['row_1'] ? Object.keys(data['row_1']).length : 0;
+                html += `
+                    <div class="user-card">
+                        <div class="user-info flex items-center gap-3 flex-wrap">
+                            <span class="name"><i class="fas fa-database text-purple-400 mr-2"></i>${escapeHtml(name)}</span>
+                            <span class="text-gray-400 text-sm">${rowCount} rows, ${colCount} columns</span>
+                        </div>
+                        <button onclick="deleteDatabase('${name}')" class="text-red-400 hover:text-red-300 text-sm"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderActivityLog() {
+            const container = document.getElementById('activityLog');
+            if (!container) return;
+            
+            if (activityLogs.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">No activity logs found</div>';
+                return;
+            }
+            
+            let html = '';
+            activityLogs.slice(0, 100).forEach(log => {
+                const time = log.timestamp || new Date(log.createdAt).toLocaleString();
+                html += `
+                    <div class="text-sm text-gray-300 border-b border-gray-800 py-2">
+                        <span class="text-gray-500">[${time}]</span>
+                        <span class="text-purple-400 font-medium">${escapeHtml(log.action)}</span>
+                        <span class="text-gray-400">${escapeHtml(log.details)}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function populateRoleDropdowns() {
+            const selects = ['newUserRole', 'editUserRole'];
+            const roles = Object.keys(rolePermissions);
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const currentValue = select.value;
+                select.innerHTML = '';
+                const roleNames = { admin: 'Admin (الفحص)', user: 'User (الصيانة)', visitor: 'Visitor' };
+                roles.forEach(role => {
+                    const label = roleNames[role] || role;
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = label;
+                    select.appendChild(option);
+                });
+                if (currentValue && roles.includes(currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function updateConnectionStatus() {
+            const status = document.getElementById('connectionStatus');
+            if (firebaseDB) {
+                firebaseDB.ref('.info/connected').once('value', (snap) => {
+                    if (snap.val()) {
+                        status.innerHTML = '<i class="fas fa-circle text-green-400 mr-1"></i> Connected';
+                    } else {
+                        status.innerHTML = '<i class="fas fa-circle text-red-400 mr-1"></i> Disconnected';
+                    }
+                });
+            }
+        }
+
+        // ============================================================
+        // 5. ROLE MANAGEMENT
+        // ============================================================
+        function selectRole(role) {
+            selectedRole = role;
+            renderRoles();
+            renderPermissions();
+        }
+
+        function showAddRoleModal() {
+            document.getElementById('addRoleModal').classList.remove('hidden');
+            document.getElementById('newRoleName').value = '';
+        }
+
+        function addRole() {
+            const input = document.getElementById('newRoleName');
+            const roleName = input.value.toLowerCase().trim().replace(/\s+/g, '-');
+            if (!roleName) { showToast('Enter a role name', 'error'); return; }
+            if (rolePermissions[roleName]) { showToast(`Role "${roleName}" already exists!`, 'error'); return; }
+            
+            rolePermissions[roleName] = ['db-load', 'export', 'stats'];
+            showToast(`Role "${roleName}" added!`, 'success');
+            updateUI();
+        }
+
+        function deleteRole(role) {
+            if (role === 'admin') { showToast('Cannot delete admin role', 'error'); return; }
+            if (confirm(`Delete role "${role}"? All users with this role will be affected.`)) {
+                delete rolePermissions[role];
+                if (selectedRole === role) selectedRole = 'admin';
+                updateUI();
+                showToast(`Role "${role}" deleted`, 'success');
+            }
+        }
+
+        // ============================================================
+        // 6. USER MANAGEMENT
+        // ============================================================
+        function showAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('hidden');
+            document.getElementById('newUserUsername').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            populateRoleDropdowns();
+        }
+
+        async function addUser() {
+            const username = document.getElementById('newUserUsername').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+            
+            if (!username || !password || !role) {
+                showToast('Please fill all required fields (Username, Password, Role)', 'error');
+                return;
+            }
+            
+            try {
+                const snap = await firebaseDB.ref('users-generatedcode').once('value');
+                const existing = snap.val() || {};
+                for (let key in existing) {
+                    if (existing[key].username === username) {
+                        showToast('Username already exists', 'error');
+                        return;
+                    }
+                }
+                
+                const newUserRef = firebaseDB.ref('users-generatedcode').push();
+                const userData = {
+                    username,
+                    author: role,
+                    password: password,
+                    createdAt: new Date().toISOString()
+                };
+                if (email) userData.email = email;
+                
+                await newUserRef.set(userData);
+                
+                closeModal('addUserModal');
+                showToast(`User "${username}" added successfully!`, 'success');
+                await loadAllData();
+            } catch (e) {
+                showToast('Error adding user: ' + e.message, 'error');
+            }
+        }
+
+        function editUser(userId) {
+            const user = users[userId];
+            if (!user) return;
+            
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUserUsername').value = user.username || '';
+            document.getElementById('editUserEmail').value = user.email || '';
+            document.getElementById('editUserPassword').value = '';
+            populateRoleDropdowns();
+            document.getElementById('editUserRole').value = user.author || 'visitor';
+            
+            // Show current password in plain text (admin can see it)
+            const currentPasswordDisplay = document.getElementById('editUserCurrentPassword');
+            if (currentPasswordDisplay) {
+                currentPasswordDisplay.textContent = user.password || 'No password set';
+                currentPasswordDisplay.style.color = '#f1f5f9';
+            }
+            
+            document.getElementById('editUserModal').classList.remove('hidden');
+        }
+
+        // Copy password to clipboard
+        function copyPassword() {
+            const passwordElement = document.getElementById('editUserCurrentPassword');
+            const password = passwordElement.textContent;
+            if (password && password !== 'No password set') {
+                navigator.clipboard.writeText(password).then(() => {
+                    showToast('Password copied to clipboard!', 'success');
+                }).catch(() => {
+                    // Fallback
+                    const textArea = document.createElement('textarea');
+                    textArea.value = password;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                    showToast('Password copied to clipboard!', 'success');
+                });
+            } else {
+                showToast('No password to copy', 'error');
+            }
+        }
+
+        async function updateUser() {
+            const userId = document.getElementById('editUserId').value;
+            const username = document.getElementById('editUserUsername').value.trim();
+            const email = document.getElementById('editUserEmail').value.trim();
+            const password = document.getElementById('editUserPassword').value;
+            const role = document.getElementById('editUserRole').value;
+            
+            if (!username || !role) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const updateData = { username, author: role };
+                if (email) updateData.email = email;
+                if (password) updateData.password = password;
+                
+                await firebaseDB.ref('users-generatedcode/' + userId).update(updateData);
+                closeModal('editUserModal');
+                showToast('User updated successfully!', 'success');
+                await loadAllData();
+            } catch (e) {
+                showToast('Error updating user: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Delete this user permanently?')) return;
+            try {
+                await firebaseDB.ref('users-generatedcode/' + userId).remove();
+                showToast('User deleted', 'success');
+                await loadAllData();
+            } catch (e) {
+                showToast('Error deleting user: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // 7. PERMISSIONS SAVE - SYNC TO BOTH FIREBASE AND LOCALSTORAGE
+        // ============================================================
+        async function savePermissionsToFirebase() {
+            try {
+                // Save to Firebase
+                await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                // Also save to localStorage (for main app to read)
+                localStorage.setItem('rolePermissions', JSON.stringify(rolePermissions));
+                showToast('Permissions saved to Firebase and Local Storage!', 'success');
+            } catch (e) {
+                console.error('Save permissions error:', e);
+                showToast('Error saving permissions: ' + e.message, 'error');
+            }
+        }
+
+        function savePermissions() {
+            savePermissionsToFirebase();
+        }
+
+        // Sync permissions from Firebase to localStorage (for main app)
+        async function syncPermissionsToMainApp() {
+            try {
+                // First, save current permissions to Firebase
+                await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                // Then save to localStorage
+                localStorage.setItem('rolePermissions', JSON.stringify(rolePermissions));
+                showToast('Permissions synced to main app! Refresh the main app to see changes.', 'success');
+            } catch (e) {
+                showToast('Error syncing: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // 8. DATABASE MANAGEMENT
+        // ============================================================
+        async function deleteDatabase(dbName) {
+            if (!confirm(`Delete database "${dbName}" permanently?`)) return;
+            try {
+                delete savedDatabases[dbName];
+                await firebaseDB.ref('Project_1').set(savedDatabases);
+                showToast(`Database "${dbName}" deleted`, 'success');
+                await loadAllData();
+            } catch (e) {
+                showToast('Error deleting database: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // 9. UTILITY FUNCTIONS
+        // ============================================================
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
+
+        function showToast(msg, type = 'info') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+            toast.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // ============================================================
+        // 10. TAB SYSTEM
+        // ============================================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const tabName = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            };
+        });
+
+        // ============================================================
+        // 11. MODAL CLOSE ON OVERLAY CLICK
+        // ============================================================
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.add('hidden');
+            });
+        });
+
+        // ============================================================
+        // 12. INIT
+        // ============================================================
+        async function init() {
+            if (initFirebase()) {
+                await loadAllData();
+                setInterval(updateConnectionStatus, 3000);
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
