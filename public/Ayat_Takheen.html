@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Multi-Excel Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            background: #fdfdfd;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .upload-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .controls-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            box-sizing: border-box;
+        }
+
+        button {
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        .btn-upload {
+            background-color: #2ecc71;
+        }
+
+        .btn-upload:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-export {
+            background-color: #3498db;
+            white-space: nowrap;
+        }
+
+        .btn-export:hover {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #95a5a6 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .search-container {
+            margin-top: 25px;
+        }
+
+        .table-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #334155;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 0 #cbd5e1;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #64748b;
+            padding: 30px;
+        }
+
+        .status-msg {
+            font-weight: bold;
+            color: #2980b9;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>تكهين التلاعبات</h2>
+
+        <div class="section">
+            <h3>1. رفع الملفات</h3>
+            <div class="upload-box">
+                <input type="file" id="excelFiles" accept=".xlsx, .xls" multiple>
+                <button id="uploadBtn" class="btn-upload" disabled>Upload All at Once</button>
+            </div>
+            <div id="statusMessage" class="status-msg"></div>
+        </div>
+
+        <div class="section search-container">
+            <h3>2. البيانات والبحث</h3>
+
+            <div class="controls-box">
+                <input type="text" id="searchInput" placeholder="Type to filter database rows below...">
+                <button id="exportBtn" class="btn-export" disabled>Export Current View to Excel</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead id="tableHeader">
+                        <tr>
+                            <th>Data Values</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td class="no-data">Connecting to Firebase...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        // Ensure 'update' is included alongside 'getDatabase', 'ref', and 'set'
+        import { getDatabase, ref, set, update, onValue, query, limitToFirst } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528",
+            measurementId: "G-W3TZ1EKWWN"
+        };
+
+        // Init Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const dbRef = ref(database, 'Ayat_Takheen');
+
+        // DOM Elements
+        const fileInput = document.getElementById('excelFiles');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const searchInput = document.getElementById('searchInput');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let combinedParsedData = [];
+        let databaseCache = []; // Global copy of raw database entries
+        let currentFilteredData = []; // Keeps track of what is dynamically searched/rendered
+
+        // --- 1. HANDLE EXCEL MULTI-FILE SELECTION ---
+        fileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            combinedParsedData = [];
+            statusMessage.innerText = "Processing files...";
+            statusMessage.style.color = "#7f8c8d";
+            uploadBtn.disabled = true;
+
+            let filesProcessed = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                try {
+                    const rows = await parseExcelFile(file);
+                    combinedParsedData = combinedParsedData.concat(rows);
+                    filesProcessed++;
+                } catch (err) {
+                    console.error(`Error processing file ${file.name}:`, err);
+                }
+            }
+
+            if (combinedParsedData.length > 0) {
+                uploadBtn.disabled = false;
+                statusMessage.innerHTML = `Ready!<br>• Files parsed: <strong>${filesProcessed}</strong><br>• Total rows to overwrite/upload: <strong>${combinedParsedData.length}</strong>`;
+                statusMessage.style.color = "#27ae60";
+            } else {
+                statusMessage.innerText = "No valid data could be parsed from the selected file(s).";
+                statusMessage.style.color = "#c0392b";
+            }
+        });
+
+        function parseExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonRows);
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- 2. BATCH-STREAMED OVERWRITE TO FIREBASE WITH KEY SANITIZATION ---
+        uploadBtn.addEventListener('click', async () => {
+            if (combinedParsedData.length === 0) return;
+
+            uploadBtn.disabled = true;
+            fileInput.disabled = true;
+            statusMessage.innerText = "Sanitizing layout and initializing stream...";
+            statusMessage.style.color = "#d35400";
+
+            try {
+                const totalRows = combinedParsedData.length;
+                const BATCH_SIZE = 200;
+                let processedCount = 0;
+
+                // Step 1: Clear out old data at this path node
+                statusMessage.innerText = "Clearing previous database data...";
+                await set(dbRef, null);
+
+                // Step 2: Loop and send sanitized updates sequentially
+                while (processedCount < totalRows) {
+                    const chunkUpdatePayload = {};
+                    const endLimit = Math.min(processedCount + BATCH_SIZE, totalRows);
+
+                    statusMessage.innerText = `Uploading entries ${processedCount} to ${endLimit} of ${totalRows}...`;
+
+                    for (let i = processedCount; i < endLimit; i++) {
+                        const originalRow = combinedParsedData[i];
+                        const sanitizedRow = {};
+
+                        // Sanitize every column header/key inside this row
+                        Object.keys(originalRow).forEach(key => {
+                            // Firebase illegal characters: . # $ / [ ]
+                            // This regex replaces any of them with an underscore "_"
+                            const cleanKey = key.replace(/[\.\#\$\/\[\]]/g, '_');
+                            sanitizedRow[cleanKey] = originalRow[key];
+                        });
+
+                        const paddedIndex = String(i).padStart(6, '0');
+                        chunkUpdatePayload[`row_${paddedIndex}`] = sanitizedRow;
+                    }
+
+                    // Push the clean chunk to Firebase
+                    await update(dbRef, chunkUpdatePayload);
+                    processedCount = endLimit;
+                }
+
+                statusMessage.innerText = `Success! Streamed ${totalRows} entries into Firebase safely.`;
+                statusMessage.style.color = "#27ae60";
+                fileInput.value = '';
+                combinedParsedData = [];
+            } catch (error) {
+                console.error("Firebase Transmission Error Detail:", error);
+                statusMessage.innerText = `Upload failed: ${error.message}`;
+                statusMessage.style.color = "#c0392b";
+                uploadBtn.disabled = false;
+            } finally {
+                fileInput.disabled = false;
+            }
+        });
+
+        // --- 3. RETRIEVAL AND ENGINE WATCH ---
+        onValue(dbRef, (snapshot) => {
+            databaseCache = [];
+
+            if (snapshot.exists()) {
+                const rawData = snapshot.val();
+
+                if (Array.isArray(rawData)) {
+                    databaseCache = rawData.filter(item => item !== null);
+                } else if (typeof rawData === 'object') {
+                    databaseCache = Object.values(rawData);
+                }
+
+                exportBtn.disabled = (databaseCache.length === 0);
+                // Default active set is the whole database array
+                currentFilteredData = [...databaseCache];
+                renderTable(currentFilteredData);
+            } else {
+                exportBtn.disabled = true;
+                tableBody.innerHTML = `<tr><td class="no-data">No records stored in 'Ayat_Takheen'.</td></tr>`;
+            }
+        }, (error) => {
+            exportBtn.disabled = true;
+            tableBody.innerHTML = `<tr><td class="no-data" style="color:red;">Read Permission Denied. Check your Database Rules.</td></tr>`;
+        });
+
+        // --- 4. DATA RENDERING ---
+        function renderTable(dataArray) {
+            tableBody.innerHTML = '';
+            if (dataArray.length === 0) {
+                tableBody.innerHTML = `<tr><td class="no-data">No matching records found.</td></tr>`;
+                return;
+            }
+
+            const uniqueHeaders = new Set();
+            dataArray.forEach(item => {
+                if (item && typeof item === 'object') {
+                    Object.keys(item).forEach(k => uniqueHeaders.add(k));
+                }
+            });
+            const headers = Array.from(uniqueHeaders);
+
+            let headerHtml = `<tr>`;
+            headers.forEach(h => headerHtml += `<th>${h}</th>`);
+            headerHtml += `</tr>`;
+            tableHeader.innerHTML = headerHtml;
+
+            const finalTbodyHtml = dataArray.map(item => {
+                let cols = ``;
+                headers.forEach(h => {
+                    let val = (item && item[h] !== undefined) ? item[h] : '';
+                    cols += `<td>${typeof val === 'object' ? JSON.stringify(val) : val}</td>`;
+                });
+                return `<tr>${cols}</tr>`;
+            }).join('');
+
+            tableBody.innerHTML = finalTbodyHtml;
+        }
+
+        // --- 5. LIVE SEARCH FILTER ---
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+
+            if (query === '') {
+                currentFilteredData = [...databaseCache];
+                renderTable(currentFilteredData);
+                return;
+            }
+
+            currentFilteredData = databaseCache.filter(item => {
+                if (!item) return false;
+                return Object.keys(item).some(key => {
+                    return String(item[key]).toLowerCase().includes(query);
+                });
+            });
+
+            renderTable(currentFilteredData);
+        });
+
+        // --- 6. EXPORT CURRENT ACTIVE DATA BACK TO EXCEL ---
+        exportBtn.addEventListener('click', () => {
+            if (currentFilteredData.length === 0) return;
+
+            // Generate worksheet directly out of our JSON array tracking cache
+            const worksheet = XLSX.utils.json_to_sheet(currentFilteredData);
+            const workbook = XLSX.utils.book_new();
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Ayat_Takheen Data");
+
+            // Triggers instant client-side download profile
+            XLSX.writeFile(workbook, "Ayat_Takheen_Export.xlsx");
+        });
+    </script>
+
+</body>
+
+</html>
