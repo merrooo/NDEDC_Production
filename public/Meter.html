@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>العدادات</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #eef2f7;
+          font-family: "Cairo", sans-serif;
+            direction: rtl;
+            color: #1a2c3e;
+        }
+
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(145deg, #0b2b3b 0%, #071e2a 100%);
+            color: white;
+            padding: 2rem 1rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .sidebar h2 {
+            font-size: 1.7rem;
+            border-right: 4px solid #f9b43a;
+            padding-right: 1rem;
+            margin-bottom: 2rem;
+            font-weight: 700;
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            padding: 1rem 1.2rem;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #f0f3f8;
+            text-align: right;
+            cursor: pointer;
+            border-radius: 32px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: inherit;
+        }
+
+        .nav-btn:hover {
+            background: #f9b43a;
+            color: #0a1e2c;
+            transform: translateX(-5px);
+        }
+
+        .nav-btn.active {
+            background: #f9b43a;
+            color: #0a1e2c;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(249, 180, 58, 0.3);
+        }
+
+        .main-area {
+            flex: 1;
+            padding: 2rem 2rem 3rem;
+            max-width: calc(100% - 280px);
+        }
+
+        .sheet-container {
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .sheet-header {
+            font-size: 1.9rem;
+            font-weight: 700;
+            border-right: 6px solid #f9b43a;
+            padding-right: 1.2rem;
+            margin-bottom: 1.8rem;
+            color: #0f2b3d;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .data-table td,
+        .data-table th {
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            vertical-align: top;
+            text-align: right;
+        }
+
+        .data-table th {
+            background: #f1f5f9;
+            font-weight: 700;
+        }
+
+        .section-block {
+            background: #fafdff;
+            border-radius: 24px;
+            padding: 1.2rem 1.8rem;
+            margin-bottom: 1.8rem;
+            border: 1px solid #e6edf4;
+        }
+
+        .section-block h3 {
+            font-size: 1.45rem;
+            margin-bottom: 1rem;
+            color: #1e4a6b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-box {
+            background: #fef6e0;
+            border-right: 5px solid #f9b43a;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            margin: 1.2rem 0;
+            font-size: 0.95rem;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-bar button {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        .pagination-bar button:hover:not(:disabled) {
+            background: #f9b43a;
+            border-color: #f9b43a;
+        }
+
+        .pagination-bar button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            background: #e9eef3;
+            padding: 6px 20px;
+            border-radius: 50px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 780px) {
+            .app-wrapper {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 1rem;
+            }
+            .main-area {
+                max-width: 100%;
+                padding: 1rem;
+            }
+        }
+         .btn-home {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-family: "Cairo", sans-serif;
+      }
+
+      .btn-home:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+      }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="sidebar">
+          <button
+            class="btn-home"
+            onclick="window.location.href = 'Control_Calc.html'"
+          >
+            <ion-icon name="home-outline"></ion-icon>
+            الصفحة الرئيسية
+          </button>
+        <h2>📋العدادات</h2>
+        <div class="nav-buttons">
+            <button id="btnMechanical" class="nav-btn active">⚙️ العداد الميكانيكي  </button>
+            <button id="btnPrepaid" class="nav-btn">🔐 العدادات مسبق الدفع (Pre-paid) - </button>
+            <button id="btnDigital" class="nav-btn">💡العدادات الرقمية / الإلكترونية و المعايرة </button>
+        </div>
+        <div style="margin-top: 2rem; font-size: 0.75rem; opacity: 0.6; border-top: 1px solid #2c4c6c; padding-top: 1rem;">
+        </div>
+    </div>
+
+    <div class="main-area" id="mainArea">
+        <div id="dynamicRender">جاري التحميل...</div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // SHEET 1: MECHANICAL -  من ملف Excel (عدادات الطاقه الكهربيه)
+    // ============================================================
+    const mechanicalRawPages = [
+        {
+            title: "📘 العداد الميكانيكي  - الجزء الأول: الأنواع، الهدف، نظرية التشغيل",
+            content: `
+                <div class="section-block">
+                    <h3>🎯 الهدف</h3>
+                    <p>تعتبر العدادات الطاقه الكهربيه من اهم الاجهزه التى يعتمد عليها عند المحاسبه على كميه الطاقه الكهربيه المستهلكه وتعتبر اجهزه تكامليه اى انها تسجل وتجمع كميه الطاقه المستهلكه فى فتره زمنيه معينه</p>
+                </div>
+                <div class="section-block">
+                    <h3>📌 انواع العدادات</h3>
+                    <table class="data-table">
+                        <tr><th>النوع</th><th>التفاصيل</th></tr>
+                        <tr><th>احاديه الوجه</th><td>عدد الاوجه واحد 1-ph ، نوع الطاقه: طاقه فعاله ، عدد العناصر: بملف تيار واحد / بملفين تيار ، الاستخدام: الاناره-احمال سكنيه</td></tr>
+                        <tr><th>ثلاثيه الاوجه</th><td>3-ph ، نوع الطاقه: طاقه فعاله kwh - طاقه غير فعاله kvarh - طاقه الكليه k.v.a.h - طاقه فعاله مزوده ببيان اقصى حمل ، عدد العناصر: 2عنصر 3 سلك / 3عنصر-4 اسلاك ، طريقه التوصيل: مباشر-محولات تيار-محولات تيار وجهد ، الاستخدام: الاناره والقوى المحركه والجهد المتوسط</td></tr>
+                    </table>
+                </div>
+                <div class="section-block">
+                    <h3>🧲 نظريه التشغيل</h3>
+                    <p>يكون ملف الجهد متصل عالتوازى من المصدر ويمر به تيار سواء هناك حمل ام لا. نتيجه معاوقه ملف الجهد الكبيره وذلك(لانه عدد لفاته كثيره ومساحه مقطعه صغير يمر تيار صغير فى الملف وينشا عنه فيض مغناطيسى PHI-U ويتناسب مع جهد المصدر ويتاخر عنه بمقدار 90 درجه ويمر تيار دوامى Ivedd نتيجه لهذا الفيض. عند مرور الحمل يمر تيار الحمل فى ملف التيار وينشا ايضا فيض مغناطيسى يتناسب مع تيار الحمل ويكون In Phase ويرمز PHI-1. تنشا قوه دافعه كهربيه نتيجه قطع فيض ملف التيار PHI-1 وتتاخر بمقدار 90 درجه ويمر تيار دوامى Iedd نتيجه لهذا الفيض. يتفاعل الفيض المغناطيس لكل من ملفى الفولت والتيار مع التيارات الدواميه فى القرص وينشا عزم الدوران.</p>
+                    <p class="note-box">✔️ The copper shading bands are also called the power factor compensators. These rings are provided on the central limb of the shunt magnet to make the phase angle displacement between magnetic field set up by shunt magnet and supply voltage is approximately 90 degrees.</p>
+                </div>
+                <div class="section-block">
+                    <h3>🌪️ Eddy Current Principle </h3>
+                    <p>The eddy current method is based on the principle of generating circular electrical currents (eddy currents) in a conductive material. This is achieved by the use of a coil connected to an alternating current generator driving an alternating magnetic field (primary field). The current flow induced by this primary field within the conductive material will itself produce a magnetic field (secondary field) in opposition to the primary field according to Lenz's law.<br>This reaction can be measured as a change of the impedance of the coil/sample arrangement (change in amplitude and phase of the voltage related to the generator current driving the coil). A coil in air is not influenced by eddy currents, but moving the coil towards an electrical conductive sample results in a signal, which can be used for distance measurement, e.g. measurement of non-conductive coating thickness on electrical conductive material.<br><br>The eddy currents will always go the easiest way, and if cracks exist in the material, the current will go around the crack. This change of eddy current flow also can be detected by monitoring the impedance of the coil and is mainly used for detection of cracks.<br><br>Eddy currents are flowing beneath the surface of the material with the highest density close to the surface. The depth of penetration of the eddy currents depends on the conductivity and permeability of the material and the frequency of the alternating field. At high frequencies the eddy currents concentrate at the surface, while with lower frequencies deeper regions within the material are penetrated. By utilizing this on e.g. a sheet of aluminum, both, cracks on top of the sheet and on the other side can be detected. It is also applicable to detect subsurface corrosion and to determine the thickness of conductive sheets. This effect is used mainly for non-ferromagnetic material. Due to the high permeability of ferromagnetic material the standard eddy current method here is limited to the region close to the surface.</p>
+                </div>
+                <div class="section-block">
+                    <h3>📐 عدادات ثلاثيه الاوجه (3 عنصر و 2 عنصر)</h3>
+                    <p><strong>عدادات ثلاثيه الوجه (3 عنصر):</strong> تتكون من 3 محولات تيار -3 محولات جهد تؤثر على الاقراص الثابته على عامود الدوران وتكون (ثلاث اقراص-او قرصين) وذات اربع اسلاك وتوصل مباشره مع الحمل او من خلال محولات تيار ومحولات جهد (فى حاله الجهد المتوسط).<br>
+                    <strong>عدادات ثلاثيه الوجه (2 عنصر):</strong> تستخدم فى الشبكات ذات الثلاثه اسلاك ولها مجموعتان للجهد ومجموعتان للتيار تؤثران على قرصين مثبتين على عامود مشترك وهى ايضا اما توصل مباشره او من خلال محولات تيار ومحولات جهد فى حاله الجهد المتوسط.</p>
+                </div>
+                <div class="section-block">
+                    <h3>⚡ اختيار سعه العداد</h3>
+                    <p>يتم اختيار سعه العداد حسب القدره المتعاقد عليها المشترك. اذا تم التعاقد على قدره 2.35 ك.ف.ا وجه واحد فان شده التيار فى الجهد 220 تكون 10 امبير وبالتالى تكون سعه العداد 10 امبير/220 فولت. اذا تم التعاقد على قدره 67 ك.ف.ا ثلاثه اوجه فان شده التيار فى الجهد 380 تكون 100 امبير وبالتالى تكون سعه العداد 3*100 امبير/380فولت. اذا زادت نسبه التيار عن 100 يتم تركيب عداد على محولات تيار ويكون العداد 5 امبير. عدادات قياس الطاقه الغير فعاله تكون نفس مكونات العداد الطاقه الفعاله ولكن طريقه التوصيل الداخليه ووضعيه ملفات الجهد والتيار تختلف للحصول على sin theta.</p>
+                </div>
+            `
+        },
+        {
+            title: "⚙️ العداد الميكانيكي - الأنظمة: الحركة، الكبح، التسجيل، الأخطاء والتعديلات",
+            content: `
+                <div class="section-block">
+                    <h3>🔄 Moving System & Braking System</h3>
+                    <p><strong>Moving System:</strong> It consists of a light aluminium disc mounted on a spindle and positioned in the gap in between the two magnets. This disc rotates continuously under the driving torque produced by the two magnets. Note that there is no controlling.<br>
+                    <strong>Braking System:</strong> A permanent magnet called "Drake magnet" near the edge of the disc comprises braking system. When disc rotates in the magnetic field of the break disc cuts this field (and thus eddy currents) is induced in the disc. The direction of eddy currents is opposite to the direction of rotation of the disc (lenz's law) and thus it controls the rotation. As the eddy currents are proportional to the disc speed, so the braking torque is also proportional to the disc speed. The amount of Braking torque can be adjusted by adjusting the position of the braking magnet. If the braking magnet is moved towards the centre of the disc the flux cut by the disc is reduced and so reduces the induced currents and the braking torque. This will increase the speed of the disc. Reverse happens if the break magnet is moved outward from the disc.</p>
+                </div>
+                <div class="section-block">
+                    <h3>📝 Recording System & Lag Adjustment</h3>
+                    <p><strong>Recording System:</strong> The function of recording system is to register/count the no. of revolutions made by the disc. By using a train of gears on the disc spindle, 5 to 6 pointers are driven. These pointers rotate on dials which are marked with ten equal divisions. The Fig. 2 shows a pointer type recording and Fig. 3 shows a cyclometer type recording. Thus we can see that the construction of 1 phase induction energy meter is similar to a 1 ph shaded band Induction motor. The disc may be taken as the rotor of the motor.<br>
+                    <strong>Lag Adjustment In Energy Meters:</strong> The energy meter will register correct energy only if the shunt magnet flux lags the voltage exactly by 90°. This requires that the pressure coil should be highly inductive. If the angle is not 90°, it is to be adjusted by shading bands provided on the central limb of the shunt magnet. This is known as lag adjustment. Sometimes it is also called as "low power factor"/Quadrature or Reductive load adjustment. The adjustment is done by moving the shading bands along the axis of the central limb. As the bands are moved up the limb they embrace more flux. This results in greater induced emf and current produced by the bands therefore, the value of "lag" angle increases. When the shading bands are moved down, the limb induced emf and current decreases and the "lag angle" also decreases. The adjustment is done in such a way that the angle of lag is exactly 90 i.e., is brought exact in quadrature with the voltage.</p>
+                </div>
+                <div class="section-block">
+                    <h3>⚠️ Errors in Induction Type Energy Meter</h3>
+                    <ul>
+                        <li><strong>Phase Error:</strong> Normally the flux due to shunt magnet does not lag the supply voltage exactly by 90°. The reason being that the shunt coil has some resistance. Due to this, the angle of phase is less then 90°, as a result, the torque on the disc is not zero at zero power factor. It is adjusted by adjusting the position of shading bands on the central limb of the shunt magnet.</li>
+                        <li><strong>Speed Error:</strong> If the disc moves faster or slower, it is called as "speed error". If the disc moves faster it will give a higher reading and viceversa. This error may be compensated by moving the brake magnet towards or away the centre of the disc. Moving the brake magnet towards centre of the disc reduces braking torque, thus increasing the disc speed and vice-versa.</li>
+                        <li><strong>Creeping:</strong> This is the error, when the disc makes slow motion even at no load. For compensating error, two holes are drilled on the diameter of the disc.</li>
+                        <li><strong>Temperature Error:</strong> Due to temperature error, resistance of the disc and coils increases. This creates error. This error however is very small and can be neglected.</li>
+                    </ul>
+                </div>
+                <div class="section-block">
+                    <h3>🔧 Adjustments in the Energymeter (Full text)</h3>
+                    <p><strong>Full load unity power factor (P.F.) adjustment:</strong> The pressure coil is connected across the rated supply voltage. Rated full load current at unity power factor is also passed. The position of the brake magnet is adjusted, so that the disc revolves at correct speed.<br>
+                    <strong>Lag adjustment (low P.F. adjustment):</strong> The pressure coil is connected across rated supply voltage and rated full load current is passed through the current coil at 0.5 P.F. lagging. The shading band on the shunt magnet is so adjusted that the disc moves at a correct speed. With rated supply voltage, rated full load current and unity P.F. the speed of the disc is checked. Now full load unity P.F. and lag (low P.F.) adjustments are repeated till the desired accuracy is obtained for both the conditions.<br>
+                    <strong>Light load adjustment:</strong> Rated supply voltage is applied across the pressure coil and a very low (5% of the full load) current is passed through current coil at unity P.F. The meter should move at a correct speed even at light load. Full load and light load adjustments at unity P.F. are repeated till correct speed is obtained at both the loads. Re-check the performance of the meter at 0.5 P.F. (lagging).<br>
+                    <strong>Creep adjustment:</strong> The pressure coil is excited at 110 percent of the rated voltage with zero load current. The meter should not "creep".<br>
+                    <strong>Frictional adjustment:</strong> The frictional error in the induction type energymeter is compensated by placing shading (short circuiting) bands at the side limbs of the shunt magnet.</p>
+                </div>
+            `
+        }
+    ];
+
+    // ============================================================
+    // SHEET 2: PRE-PAID -  من ملف Excel (منظومه مسبوق الدفع)
+    // ============================================================
+    const prepaidRawPages = [
+        {
+            title: "🔐 منظومه مسبوق الدفع - الكروت، العداد، شاشات العرض والبيانات",
+            content: `
+                <div class="section-block">
+                    <h3>📄 تعريف المنظومة</h3>
+                    <p>منظومه مسبوق الدفع: هى منظومه لمحاسبه المشترك على الاستهلاك من خلال العداد المركب والبرنامج الموحد المعمول به من شركات التوزيع ويكون مؤمن من المنظومات الامنيه المخابراتيه( الامن السيبرانى) من تشفير وفك التشفير للبيانات المقروءه من العداد او المرسله ايضا للعداد.</p>
+                </div>
+                <div class="section-block">
+                    <h3>💳 الكروت</h3>
+                    <p><strong>1. كارت المشترك:</strong> الكارت الخاص بنقل الشحنات الى المشترك من النظام ويتم الكتابه عليه عند انشاء العقد وتسجيل البيانات الخاصه بالمشترك من نوع النشاط وكود المشترك وايضا يقوم بنقل التلاعبات.<br>
+                    <strong>2. كارت التحكم:</strong> كارت خاص بالفنين الشركه ويقوم ببعض المهمات مثل التحكم لاوامر العداد من فصل وتوصيل او اطلاق تيار او تعديل الوقت والتاريخ او ازاله تلاعبات موجوده عالعداد او اختبار وحاله الموصل والبطاريه وتصفير بيانات العداد.<br>
+                    <strong>3. كروت لتجميع البيانات:</strong> بيانات خاصه بالاستهلاك والمتبقى من الرصيد و التلاعبات او الاوامر التى تم ادخالها الى العداد من كروت تحكم اخرى - نوع النشاط - رقمه - رقم العداد - كود المشترك - تاريخ ووقت العداد.</p>
+                </div>
+                <div class="section-block">
+                    <h3>🖥️ العداد - شاشه العرض والصفحات</h3>
+                    <p>شاشه العرض للعداد من البلورات السائله (back light-LCD) وتظهر البيانات على الشاشه فى حاله وجود جهد عالعداد عدد 6 ارقام صحيحه ديجيتال وتكون مساحه الديجيت 20 مم2. يوجد بالعداد صفحات مختلفه عدد 25 صفحه طبقا للمواصفه الموحده للشركات التوزيع وهى كالتالى:- يوجد نوعين من الشاشات الداخليه للعداد: 1- الشاشه الضوئيه (التلقائيه) 2- الشاشه الرئسيه. الشاشه الضوئيه (التلقائيه) ويظهر فيها الرصيد المتبقى من قيمه الشحن(جنيه وقروش) والشريحه الحاليه والكيلو وات المتوقع استخدامه وايضا المديونيه الموجوده بالعداد اذا وجدت. الشاشه الرئيسيه يتم عرضها بواسطه زر التقليب الموجود عالعداد ويقوم بعرض: رقم العداد، كود المشترك، الاستهلاك الكلى، استهلاك الشهر الحالى كميه وقيمه وبداخل هذه الصفحه استهلاك 12 شهر سابق كميه وقيمه، الوقت الحالى (12 ساعه مع اضافه صباحا/مساء)، التاريخ (يوم-شهر-سنه)، نوع الاستخدام او نوع النشاط، عدد مرات الشحن واجمالى مجموع الشحنات، تاريخ اخر شحنه، الباقى المتوقع بالايام، الحد الاقصى للشرائح(ك.و.س)(ش1-ش2-ش3ش-ش4-ش5-ش6-ش7)، اسعار الشرائح بالجنيه والقروش(ش1-ش2-ش3-ش4-ش5-ش6-ش7)، حد الانذار والفصل بالجنيه، اقصى حمل(امبير-كيلووات) تاريخ حدوثه، اجمالى جميع الديون المسجله داخل العداد (قيمه وكميه)، عدد مرات زياده الاحمال، عدد مرات فتح غطاء روزته العداد ووقت وتاريخ اول حدث حتى يتم ازالته، عدد مرات فتح غطاء العداد، عدد تلاعب الارضى، عدد عكس التيار، عدد عدم عمل مفتاح الفصل والتوصيل، الفولت الحالى، الامبير(امبير الوجه-امبير الارضى)، قيمه اقصى امبير مبرمج عليه العداد، شاشه توضح حاله الكونتاكتور (مغلق-مفتوح).</p>
+                </div>
+                <div class="section-block">
+                    <h3>🏷️ Name Plate والبيانات الرئيسية</h3>
+                    <p>طراز العداد GT او سويدى Em-Sogwave، نوع العداد (احادى - ثلاثى توصيل مباشر-توصيل غير مباشر) يعمل بنظام الدفع المسبق، قوه العداد على حسب نوعه احادى ام ثلاثى، الشركه المصنعه (جلوبال-السويدى)، الشركه المورد اليها شركه شمال الدلتا، رقم العداد-سنه الصنع-درجه الدقه-IEC المختبر عليها العداد-درجه الحمايه وهكذا. جسم العداد مصنع من مواد غير قابله للاشتعال ماده البكليت ومقاومه للصدمات ويكون وجه العداد شفاف يختلف عن باقى جسم العداد. اما غطاء الروزته يكون محفور عليه طريقه التوصيل الخاصه بالعداد.</p>
+                </div>
+            `
+        },
+        {
+            title: "🧩 المكونات الداخلية (البورده، السويتشات، البطاريه، الريلاى، الشحن والنظام)",
+            content: `
+                <div class="section-block">
+                    <h3>🔧 البورده والعناصر الحساسه</h3>
+                    <p>يتكون العداد من الداخل من مجموعه عناصر حساسه للتيار (محول التيار) وريلاى للفصل والتوصيل والبورده الالكترونيه مركب عليها شاشه العرض وتكون مزوده بوحده الانفرا (قارىء الكروت) فى حاله عداد السويدى وايضا الوصله الضوئيه وتكون خاصه بالقراه او الكتابه عالعداد مثل الكروت وتكون غير مفعله لدى شركه التوزيع ومفعله من الشركه المصنعه للسهوله الوصول للعداد فى حاله تلف قارىء الكروت سحب او كتابه بيانات عالعداد. تكون العناصر الحساسه للتيار او محول التيار بتحويل قيم التيار الكبيره الى قيم صغيره. ويوجد بالعداد البروسوسور الداخلى الذي يقوم بالعمليات الحسابيه للاستهلاك والخصم من الرصيد الموجود داخل العداد بناءا على قيم الشرائح و قيم خدمه العملاء وهى بيانات رئيسيه مخزنه داخل الميمورى بالعداد يتم استخدامها بطريقه ما عند توصيل الحمل عالعداد من خلال البراميترز الداخله للعداد من الجهد والتيار.</p>
+                </div>
+                <div class="section-block">
+                    <h3>🔌 السويتشات والبطاريه</h3>
+                    <p><strong>السويتشات:</strong> يوجد بعض السويتشات الموجوده داخل العداد مثل سويتش غطاء الروزته او سويتش غطاء وجه العداد فى حاله التلاعب بفتح احد غطاء وجه العداد او الروزته بتسجيل التلاعب (الحدث) ويتم تخزينه داخل الميمورى ويت نقلها الى البرنامج الموحد عند قراءه كارت المشترك او كروت التحكم.<br>
+                    <strong>البطاريه:</strong> يوجد بطاريه داخل العداد وذلك لحفظ الوقت والتاريخ للعداد وتكون مدتها من 10 الى 15 سنه والتلاعبات المسجله عالعداد مع وجود ايضا السوبر كابستر الذى تكون مدته عالاقل 48 ساعه تشغيل من تاريخ انقطاع الكهرباء عالعداد.</p>
+                </div>
+                <div class="section-block">
+                    <h3>💡 لمبات البيان والريلاى</h3>
+                    <p><strong>لمبات العداد:</strong> لمبه الانذار او التلاعب وتضىء فى حاله التلاعب بفتح غطاء الروزته او غطاء العداد او فتح الموصل، لمبه الرصيد وتضىء بشكل متقطع فى حاله حد الانذار ويكون مبرمج على (8-10 جنيه) وبشكل مستمر فى حاله انتهاء الرصيد (0 جنيه)، لمبه المعايره وتكون مضيئه بشكل متقطع وتتناسب مع الاستهلاك.<br>
+                    <strong>الريلاى (الموصل):</strong> الريلاى داخل العداد هو المسئول عن حاله الفصل والتوصيل داخل العداد عند انتهاء الرصيد او التلاعبات وزياده الحمل. وفى حاله زياده الحمل عالعداد يفصل ثلاث مرات كل مده خمس دقائق ماعدا المرحله الاخيره لا تتم الا من خلال كارت التحكم الخاص بالشركه. ويكون جهد التشغيل الخاص بالريلاى 220 فولت-80 امبير.</p>
+                </div>
+                <div class="section-block">
+                    <h3>📲  الشحن والنظام</h3>
+                    <p>يتم الشحن من مراكز الخدمه الموجوده بالهندسات - او وحدات الشحن المتنقله hand held وهى بديل لمراكز الشحن الفرعيه-او الشحن الالكترونى (فورى - اى فاينس - سهل). فى حاله وجود التلاعبات لا يتم شحن العداد او فى حاله وجود المديونات المسجله عالنظام وذلك عن طريق استقبال او ارسال البيانات من والى النظام بحاله العداد والمديونيات المسجله عالنظام من (تسويه - ديون تمن العداد-رصيد حاسب الى( الفواتير القديمه الاصدار المحمله عالمشترك)). برنامج التشغيل هو صفحه Web application يتم التعامل معها باللغه العربيه. صفحه الويب او النظام يوجد بداخلها مجموعه من التقارير لمتابعه لشحن والمديونيات وحسابات الطاقه المشتراه والمباعه -صفحات لانشاء العقد او بيانات المشترك - الاستهلاكات - والحركات المختلفه من التحكم والمتابعه والرقابه اليوميه والشهريه للمشتركين والمستخدمين. يتم التعامل مع النظام من خلال (المشغل-المراقب -مسئول النظام) ويحدد صلاحياتها من خلال المسئول النظام.</p>
+                    <p><strong>انواع العدادت مسبوق الدفع:</strong> يوجد ايضا العداد الثلاثى المباشر ويكون قدره 5/100 او 10/100 امبير وذلك على حسب سنه الصنع. توجد بعض الاضافات على العداد من حيث:- يتم حساب الاستهلاك الغير فعال وذلك لحساب معامل القدره، تسجيل الاقص حمل للنشاط وذلك لربط وحساب القدره التعاقديه، يوجد لمبه بيان لاظهار الاستهلاك الغير فعال تستخدم للمعايره اذا تتطلب الامر، تزداد عدد الصفحات وذلك لعرض بعض المتغيرات الكهربيه مثل الثلاث فازات جهد وتيار ومعامل قدره وسقوط فازات الجهد.</p>
+                    <div class="note-box">
+                        ✅ <strong>الأسئلة الواردة في الملف:</strong> تظهر فى الشاشه الضوئيه فى العداد المسبوق قيمه التيار المار بالعداد. قارىء الكروت بالعداد السويدى (تلامسى). تحدد قوه العداد للمشترك بناء على القدرات المقاسه لدى المشترك. يقوم الريلاى فى العداد بفصل التيار فى حاله ضعف البطاريه. تضىء لمبه التلاعبات فى حاله ضعف البطاريه. عند فصل الجهد عن العداد وظيفه البطاريه داخل العداد هى حفظ الوقت والتاريخ داخل العداد وايضا تسجيل التلاعبات. العمر الافتراضى للبطاريه يكون من 10 الى 15 سنه. يتم حساب قيمه الاستهلاك الكلى الغير فعال داخل العداد وذلك لحساب متوسط معامل القدره السنوى. قدره العداد الثلاثى -توصيل مباشر مسبوق الدفع ....... امبير. لمبه الانذار او التلاعب وتضىء فى حاله التلاعب بفتح (غطاء الروزته -غطاء العداد-فتح الموصل)- صحيح. لمبه الانذار او التلاعب وتضىء فى حاله انتهاء (الرصيد-ضعف البطاريه-التلاعب الارضى)- خطأ.
+                    </div>
+                </div>
+            `
+        }
+    ];
+
+    // ============================================================
+    // SHEET 3: DIGITAL + CALIBRATION -  (نظرية الرقمية والمعايرة)
+    // ============================================================
+    const digitalRawPages = [
+        {
+            title: "💻 نظرية عمل العدادات الرقمية (الإلكترونية) ",
+            content: `
+                <div class="section-block">
+                    <h3>📟 Theory of Operation for Digital (Electronic) Watthour Meters</h3>
+                    <p>A digital (electronic) watthour meter measures electrical energy (kWh) by converting the continuous analog signals of voltage and current into digital numbers, then performing mathematical calculations to determine power and accumulate energy. In simple terms: Think of the digital meter as a small, specialized computer that takes thousands of "pictures" (samples) of the voltage and current every second, multiplies them together to get instantaneous power, and adds them up over time to get total energy.</p>
+                    <p><strong>The 4 Main Stages of Operation:</strong><br>
+                    1. Sensing<br>
+                    2. Conversion (A/D)<br>
+                    3. Calculation<br>
+                    4. Output & Storage</p>
+                    <p><strong>Stage 1: Sensing (Input Section):</strong> The meter must safely measure high voltage and current. Voltage Sensing: A resistive voltage divider or a small voltage transformer reduces the high line voltage (e.g., 120V to 480V) down to a low voltage (e.g., 0.5V) that the electronic circuit can handle. Current Sensing: One of two methods is used: Current Transformer (CT): A small coil that magnetically couples to the current-carrying wire and produces a proportional lower current. Shunt Resistor: A very low-value, high-precision resistor placed in the current path. The tiny voltage drop across it (millivolts) is proportional to the current.</p>
+                    <p><strong>Stage 2: Analog-to-Digital Conversion (A/D Conversion):</strong> This is the heart of the digital meter. The low-level voltage and current signals are continuously sampled (measured) thousands of times per second. Sampling Rate: Typical meters sample at 2,000 to 8,000 times per second (2-8 kHz). Converter Type: A Delta-Sigma (ΔΣ) ADC is used because it provides high accuracy (16-24 bits) and good noise rejection. Output: The ADC converts the analog voltage and current signals into streams of digital numbers that represent their instantaneous values at each sample.</p>
+                    <p><strong>Stage 3: Calculation (DSP or Microcontroller):</strong> Once the voltage (V) and current (I) are in digital form, the meter calculates: 1. Instantaneous Power (p): For each sample, the meter multiplies the voltage number by the current number. Formula: p(t) = v(t) × i(t) (measured in Watts). 2. Active (Real) Power (P): The instantaneous power values are averaged over a short time (e.g., one 60Hz cycle) to get the real power. For AC circuits with a phase shift (φ) between V and I: P = V × I × cos(φ). 3. Energy (E): Energy is power accumulated over time. The meter continuously sums (integrates) the power values. Formula: E = ∫ P dt (measured in Watt-hours or kWh). Every time the accumulated energy reaches a certain threshold (e.g., 1 Wh), the meter increments a counter or sends a pulse. 4. Additional Calculations (for advanced meters): Reactive Power (VAR), Apparent Power (VA), Power Factor (PF), Frequency (Hz), and Harmonic distortion (THD).</p>
+                    <p><strong>Stage 4: Output and Storage:</strong> Display: The total kWh (and other values) are shown on a liquid crystal display (LCD). Calibration Pulse: An LED flashes at a rate proportional to power (e.g., 1000 flashes per kWh). This is used for field calibration with an optical probe. Communication (Smart Meters): Data is transmitted via optical port, RS-485, PLC (Power Line Carrier), RF (radio), or cellular modem. Non-volatile Storage: Readings are saved in EEPROM or Flash memory every few seconds so that data is not lost during a power outage.</p>
+                    <p><strong>Summary Diagram (Conceptual):</strong> [High Voltage] --> [Voltage Divider] --> [ADC] --┐ / [High Current] --> [Shunt or CT] --> [ADC] --┘--> [DSP/Microcontroller] --> [LCD Display] --> [Pulse LED] --> [Communication]</p>
+                    <p><strong>Simple Analogy:</strong> Analog Meter (Old): Like a mechanical bathroom scale with a spring and a dial. You look at the needle position. Digital Meter (New): Like a digital bathroom scale. It has: Sensor: A strain gauge (senses weight), ADC: Converts the strain to a number, Computer: Calculates the weight, Display: Shows "70.5 kg". The digital watthour meter does exactly this, but it does it 8000 times per second for both voltage and current simultaneously, then multiplies them and adds them up over time.</p>
+                </div>
+                <div class="section-block">
+                    <h3>📊 الخلاصة (Conclusion)</h3>
+                    <p>The theory of operation of a digital watthour meter is based on: 1. Sampling voltage and current at high speed. 2. Converting analog signals to digital numbers. 3. Multiplying V × I to get instantaneous power. 4. Integrating (summing) power over time to get energy. 5. Displaying and communicating the result. This digital method is far more accurate than older electromechanical meters, especially at low loads and under distorted (non-sinusoidal) waveforms caused by modern electronics (computers, LED lights, variable speed drives).</p>
+                </div>
+            `
+        },
+        {
+            title: "📏 معايرة العدادات: المفهوم، الفرق بين المصطلحات، الأنواع، والختم",
+            content: `
+                <div class="section-block">
+                    <h3>🎯 أولاً: ما هو معنى معايرة العداد ؟</h3>
+                    <p>معايرة عداد الكهرباء هي عملية مقارنة قراءة العداد بقيمة مرجعية دقيقة جداً للتأكد من أن العداد يسجل الطاقة المستهلكة بشكل صحيح 100%، ثم تعديله إذا لزم الأمر. الهدف الأساسي: جعل نسبة الخطأ في العداد أقرب ما يمكن إلى الصفر. إذا كانت نبضات العداد سريعة فإن نسبة الخطأ تكون بالموجب: العميل يدفع أكثر من استحقاقه (ظلم للعميل). إذا كانت نبضات العداد بطيئة فإن نسبة الخطأ تكون بالسالب: العميل يدفع أقل من استحقاقه (ظلم للشركة).</p>
+                </div>
+                <div class="section-block">
+                    <h3>🔄 ثانياً: الفرق بين "معايرة التسجيل" و "معايرة الدقة"</h3>
+                    <p>لا يوجد فرق. هما مصطلحان لنفس العملية، لكن الفرق ينبع من الأجزاء الداخلية للعدادات القديمة. لفهم ذلك، تخيل عداد الكهرباء القديم (الميكانيكي) يتكون من جزأين رئيسيين: قرص الدوران والمجال المغناطيسي الناتج من تقاطع المجال المغناطيسي لملفي التيار والجهد (جزء القياس)، والمجال المغناطيسي الدائم المسئول عن تغير سرعة دوران القرص، وجزء التسجيل (Register): التروس والأرقام التي تدور لعد دورات القرص وتحويلها إلى أرقام على الشاشة. معايرة التسجيل (Register Calibration) كانت تعني ضبط التروس، ومعايرة الدقة (Accuracy Calibration) كانت تعني ضبط المغناطيسات. في العدادات الإلكترونية هذا التقسيم لم يعد موجوداً، ومعايرة التسجيل = معايرة الدقة. كان هناك فرق حقيقي فقط عندما كان العداد معطلاً في الماضي: مشكلة في الدقة (القرص يدور بسرعة خطأ) حلها معايرة الدقة، ومشكلة في التسجيل (القرص يدور بشكل صحيح لكن الأرقام لا تتغير) حلها إصلاح جزء التسجيل. أما في العدادات الإلكترونية فهذا التقسيم لم يعد موجوداً.</p>
+                </div>
+                <div class="section-block">
+                    <h3>🏭 ثالثاً: أنواع المعايرة (حسب المكان والطريقة)</h3>
+                    <p><strong>المعايرة بالمعمل (Laboratory Calibration):</strong> تتم في معمل معياري بدرجة حرارة ثابتة بدقة عالية.<br>
+                    <strong>المعايرة بالموقع (On-Site Calibration):</strong> باستخدام جهاز معايرة محمول على موقع العداد.<br>
+                    تتم المعايرة طبقا لدرجة دقة العداد المذكورة على جسم العداد (Class). الفئات: CL 0.2 (عدادات الكترونية عالية الدقة), CL 0.5 (عدادات الكترونية), CL 1 (عدادات الكترونية), CL 2.0 (عدادات ميكانيكية).</p>
+                </div>
+                <div class="section-block">
+                    <h3>🔒 خامساً: الختم (الدمغة) والترصيص</h3>
+                    <p>بعد الانتهاء من أي معايرة، يوضع ختم وترصيص مانع للتلاعب (رصاص أو ملصق) على العداد. وأهميته أن العداد لم يتم التلاعب به أو تغيير معايرته بعد الخروج من المصنع أو المعمل. النتيجة: إذا وجد الختم مكسوراً، دليل على حدوث تلاعب بالعداد.</p>
+                    <div class="note-box">
+                        ❓ <strong>الأسئلة (من الملف):</strong> ما معنى معايرة عداد الكهرباء؟ ما الفرق بين معايرة المسجل ومعايرة الدقة؟ ما هي أنواع المعايرة الرئيسية؟ ما أهمية الختم والدمغة والموازين او ترصيص العداد؟
+                    </div>
+                </div>
+            `
+        }
+    ];
+
+    const sheetsData = {
+        mechanical: mechanicalRawPages,
+        prepaid: prepaidRawPages,
+        digital: digitalRawPages
+    };
+
+    let activeSheet = 'mechanical';
+    let currentPage = 0;
+
+    function renderActiveSheet() {
+        const pages = sheetsData[activeSheet];
+        if (!pages || pages.length === 0) {
+            document.getElementById('dynamicRender').innerHTML = '<div class="sheet-container">⚠️ لا توجد بيانات متاحة</div>';
+            return;
+        }
+        if (currentPage >= pages.length) currentPage = pages.length - 1;
+        if (currentPage < 0) currentPage = 0;
+        const pageData = pages[currentPage];
+        const total = pages.length;
+
+        const paginationHtml = `
+            <div class="pagination-bar">
+                <button id="firstPageBtn" ${currentPage === 0 ? 'disabled' : ''}>⏮️ الأولى</button>
+                <button id="prevPageBtn" ${currentPage === 0 ? 'disabled' : ''}>▶️ السابق</button>
+                <span class="page-indicator">الصفحة ${currentPage + 1} من ${total}</span>
+                <button id="nextPageBtn" ${currentPage === total - 1 ? 'disabled' : ''}>◀️ التالي</button>
+                <button id="lastPageBtn" ${currentPage === total - 1 ? 'disabled' : ''}>⏭️ الأخيرة</button>
+            </div>
+        `;
+
+        const fullHtml = `
+            <div class="sheet-container">
+                <div class="sheet-header">${pageData.title}</div>
+                ${pageData.content}
+            </div>
+            ${paginationHtml}
+        `;
+        document.getElementById('dynamicRender').innerHTML = fullHtml;
+
+        document.getElementById('firstPageBtn')?.addEventListener('click', () => { currentPage = 0; renderActiveSheet(); });
+        document.getElementById('prevPageBtn')?.addEventListener('click', () => { if (currentPage > 0) { currentPage--; renderActiveSheet(); } });
+        document.getElementById('nextPageBtn')?.addEventListener('click', () => { if (currentPage < total - 1) { currentPage++; renderActiveSheet(); } });
+        document.getElementById('lastPageBtn')?.addEventListener('click', () => { currentPage = total - 1; renderActiveSheet(); });
+    }
+
+    function setActiveSheetAndRender(sheetId) {
+        activeSheet = sheetId;
+        currentPage = 0;
+        renderActiveSheet();
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        if (sheetId === 'mechanical') document.getElementById('btnMechanical').classList.add('active');
+        if (sheetId === 'prepaid') document.getElementById('btnPrepaid').classList.add('active');
+        if (sheetId === 'digital') document.getElementById('btnDigital').classList.add('active');
+    }
+
+    document.getElementById('btnMechanical').addEventListener('click', () => setActiveSheetAndRender('mechanical'));
+    document.getElementById('btnPrepaid').addEventListener('click', () => setActiveSheetAndRender('prepaid'));
+    document.getElementById('btnDigital').addEventListener('click', () => setActiveSheetAndRender('digital'));
+
+    // initial load
+    setActiveSheetAndRender('mechanical');
+</script>
+</body>
+</html>

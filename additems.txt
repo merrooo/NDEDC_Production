@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Custom Item</title>
+  <style>
+    /* Global Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    
+    .add-item-container {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .add-item-form {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 500px;
+    }
+    
+    .form-title {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 2rem;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #1e88e5;
+      box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .file-input-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 15px;
+      background: #f5f5f5;
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .file-input-btn:hover {
+      background: #e8f0fe;
+      border-color: #1e88e5;
+      color: #1e88e5;
+    }
+    
+    .file-name {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #666;
+      padding-left: 5px;
+    }
+    
+    .image-option-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .option-btn {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: #f5f5f5;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .option-btn.active {
+      background: #1e88e5;
+      color: white;
+      border-color: #1e88e5;
+    }
+    
+    .image-option {
+      display: none;
+    }
+    
+    .image-option.active {
+      display: block;
+    }
+    
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(to right, #1e88e5, #1565c0);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+    
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(30, 136, 229, 0.3);
+    }
+    
+    .submit-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      text-decoration: none;
+      transition: color 0.3s;
+      font-weight: 600;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+    }
+    
+    .back-link:hover {
+      color: #1e88e5;
+      border-color: #1e88e5;
+      background: #f0f7ff;
+    }
+    
+    .preview-section {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      text-align: center;
+      border: 2px dashed #ddd;
+    }
+    
+    .preview-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .preview-image {
+      max-width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      background: white;
+      padding: 5px;
+    }
+    
+    .preview-info {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .required {
+      color: #e53935;
+    }
+    
+    .form-note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      font-style: italic;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1e88e5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .upload-status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    .upload-status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .upload-status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    function AddItem() {
+      const [customName, setCustomName] = useState("");
+      const [customPrice, setCustomPrice] = useState("");
+      const [customImage, setCustomImage] = useState("");
+      const [customOffer, setCustomOffer] = useState("");
+      const [selectedFile, setSelectedFile] = useState(null);
+      const [fileName, setFileName] = useState("");
+      const [imageOption, setImageOption] = useState("url"); // "url" or "upload"
+      const [isUploading, setIsUploading] = useState(false);
+      const [uploadStatus, setUploadStatus] = useState(null);
+      const [previewUrl, setPreviewUrl] = useState("");
+
+      // Handle file selection
+      const handleFileSelect = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          // Validate file type
+          const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+          if (!validTypes.includes(file.type)) {
+            setUploadStatus({
+              type: 'error',
+              message: 'Please select a valid image file (JPEG, PNG, GIF, WebP)'
+            });
+            return;
+          }
+          
+          // Validate file size (max 5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            setUploadStatus({
+              type: 'error',
+              message: 'File size should be less than 5MB'
+            });
+            return;
+          }
+          
+          setSelectedFile(file);
+          setFileName(file.name);
+          setUploadStatus(null);
+          
+          // Create preview URL
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setPreviewUrl(e.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      // Upload image to ImgBB (free image hosting)
+      const uploadToImgBB = async (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+          // Using ImgBB free API (requires API key)
+          // Note: For production, you should get your own API key from https://api.imgbb.com/
+          const response = await fetch('https://api.imgbb.com/1/upload?key=2e8f8570b65c0c14c87d0f0f81c2b8aa', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            return data.data.url;
+          } else {
+            throw new Error(data.error?.message || 'Upload failed');
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          throw error;
+        }
+      };
+
+      // Convert file to base64 for localStorage storage
+      const fileToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+        });
+      };
+
+      const addCustomItem = async () => {
+        // Validate inputs
+        if (!customName.trim()) {
+          alert("Please enter product name!");
+          document.querySelector('input[placeholder="Enter product name"]')?.focus();
+          return;
+        }
+        
+        if (!customPrice || isNaN(parseFloat(customPrice)) || parseFloat(customPrice) <= 0) {
+          alert("Please enter a valid price (greater than 0)!");
+          document.querySelector('input[placeholder="Enter price (e.g., 19.99)"]')?.focus();
+          return;
+        }
+
+        let imageUrl = customImage.trim();
+        
+        // Handle file upload if selected
+        if (imageOption === "upload" && selectedFile) {
+          setIsUploading(true);
+          setUploadStatus({
+            type: 'info',
+            message: 'Uploading image...'
+          });
+          
+          try {
+            // Try to upload to ImgBB first
+            try {
+              imageUrl = await uploadToImgBB(selectedFile);
+              setUploadStatus({
+                type: 'success',
+                message: 'Image uploaded successfully!'
+              });
+            } catch (uploadError) {
+              console.warn('ImgBB upload failed, using base64:', uploadError);
+              // Fallback to base64 if upload fails
+              imageUrl = await fileToBase64(selectedFile);
+              setUploadStatus({
+                type: 'info',
+                message: 'Image saved locally (base64)'
+              });
+            }
+          } catch (error) {
+            console.error('Image processing error:', error);
+            alert("Error processing image. Please try a different image or use URL instead.");
+            setIsUploading(false);
+            return;
+          }
+          
+          setIsUploading(false);
+        } else if (imageOption === "upload" && !selectedFile) {
+          alert("Please select an image file to upload!");
+          return;
+        }
+
+        // If no image provided (in URL mode), use placeholder
+        if (!imageUrl && imageOption === "url") {
+          imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+        }
+
+        // Create new item
+        const newItem = {
+          id: Date.now(), // Unique ID based on timestamp
+          name: customName.trim(),
+          price: parseFloat(customPrice),
+          image: imageUrl,
+          offer: customOffer.trim() || null,
+          isCustom: true,
+          dateAdded: new Date().toISOString(),
+          imageSource: imageOption
+        };
+        
+        try {
+          // Get existing custom items from localStorage
+          let existing = JSON.parse(localStorage.getItem("customProducts")) || [];
+          
+          // Add new item
+          existing.push(newItem);
+          
+          // Save back to localStorage
+          localStorage.setItem("customProducts", JSON.stringify(existing));
+          
+          // Show success message
+          Swal.fire({
+            title: '✅ Success!',
+            html: `
+              <div style="text-align:left;padding:10px;">
+                <p><strong>Item added successfully!</strong></p>
+                <p><strong>Name:</strong> ${newItem.name}</p>
+                <p><strong>Price:</strong> $${newItem.price.toFixed(2)}</p>
+                <p style="margin-top:15px;color:#666;">You can now view it in the main shop.</p>
+              </div>
+            `,
+            icon: 'success',
+            confirmButtonText: 'OK'
+          });
+          
+          // Reset form
+          setCustomName("");
+          setCustomPrice("");
+          setCustomImage("");
+          setCustomOffer("");
+          setSelectedFile(null);
+          setFileName("");
+          setPreviewUrl("");
+          setUploadStatus(null);
+          
+        } catch (error) {
+          alert("Error saving item. Please try again.");
+          console.error("Error saving to localStorage:", error);
+        }
+      };
+
+      // Update preview when URL changes
+      React.useEffect(() => {
+        if (imageOption === "url" && customImage.trim()) {
+          setPreviewUrl(customImage);
+        }
+      }, [customImage, imageOption]);
+
+      return (
+        <div className="add-item-container">
+          <div className="add-item-form">
+            <h2 className="form-title">➕ Add Custom Item</h2>
+            
+            <div className="form-group">
+              <label className="form-label">
+                Product Name <span className="required">*</span>
+              </label>
+              <input 
+                type="text" 
+                className="form-input"
+                placeholder="Enter product name"
+                value={customName} 
+                onChange={e => setCustomName(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                Price ($) <span className="required">*</span>
+              </label>
+              <input 
+                type="number" 
+                step="0.01"
+                min="0.01"
+                className="form-input"
+                placeholder="Enter price (e.g., 19.99)"
+                value={customPrice} 
+                onChange={e => setCustomPrice(e.target.value)}
+                required
+              />
+              <div className="form-note">Enter price in dollars (e.g., 19.99)</div>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                Product Image <span className="required">*</span>
+              </label>
+              
+              <div className="image-option-toggle">
+                <button 
+                  className={`option-btn ${imageOption === "url" ? "active" : ""}`}
+                  onClick={() => {
+                    setImageOption("url");
+                    setSelectedFile(null);
+                    setFileName("");
+                    setUploadStatus(null);
+                  }}
+                  type="button"
+                >
+                  📍 Use URL
+                </button>
+                <button 
+                  className={`option-btn ${imageOption === "upload" ? "active" : ""}`}
+                  onClick={() => {
+                    setImageOption("upload");
+                    setCustomImage("");
+                    setPreviewUrl("");
+                  }}
+                  type="button"
+                >
+                  📁 Upload File
+                </button>
+              </div>
+              
+              {/* URL Input Option */}
+              <div className={`image-option ${imageOption === "url" ? "active" : ""}`}>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="https://example.com/image.jpg"
+                  value={customImage} 
+                  onChange={e => setCustomImage(e.target.value)}
+                />
+                <div className="form-note">
+                  Enter full image URL (e.g., from Google Images, Imgur, etc.)
+                </div>
+              </div>
+              
+              {/* File Upload Option */}
+              <div className={`image-option ${imageOption === "upload" ? "active" : ""}`}>
+                <div className="file-input-wrapper">
+                  <div className="file-input-btn">
+                    📁 {fileName || "Choose Image File"}
+                    <input 
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
+                      onChange={handleFileSelect}
+                    />
+                  </div>
+                </div>
+                {fileName && (
+                  <div className="file-name">
+                    Selected: <strong>{fileName}</strong>
+                  </div>
+                )}
+                <div className="form-note">
+                  Supported formats: JPG, PNG, GIF, WebP (Max 5MB)
+                </div>
+              </div>
+              
+              {/* Upload Status */}
+              {uploadStatus && (
+                <div className={`upload-status ${uploadStatus.type}`}>
+                  {uploadStatus.message}
+                </div>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Offer Tag (Optional)</label>
+              <input 
+                type="text" 
+                className="form-input"
+                placeholder="e.g., 'Sale', '20% OFF', 'New'"
+                value={customOffer} 
+                onChange={e => setCustomOffer(e.target.value)}
+              />
+              <div className="form-note">
+                This will appear as a red badge on your product
+              </div>
+            </div>
+            
+            {/* Preview Section */}
+            {(previewUrl || customName || customPrice) && (
+              <div className="preview-section">
+                <div className="preview-title">📸 Item Preview:</div>
+                <img 
+                  src={previewUrl || "https://via.placeholder.com/300x200?text=Product+Image"} 
+                  alt="Preview" 
+                  className="preview-image"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                  }}
+                />
+                <div className="preview-info">
+                  <strong>{customName || "Product Name"}</strong><br/>
+                  <span style={{color: '#1e88e5', fontWeight: 'bold', fontSize: '16px'}}>
+                    ${customPrice ? parseFloat(customPrice).toFixed(2) : "0.00"}
+                  </span>
+                  {customOffer && (
+                    <>
+                      <br/>
+                      <span style={{
+                        color: '#e53935', 
+                        fontWeight: 'bold',
+                        backgroundColor: '#ffebee',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        display: 'inline-block',
+                        marginTop: '5px'
+                      }}>
+                        {customOffer}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <button 
+              onClick={addCustomItem} 
+              className="submit-btn"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <span className="loading"></span>
+                  Uploading...
+                </>
+              ) : (
+                'Add Item to Shop'
+              )}
+            </button>
+            
+            <a href="../../Comercials_Show/Comercial.html" className="back-link">
+              ← Back to Shop
+            </a>
+            
+            <div style={{marginTop: '15px', fontSize: '12px', color: '#666', textAlign: 'center'}}>
+              <p><strong>Image Options:</strong></p>
+              <p>• <strong>URL:</strong> Paste any image link from the web</p>
+              <p>• <strong>Upload:</strong> Upload from your computer (auto-hosts to ImgBB)</p>
+              <p>Items are saved in your browser's localStorage.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render the application
+    ReactDOM.createRoot(document.getElementById("root")).render(<AddItem />);
+  </script>
+</body>
+</html>

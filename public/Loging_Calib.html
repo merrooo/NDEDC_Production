@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en" dir="rtnl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>لوحة التحكم - نظام الفحص والصيانة</title>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ---------------------- GLOBAL ---------------------- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        :root {
+            --primary-green: #2ecc71;
+            --light-bg: #f9fbf9;
+            --border-color: #e0e6e0;
+        }
+
+        body {
+            background: var(--light-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+            transition: background 0.3s;
+        }
+
+        /* ---------------------- CONTAINER ---------------------- */
+        .container {
+            position: relative;
+            width: 800px;
+            height: 650px;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+            transition: 0.6s ease-in-out;
+            z-index: 5;
+        }
+
+        /* ---------------------- FORMS ---------------------- */
+        .form-container {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            padding: 40px;
+            transition: all 0.6s ease-in-out;
+            background: inherit;
+            /* Inherit background from container */
+        }
+
+        .login-container {
+            left: 0;
+            z-index: 2;
+        }
+
+        .signup-container {
+            right: -50%;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .container.active .login-container {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .container.active .signup-container {
+            right: 0;
+            opacity: 1;
+            z-index: 2;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            color: #222;
+        }
+
+        /* ---------------------- INPUTS ---------------------- */
+        .input-group {
+            margin-bottom: 20px;
+            direction: rtl;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-weight: 700;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: #fff;
+            transition: 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary-green);
+        }
+
+        /* ---------------------- BUTTONS ---------------------- */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            background: var(--primary-green);
+            transition: opacity 0.3s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* ---------------------- TOGGLE PANEL ---------------------- */
+        .toggle-panel {
+            position: absolute;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: #f4fcf7;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: 0.6s ease-in-out;
+            z-index: 10;
+        }
+
+        .container.active .toggle-panel {
+            right: 50%;
+        }
+
+        .toggle-panel h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--primary-green);
+        }
+
+        .toggle-panel button {
+            background: transparent;
+            border: 1px solid var(--primary-green);
+            padding: 8px 30px;
+            border-radius: 20px;
+            color: var(--primary-green);
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .toggle-panel button:hover {
+            background: var(--primary-green);
+            color: #fff;
+        }
+
+        /* ---------------------- RESULT & TIMER ---------------------- */
+        .result {
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .approved {
+            color: var(--primary-green);
+        }
+
+        .not-approved {
+            color: #e74c3c;
+        }
+
+        /* ---------------------- MARQUEE ---------------------- */
+        marquee {
+            position: absolute;
+            bottom: 0;
+            font-size: 12px;
+            color: #aaa;
+            padding: 5px 0;
+        }
+
+        /* ---------------------- THEME TOGGLE BUTTON ---------------------- */
+        .theme-btn {
+            position: fixed;
+            top: 80px;
+            /* Positioned below nav bar */
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            z-index: 3000;
+            /* Ensure it's above everything */
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ---------------------- DARK MODE STYLES ---------------------- */
+        body.dark-mode {
+            background: #121212 !important;
+            color: #eee !important;
+        }
+
+        .dark-mode .container {
+            background: #1e1e1e !important;
+            border: 1px solid #333;
+        }
+
+        .dark-mode .form-container {
+            background: #1e1e1e !important;
+        }
+
+        .dark-mode h2,
+        .dark-mode .input-group label {
+            color: #fff !important;
+        }
+
+        .dark-mode input,
+        .dark-mode select {
+            background-color: #252525 !important;
+            border-color: #444 !important;
+            color: #fff !important;
+        }
+
+        .dark-mode .toggle-panel {
+            background: #1a1a1a !important;
+            border-left: 1px solid #333;
+        }
+
+        .dark-mode .theme-btn {
+            background: #252525;
+            color: #fff;
+            border-color: #444;
+        }
+
+        /* Container Shake Animation */
+        @keyframes container-shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            50% {
+                transform: translateX(10px);
+            }
+
+            75% {
+                transform: translateX(-10px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .container-shake {
+            animation: container-shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button id="themeToggle" class="theme-btn">🌙</button>
+
+
+    <div class="container" id="container">
+        <div class="form-container login-container">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <h2>تسجيل الدخول </h2>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="|" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required
+                        autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label for="loginAuthor">Author</label>
+                    <select id="loginAuthor" required aria-label="Author">
+                        <option value="">Select author</option>
+                        <option value="admin">الفحص</option>
+                        <option value="user">الصيانة</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+
+        <div class="form-container signup-container">
+            <form id="signupForm" onsubmit="handleSignup(event)">
+                <h2>أنشاء حساب </h2>
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="input-group">
+                    <label for="author">Author</label>
+                    <select id="author" required aria-label="Author">
+                        <option value="">Select author</option>
+                        <option value="admin">الفحص</option>
+                        <option value="user">الصيانة</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn" id="generateBtn">Generate Code</button>
+                <div id="result" class="result"></div>
+                <div id="timer" class="timer"></div>
+            </form>
+        </div>
+
+        <marquee behavior="scroll" direction="right" scrollamount="10">
+            الأدارة العامة للأنظمة الحديثة - مهندس / أمير السيوفي
+        </marquee>
+
+        <div class="toggle-panel" id="togglePanel">
+            <h3>! .. التسجيل</h3>
+            <button id="toggleBtn">Sign Up</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove, child } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBYZMvpYRx7GLq_GdHgm62USzF7BminxJw",
+            authDomain: "calibration-1ae85.firebaseapp.com",
+            projectId: "calibration-1ae85",
+            storageBucket: "calibration-1ae85.firebasestorage.app",
+            messagingSenderId: "843037266899",
+            appId: "1:843037266899:web:d8993048e39460b3715526",
+            measurementId: "G-TPB0YW627M"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        /* ---------------------- LOGIN ---------------------- */
+        window.handleLogin = async function (event) {
+            event.preventDefault();
+
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const author = document.getElementById("loginAuthor").value;
+
+            if (!email || !password || !author) {
+                shakeContainer();
+                return;
+            }
+
+            try {
+                const snapshot = await get(child(ref(db), "users-generatedcode"));
+                if (!snapshot.exists()) {
+                    shakeContainer();
+                    return;
+                }
+
+                const users = snapshot.val();
+                let found = null;
+                for (const key in users) {
+                    if (users[key].email === email) {
+                        found = users[key];
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    shakeContainer();
+                    return;
+                }
+
+                let storedPassword = "";
+                if (found.password === null || found.password === undefined) storedPassword = "";
+                else if (typeof found.password === "string") storedPassword = found.password;
+                else if (typeof found.password === "number" || typeof found.password === "boolean") storedPassword = String(found.password);
+                else if (typeof found.password === "object") {
+                    storedPassword = (found.password.password && String(found.password.password)) ||
+                        (found.password.value && String(found.password.value)) ||
+                        JSON.stringify(found.password);
+                } else storedPassword = String(found.password);
+
+                if (!storedPassword.trim()) {
+                    shakeContainer();
+                    return;
+                }
+
+                if (found.author !== author) {
+                    shakeContainer();
+                    return;
+                }
+
+                if (String(storedPassword) === String(password)) {
+                    localStorage.clear();
+                    localStorage.setItem("userRole", author.toLowerCase());
+                    localStorage.setItem("isLoggedIn", "true");
+                    window.location.href = "Main_Dashboard.html";
+                } else {
+                    shakeContainer();
+                }
+            } catch (err) {
+                alert("⚠️ Error: " + err.message);
+            }
+        };
+
+        /* ---------------------- SIGN UP ---------------------- */
+        const EXPIRATION_TIME = 25;
+        const DEFAULT_PASSWORD = "@!#koko$*%&^%%&$%^&#";
+        let countdownInterval = null, cooldown = false, connectionError = false;
+
+        function generateCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        async function withTimeout(promise, ms = 10000) {
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Connection timeout")), ms));
+            return Promise.race([promise, timeout]);
+        }
+
+        function startCountdown(generatedCode, timeLeft) {
+            const timerDisplay = document.getElementById("timer");
+            clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(async () => {
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    cooldown = false;
+                    try {
+                        const codeRef = ref(db, "users-generatedcode/" + generatedCode);
+                        const snapshot = await withTimeout(get(codeRef));
+                        if (snapshot.exists()) {
+                            const record = snapshot.val();
+                            if (record.password === DEFAULT_PASSWORD) {
+                                await remove(codeRef);
+                                timerDisplay.textContent = "⏱️ Code expired.";
+                            } else {
+                                timerDisplay.textContent = "✅ تم تفعيل الحساب.";
+                            }
+                        }
+                    } catch {
+                        timerDisplay.textContent = "⚠️ Connection issue.";
+                    }
+                    return;
+                }
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `⏳ Code expires in ${minutes}:${seconds.toString().padStart(2, "0")}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        window.handleSignup = async function (event) {
+            event.preventDefault();
+            const btn = document.getElementById("generateBtn");
+            const resultDiv = document.getElementById("result");
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const author = document.getElementById("author").value;
+
+            if (cooldown && !connectionError) {
+                resultDiv.textContent = "⏳ Please wait before generating again.";
+                resultDiv.className = "result not-approved";
+                return;
+            }
+
+            if (!username || !email || !author) {
+                resultDiv.textContent = "❌ Fill in all fields!";
+                resultDiv.className = "result not-approved";
+                return;
+            }
+
+            btn.disabled = true;
+            cooldown = true;
+            connectionError = false;
+
+            try {
+                const dbRef = ref(db);
+                const allCodes = await withTimeout(get(child(dbRef, "users-generatedcode")));
+
+                if (allCodes.exists()) {
+                    const data = allCodes.val();
+                    const existingKey = Object.keys(data).find(key => data[key].username === username || data[key].email === email);
+                    if (existingKey) {
+                        resultDiv.textContent = "⚠️ You already have a generated code.";
+                        resultDiv.className = "result not-approved";
+                        cooldown = false;
+                        btn.disabled = false;
+                        return;
+                    }
+                }
+
+                const generatedCode = `${username}-${generateCode()}`;
+                await withTimeout(set(ref(db, "users-generatedcode/" + generatedCode), {
+                    username, email, author, password: DEFAULT_PASSWORD,
+                    createdAt: new Date().toISOString(),
+                }));
+
+                resultDiv.innerHTML = `✅<br>Generated Code: <strong>${generatedCode}</strong>`;
+                resultDiv.className = "result approved";
+                startCountdown(generatedCode, EXPIRATION_TIME);
+            } catch (error) {
+                connectionError = true;
+                resultDiv.textContent = "❌ Error: " + error.message;
+                resultDiv.className = "result not-approved";
+            } finally {
+                setTimeout(() => btn.disabled = false, 2000);
+            }
+        };
+
+        /* ---------------------- TOGGLE LOGIN/SIGNUP ---------------------- */
+        const container = document.getElementById("container");
+        const toggleBtn = document.getElementById("toggleBtn");
+        const togglePanelText = document.querySelector("#togglePanel h3");
+
+        toggleBtn.onclick = () => {
+            container.classList.toggle("active");
+            const isSignupActive = container.classList.contains("active");
+            toggleBtn.textContent = isSignupActive ? "Login" : "Sign Up";
+            togglePanelText.textContent = isSignupActive ? "! .. الدخول" : "! .. التسجيل";
+            clearForms();
+        };
+
+        function clearForms() {
+            document.querySelectorAll("input").forEach(input => input.value = "");
+            const resultDiv = document.getElementById("result");
+            const timer = document.getElementById("timer");
+            if (resultDiv) resultDiv.textContent = "";
+            if (timer) timer.textContent = "";
+        }
+
+        function shakeContainer() {
+            container.classList.add("container-shake");
+            setTimeout(() => container.classList.remove("container-shake"), 400);
+        }
+
+        /* ---------------------- THEME TOGGLE ---------------------- */
+        const themeBtn = document.getElementById("themeToggle");
+
+        if (localStorage.getItem("theme") === "dark") {
+            document.body.classList.add("dark-mode");
+            themeBtn.textContent = "☀️";
+        }
+
+        themeBtn.addEventListener("click", () => {
+            document.body.classList.toggle("dark-mode");
+            if (document.body.classList.contains("dark-mode")) {
+                themeBtn.textContent = "☀️";
+                localStorage.setItem("theme", "dark");
+            } else {
+                themeBtn.textContent = "🌙";
+                localStorage.setItem("theme", "light");
+            }
+        });
+
+
+        /* ---------------------- PLACEHOLDER ANIMATIONS ---------------------- */
+        function animatePlaceholder(input, texts) {
+            let index = navigator.language.startsWith("ar") ? 1 : 0;
+            function type(text, i = 0) {
+                if (!input) return;
+                if (i <= text.length) {
+                    input.placeholder = text.substring(0, i);
+                    setTimeout(() => type(text, i + 1), 80);
+                } else setTimeout(() => erase(text), 1500);
+            }
+            function erase(text, i = text.length) {
+                if (i >= 0) {
+                    input.placeholder = text.substring(0, i);
+                    setTimeout(() => erase(text, i - 1), 50);
+                } else {
+                    index = (index + 1) % texts.length;
+                    setTimeout(() => type(texts[index]), 300);
+                }
+            }
+            type(texts[index]);
+        }
+
+        animatePlaceholder(document.getElementById("loginEmail"), ["Enter your email", "أدخل بريدك الإلكتروني"]);
+        animatePlaceholder(document.getElementById("loginPassword"), ["Enter your password", "أدخل كلمة المرور الخاصة بك"]);
+        animatePlaceholder(document.getElementById("username"), ["Choose a username", "اختر اسم مستخدم"]);
+        animatePlaceholder(document.getElementById("email"), ["Enter your email", "أدخل بريدك الإلكتروني"]);
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Qabda Vision | Current Lags Voltage (Correct Phasor)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-glow: #3b82f6;
+            --accent-gold: #f59e0b;
+            --error-crimson: #ef4444;
+            --success-emerald: #10b981;
+        }
+
+        body {
+            background: linear-gradient(145deg, #eef2ff 0%, #f8fafc 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        .dashboard {
+            max-width: 1380px;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .core-panel, .vector-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            border-radius: 2rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 1.8rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+        }
+
+        .core-panel { flex: 1.2; min-width: 380px; }
+        .vector-panel { flex: 1; min-width: 320px; display: flex; flex-direction: column; }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.8rem;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2563eb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge {
+            background: rgba(37, 99, 235, 0.12);
+            border-radius: 60px;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1e40af;
+            border: 1px solid rgba(59,130,246,0.4);
+        }
+
+        .angle-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.4rem;
+            margin-bottom: 2rem;
+        }
+
+        .angle-card {
+            background: rgba(241, 245, 249, 0.9);
+            border-radius: 1.5rem;
+            padding: 0.9rem 1.2rem;
+            border-left: 4px solid var(--primary-glow);
+        }
+
+        .angle-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .phase-label { font-weight: 700; font-size: 1rem; }
+        .phase-r { color: #dc2626; }
+        .phase-y { color: #d97706; }
+        .phase-b { color: #2563eb; }
+
+        .input-group input {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 60px;
+            padding: 12px 18px;
+            color: #0f172a;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: monospace;
+            text-align: center;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-glow);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .sim-button {
+            background: linear-gradient(105deg, #1e293b, #0f172a);
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 14px 0;
+            width: 100%;
+            border-radius: 60px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0.5rem 0 1rem 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .sim-button:hover {
+            background: #2563eb;
+            transform: scale(1.01);
+        }
+
+        .result-module {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .fault {
+            background: rgba(220, 38, 38, 0.12);
+            color: #b91c1c;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+
+        .optimal {
+            background: rgba(16, 185, 129, 0.12);
+            color: #0f766e;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .remedy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .action-step {
+            background: #f1f5f9;
+            border-radius: 1rem;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: monospace;
+            border-left: 3px solid var(--accent-gold);
+            color: #0f172a;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #334155;
+            flex-wrap: wrap;
+        }
+
+        .legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+        .live-data {
+            margin-top: auto;
+            padding-top: 1rem;
+            font-size: 0.7rem;
+            text-align: center;
+            color: #475569;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        .voltage-highlight {
+            background: #eef2ff;
+            padding: 8px 12px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-block;
+            font-family: monospace;
+        }
+
+        .lag-note {
+            background: #fef3c7;
+            padding: 8px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #92400e;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .rotation-indicator {
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="core-panel">
+        <div class="panel-header">
+            <h2>⚡ QABDA · CURRENT LAGS VOLTAGE</h2>
+            <div class="badge">ANGLES.xlsx | 45 ENTRIES</div>
+        </div>
+        <div class="angle-grid">
+            <div class="angle-card">
+                <div class="angle-meta"><span class="phase-label phase-r">🔴 PHASE R VOLTAGE ANGLE</span><span>deg</span></div>
+                <div class="input-group"><input type="number" id="thetaR" value="0" step="any"></div>
+            </div>
+            <div class="angle-card">
+                <div class="angle-meta"><span class="phase-label phase-y">🟡 PHASE Y VOLTAGE ANGLE</span><span>deg</span></div>
+                <div class="input-group"><input type="number" id="thetaY" value="-120" step="any"></div>
+            </div>
+            <div class="angle-card">
+                <div class="angle-meta"><span class="phase-label phase-b">🔵 PHASE B VOLTAGE ANGLE</span><span>deg</span></div>
+                <div class="input-group"><input type="number" id="thetaB" value="120" step="any"></div>
+            </div>
+        </div>
+        <button class="sim-button" id="runDiagnosticBtn">🔍 RUN DIAGNOSTIC</button>
+        
+        <div id="resultContainer" class="result-module" style="display: none;">
+            <div id="dynamicStatus" class="status-chip"></div>
+            <div id="voltageRef" style="font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; text-align: center;"></div>
+            <div id="remediationSteps" class="remedy-list"></div>
+        </div>
+        <div class="live-data">📐 Based on ANGLES.xlsx | Swap symbol ⇄</div>
+    </div>
+
+    <div class="vector-panel">
+        <div class="panel-header">
+            <h2>🌀 PHASOR DIAGRAM</h2>
+            <div class="badge">SOLID = Voltage | DASHED = Current</div>
+        </div>
+        <div style="position: relative;">
+            <canvas id="phasorCanvas" width="500" height="500" style="width:100%; height:auto; background: #ffffff; border-radius: 50%; box-shadow: 0 0 0 2px #e2e8f0;"></canvas>
+        </div>
+        <div class="rotation-indicator">
+            🔄 COUNTER-CLOCKWISE ROTATION (Increasing Angle) 🔄
+        </div>
+        <div class="legend">
+            <span><span style="color:#dc2626;">●</span> V_R</span>
+            <span><span style="color:#d97706;">●</span> V_Y</span>
+            <span><span style="color:#2563eb;">●</span> V_B</span>
+            <span><span style="color:#f97316;">---</span> I_R</span>
+            <span><span style="color:#f97316;">---</span> I_Y</span>
+            <span><span style="color:#f97316;">---</span> I_B</span>
+        </div>
+        <div class="lag-note">
+            ⚡ CURRENT LAGS VOLTAGE → I is CLOCKWISE (behind) V ⚡<br>
+            Example: V at 0° → I at -30° (or 330°)
+        </div>
+        <div id="vectorInsight" style="margin-top: 15px; text-align: center; background: #eef2ff; border-radius: 1rem; padding: 0.7rem; font-size: 0.75rem;"></div>
+        <div class="live-data">⚙️ Inductive load: Current reaches peak AFTER voltage → Positioned CLOCKWISE on CCW rotation</div>
+    </div>
+</div>
+
+<script>
+    // ==============================================================
+    // COMPLETE DATABASE FROM ANGLES.XLSX - 36 ENTRIES
+    // ==============================================================
+    const DIAGNOSTIC_DB = [
+        { v: "2-5-8", c: ["1-3", "4-6", "7-9"], r: ["0 > theta > -60", "0 > theta > -60", "0 > theta > -60"] },
+        { v: "5-2-8", c: ["1-3", "4-6", "7-9"], r: ["120 > theta > 60", "-120 > theta > -180", "0 > theta > -60"] },
+        { v: "2-8-5", c: ["1-3", "4-6", "7-9"], r: ["0 > theta > -60", "120 > theta > 60", "-120 > theta > -180"] },
+        { v: "8-2-5", c: ["1-3", "4-6", "7-9"], r: ["120 > theta > 60", "120 > theta > 60", "120 > theta > 60"] },
+        { v: "5-8-2", c: ["1-3", "4-6", "7-9"], r: ["-120 > theta > -180", "-120 > theta > -180", "-120 > theta > -180"] },
+        { v: "2-5-8", c: ["3-1", "4-6", "7-9"], r: ["180 > theta > 120", "0 > theta > -60", "0 > theta > -60"] },
+        { v: "2-5-8", c: ["1-3", "6-4", "7-9"], r: ["0 > theta > -60", "180 > theta > 120", "0 > theta > -60"] },
+        { v: "2-5-8", c: ["1-3", "4-6", "9-7"], r: ["0 > theta > -60", "0 > theta > -60", "180 > theta > 120"] },
+        { v: "5-2-8", c: ["3-1", "4-6", "7-9"], r: ["-60 > theta > -120", "-120 > theta > -180", "0 > theta > -60"] },
+        { v: "5-2-8", c: ["1-3", "6-4", "7-9"], r: ["120 > theta > 60", "0 < theta < 60", "0 > theta > -60"] },
+        { v: "5-2-8", c: ["1-3", "4-6", "9-7"], r: ["120 > theta > 60", "-120 > theta > -180", "180 > theta > 120"] },
+        { v: "2-8-5", c: ["3-1", "4-6", "7-9"], r: ["180 > theta > 120", "120 > theta > 60", "-120 > theta > -180"] },
+        { v: "2-8-5", c: ["1-3", "6-4", "7-9"], r: ["0 > theta > -60", "-60 > theta > -120", "-120 > theta > -180"] },
+        { v: "2-8-5", c: ["1-3", "4-6", "9-7"], r: ["0 > theta > -60", "120 > theta > 60", "0 < theta < 60"] },
+        { v: "8-2-5", c: ["3-1", "4-6", "7-9"], r: ["-60 > theta > -120", "120 > theta > 60", "120 > theta > 60"] },
+        { v: "8-2-5", c: ["1-3", "6-4", "7-9"], r: ["120 > theta > 60", "-60 > theta > -120", "120 > theta > 60"] },
+        { v: "8-2-5", c: ["1-3", "4-6", "9-7"], r: ["120 > theta > 60", "120 > theta > 60", "-60 > theta > -120"] },
+        // { v: "5-8-2", c: ["3-1", "4-6", "7-9"], r: ["0 < theta < 60", "-120 > theta > -180", "-120 > theta > -180"] },
+        { v: "5-8-2", c: ["1-3", "6-4", "7-9"], r: ["-120 > theta > -180", "0 < theta < 60", "-120 > theta > -180"] },
+        { v: "5-8-2", c: ["1-3", "4-6", "9-7"], r: ["-120 > theta > -180", "-120 > theta > -180", "0 < theta < 60"] },
+        { v: "5-8-2", c: ["1-3", "6-4", "9-7"], r: ["-120 > theta > -180", "0 < theta < 60", "0 < theta < 60"] },
+        { v: "5-8-2", c: ["3-1", "4-6", "9-7"], r: ["0 < theta < 60", "0 > theta > -60", "0 < theta < 60"] },
+        { v: "5-8-2", c: ["3-1", "6-4", "7-9"], r: ["0 < theta < 60", "0 < theta < 60", "-120 > theta > -180"] },
+        { v: "5-2-8", c: ["1-3", "6-4", "9-7"], r: ["120 > theta > 60", "0 < theta < 60", "180 > theta > 120"] },
+        { v: "5-2-8", c: ["3-1", "4-6", "9-7"], r: ["120 > theta > 60", "-120 > theta > -180", "180 > theta > 120"] },
+        { v: "5-2-8", c: ["3-1", "6-4", "7-9"], r: ["120 > theta > 60", "-120 > theta > -180", "0 > theta > -60"] },
+        { v: "2-8-5", c: ["3-1", "6-4", "7-9"], r: ["180 > theta > 120", "-60 > theta > -120", "-120 > theta > -180"] },
+        { v: "2-8-5", c: ["1-3", "6-4", "9-7"], r: ["0 > theta > -60", "-60 > theta > -120", "0 < theta < 60"] },
+        { v: "2-8-5", c: ["3-1", "4-6", "9-7"], r: ["180 > theta > 120", "120 > theta > 60", "0 < theta < 60"] },
+        { v: "8-2-5", c: ["3-1", "4-6", "9-7"], r: ["-60 > theta > -120", "120 > theta > 60", "-60 > theta > -120"] },
+        { v: "8-2-5", c: ["3-1", "6-4", "7-9"], r: ["-60 > theta > -120", "-60 > theta > -120", "120 > theta > 60"] },
+        { v: "8-2-5", c: ["1-3", "6-4", "9-7"], r: ["120 > theta > 60", "120 > theta > 60", "-60 > theta > -120"] },
+        { v: "2-5-8", c: ["3-1", "6-4", "9-7"], r: ["180 > theta > 120", "180 > theta > 120", "180 > theta > 120"] },
+        { v: "2-8-5", c: ["3-1", "6-4", "9-7"], r: ["180 > theta > 120", "-60 > theta > -120", "0 < theta < 60"] },
+        { v: "8-5-2", c: ["3-1", "6-4", "9-7"], r: ["0 < theta < 60", "180 > theta > 120", "-60 > theta > -120"] },
+        { v: "8-2-5", c: ["3-1", "6-4", "9-7"], r: ["-60 > theta > -120", "-60 > theta > -120", "-60 > theta > -120"] }
+    ];
+
+    function angleToRange(theta) {
+        if (isNaN(theta)) return "undefined";
+        const v = theta;
+        if (v > 120 && v <= 180) return "180 > theta > 120";
+        if (v > 60 && v <= 120) return "120 > theta > 60";
+        if (v > 0 && v <= 60) return "0 < theta < 60";
+        if (v >= -60 && v <= 0) return "0 > theta > -60";
+        if (v >= -120 && v < -60) return "-60 > theta > -120";
+        if (v >= -180 && v < -120) return "-120 > theta > -180";
+        return "out of range";
+    }
+
+    // ==============================================================
+    // PHASOR DIAGRAM: COUNTER-CLOCKWISE ROTATION
+    // CURRENT LAGS VOLTAGE → Current is CLOCKWISE (negative shift)
+    // ==============================================================
+    function drawPhasorDiagram(thetaV_R, thetaV_Y, thetaV_B, lagDegrees = 30) {
+        const canvas = document.getElementById('phasorCanvas');
+        const ctx = canvas.getContext('2d');
+        const size = canvas.width = canvas.height = 500;
+        const centerX = size/2, centerY = size/2;
+        const radius = size * 0.35;
+        ctx.clearRect(0, 0, size, size);
+        
+        // Draw outer circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 10, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.setLineDash([5, 8]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw grid lines and angle labels
+        for(let i=0; i<360; i+=30) {
+            let rad = i * Math.PI/180;
+            let x1 = centerX + (radius-10) * Math.cos(rad);
+            let y1 = centerY + (radius-10) * Math.sin(rad);
+            let x2 = centerX + (radius+10) * Math.cos(rad);
+            let y2 = centerY + (radius+10) * Math.sin(rad);
+            ctx.beginPath();
+            ctx.moveTo(x1,y1);
+            ctx.lineTo(x2,y2);
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.stroke();
+            
+            // Add angle labels
+            ctx.font = "9px 'Inter'";
+            ctx.fillStyle = "#9ca3af";
+            if (i === 0) ctx.fillText("0°", centerX + radius + 12, centerY - 3);
+            else if (i === 90) ctx.fillText("90°", centerX + 3, centerY - radius - 8);
+            else if (i === 180) ctx.fillText("180°", centerX - radius - 28, centerY - 3);
+            else if (i === 270) ctx.fillText("-90°", centerX + 3, centerY + radius + 18);
+            else if (i === 60) ctx.fillText("60°", centerX + radius * 0.55, centerY - radius * 0.85);
+            else if (i === 120) ctx.fillText("120°", centerX - radius * 0.55, centerY - radius * 0.85);
+            else if (i === 240) ctx.fillText("-120°", centerX - radius * 0.55, centerY + radius * 0.85);
+            else if (i === 300) ctx.fillText("-60°", centerX + radius * 0.55, centerY + radius * 0.85);
+        }
+        
+        function drawPhasor(angleDeg, color, lineWidth, dashed, label) {
+            let rad = (angleDeg * Math.PI) / 180;
+            let x = centerX + radius * Math.cos(rad);
+            let y = centerY + radius * Math.sin(rad);
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.setLineDash(dashed ? [8, 6] : []);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Arrowhead
+            let arrowRad = rad;
+            let arrX = x - 12 * Math.cos(arrowRad);
+            let arrY = y - 12 * Math.sin(arrowRad);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(arrX - 5 * Math.sin(arrowRad), arrY + 5 * Math.cos(arrowRad));
+            ctx.lineTo(arrX + 5 * Math.sin(arrowRad), arrY - 5 * Math.cos(arrowRad));
+            ctx.fillStyle = color;
+            ctx.fill();
+            
+            // Label
+            ctx.font = "bold 11px 'Inter'";
+            ctx.fillStyle = color;
+            ctx.fillText(label, x + 10 * Math.cos(rad), y + 10 * Math.sin(rad));
+        }
+        
+        // Draw VOLTAGE phasors (Solid)
+        if(!isNaN(thetaV_R)) drawPhasor(thetaV_R, "#dc2626", 3, false, "V_R");
+        if(!isNaN(thetaV_Y)) drawPhasor(thetaV_Y, "#d97706", 3, false, "V_Y");
+        if(!isNaN(thetaV_B)) drawPhasor(thetaV_B, "#2563eb", 3, false, "V_B");
+        
+        // Draw CURRENT phasors (Dashed) - LAG = CLOCKWISE = subtract angle
+        const lag = -lagDegrees;
+        if(!isNaN(thetaV_R)) drawPhasor(thetaV_R + lag, "#f97316", 2.2, true, "I_R");
+        if(!isNaN(thetaV_Y)) drawPhasor(thetaV_Y + lag, "#f97316", 2.2, true, "I_Y");
+        if(!isNaN(thetaV_B)) drawPhasor(thetaV_B + lag, "#f97316", 2.2, true, "I_B");
+        
+        // Center point
+        ctx.fillStyle = "#334155";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // CCW arrow indicator
+        ctx.beginPath();
+        let arrowRad = -100 * Math.PI/180;
+        let arrowX = centerX + (radius + 25) * Math.cos(arrowRad);
+        let arrowY = centerY + (radius + 25) * Math.sin(arrowRad);
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - 8, arrowY - 5);
+        ctx.lineTo(arrowX - 8, arrowY + 5);
+        ctx.fillStyle = "#9ca3af";
+        ctx.fill();
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "9px 'Inter'";
+        ctx.fillText("CCW", arrowX - 28, arrowY - 2);
+    }
+    
+    function performDiagnostic() {
+        const rawR = parseFloat(document.getElementById('thetaR').value);
+        const rawY = parseFloat(document.getElementById('thetaY').value);
+        const rawB = parseFloat(document.getElementById('thetaB').value);
+        
+        if (isNaN(rawR) || isNaN(rawY) || isNaN(rawB)) {
+            document.getElementById('resultContainer').style.display = "block";
+            document.getElementById('dynamicStatus').innerHTML = "⚠️ INCOMPLETE DATA";
+            document.getElementById('remediationSteps').innerHTML = "<div class='action-step'>Enter valid angles for all three phases.</div>";
+            return;
+        }
+        
+        const rangeR = angleToRange(rawR);
+        const rangeY = angleToRange(rawY);
+        const rangeB = angleToRange(rawB);
+        
+        const matchedEntry = DIAGNOSTIC_DB.find(entry => 
+            entry.r[0] === rangeR && entry.r[1] === rangeY && entry.r[2] === rangeB
+        );
+        
+        const resultDiv = document.getElementById('resultContainer');
+        resultDiv.style.display = "block";
+        const statusChip = document.getElementById('dynamicStatus');
+        const voltRefDiv = document.getElementById('voltageRef');
+        const stepsContainer = document.getElementById('remediationSteps');
+        
+        if (!matchedEntry) {
+            statusChip.className = "status-chip fault";
+            statusChip.innerHTML = "❌ UNKNOWN ANGLE CONFIGURATION";
+            voltRefDiv.innerHTML = `⚠️ No match for R:${rangeR}, Y:${rangeY}, B:${rangeB}`;
+            stepsContainer.innerHTML = "<div class='action-step'>Angle combination not found in database.</div>";
+            drawPhasorDiagram(rawR, rawY, rawB, 30);
+            document.getElementById('vectorInsight').innerHTML = `⚠️ Unrecognized: ${rawR}°, ${rawY}°, ${rawB}°`;
+            return;
+        }
+        
+        const optimalTerminals = ["1-3", "4-6", "7-9"];
+        const isWiringCorrect = matchedEntry.c.every((term, idx) => term === optimalTerminals[idx]);
+        
+        const iR = rawR - 30;
+        const iY = rawY - 30;
+        const iB = rawB - 30;
+        
+        voltRefDiv.innerHTML = `<span class="voltage-highlight">⚡ CURRENT VOLTAGE PATTERN: ${matchedEntry.v}</span>`;
+        
+        if (isWiringCorrect) {
+            statusChip.className = "status-chip optimal";
+            statusChip.innerHTML = "✅ PERFECT ALIGNMENT · SYSTEM NOMINAL";
+            stepsContainer.innerHTML = `
+                <div class='action-step' style='border-left-color:#10b981;'>✔ All terminal connections correct.</div>
+                <div class='action-step' style='border-left-color:#f97316;'>⚡ CURRENT LAGS VOLTAGE by 30°</div>
+                <div class='action-step'>V_R=${rawR}° → I_R=${iR}° | V_Y=${rawY}° → I_Y=${iY}° | V_B=${rawB}° → I_B=${iB}°</div>
+                <div class='action-step'>📐 With CCW rotation, current is CLOCKWISE (behind) voltage</div>`;
+        } else {
+            statusChip.className = "status-chip fault";
+            statusChip.innerHTML = "⚠️ TERMINAL MISMATCH · CORRECT USING ⇄ SWAP";
+            let actionsHtml = "";
+            if (matchedEntry.c[0] !== optimalTerminals[0]) {
+                actionsHtml += `<div class='action-step'>🔴 PHASE R: Swap terminals ${matchedEntry.c[0]} ⇄ 1-3</div>`;
+            }
+            if (matchedEntry.c[1] !== optimalTerminals[1]) {
+                actionsHtml += `<div class='action-step'>🟡 PHASE Y: Swap terminals ${matchedEntry.c[1]} ⇄ 4-6</div>`;
+            }
+            if (matchedEntry.c[2] !== optimalTerminals[2]) {
+                actionsHtml += `<div class='action-step'>🔵 PHASE B: Swap terminals ${matchedEntry.c[2]} ⇄ 7-9</div>`;
+            }
+            actionsHtml += `<div class='action-step' style='border-left-color:#f97316;'>⚡ CURRENT LAGS VOLTAGE by 30° (I = V - 30°)</div>`;
+            stepsContainer.innerHTML = actionsHtml;
+        }
+        
+        drawPhasorDiagram(rawR, rawY, rawB, 30);
+        document.getElementById('vectorInsight').innerHTML = `📐 CCW Rotation | Voltage: ${rawR}°, ${rawY}°, ${rawB}° | Current (lags): ${rawR-30}°, ${rawY-30}°, ${rawB-30}° | Pattern: ${matchedEntry.v}`;
+    }
+    
+    function updateVisuals() {
+        const r = parseFloat(document.getElementById('thetaR').value);
+        const y = parseFloat(document.getElementById('thetaY').value);
+        const b = parseFloat(document.getElementById('thetaB').value);
+        if (!isNaN(r) && !isNaN(y) && !isNaN(b)) {
+            drawPhasorDiagram(r, y, b, 30);
+            document.getElementById('vectorInsight').innerHTML = `📐 Live: V: ${r}°, ${y}°, ${b}° | I (lags): ${r-30}°, ${y-30}°, ${b-30}°`;
+        }
+    }
+    
+    window.addEventListener('load', () => {
+        document.getElementById('thetaR').value = 0;
+        document.getElementById('thetaY').value = -120;
+        document.getElementById('thetaB').value = 120;
+        drawPhasorDiagram(0, -120, 120, 30);
+        document.getElementById('vectorInsight').innerHTML = "🌀 Balanced system: V: 0°, -120°, 120° | I lags: -30°, -150°, 90°";
+        
+        document.getElementById('runDiagnosticBtn').addEventListener('click', performDiagnostic);
+        ['thetaR','thetaY','thetaB'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                updateVisuals();
+                document.getElementById('resultContainer').style.display = "none";
+            });
+        });
+        setTimeout(() => performDiagnostic(), 100);
+    });
+</script>
+</body>
+</html>

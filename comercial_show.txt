@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Commercial Shop</title>
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    /* =====================
+       GLOBAL STYLES
+    ===================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #333;
+      min-height: 100vh;
+    }
+
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =====================
+       HEADER
+    ===================== */
+    .header {
+      background: linear-gradient(135deg, #1e88e5 0%, #0d47a1 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+
+    /* =====================
+       CART BAG
+    ===================== */
+    .cart-bag {
+      position: relative;
+      cursor: pointer;
+      padding: 12px 25px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      border: 2px solid rgba(255,255,255,0.3);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .cart-bag:hover {
+      background: rgba(255,255,255,0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .badge {
+      background: linear-gradient(45deg, #ff4081, #f50057);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 20px;
+      min-width: 25px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(255,64,129,0.3);
+    }
+
+    /* =====================
+       MAIN CONTENT
+    ===================== */
+    .main-content {
+      flex: 1;
+      padding: 30px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .products-container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      margin-top: 20px;
+    }
+
+    /* =====================
+       PRODUCTS GRID
+    ===================== */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 30px;
+      margin-top: 20px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      border: 1px solid #e0e0e0;
+    }
+
+    .product-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+
+    .product-image-container {
+      height: 200px;
+      overflow: hidden;
+      background: #f5f5f5;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .product-card:hover .product-image {
+      transform: scale(1.05);
+    }
+
+    .product-info {
+      padding: 20px;
+    }
+
+    .product-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      height: 60px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .product-price {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #1e88e5;
+      margin-bottom: 15px;
+    }
+
+    /* =====================
+       ADD TO CART BUTTON
+    ===================== */
+    .add-to-cart-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(to right, #1e88e5, #1565c0);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .add-to-cart-btn:hover {
+      background: linear-gradient(to right, #1565c0, #0d47a1);
+      transform: scale(1.02);
+      box-shadow: 0 5px 15px rgba(30, 136, 229, 0.3);
+    }
+
+    /* =====================
+       OFFER BADGE
+    ===================== */
+    .offer-badge {
+      position: absolute;
+      top: 15px;
+      left: -8px;
+      background: linear-gradient(45deg, #e53935, #d32f2f);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 6px 15px;
+      transform: rotate(-15deg);
+      box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+      z-index: 10;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .offer-badge:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -5px;
+      border-left: 5px solid #b71c1c;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    /* =====================
+       CUSTOM ITEM SECTION
+    ===================== */
+    .custom-item-section {
+      text-align: center;
+      padding: 30px;
+      margin: 20px auto;
+      max-width: 800px;
+    }
+
+    .add-custom-item-btn {
+      background: linear-gradient(to right, #4CAF50, #2E7D32);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .add-custom-item-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+      background: linear-gradient(to right, #43A047, #1B5E20);
+    }
+
+    /* =====================
+       RESPONSIVE DESIGN
+    ===================== */
+    @media (max-width: 1024px) {
+      .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 15px 20px;
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+      }
+      
+      .header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+      }
+      
+      .products-container {
+        padding: 20px;
+      }
+      
+      .main-content {
+        padding: 20px 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .products-grid {
+        grid-template-columns: 1fr;
+        max-width: 350px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .cart-bag {
+        padding: 10px 20px;
+      }
+      
+      .add-custom-item-btn {
+        padding: 14px 30px;
+        font-size: 1rem;
+        width: 90%;
+      }
+    }
+
+    /* =====================
+       FOOTER
+    ===================== */
+    footer {
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+      color: #666;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Shop React Code -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function Shop() {
+      const [products, setProducts] = useState([]);
+      const [cart, setCart] = useState([]);
+      const [address, setAddress] = useState("");
+      const [phone, setPhone] = useState("");
+
+      // Load products from JSON and localStorage
+      useEffect(() => {
+        // First try to load from JSON file
+        fetch("Comercial.json")
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then(data => {
+            // Load custom items from localStorage
+            const customItems = JSON.parse(localStorage.getItem("customProducts")) || [];
+            // Combine JSON products with custom items
+            const allProducts = [...data, ...customItems];
+            
+            // Fix image paths for products
+            const processedProducts = allProducts.map(product => {
+              // If image is just a filename (not URL), add the correct path
+              if (product.image && 
+                  !product.image.startsWith('http') && 
+                  !product.image.startsWith('https://') && 
+                  !product.image.includes('/')) {
+                return {
+                  ...product,
+                  image: `../images/${product.image}`
+                };
+              }
+              return product;
+            });
+            
+            setProducts(processedProducts);
+          })
+          .catch(error => {
+            console.error("Error loading Comercial.json:", error);
+            // Load from localStorage only if JSON fails
+            const customItems = JSON.parse(localStorage.getItem("customProducts")) || [];
+            setProducts(customItems);
+          });
+      }, []);
+
+      const addToCart = (product) => {
+        setCart(prev => {
+          const found = prev.find(p => p.id === product.id);
+          if (found) {
+            return prev.map(p => 
+              p.id === product.id ? {...p, quantity: p.quantity + 1} : p
+            );
+          }
+          return [...prev, {...product, quantity: 1}];
+        });
+      };
+
+      const increaseQty = (id) => {
+        setCart(prev => prev.map(p => 
+          p.id === id ? {...p, quantity: p.quantity + 1} : p
+        ));
+      };
+
+      const decreaseQty = (id) => {
+        setCart(prev => prev.map(p => 
+          p.id === id ? {...p, quantity: p.quantity - 1} : p
+        ).filter(p => p.quantity > 0));
+      };
+
+      const removeFromCart = (id) => {
+        setCart(prev => prev.filter(p => p.id !== id));
+      };
+
+      const totalPrice = cart.reduce((sum, item) => 
+        sum + (item.price * item.quantity), 0
+      ).toFixed(2);
+
+      const openCartModal = () => {
+        let cartHtml = `<div style="text-align:left;font-family:Arial, sans-serif;">`;
+
+        if (cart.length === 0) {
+          cartHtml += "<p style='text-align:center;color:#666;padding:20px;'>Your cart is empty</p>";
+        } else {
+          cart.forEach(item => {
+            cartHtml += `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:12px;background:#f9f9f9;border-radius:8px;">
+              <div style="flex:1;">
+                <strong style="font-size:16px;">${item.name}</strong><br/>
+                <small style="color:#666;">$${item.price.toFixed(2)} each</small>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                  <button onclick="window.decreaseQty(${item.id})" style="width:32px;height:32px;border:none;border-radius:6px;background:#e0e0e0;cursor:pointer;font-size:16px;">−</button>
+                  <span style="margin:0 10px;font-weight:bold;font-size:16px;min-width:30px;text-align:center;">${item.quantity}</span>
+                  <button onclick="window.increaseQty(${item.id})" style="width:32px;height:32px;border:none;border-radius:6px;background:#e0e0e0;cursor:pointer;font-size:16px;">+</button>
+                </div>
+              </div>
+              <div style="text-align:right;margin-left:15px;">
+                <div style="font-weight:bold;font-size:16px;color:#1e88e5;">$${(item.price * item.quantity).toFixed(2)}</div>
+                <button onclick="window.removeFromCart(${item.id})" style="background:#e53935;color:white;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;margin-top:8px;font-size:12px;">Remove</button>
+              </div>
+            </div>`;
+          });
+          cartHtml += `
+            <div style="border-top:2px solid #1e88e5;margin-top:15px;padding-top:15px;">
+              <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;">
+                <span>Total:</span>
+                <span style="color:#1e88e5;">$${totalPrice}</span>
+              </div>
+            </div>`;
+        }
+
+        cartHtml += `
+          <div style="margin-top:20px;">
+            <label style="font-weight:bold; display:block; margin-bottom:8px;color:#333;">Delivery Address</label>
+            <textarea id="swal-address" placeholder="Enter your full address (street, building, floor, city)" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;min-height:80px;font-family:Arial;resize:vertical;">${address}</textarea>
+          </div>
+          <div style="margin-top:15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:8px;color:#333;">Phone Number</label>
+            <input id="swal-phone" type="text" placeholder="+20 123 456 7890" value="${phone}" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-size:14px;"/>
+          </div>
+        </div>`;
+
+        Swal.fire({
+          title: '<span style="color:#1e88e5;">🛒 Your Shopping Cart</span>',
+          html: cartHtml,
+          showConfirmButton: true,
+          confirmButtonText: 'Place Order',
+          confirmButtonColor: '#1e88e5',
+          showCloseButton: true,
+          showCancelButton: cart.length > 0,
+          cancelButtonText: 'Continue Shopping',
+          cancelButtonColor: '#666',
+          width: '500px',
+          backdrop: 'rgba(0,0,0,0.4)',
+          didOpen: () => {
+            // Attach functions to window for SweetAlert buttons
+            window.increaseQty = (id) => { 
+              increaseQty(id); 
+              setTimeout(openCartModal, 100);
+            };
+            window.decreaseQty = (id) => { 
+              decreaseQty(id); 
+              setTimeout(openCartModal, 100);
+            };
+            window.removeFromCart = (id) => { 
+              removeFromCart(id); 
+              setTimeout(openCartModal, 100);
+            };
+          },
+          preConfirm: () => {
+            const newAddress = document.getElementById('swal-address').value;
+            const newPhone = document.getElementById('swal-phone').value;
+            
+            if (cart.length === 0) { 
+              Swal.showValidationMessage('Your cart is empty!'); 
+              return false; 
+            }
+            if (!newAddress.trim()) { 
+              Swal.showValidationMessage('Please enter delivery address'); 
+              return false; 
+            }
+            if (!newPhone.trim()) { 
+              Swal.showValidationMessage('Please enter phone number'); 
+              return false; 
+            }
+            
+            return { newAddress, newPhone };
+          }
+        }).then(result => {
+          if (result.isConfirmed) {
+            const { newAddress, newPhone } = result.value;
+            setAddress(newAddress); 
+            setPhone(newPhone);
+
+            // Create detailed order summary
+            let summaryHtml = `
+              <div style="text-align:left;font-family:Arial;">
+                <div style="background:#1e88e5;color:white;padding:15px;border-radius:8px 8px 0 0;margin:-20px -20px 20px -20px;">
+                  <h3 style="margin:0;text-align:center;">Order Confirmation</h3>
+                </div>
+                
+                <h4>Order Details:</h4>
+                <div style="max-height:200px;overflow-y:auto;margin-bottom:15px;">`;
+            
+            cart.forEach((item, index) => {
+              summaryHtml += `
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;${index % 2 === 0 ? 'background:#f9f9f9;' : ''}">
+                  <div>
+                    <strong>${item.name}</strong><br>
+                    <small style="color:#666;">Qty: ${item.quantity} × $${item.price.toFixed(2)}</small>
+                  </div>
+                  <strong style="color:#1e88e5;">$${(item.price * item.quantity).toFixed(2)}</strong>
+                </div>`;
+            });
+            
+            summaryHtml += `</div>
+                
+                <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
+                  <div style="display:flex;justify-content:space-between;font-size:18px;">
+                    <strong>Total Amount:</strong>
+                    <strong style="color:#1e88e5;">$${totalPrice}</strong>
+                  </div>
+                </div>
+                
+                <h4>Delivery Information:</h4>
+                <div style="background:#f0f7ff;padding:12px;border-radius:6px;margin-bottom:15px;">
+                  <p><strong>Address:</strong><br>${newAddress}</p>
+                  <p><strong>Phone:</strong> ${newPhone}</p>
+                </div>
+                
+                <div style="text-align:center;color:#666;font-size:14px;padding:15px;border-top:1px solid #eee;margin-top:20px;">
+                  <p>📞 We'll contact you within 30 minutes to confirm your order.</p>
+                  <p>⏱️ Estimated delivery: 45-60 minutes</p>
+                </div>
+              </div>`;
+
+            Swal.fire({
+              title: '<span style="color:#4CAF50;">✅ Order Placed Successfully!</span>',
+              html: summaryHtml,
+              icon: 'success',
+              confirmButtonText: 'Done',
+              confirmButtonColor: '#4CAF50',
+              width: '550px'
+            });
+            
+            // Clear cart after successful order
+            setCart([]);
+            setAddress('');
+            setPhone('');
+          }
+        });
+      };
+
+      return (
+        <>
+          <header className="header">
+            <div>
+              <h1>🛍️ Mini Commercial Shop</h1>
+              <p>Your one-stop shopping destination</p>
+            </div>
+            <div className="cart-bag" onClick={openCartModal}>
+              <span>🛒 Cart</span>
+              {cart.length > 0 && (
+                <span className="badge">{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+              )}
+            </div>
+          </header>
+
+          <main className="main-content">
+            <div className="products-container">
+              <h2 style={{textAlign: 'center', marginBottom: '30px', color: '#333'}}>Our Products</h2>
+              <div className="products-grid">
+                {products.length === 0 ? (
+                  <div style={{textAlign: 'center', padding: '40px', gridColumn: '1/-1'}}>
+                    <p style={{color: '#666', fontSize: '18px'}}>Loading products...</p>
+                  </div>
+                ) : (
+                  products.map(product => (
+                    <div className="product-card" key={product.id}>
+                      {product.offer && <div className="offer-badge">{product.offer}</div>}
+                      <div className="product-image-container">
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="product-image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/250x180?text=No+Image';
+                          }}
+                        />
+                      </div>
+                      <div className="product-info">
+                        <h3 className="product-name">{product.name}</h3>
+                        <p className="product-price">${product.price.toFixed(2)}</p>
+                        <button 
+                          className="add-to-cart-btn"
+                          onClick={() => addToCart(product)}
+                        >
+                          Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </main>
+
+          <div className="custom-item-section">
+            <a href="../Dashboard/addeditems/additem.html">
+              <button className="add-custom-item-btn">
+                <span style={{fontSize: '20px', marginRight: '8px'}}>➕</span>
+                Add Your Own Item
+              </button>
+            </a>
+          </div>
+
+          <footer>
+            <p>© 2024 Mini Commercial Shop. All rights reserved.</p>
+          </footer>
+        </>
+      );
+    }
+
+    // Render the application
+    ReactDOM.createRoot(document.getElementById("root")).render(<Shop />);
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+ <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; gap: 20px; padding: 50px; background: #fafafa; }
+        .deal-card { 
+            width: 300px; height: 400px; border-radius: 15px; color: white; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-decoration: none; transition: transform 0.3s; text-align: center; padding: 20px;
+        }
+        .deal-card:hover { transform: scale(1.05); }
+        .big-deal { background: linear-gradient(45deg, #2563eb, #7dd3fc); }
+        .big-sale { background: linear-gradient(45deg, #f59e0b, #fbbf24); }
+        .black-friday { background: linear-gradient(45deg, #111827, #4b5563); }
+        h2 { font-size: 2rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <a href="Com_Main.html" class="deal-card big-deal">
+        <h2>🔥</h2>
+        <h2>Main</h2>
+        <p>Explore Premium Selection</p>
+        <strong>GO TO PAGE →</strong>
+    </a>
+
+    <a href="Com_BigDeal.html" class="deal-card big-deal">
+        <h2>🔥</h2>
+        <h2>BIG DEALS</h2>
+        <p>Explore Premium Selection</p>
+        <strong>GO TO PAGE →</strong>
+    </a>
+
+    <a href="Com_BigSale.html" class="deal-card big-sale">
+        <h2>💰</h2>
+        <h2>BIG SALE</h2>
+        <p>Best prices in town</p>
+        <strong>GO TO PAGE →</strong>
+    </a>
+
+    <a href="Com_BlackF.html" class="deal-card black-friday">
+        <h2>🖤</h2>
+        <h2>BLACK FRIDAY</h2>
+        <p>Up to 70% Off</p>
+        <strong>GO TO PAGE →</strong>
+    </a>

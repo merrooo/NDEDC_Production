@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Nexus DB · Anmelden</title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
+  </script>
+  <style>
+    * {
+      font-family: 'Inter', system-ui, sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background: #f8fafc;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 480px;
+      padding: 1.5rem;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      border: 1px solid #eef2f6;
+    }
+
+    .login-card .logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-card .logo .icon-wrapper {
+      display: inline-block;
+      background: #eef2ff;
+      padding: 0.75rem;
+      border-radius: 16px;
+      margin-bottom: 1rem;
+    }
+
+    .login-card .logo i {
+      font-size: 2.5rem;
+      color: #4f46e5;
+    }
+
+    .login-card .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .login-card .logo p {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.4rem;
+    }
+
+    .form-group .input-wrapper {
+      position: relative;
+    }
+
+    .form-group .input-wrapper input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: #f8fafc;
+      transition: all 0.2s;
+      color: #0f172a;
+    }
+
+    .form-group .input-wrapper input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      outline: none;
+      background: white;
+    }
+
+    .form-group .input-wrapper input::placeholder {
+      color: #94a3b8;
+    }
+
+    .form-options {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .form-options .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .form-options .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #4f46e5;
+      cursor: pointer;
+    }
+
+    .form-options .forgot-link {
+      font-size: 0.85rem;
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .form-options .forgot-link:hover {
+      text-decoration: underline;
+    }
+
+    .btn-modern {
+      width: 100%;
+      padding: 0.85rem;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-modern:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-modern:active {
+      transform: translateY(0);
+    }
+
+    .btn-modern.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-modern.loading .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    .divider span {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .promo-section {
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    .promo-section .promo-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+
+    .promo-section .promo-desc {
+      font-size: 0.8rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .promo-section .promo-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: #0f172a;
+      color: white;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .promo-section .promo-btn:hover {
+      background: #1e293b;
+    }
+
+    .login-error {
+      color: #ef4444;
+      font-size: 0.85rem;
+      text-align: center;
+      min-height: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-text {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .footer-text a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+
+    .footer-text a:hover {
+      text-decoration: underline;
+    }
+
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 9999;
+      animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      background: white;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+
+    .toast.info {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .toast.warning {
+      border-left: 4px solid #f59e0b;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Loading Overlay */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+
+    #loadingOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(79, 70, 229, 0.1);
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Dashboard Styles */
+    .login-container {
+      display: none;
+    }
+
+    .login-container.visible {
+      display: block;
+    }
+
+    .dashboard-container {
+      display: none;
+      width: 100%;
+      max-width: 1200px;
+      padding: 1rem;
+      min-height: 100vh;
+    }
+
+    .dashboard-container.active {
+      display: block;
+    }
+
+    /* Theme styles */
+    .theme-dark body {
+      background: #0f172a;
+    }
+
+    .theme-dark .login-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    .theme-dark .login-card .logo h1 {
+      color: #f1f5f9;
+    }
+
+    .theme-dark .login-card .logo p {
+      color: #94a3b8;
+    }
+
+    .theme-dark .form-group label {
+      color: #e2e8f0;
+    }
+
+    .theme-dark .form-group .input-wrapper input {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+
+    .theme-dark .form-group .input-wrapper input:focus {
+      background: #1e293b;
+      border-color: #4f46e5;
+    }
+
+    .theme-dark .form-options .checkbox-wrapper {
+      color: #94a3b8;
+    }
+
+    .theme-dark .promo-section {
+      background: #0f172a;
+      border-color: #334155;
+    }
+
+    .theme-dark .promo-section .promo-title {
+      color: #f1f5f9;
+    }
+
+    .theme-dark .promo-section .promo-desc {
+      color: #94a3b8;
+    }
+
+    .theme-dark .promo-section .promo-btn {
+      background: #4f46e5;
+    }
+
+    .theme-dark .promo-section .promo-btn:hover {
+      background: #4338ca;
+    }
+
+    .theme-dark .footer-text {
+      color: #64748b;
+    }
+
+    .theme-ocean body {
+      background: #0c4a6e;
+    }
+
+    .theme-ocean .login-card {
+      background: rgba(12, 74, 110, 0.9);
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .theme-ocean .login-card .logo h1 {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .login-card .logo p {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .form-group label {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .form-group .input-wrapper input {
+      background: rgba(13, 79, 117, 0.4);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .form-group .input-wrapper input::placeholder {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .form-group .input-wrapper input:focus {
+      background: rgba(13, 79, 117, 0.6);
+      border-color: #38bdf8;
+    }
+
+    .theme-ocean .form-options .checkbox-wrapper {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .promo-section {
+      background: rgba(13, 79, 117, 0.3);
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .theme-ocean .promo-section .promo-title {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .promo-section .promo-desc {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .promo-section .promo-btn {
+      background: #38bdf8;
+      color: #0c4a6e;
+    }
+
+    .theme-ocean .promo-section .promo-btn:hover {
+      background: #7dd3fc;
+    }
+
+    .theme-ocean .footer-text {
+      color: #7dd3fc;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 1.5rem 1rem;
+      }
+
+      .login-card .logo h1 {
+        font-size: 1.25rem;
+      }
+
+      .form-options {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ===== LOGIN CONTAINER ===== -->
+  <div id="loginContainer" class="login-container">
+    <div class="login-wrapper">
+      <div class="login-card">
+        <div class="logo">
+          <div class="icon-wrapper">
+            <i class="fas fa-database"></i>
+          </div>
+          <h1>Willkommen zurück</h1>
+          <p>Melden Sie sich an, um auf Ihren Arbeitsbereich zuzugreifen</p>
+        </div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="form-group">
+            <label for="loginUsername">Benutzername</label>
+            <div class="input-wrapper">
+              <input type="text" id="loginUsername" placeholder="Ihre geschäftliche E-Mail" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Passwort</label>
+            <div class="input-wrapper">
+              <input type="password" id="loginPassword" placeholder="Ihr Passwort" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-wrapper">
+              <input type="checkbox" id="rememberMe"> Automatische Anmeldung
+            </label>
+            <a href="#" class="forgot-link">Probleme beim Anmelden?</a>
+          </div>
+
+          <div id="loginError" class="login-error"></div>
+
+          <button type="submit" id="loginBtn" class="btn-modern">
+            <i class="fas fa-arrow-right"></i> Anmelden
+          </button>
+        </form>
+
+        <!-- Promo Section -->
+        <div class="promo-section">
+          <div class="promo-title">🏠 Wohnen bleiben. Erbe regeln. Mehr Geld im Alter.</div>
+          <div class="promo-desc">
+            Mit Immobilienverwertung finanziell sicher sein. Prüfen Sie Ihre Möglichkeiten für mehr Geld im Alter mit unserem Verrentungs-Check.
+          </div>
+          <a href="#" class="promo-btn">Jetzt prüfen →</a>
+        </div>
+
+        <div class="footer-text">
+          Sie bestätigen, dass Sie unsere <a href="#">Nutzungsbedingungen</a> und unsere <a href="#">Datenschutzrichtlinie</a> gelesen haben und diesen zustimmen.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD CONTAINER ===== -->
+  <div id="dashboardContainer" class="dashboard-container">
+    <div class="glass-card neo-card" style="padding: 0.5rem; min-height: 95vh; display: flex; flex-direction: column;">
+
+      <!-- Dashboard Header -->
+      <div class="dashboard-header glass-card"
+        style="border-radius: 20px; margin-bottom: 1rem; padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.8); backdrop-filter: blur(16px);">
+        <div class="user-info" id="userInfoSection" data-perm="viewUserInfo">
+          <div class="user-avatar" id="userAvatar" style="width:40px;height:40px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;overflow:hidden;">
+            <i class="fas fa-user"></i>
+          </div>
+          <div>
+            <div class="user-name" id="userNameDisplay" style="font-weight:700;color:#0f172a;">User</div>
+            <div class="user-role" id="userRoleDisplay" style="font-size:0.7rem;color:#64748b;">Role</div>
+          </div>
+        </div>
+        <div class="header-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+          <button id="adminBtn" class="btn-glass btn-sm perm-hidden" onclick="window.location.href='control.html'" style="padding:0.3rem 0.8rem;font-size:0.7rem;border-radius:20px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.25);cursor:pointer;display:none;">
+            <i class="fas fa-shield-alt"></i> Admin
+          </button>
+          <button id="refreshBtn" class="btn-glass btn-sm" onclick="refreshPermissions()" style="padding:0.3rem 0.8rem;font-size:0.7rem;border-radius:20px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.25);cursor:pointer;">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+          <div id="themeButtons" class="perm-hidden" style="display:none;gap:0.3rem;">
+            <button onclick="setTheme('light')" class="btn-glass btn-sm" style="padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:20px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.25);cursor:pointer;">☀️</button>
+            <button onclick="setTheme('dark')" class="btn-glass btn-sm" style="padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:20px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.25);cursor:pointer;">🌙</button>
+            <button onclick="setTheme('ocean')" class="btn-glass btn-sm" style="padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:20px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.25);cursor:pointer;">🌊</button>
+          </div>
+          <button id="logoutBtn" class="btn-danger btn-sm" onclick="handleLogout()" style="padding:0.3rem 0.8rem;font-size:0.7rem;border-radius:20px;background:#ef4444;color:white;border:none;cursor:pointer;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Apps -->
+      <h2 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">
+        <i class="fas fa-th-large mr-2 text-purple-500"></i> Applications
+      </h2>
+      <div class="dashboard-apps" id="appsContainer" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+        <!-- Apps loaded dynamically -->
+      </div>
+
+      <div class="dashboard-footer" style="text-align:center;padding:1rem;margin-top:1.5rem;color:#64748b;font-size:0.7rem;">
+        <i class="fas fa-copyright"></i> <span id="year"></span> Nexus DB · All rights reserved
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+    }
+
+    .neo-card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+    }
+
+    .dashboard-app-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      color: #1e293b;
+    }
+
+    .dashboard-app-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(79, 70, 229, 0.3);
+      box-shadow: 0 8px 32px rgba(79, 70, 229, 0.1);
+    }
+
+    .dashboard-app-card .app-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .dashboard-app-card .app-name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .dashboard-app-card .app-desc {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .dashboard-app-card .app-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .perm-hidden {
+      display: none !important;
+    }
+
+    .theme-dark .glass-card,
+    .theme-dark .neo-card,
+    .theme-dark .dashboard-app-card {
+      background: rgba(30, 41, 59, 0.6);
+      border-color: rgba(51, 65, 85, 0.4);
+    }
+
+    .theme-dark .dashboard-header .user-name {
+      color: #f1f5f9;
+    }
+
+    .theme-dark .dashboard-header .user-role {
+      color: #94a3b8;
+    }
+
+    .theme-dark .dashboard-app-card {
+      color: #f1f5f9;
+    }
+
+    .theme-dark .dashboard-app-card .app-desc {
+      color: #94a3b8;
+    }
+
+    .theme-dark .dashboard-footer {
+      color: #94a3b8;
+    }
+
+    .theme-ocean .glass-card,
+    .theme-ocean .neo-card,
+    .theme-ocean .dashboard-app-card {
+      background: rgba(12, 74, 110, 0.6);
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .theme-ocean .dashboard-header .user-name {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .dashboard-header .user-role {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .dashboard-app-card {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .dashboard-app-card .app-desc {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .dashboard-footer {
+      color: #7dd3fc;
+    }
+
+    @media (max-width: 600px) {
+      .dashboard-apps {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.75rem;
+      }
+
+      .dashboard-app-card {
+        padding: 1rem;
+      }
+
+      .dashboard-app-card .app-icon {
+        font-size: 1.8rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .dashboard-apps {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+
+  <script>
+    // ============================================================
+    // FIREBASE CONFIG
+    // ============================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBm5-7ZN7frav9FvJFf9tgkE-mg8nex6t0",
+      authDomain: "publish-ae85.firebaseapp.com",
+      databaseURL: "https://publish-ae85-default-rtdb.firebaseio.com",
+      projectId: "publish-ae85",
+      storageBucket: "publish-ae85.firebasestorage.app",
+      messagingSenderId: "515415500647",
+      appId: "1:515415500647:web:5d4335363aaf948a5e71c2",
+      measurementId: "G-HM8M3DGXJD"
+    };
+
+    let firebaseDB = null;
+    let currentUser = null;
+    let permissionListener = null;
+    let userRolePermissions = [];
+
+    // ============================================================
+    // PERMISSION SYSTEM
+    // ============================================================
+    function can(permId) { return userRolePermissions.includes(permId); }
+
+    function checkPermission(permId, actionName) {
+      if (!can(permId)) {
+        showToast('Zugriff verweigert: Keine Berechtigung für "' + actionName + '"', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    async function logActivity(action, details) {
+      if (!firebaseDB || !currentUser) return;
+      try {
+        const log = {
+          username: currentUser.username || 'unknown',
+          action: action,
+          details: details || '',
+          timestamp: new Date().toLocaleString('de-DE'),
+          createdAt: new Date().toISOString()
+        };
+        const logsRef = firebaseDB.ref('activityLogs');
+        const snap = await logsRef.once('value');
+        let logs = snap.val() || [];
+        if (!Array.isArray(logs)) logs = [];
+        logs.unshift(log);
+        if (logs.length > 200) logs = logs.slice(0, 200);
+        await logsRef.set(logs);
+      } catch (e) { console.error('Activity log error:', e); }
+    }
+
+    async function loadRolePermissions() {
+      if (!firebaseDB || !currentUser) return;
+      try {
+        const role = currentUser.author || 'visitor';
+        const snap = await firebaseDB.ref('rolePermissions/' + role).once('value');
+        const perms = snap.val();
+        if (perms && perms.permissions && Array.isArray(perms.permissions)) {
+          userRolePermissions = perms.permissions;
+        } else if (perms && Array.isArray(perms)) {
+          userRolePermissions = perms;
+        } else {
+          const defaults = {
+            admin: ['goToControl', 'viewDashboard', 'viewUserInfo', 'goToMainApp', 'goToProcesses', 'goToSummary', 'goToHelp', 'refreshPermissions', 'theme-option-small', 'logout'],
+            user: ['viewDashboard', 'viewUserInfo', 'goToMainApp', 'goToProcesses', 'goToSummary', 'goToHelp', 'refreshPermissions', 'theme-option-small', 'logout'],
+            visitor: ['viewDashboard', 'viewUserInfo', 'goToHelp', 'logout']
+          };
+          userRolePermissions = defaults[role] || defaults['visitor'];
+        }
+        applyPermissionUI();
+      } catch (e) { console.error('Permission load error:', e); }
+    }
+
+    function applyPermissionUI() {
+      const userInfo = document.getElementById('userInfoSection');
+      if (userInfo) {
+        if (!can('viewUserInfo')) { userInfo.style.display = 'none'; } else { userInfo.style.display = 'flex'; }
+      }
+
+      const adminBtn = document.getElementById('adminBtn');
+      if (adminBtn) {
+        if (!can('goToControl')) { adminBtn.style.display = 'none'; } else { adminBtn.style.display = 'inline-flex'; }
+      }
+
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        if (!can('refreshPermissions')) { refreshBtn.style.display = 'none'; } else { refreshBtn.style.display = 'inline-flex'; }
+      }
+
+      const themeBtns = document.getElementById('themeButtons');
+      if (themeBtns) {
+        if (!can('theme-option-small')) { themeBtns.style.display = 'none'; } else { themeBtns.style.display = 'inline-flex'; }
+      }
+
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        if (!can('logout')) { logoutBtn.style.display = 'none'; } else { logoutBtn.style.display = 'inline-flex'; }
+      }
+
+      const appCards = document.querySelectorAll('.dashboard-app-card');
+      appCards.forEach(card => {
+        const appId = card.getAttribute('data-app-id');
+        if (appId) {
+          const permMap = {
+            'main_app': 'goToMainApp',
+            'processes': 'goToProcesses',
+            'summary': 'goToSummary',
+            'help': 'goToHelp',
+            'control': 'goToControl'
+          };
+          const perm = permMap[appId];
+          if (perm && !can(perm)) {
+            card.style.display = 'none';
+          } else {
+            card.style.display = 'block';
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // APPS CONFIGURATION
+    // ============================================================
+    const APPS = [{
+      id: 'main_app',
+      name: 'Main App',
+      icon: 'fa-home',
+      desc: 'Database management & operations',
+      color: 'text-blue-500',
+      path: 'Main_App.html',
+      badge: 'Core'
+    }, {
+      id: 'processes',
+      name: 'Processes',
+      icon: 'fa-cogs',
+      desc: 'Excel tools & data processing',
+      color: 'text-red-500',
+      path: 'Processes.html',
+      badge: 'Tools'
+    }, {
+      id: 'summary',
+      name: 'Summary',
+      icon: 'fa-chart-bar',
+      desc: 'Data analysis & pivot tables',
+      color: 'text-green-500',
+      path: 'Summary.html',
+      badge: 'Analytics'
+    }, {
+      id: 'help',
+      name: 'Help',
+      icon: 'fa-lightbulb',
+      desc: 'Support & ticket system',
+      color: 'text-yellow-500',
+      path: 'Help.html',
+      badge: 'Support'
+    }, {
+      id: 'control',
+      name: 'Control Panel',
+      icon: 'fa-shield-alt',
+      desc: 'User & permission management',
+      color: 'text-purple-500',
+      path: 'control.html',
+      badge: 'Admin'
+    }];
+
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function showToast(msg, type = 'info') {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icon = type === 'success' ? 'fa-check-circle text-emerald-500' : type === 'error' ?
+        'fa-exclamation-triangle text-red-500' : 'fa-info-circle text-blue-500';
+      toast.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+    }
+
+    function setTheme(theme) {
+      document.body.className = `theme-${theme}`;
+      localStorage.setItem('selectedTheme', theme);
+    }
+
+    async function refreshPermissions() {
+      if (!checkPermission('refreshPermissions', 'Refresh Permissions')) return;
+      console.log('🔄 Manual refresh triggered');
+      showToast('🔄 Berechtigungen werden aktualisiert...', 'info');
+      await loadRolePermissions();
+      const count = userRolePermissions.length;
+      if (count > 0) {
+        showToast(`✅ Berechtigungen aktualisiert (${count})`, 'success');
+      } else {
+        showToast('⚠️ Keine Berechtigungen gefunden', 'warning');
+      }
+    }
+
+    function listenForPermissionChanges() {
+      const savedUser = localStorage.getItem('currentUser');
+      if (!savedUser) {
+        console.log('❌ No user logged in, cannot listen for permissions');
+        return;
+      }
+
+      const user = JSON.parse(savedUser);
+      const role = user.author || 'visitor';
+
+      if (permissionListener) {
+        firebaseDB.ref('rolePermissions/' + role).off();
+        permissionListener = null;
+      }
+
+      console.log(`👂 Listening for permission changes for role: ${role}`);
+
+      permissionListener = firebaseDB.ref('rolePermissions/' + role).on('value', (snap) => {
+        const data = snap.val() || { permissions: [] };
+        const allowed = data.permissions || [];
+        userRolePermissions = allowed;
+        console.log(`🔄 Permissions updated in real-time! Role: ${role}, Count: ${allowed.length}`);
+        applyPermissionUI();
+        showToast('🔄 Berechtigungen in Echtzeit aktualisiert!', 'info');
+      }, (error) => {
+        console.error('❌ Error listening for permissions:', error);
+      });
+    }
+
+    // ============================================================
+    // AUTH FUNCTIONS
+    // ============================================================
+    async function handleLogin(e) {
+      e.preventDefault();
+
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
+      const rememberMe = document.getElementById('rememberMe').checked;
+
+      if (!username || !password) {
+        errorEl.textContent = 'Bitte geben Sie Benutzername und Passwort ein';
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.classList.add('loading');
+      loginBtn.innerHTML = '<span class="spinner"></span> Wird angemeldet...';
+      errorEl.textContent = '';
+
+      try {
+        const snap = await firebaseDB.ref('users-generatedcode').once('value');
+        const users = snap.val();
+
+        let found = null;
+        for (let key in users) {
+          if (users[key].username && users[key].username.toLowerCase() === username.toLowerCase()) {
+            found = users[key];
+            found.id = key;
+            break;
+          }
+        }
+
+        if (!found) {
+          errorEl.textContent = 'Ungültiger Benutzername oder Passwort';
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('loading');
+          loginBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Anmelden';
+          return;
+        }
+
+        let storedPassword = '';
+        if (typeof found.password === 'string') storedPassword = found.password;
+        else if (typeof found.password === 'object') {
+          storedPassword = found.password.password || found.password.value || JSON.stringify(found.password);
+        } else storedPassword = String(found.password);
+
+        if (String(storedPassword) === String(password)) {
+          currentUser = found;
+          localStorage.setItem('currentUser', JSON.stringify(found));
+          localStorage.setItem('isLoggedIn', 'true');
+          if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+          } else {
+            localStorage.removeItem('rememberMe');
+          }
+          sessionStorage.setItem('wasLoggedIn', 'true');
+
+          showToast(`Willkommen zurück, ${found.username}!`, 'success');
+          await showDashboard();
+          await loadRolePermissions();
+          listenForPermissionChanges();
+        } else {
+          errorEl.textContent = 'Ungültiger Benutzername oder Passwort';
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('loading');
+          loginBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Anmelden';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        errorEl.textContent = 'Verbindungsfehler. Bitte versuchen Sie es erneut.';
+        loginBtn.disabled = false;
+        loginBtn.classList.remove('loading');
+        loginBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Anmelden';
+      }
+    }
+
+    function handleLogout() {
+      if (!checkPermission('logout', 'Logout')) return;
+      if (permissionListener) {
+        const role = currentUser ? currentUser.author || 'visitor' : 'visitor';
+        firebaseDB.ref('rolePermissions/' + role).off();
+        permissionListener = null;
+        console.log('👂 Stopped listening for permission changes');
+      }
+
+      logActivity('Logout', 'User logged out from dashboard');
+      currentUser = null;
+      localStorage.removeItem('currentUser');
+      localStorage.setItem('isLoggedIn', 'false');
+      sessionStorage.setItem('wasLoggedIn', 'false');
+      document.getElementById('dashboardContainer').classList.remove('active');
+      document.getElementById('loginContainer').classList.add('visible');
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').textContent = '';
+      showToast('Erfolgreich abgemeldet', 'info');
+    }
+
+    // ============================================================
+    // DASHBOARD FUNCTIONS
+    // ============================================================
+    async function showDashboard() {
+      document.getElementById('loginContainer').classList.remove('visible');
+      document.getElementById('dashboardContainer').classList.add('active');
+
+      const user = currentUser;
+      document.getElementById('userNameDisplay').textContent = user.username || 'User';
+      document.getElementById('userRoleDisplay').textContent = `Rolle: ${user.author || 'visitor'}`;
+
+      const avatar = document.getElementById('userAvatar');
+      if (user.profileImage) {
+        avatar.innerHTML = `<img src="${user.profileImage}" alt="${user.username}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        avatar.innerHTML = `<i class="fas fa-user"></i>`;
+      }
+
+      await loadStats();
+      renderApps();
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+      setTheme(savedTheme);
+    }
+
+    async function loadStats() {
+      try {
+        const usersSnap = await firebaseDB.ref('users-generatedcode').once('value');
+        const users = usersSnap.val() || {};
+        const statUsers = document.getElementById('statUsers');
+        if (statUsers) statUsers.textContent = Object.keys(users).length;
+
+        const permsSnap = await firebaseDB.ref('rolePermissions').once('value');
+        const perms = permsSnap.val() || {};
+        const statRoles = document.getElementById('statRoles');
+        if (statRoles) statRoles.textContent = Object.keys(perms).length;
+
+        const dbSnap = await firebaseDB.ref('Project_1').once('value');
+        const dbs = dbSnap.val() || {};
+        const statDatabases = document.getElementById('statDatabases');
+        if (statDatabases) statDatabases.textContent = Object.keys(dbs).length;
+
+        const statModules = document.getElementById('statModules');
+        if (statModules) statModules.textContent = APPS.length;
+
+      } catch (err) {
+        console.error('Error loading stats:', err);
+      }
+    }
+
+    function renderApps() {
+      const container = document.getElementById('appsContainer');
+      container.innerHTML = APPS.map(app => {
+        const permMap = { 'main_app': 'goToMainApp', 'processes': 'goToProcesses', 'summary': 'goToSummary', 'help': 'goToHelp', 'control': 'goToControl' };
+        const perm = permMap[app.id];
+        return `<a href="${app.path}" class="dashboard-app-card" data-app-id="${app.id}" data-perm="${perm}" onclick="return handleAppClick('${app.path}', '${app.id}')">
+                    <span class="app-icon ${app.color}"><i class="fas ${app.icon}"></i></span>
+                    <div class="app-name">${app.name}</div>
+                    <div class="app-desc">${app.desc}</div>
+                    <span class="app-badge">${app.badge}</span>
+                </a>`;
+      }).join('');
+    }
+
+    function handleAppClick(path, appId) {
+      const permMap = { 'main_app': 'goToMainApp', 'processes': 'goToProcesses', 'summary': 'goToSummary', 'help': 'goToHelp', 'control': 'goToControl' };
+      const perm = permMap[appId];
+      if (perm && !checkPermission(perm, 'Access ' + appId)) return false;
+      if (currentUser) {
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('isLoggedIn', 'true');
+      }
+      logActivity('App Opened', `Opened ${appId}`);
+      return true;
+    }
+
+    // ============================================================
+    // CHECK EXISTING SESSION
+    // ============================================================
+    async function checkExistingSession() {
+      const savedUser = localStorage.getItem('currentUser');
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+      console.log('🔍 Checking session - isLoggedIn:', isLoggedIn, 'savedUser:', !!savedUser);
+
+      if (savedUser && isLoggedIn) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          const snap = await firebaseDB.ref('users-generatedcode/' + currentUser.id).once('value');
+          if (snap.exists()) {
+            console.log('✅ Session valid, showing dashboard');
+            await showDashboard();
+            await loadRolePermissions();
+            listenForPermissionChanges();
+            return true;
+          } else {
+            console.log('❌ User not found in Firebase, clearing session');
+            localStorage.removeItem('currentUser');
+            localStorage.setItem('isLoggedIn', 'false');
+            return false;
+          }
+        } catch (err) {
+          console.error('Error checking session:', err);
+          localStorage.removeItem('currentUser');
+          localStorage.setItem('isLoggedIn', 'false');
+          return false;
+        }
+      }
+      console.log('❌ No valid session found');
+      return false;
+    }
+
+    // ============================================================
+    // GLOBAL FUNCTIONS
+    // ============================================================
+    window.globalLogout = function() {
+      handleLogout();
+      window.location.href = 'index.html';
+    };
+
+    window.handleLogout = handleLogout;
+    window.setTheme = setTheme;
+    window.handleAppClick = handleAppClick;
+    window.refreshPermissions = refreshPermissions;
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseDB = firebase.database();
+        console.log('✅ Firebase initialized');
+      } catch (err) {
+        console.error('❌ Firebase init error:', err);
+        document.getElementById('loginError').textContent = 'Verbindung zu Firebase fehlgeschlagen';
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        document.getElementById('loginContainer').classList.add('visible');
+        return;
+      }
+
+      const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+      setTheme(savedTheme);
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // Check if remember me was checked
+      const rememberMe = localStorage.getItem('rememberMe') === 'true';
+      if (rememberMe) {
+        document.getElementById('rememberMe').checked = true;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirect = urlParams.get('redirect');
+
+      const hasSession = await checkExistingSession();
+
+      document.getElementById('loadingOverlay').classList.add('hidden');
+
+      if (!hasSession) {
+        document.getElementById('loginContainer').classList.add('visible');
+        document.getElementById('dashboardContainer').classList.remove('active');
+        localStorage.setItem('isLoggedIn', 'false');
+      } else if (redirect === 'dashboard') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+      document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+        }
+      });
+
+      if (urlParams.get('logout') === 'true') {
+        handleLogout();
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      console.log('✅ Login page loaded');
+      console.log('✅ Theme: ' + savedTheme);
+      console.log('✅ Global logout function available: window.globalLogout()');
+      console.log('✅ Real-time permission listener is active');
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+
+</html>

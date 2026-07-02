@@ -1,0 +1,868 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <script src="gatekeeper.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام الفحص والمعايرة</title>
+  <link rel="stylesheet" href="G1_Calib.css" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+</head>
+
+<body>
+
+  <main class="app">
+    <!-- RIGHT SIDE: TABLE -->
+    <div class="right-side">
+      <section class="table-top-section">
+        <div class="table-header">
+          <ion-icon name="list-outline"></ion-icon>
+
+
+          <div class="modern-dropdown">
+            <button class="dropdown-btn" id="dropdownBtn">
+              ▾ اختر للأنتقال
+            </button>
+
+            <div class="dropdown-menu" id="dropdownMenu">
+              <div class="dropdown-group" data-icon="📁">الفحص</div>
+              <div class="dropdown-item" data-page="Entr_Calib.html">
+                دخول فحص عداد
+              </div>
+              <div class="dropdown-item" data-page="Calib.html">فحص عداد</div>
+              <div class="dropdown-item" data-page="Edite_Calib.html">
+                تعديل بيانات فحص عداد
+              </div>
+              <div class="dropdown-item" data-page="Print_Out_Calib.html">
+                طباعة تقرير فحص عداد
+              </div>
+              <div class="dropdown-item" data-page="Recived_Calib.html">
+                تسليم عداد
+              </div>
+
+              <div class="dropdown-group" data-icon="📊">تقارير الفحص</div>
+              <div class="dropdown-item" data-page="R_Entr_Calib.html">
+                تقرير دخول فحص عداد
+              </div>
+              <div class="dropdown-item" data-page="R_Calib.html">
+                تقرير فحص عداد
+              </div>
+
+              <div class="dropdown-group" data-icon="🛠️">الصيانة</div>
+              <div class="dropdown-item" data-page="Entr_Maint.html">
+                دخول صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="Maint.html">
+                صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="Edite_Maint.html">
+                تعديل بيانات صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="Print_Out_SMaint.html">
+                طباعة تقرير فحص صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="Print_Out_TMaint.html">
+                طباعة تقرير مجمع صيانة عداد
+              </div>
+
+              <div class="dropdown-group" data-icon="📑">تقارير الصيانة</div>
+              <div class="dropdown-item" data-page="R_Entr_Maint.html">
+                تقرير دخول صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="R_Maint.html">
+                تقرير صيانة عداد
+              </div>
+
+              <div class="dropdown-group" data-icon="♻️">التكهين</div>
+              <div class="dropdown-item" data-page="Takheen.html">
+                تكهين عداد
+              </div>
+              <div class="dropdown-item" data-page="Edite_Takheen.html">
+                تعديل بيانات تكهين عداد
+              </div>
+              <div class="dropdown-item" data-page="R_Maint_Takheen.html">
+                تقرير تكهين عداد
+              </div>
+
+              <div class="dropdown-group" data-icon="🗄️">الأرشيف</div>
+              <div class="dropdown-item" data-page="R_Calib_Archive.html">
+                أرشيف الفحص
+              </div>
+              <div class="dropdown-item" data-page="R_Maint_Archive.html">
+                أرشيف الصيانة
+              </div>
+              <div class="dropdown-item" data-page="Re_Print_Out_Calib.html">
+                إعادة طباعة تقرير فحص عداد
+              </div>
+              <div class="dropdown-item" data-page="Re_Print_Out_SMaint.html">
+                إعادة طباعة تقرير فحص صيانة عداد
+              </div>
+              <div class="dropdown-item" data-page="Re_Print_Out_TMaint.html">
+                إعادة طباعة تقرير مجمع صيانة عداد
+              </div>
+
+              <div class="dropdown-item" data-page="Main_Dashboard.html" data-icon="🏠">
+                الصفحة الرئيسية
+              </div>
+            </div>
+          </div>
+
+          <input type="date" class="calib_date" id="calib_date" readonly />
+          <div class="table-header-controls">
+            <input id="searchInput" placeholder="🔍 بحث..." />
+            <button id="exportBtn">
+              <ion-icon name="download-outline"></ion-icon> تصدير Excel
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-wrapper">
+        <div class="table-container">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>نوع النظام</th>
+                <th>رقم العداد</th>
+                <th>كود المشترك</th>
+                <th>اسم المشترك</th>
+                <th>نوع العداد</th>
+                <th>نوع التوصيل</th>
+                <th>الجهد</th>
+                <th>رقم الحساب</th>
+                <th>مكان التركيب</th>
+                <th>سنة الصنع</th>
+                <th>القراءة</th>
+                <th>القدرة</th>
+                <th>القطاع</th>
+                <th>الهندسة</th>
+                <th>نوع النشاط</th>
+                <th>سبب الرفع</th>
+                <th>تاريخ الرفع</th>
+                <th>تقرير فحص الهندسة</th>
+                <th>تاريخ دخول الفحص</th>
+                <th>ملاحظات</th>
+                <th>حالة العداد</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="row-counter-dashboard" id="rowCount">
+        <div class="dashboard-card">
+          <h3>عدد السجلات</h3>
+          <span id="rowCountValue">0</span>
+        </div>
+      </div>
+
+      <div class="scroll-buttons">
+        <button id="scrollUp" class="scroll-btn" title="إلى الأعلى">
+          <ion-icon name="chevron-up-outline"></ion-icon>
+        </button>
+        <button id="scrollDown" class="scroll-btn" title="إلى الأسفل">
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- LEFT SIDE: FORM -->
+    <div class="left-side">
+      <section class="glass">
+        <div class="header-top">
+
+          <label class="dark-toggle" title="Toggle dark mode">
+            <input id="darkToggle" class="dark-toggle__input" type="checkbox" aria-label="Dark mode toggle"
+              role="switch" aria-checked="false" />
+            <span class="switch"></span>
+            <span class="icon">🌙</span>
+          </label>
+
+          <div class="logo">
+            <ion-icon name="flash-outline"></ion-icon>
+          </div>
+          <div class="header-text">
+            وزارة الكهرباء والطاقة المتجددة<br />
+            الشركة القابضة لكهرباء مصر<br />
+            شركة شمال الدلتا لتوزيع الكهرباء
+          </div>
+        </div>
+
+        <h1 class="title-main">الإدارة العامة لأنظمة العدادات الحديثة</h1>
+
+        <h3>بيانات العدادات المسجلة للفحص</h3>
+
+        <div class="form-grid">
+          <input id="types" placeholder="نوع النظام" readonly />
+          <input id="mno" placeholder="رقم العداد" readonly />
+          <input id="mco" placeholder="كود الكارت" readonly />
+          <input id="mname" placeholder="اسم المشترك" readonly />
+          <input id="voltage" placeholder="جهد التشغيل" readonly />
+          <input id="accno" placeholder="رقم الحساب" readonly />
+          <input id="place" placeholder="مكان التركيب" readonly />
+          <input id="year" placeholder="سنة الصنع" readonly />
+          <input id="mreading" placeholder="القراءة" readonly />
+          <input id="mpower" placeholder="القدرة" readonly />
+          <input id="mconn" placeholder="نوع التوصيل" readonly />
+          <input id="mtype" placeholder="نوع العداد" readonly />
+          <input id="keta3" placeholder="القطاع" readonly />
+          <input id="handsa" placeholder="الهندسة" readonly />
+          <input id="nashattype" placeholder="نوع النشاط" readonly />
+          <input id="removingfor" placeholder="سبب الرفع" readonly />
+          <input id="mremovingfor" placeholder="تقرير فحص الهندسة" readonly />
+          <label for="uploaddate">تاريخ الرفع</label>
+          <input type="date" class="uploaddate" id="uploaddate" placeholder="تاريخ الرفع" readonly />
+          <label for="enter_calib_date">تاريخ دخول الفحص</label>
+          <input type="date" class="enter_calib_date" id="enter_calib_date" placeholder="تاريخ دخول الفحص" readonly />
+          <input id="md" placeholder="أقصى حمل KW" aria-label="Maximum load KW" class="input-highlight" />
+          <select id="mstat" aria-label="Permanent or temporary">
+            <option value="">▾ دائم / مؤقت</option>
+            <option>دائم</option>
+            <option>مؤقت</option>
+          </select>
+          <select id="rosas" aria-label="Lead seal status">
+            <option value="">▾ حالة الرصاص</option>
+            <option>سليم</option>
+            <option>غير سليم</option>
+            <option>مرصص</option>
+            <option>غير مرصص</option>
+          </select>
+          <select id="error" aria-label="Error rate">
+            <option value="">▾ نسبة الخطأ</option>
+            <option>موجب</option>
+            <option>سالب</option>
+          </select>
+          <input id="errperc" placeholder="%" aria-label="Error percentage" class="input-highlight" />
+          <select id="munip" aria-label="Tampering status">
+            <option value="">▾التلاعب</option>
+            <option>تلاعب بالبوردة الداخلية للعداد</option>
+            <option>تلاعب بالذاكرة الداخلية للعداد</option>
+            <option>يوجد اثار تلاعب داخل العداد</option>
+            <option>تلاعب بمجموعة المسجل</option>
+            <option>تلاعب بالعداد</option>
+            <option>الزجاج مكسور</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <select id="mgood" aria-label="Meter status">
+            <option value="">▾سليم</option>
+            <option>
+              العداد سليم ونسبة الخطأ فى حدود المسموح بها ويتم تركيبه للمشترك
+              مرة اخري
+            </option>
+            <option>العداد سليم ويتم تكهينة وتركيب عداد مسبق الدفع</option>
+            <option>
+              العداد سليم ونسبة الخطأ فى حدود المسموح بها ويتم ارتجاعه للمخازن
+            </option>
+            <option>العداد سليم وتعدى مدة التركيب-ويتم تكهينة</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <select id="crab" aria-label="Defective meter">
+            <option value="">▾عاطل</option>
+            <option>عاطل قرص الدوران لا يعمل-ويتم تكهينة</option>
+            <option>عاطل مجموعة المسجل-ويتم تكهينة</option>
+            <option>
+              عاطل ويلزم تكهينة نتيجه تلف بالذاكرة الداخليه بالعداد
+            </option>
+            <option>عاطل نسبة خطأ-يتم تكهينه</option>
+            <option>عاطل محترق ويتم تكهينه</option>
+            <option>عاطل الشاشة لاتعمل</option>
+            <option>عاطل لايقبل الشحن</option>
+            <option>عاطل الموصل لا يعمل</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <select id="format" aria-label="Formatting">
+            <option value="">▾التهيئة</option>
+            <option>تهيئة العداد بالهندسة وتركيبة للمشترك مرة اخرى</option>
+            <option>ارسالة للشركة الموردةلأعادة التهيئة</option>
+            <option>تهيئة العداد بالمعمل الهندسي</option>
+            <option>تهيئة العداد بمعرفة مشرف القطاع</option>
+            <option>المديونية مستحقة</option>
+            <option>الرصيد صحيح ومستحق</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <select id="maintain" aria-label="Maintenance">
+            <option value="">▾الصيانة</option>
+            <option>عطل بالبطارية ارسالة للشركة الموردة للصيانة</option>
+            <option>
+              قارىء الكروت لا يعمل ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>
+              العداد لا يقبل الشحن ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>
+              العداد لا يقوم بالتوصيل ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>الشاشة عاطلة ارسالة للشركة الموردة للصيانة</option>
+            <option>
+              العداد يحتاج للتهيئة ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>تقرير فحص للعداد من قبل الشركة الموردة</option>
+            <option>
+              تلف بجسم/روزتة العداد ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>زيادة قدرة ارسالة للشركة الموردة للصيانة</option>
+            <option>بحث مديونية بالعداد ارسالة للشركة الموردة للصيانة</option>
+            <option>العداد محترق ارسالة للشركة الموردة للصيانة</option>
+            <option>العداد لا يعمل ارسالة للشركة الموردة للصيانة</option>
+            <option>
+              لمبة التلاعب تعمل باستمرار ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>
+              العداد يعمل بدون شحن ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>
+              العداد لا يسجل الاستهلاك ارسالة للشركة الموردة للصيانة
+            </option>
+            <option>
+              العداد يسجل استهلاك بدون حمل ارسالة للشركة الموردة للصيانة
+            </option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <select id="reinf" aria-label="Installation and replacement">
+            <option value="">▾الأحلال والتركيب</option>
+            <option>تركيب عداد أحادى مسبق الدفع</option>
+            <option>تركيب عداد ثلاثى مسبق الدفع</option>
+            <option>تركيب لوحه مسبق الدفع</option>
+            <option>تركيب عداد على الجهد المتوسط</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+          <textarea id="notes" placeholder="ملاحظات" aria-label="Notes"></textarea>
+
+          <select id="user_1" aria-label="First committee member">
+            <option value="">▾ اختر عضو اللجنة الأول</option>
+          </select>
+          <select id="user_2" aria-label="Second committee member">
+            <option value="">▾ اختر عضو اللجنة الثاني</option>
+            <option value="ADD_NEW" class="add-new-option">➕ إضافة تقرير جديد...</option>
+          </select>
+        </div>
+
+        <div class="buttons">
+          <button id="saveBtn" class="primary">حفظ</button>
+          <button id="editBtn" class="warning">تعديل</button>
+          <button id="clearBtn" class="secondary">تفريغ</button>
+          <button id="deleteBtn" class="danger">حذف</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
+      push,
+      update,
+      remove,
+    } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+    // Initialize Firebase app
+    const app = initializeApp({
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+      measurementId: "G-W3TZ1EKWWN"
+    });
+
+    const db = getDatabase(app);
+    const tableBody = document.getElementById("tableBody");
+    const searchInput = document.getElementById("searchInput");
+    const exportBtn = document.getElementById("exportBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const rowCount = document.getElementById("rowCountValue");
+    const el = (id) => document.getElementById(id);
+    let currentKey = null;
+
+    // دالة التنبيه السريع (Toast) للحركات البسيطة
+    const toast = (title, icon = "success") => {
+      Swal.fire({
+        title: title,
+        icon: icon,
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+      });
+    };
+
+    // Set today's date in the upload and calibration date fields
+    function setTodayDates() {
+      const today = new Date().toISOString().split("T")[0];
+      el("uploaddate").value = today;
+      el("enter_calib_date").value = today;
+      el("calib_date").value = today;
+    }
+    setTodayDates();
+
+    // تفعيل خيار "إضافة نوع جديد" في القوائم المنسدلة
+    function enableAddNewOptions() {
+      const addNewHandler = (select) => {
+        select.addEventListener("change", async (e) => {
+          if (e.target.value !== "ADD_NEW") return;
+
+          const { value: newValue } = await Swal.fire({
+            title: "إضافة خيار جديد",
+            input: "text",
+            inputLabel: "اكتب الخيار الجديد",
+            showCancelButton: true,
+            confirmButtonText: "حفظ",
+            cancelButtonText: "إلغاء",
+            inputValidator: (v) =>
+              !v?.trim() ? "يرجى إدخال نص صحيح" : null,
+          });
+
+          const trimmed = newValue?.trim();
+          if (!trimmed) {
+            select.value = "";
+            return;
+          }
+
+          const exists = Array.from(select.options).some(
+            (opt) =>
+              opt.value.toLowerCase() === trimmed.toLowerCase() &&
+              opt.value !== "ADD_NEW",
+          );
+
+          if (exists) {
+            toast("الخيار موجود بالفعل", "info");
+            select.value = trimmed;
+            return;
+          }
+
+          const option = document.createElement("option");
+          option.value = trimmed;
+          option.textContent = trimmed;
+
+          // إدراجه أمام خيار الإضافة للأصل
+          const addNewOption = select.querySelector(".add-new-option");
+          select.insertBefore(option, addNewOption);
+          select.value = trimmed;
+          toast("تمت إضافة الخيار الجديد");
+        });
+      };
+
+      document
+        .querySelectorAll("option.add-new-option")
+        .forEach((opt) => addNewHandler(opt.parentElement));
+    }
+    enableAddNewOptions();
+
+    // Format date for display
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const Year = date.getFullYear();
+      return `${day}/${month}/${Year}`;
+    }
+
+    // Fill form with selected row's data
+    function fillForm(d, key, row) {
+      currentKey = key;
+
+      document
+        .querySelectorAll(".selected-row")
+        .forEach((r) => r.classList.remove("selected-row"));
+      row.classList.add("selected-row");
+
+      el("mno").value = d.MNO || "";
+      el("mname").value = d.MNAME || "";
+      el("mco").value = d.MCO || "";
+      el("accno").value = d.ACCNO || "";
+      el("voltage").value = d.Voltage || "";
+      el("place").value = d.PLACE || "";
+      el("year").value = d.YEAR || "";
+      el("mreading").value = d.MREADING || "";
+      el("mpower").value = d.MPOWER || "";
+
+      el("types").value = d.Type || "";
+      el("mtype").value = d.Mtype || "";
+      el("mconn").value = d.Connection || "";
+      el("keta3").value = d.Keta3 || "";
+      el("handsa").value = d.Handsa || "";
+      el("nashattype").value = d.Nashattype || "";
+      el("removingfor").value = d.Removingfor || "";
+      el("mremovingfor").value = d.Mremovingfor || "";
+
+      el("uploaddate").value = d.Uploaddate || "";
+      el("enter_calib_date").value = d.Enter_Calib_Date || "";
+
+      toast(`تم اختيار العداد: ${d.MNO}`, "info");
+    }
+
+    /* ================= CLEAR ================= */
+    function clearFilters() {
+      document
+        .querySelectorAll(".left-side select, .left-side input")
+        .forEach((el) => {
+          if (el.tagName === "SELECT") el.selectedIndex = 0;
+          else el.value = "";
+        });
+      searchInput.value = "";
+      currentKey = null;
+      setTodayDates();
+
+      // لإعادة تحميل الجدول كاملاً
+      fetchData();
+
+      Swal.fire({
+        icon: "success",
+        title: "تم تنظيف الفلاتر",
+        timer: 1000,
+        showConfirmButton: false,
+      });
+    }
+
+    // Fetch data from Firebase
+    async function fetchData(query = "") {
+      const tbody = el("tableBody");
+      tbody.innerHTML =
+        "<tr><td colspan='22' class='loading-message'>جاري التحميل...</td></tr>";
+
+      // 1. إظهار رسالة التحميل (Loading) قبل البدء في جلب البيانات
+      const loadingToast = Swal.fire({
+        title: "جاري جلب البيانات...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      try {
+        const snap = await get(ref(db, "Enter_Calib"));
+        tbody.innerHTML = "";
+        let i = 1;
+        const q = query.toLowerCase();
+
+        if (!snap.exists()) {
+          // إغلاق التنبيه إذا لم توجد بيانات
+          Swal.close();
+          updateRowCount();
+          return;
+        }
+
+        snap.forEach((c) => {
+          const d = c.val().otherdata || c.val();
+          if (
+            query &&
+            !d.MNO?.toLowerCase().includes(q) &&
+            !d.MNAME?.toLowerCase().includes(q)
+          )
+            return;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+                <td>${i++}</td>
+                <td>${d.Type || ""}</td>
+                <td>${d.MNO || ""}</td>
+                <td>${d.MCO || ""}</td>
+                <td>${d.MNAME || ""}</td>
+                <td>${d.Mtype || ""}</td>
+                <td>${d.Connection || ""}</td>
+                <td>${d.Voltage || ""}</td>
+                <td>${d.ACCNO || ""}</td>
+                <td>${d.PLACE || ""}</td>
+                <td>${d.YEAR || ""}</td>
+                <td>${d.MREADING || ""}</td>
+                <td>${d.MPOWER || ""}</td>
+                <td>${d.Keta3 || ""}</td>
+                <td>${d.Handsa || ""}</td>
+                <td>${d.Nashattype || ""}</td>
+                <td>${d.Removingfor || ""}</td>
+                <td>${formatDate(d.Uploaddate)}</td>
+                <td>${d.Mremovingfor || ""}</td>
+                <td>${formatDate(d.Enter_Calib_Date)}</td>
+                <td>${d.Notes || ""}</td>
+                <td><span class="status">قيد الفحص</span></td>
+            `;
+          tr.onclick = () => fillForm(d, c.key, tr);
+          tbody.appendChild(tr);
+        });
+
+        // 2. إغلاق رسالة التحميل بعد الانتهاء من المعالجة بنجاح
+        Swal.close();
+
+        updateRowCount();
+        populateUsers();
+      } catch (err) {
+        // 3. في حالة الخطأ، استبدال رسالة التحميل برسالة الخطأ
+        Swal.fire({
+          icon: "error",
+          title: "خطأ",
+          text: "فشل تحميل البيانات من قاعدة البيانات",
+          confirmButtonText: "حسناً",
+        });
+        console.error(err);
+      }
+    }
+
+    // Save data to Firebase
+    async function saveData() {
+      const mnoValue = el("mno").value.trim();
+      if (!mnoValue) {
+        Swal.fire("تحذير", "يرجى اختيار عداد أولاً من الجدول", "warning");
+        return;
+      }
+      if (!el("user_1").value || !el("user_2").value) {
+        Swal.fire("تحذير", "يرجى اختيار أعضاء لجنة الفحص", "warning");
+        return;
+      }
+
+      // إظهار واجهة تحميل
+      Swal.fire({
+        title: "جاري الحفظ...",
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const otherdata = {
+        MNO: el("mno").value,
+        MNAME: el("mname").value,
+        MCO: el("mco").value,
+        Voltage: el("voltage").value,
+        ACCNO: el("accno").value,
+        PLACE: el("place").value,
+        YEAR: el("year").value,
+        MREADING: el("mreading").value,
+        MPOWER: el("mpower").value,
+        Type: el("types").value,
+        Mtype: el("mtype").value,
+        Connection: el("mconn").value,
+        Keta3: el("keta3").value,
+        Handsa: el("handsa").value,
+        Nashattype: el("nashattype").value,
+        Removingfor: el("removingfor").value,
+        Mremovingfor: el("mremovingfor").value,
+        Uploaddate: el("uploaddate").value,
+        Enter_Calib_Date: el("enter_calib_date").value,
+        Notes: el("notes").value,
+        Timestamp: new Date().toISOString(),
+        MRAFcalib: el("mrafcalib")?.value || "",
+        MD: el("md")?.value || "",
+        Mstat: el("mstat")?.value || "",
+        Rosas: el("rosas")?.value || "",
+        Error: el("error")?.value || "",
+        Errperc: el("errperc")?.value || "",
+        Munip: el("munip")?.value || "",
+        Mgood: el("mgood")?.value || "",
+        Crab: el("crab")?.value || "",
+        Format: el("format")?.value || "",
+        Maintain: el("maintain")?.value || "",
+        Reinf: el("reinf")?.value || "",
+        User_1: el("user_1").value,
+        User_2: el("user_2").value,
+        CalibDate: el("calib_date")?.value || "",
+      };
+
+      const calibdata = JSON.parse(JSON.stringify(otherdata));
+
+      try {
+        await set(ref(db, `Calib/${mnoValue}`), { otherdata, calibdata });
+        await set(push(ref(db, "Archive_Calib")), {
+          otherdata,
+          calibdata,
+          archivedAt: new Date().toISOString(),
+        });
+
+        Swal.fire(
+          "تم الحفظ!",
+          "تم ترحيل البيانات إلى قسم المعايرة بنجاح.",
+          "success",
+        );
+        fetchData();
+        clearFilters();
+      } catch (err) {
+        Swal.fire("خطأ", "حدث خطأ أثناء الحفظ: " + err.message, "error");
+      }
+    }
+
+    // Export table to Excel
+    function exportToExcel() {
+      try {
+        const table = el("dataTable");
+        const ws = XLSX.utils.table_to_sheet(table);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "بيانات_الفحص");
+        const filename = `بيانات_الفحص_${new Date().toISOString().split("T")[0]}.xlsx`;
+        XLSX.writeFile(wb, filename);
+
+        toast("تم تصدير ملف Excel بنجاح");
+      } catch (err) {
+        Swal.fire("خطأ", "فشل تصدير الملف: " + err.message, "error");
+      }
+    }
+
+    function updateRowCount() {
+      const rows = document.querySelectorAll("#tableBody tr");
+      el("rowCountValue").textContent = rows.length;
+    }
+
+    el("scrollUp").onclick = () =>
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    el("scrollDown").onclick = () =>
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+
+    el("saveBtn").onclick = saveData;
+    el("editBtn").onclick = () => {
+      toast("جاري الانتقال لصفحة التعديل...", "info");
+      setTimeout(() => {
+        window.location.href = "Edite_Calib.html";
+      }, 1000);
+    };
+    el("deleteBtn").onclick = () => {
+      toast("جاري الانتقال لصفحة الحذف...", "info");
+      setTimeout(() => {
+        window.location.href = "Edite_Calib.html";
+      }, 1000);
+    };
+    clearBtn.addEventListener("click", clearFilters);
+    el("exportBtn").onclick = exportToExcel;
+    el("searchInput").addEventListener("input", (e) => searchTable());
+
+    async function populateUsers() {
+      const user1Dropdown = el("user_1");
+      const user2Dropdown = el("user_2");
+      user1Dropdown.innerHTML = `<option value="">▾ اختر عضو اللجنة الأول</option>`;
+      user2Dropdown.innerHTML = `<option value="">▾ اختر عضو اللجنة الثاني</option>`;
+
+      try {
+        const snap = await get(ref(db, "users-generatedcode"));
+        if (snap.exists()) {
+          snap.forEach((userSnap) => {
+            const user = userSnap.val();
+            const option1 = document.createElement("option");
+            const option2 = document.createElement("option");
+            option1.value = user.username;
+            option1.textContent = user.username;
+            option2.value = user.username;
+            option2.textContent = user.username;
+            user1Dropdown.appendChild(option1);
+            user2Dropdown.appendChild(option2);
+          });
+        }
+      } catch (err) {
+        console.error("Error users:", err);
+      }
+    }
+
+    function searchTable() {
+      const searchTerm = el("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+      rows.forEach((row) => {
+        const mnoCell = row.cells[2];
+        const mnoValue = mnoCell ? mnoCell.textContent.toLowerCase() : "";
+        row.style.display = mnoValue.includes(searchTerm) ? "" : "none";
+      });
+      updateRowCount();
+    }
+
+    fetchData();
+
+    /* ================= SCROLL FUNCTIONS ================= */
+    function scrollUp() {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+
+    function scrollDown() {
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+
+    // ربط الأزرار بالدوال
+    document.querySelectorAll("#scrollUp").forEach((btn) => {
+      btn.addEventListener("click", scrollUp);
+    });
+
+    document.querySelectorAll("#scrollDown").forEach((btn) => {
+      btn.addEventListener("click", scrollDown);
+    });
+
+    // Dropdown Menu Functionality
+    const btn = document.getElementById("dropdownBtn");
+    const menu = document.getElementById("dropdownMenu");
+
+    btn.addEventListener("click", () => {
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    });
+
+    document.querySelectorAll(".dropdown-item[data-page]").forEach((item) => {
+      item.addEventListener("click", () => {
+        const page = item.dataset.page;
+        window.open(page, "_blank"); // فتح في تبويب جديد
+      });
+    });
+
+    // إغلاق عند الضغط خارج القائمة
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".modern-dropdown")) {
+        menu.style.display = "none";
+      }
+    });
+  </script>
+  <script>
+    (function () {
+      const checkbox = document.getElementById("darkToggle");
+
+      function setDark(enable) {
+        if (enable) {
+          document.body.classList.add("dark-mode");
+          localStorage.setItem("darkMode", "1");
+        } else {
+          document.body.classList.remove("dark-mode");
+          localStorage.setItem("darkMode", "0");
+        }
+        if (checkbox) checkbox.setAttribute("aria-checked", enable);
+      }
+
+      window.toggleDarkMode = function () {
+        if (checkbox) setDark(!checkbox.checked);
+      };
+
+      if (checkbox) {
+        checkbox.addEventListener("change", function (e) {
+          setDark(e.target.checked);
+        });
+      }
+
+      function init() {
+        const saved = localStorage.getItem("darkMode");
+        const enabled = saved === "1";
+        if (checkbox) {
+          checkbox.checked = enabled;
+          setDark(enabled);
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+
+</html>

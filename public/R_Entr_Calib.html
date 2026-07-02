@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير دخول عدادات الفحص</title>
+    <link rel="stylesheet" type="text/css" href="G1_Calib.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+</head>
+
+<body>
+
+    <main class="app">
+
+        <!-- RIGHT SIDE: TABLE -->
+        <div class="right-side">
+            <section class="table-top-section">
+                <div class="table-header">
+                    <ion-icon name="list-outline"></ion-icon>
+
+
+                    <div class="modern-dropdown">
+                        <button class="dropdown-btn" id="dropdownBtn">
+                            ▾ اختر الصفحة للانتقال
+                        </button>
+
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="dropdown-group" data-icon="📁">الفحص</div>
+                            <div class="dropdown-item" data-page="Entr_Calib.html">دخول فحص عداد</div>
+                            <div class="dropdown-item" data-page="Calib.html">فحص عداد</div>
+                            <div class="dropdown-item" data-page="Edite_Calib.html">تعديل بيانات فحص عداد</div>
+                            <div class="dropdown-item" data-page="Print_Out_Calib.html">طباعة تقرير فحص عداد</div>
+                            <div class="dropdown-item" data-page="Recived_Calib.html">تسليم عداد</div>
+
+                            <div class="dropdown-group" data-icon="📊">تقارير الفحص</div>
+                            <div class="dropdown-item" data-page="R_Entr_Calib.html">تقرير دخول فحص عداد</div>
+                            <div class="dropdown-item" data-page="R_Calib.html">تقرير فحص عداد</div>
+
+                            <div class="dropdown-group" data-icon="🛠️">الصيانة</div>
+                            <div class="dropdown-item" data-page="Entr_Maint.html">دخول صيانة عداد</div>
+                            <div class="dropdown-item" data-page="Maint.html">صيانة عداد</div>
+                            <div class="dropdown-item" data-page="Edite_Maint.html">تعديل بيانات صيانة عداد</div>
+                            <div class="dropdown-item" data-page="Print_Out_SMaint.html">طباعة تقرير فحص صيانة عداد
+                            </div>
+                            <div class="dropdown-item" data-page="Print_Out_TMaint.html">طباعة تقرير مجمع صيانة عداد
+                            </div>
+
+                            <div class="dropdown-group" data-icon="📑">تقارير الصيانة</div>
+                            <div class="dropdown-item" data-page="R_Entr_Maint.html">تقرير دخول صيانة عداد</div>
+                            <div class="dropdown-item" data-page="R_Maint.html">تقرير صيانة عداد</div>
+
+                            <div class="dropdown-group" data-icon="♻️">التكهين</div>
+                            <div class="dropdown-item" data-page="Takheen.html">تكهين عداد</div>
+                            <div class="dropdown-item" data-page="Edite_Takheen.html">تعديل بيانات تكهين عداد</div>
+                            <div class="dropdown-item" data-page="R_Maint_Takheen.html">تقرير تكهين عداد</div>
+
+                            <div class="dropdown-group" data-icon="🗄️">الأرشيف</div>
+                            <div class="dropdown-item" data-page="R_Calib_Archive.html">أرشيف الفحص</div>
+                            <div class="dropdown-item" data-page="R_Maint_Archive.html">أرشيف الصيانة</div>
+                            <div class="dropdown-item" data-page="Re_Print_Out_Calib.html">إعادة طباعة تقرير فحص
+                                عداد
+                            </div>
+                            <div class="dropdown-item" data-page="Re_Print_Out_SMaint.html">إعادة طباعة تقرير فحص
+                                صيانة
+                                عداد</div>
+                            <div class="dropdown-item" data-page="Re_Print_Out_TMaint.html">إعادة طباعة تقرير مجمع
+                                صيانة
+                                عداد</div>
+
+                            <div class="dropdown-item" data-page="Main_Dashboard.html" data-icon="🏠">الصفحة
+                                الرئيسية
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <input type="date" id="current_date" class="calib_date" readonly>
+
+                    <script>
+                        // Get today's date in the format YYYY-MM-DD (required for <input type="date">)
+                        const today = new Date();
+                        const Year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0'); // Add leading zero if month is single digit
+                        const day = String(today.getDate()).padStart(2, '0'); // Add leading zero if day is single digit
+                        const formattedDate = `${Year}-${month}-${day}`;
+
+                        // Set the value of the input field to today's date
+                        document.getElementById('current_date').value = formattedDate;
+                    </script>
+
+                    <div class="table-header-controls">
+                        <input id="searchInput" placeholder="🔍 بحث...">
+                        <button id="exportBtn">
+                            <ion-icon name="download-outline"></ion-icon> تصدير Excel
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="table-wrapper">
+                <table id="dataTable" border="0">
+                    <thead>
+                        <tr>
+                            <th>م</th>
+                            <th>نوع النظام</th>
+                            <th>رقم العداد</th>
+                            <th>كود المشترك</th>
+                            <th>اسم المشترك</th>
+                            <th>نوع العداد</th>
+                            <th>نوع التوصيل</th>
+                            <th>الجهد</th>
+                            <th>رقم الحساب</th>
+                            <th>مكان التركيب</th>
+                            <th>سنة الصنع</th>
+                            <th>القدرة</th>
+                            <th>القطاع</th>
+                            <th>الهندسة</th>
+                            <th>نوع النشاط</th>
+                            <th>سبب الرفع</th>
+                            <th>تاريخ الرفع</th>
+                            <th>تقرير فحص الهندسة</th>
+                            <th>تاريخ دخول الفحص</th>
+                            <th>ملاحظات</th>
+                            <th>حالة العداد</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="11" class="empty-message">
+                                لا توجد بيانات
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            </section>
+
+            <div class="row-counter-dashboard" id="rowCount">
+                <div class="dashboard-card">
+                    <h3>عدد السجلات</h3>
+                    <span id="rowCountValue">0</span>
+                </div>
+            </div>
+
+            <div class="scroll-buttons">
+                <button id="scrollUp" class="scroll-btn" title="إلى الأعلى">
+                    <ion-icon name="chevron-up-outline"></ion-icon>
+                </button>
+                <button id="scrollDown" class="scroll-btn" title="إلى الأسفل">
+                    <ion-icon name="chevron-down-outline"></ion-icon>
+                </button>
+            </div>
+        </div>
+
+        <!-- LEFT SIDE: FORM -->
+        <div class="left-side">
+            <section class="glass">
+                <div class="header-top">
+                    <div class="logo">
+                        <ion-icon name="flash-outline"></ion-icon>
+                    </div>
+                    <div class="header-text">
+                        وزارة الكهرباء والطاقة المتجددة<br>
+                        الشركة القابضة لكهرباء مصر<br>
+                        شركة شمال الدلتا لتوزيع الكهرباء
+                    </div>
+                </div>
+
+                <h1 class="title-main">الإدارة العامة لأنظمة العدادات الحديثة</h1>
+
+                <h2 class="title-sub">تقرير دخول عدادات الفحص</h2>
+
+                <div class="form-grid">
+
+                    <select id="types" aria-label="نوع النظام">
+                        <option value="">نوع النظام</option>
+                        <option>الإصدار</option>
+                        <option>مسبق الدفع</option>
+                        <option>العدادات الذكية</option>
+                    </select>
+                    <label for="startDate">تاريخ دخول الفحص من</label>
+                    <input type="date" id="startDate" placeholder="من تاريخ">
+                    <label for="endDate">تاريخ دخول الفحص إلى</label>
+                    <input type="date" id="endDate" placeholder="إلى تاريخ">
+
+                    <select id="mtype" aria-label="نوع العداد">
+                        <option value="">▾ اختر نوع العداد</option>
+                        <option>جلوبال-مسبق</option>
+                        <option>سويدى-مسبق</option>
+                        <option>المصرية-مسبق</option>
+                        <option>اسكرا-مسبق</option>
+                        <option>جيزة باور-مسبق</option>
+                        <option>ميكانيكي</option>
+                        <option>رقمى</option>
+                        <option>عدادات-ذكية</option>
+                        <option>أخرى</option>
+                    </select>
+
+                    <select id="mconn" aria-label="نوع التوصيل">
+                        <option value="">▾ نوع التوصيل</option>
+                        <option>أحادي</option>
+                        <option>ثلاثي-مباشر</option>
+                        <option>ثلاثي-غير مباشر</option>
+                    </select>
+
+                    <input id="year" placeholder="سنة الصنع">
+
+                    <select id="nashattype" aria-label="نوع النشاط">
+                        <option value="">▾نوع النشاط</option>
+                        <option>منزلي</option>
+                        <option>تجاري</option>
+                        <option>محرك</option>
+                        <option>ري</option>
+                        <option>استثمار صناعة</option>
+                        <option>كبار</option>
+                        <option>مصالح حكومية</option>
+                    </select>
+
+                    <select id="keta3" aria-label="القطاع">
+                        <option value="">▾ القطاع</option>
+                        <option>دمياط</option>
+                        <option>شمال-الدقهلية</option>
+                        <option>جنوب-الدقهلية</option>
+                        <option>كفر الشيخ</option>
+                    </select>
+
+                    <select id="handsa" aria-label="الهندسة">
+                        <option value="">▾الهندسة</option>
+                        <!-- دمياط -->
+                        <option>هندسة شمال دمياط</option>
+                        <option>هندسة جنوب دمياط</option>
+                        <option>هندسة عزبة البرج</option>
+                        <option>هندسة كفر سعد</option>
+                        <option>هندسة كفر البطيخ</option>
+                        <option>هندسة راس البر</option>
+                        <option>هندسة دمياط الجديدة</option>
+                        <option>هندسة الزرقا</option>
+                        <option>هندسة فارسكور</option>
+                        <option>هندسة الروضة</option>
+                        <option>هندسة الشعراء</option>
+
+                        <!-- شمال الدقهلية -->
+                        <option>هندسة مدينة شربين</option>
+                        <option>هندسة قري شربين</option>
+                        <option>هندسة دكرنس</option>
+                        <option>هندسة جمصة</option>
+                        <option>هندسة قري بلقاس</option>
+                        <option>هندسة مدينة بلقاس</option>
+                        <option>هندسة الستامونى</option>
+                        <option>هندسة بني عبيد</option>
+                        <option>هندسة منية النصر</option>
+                        <option>هندسة ميت سلسيل</option>
+                        <option>هندسة الجمالية</option>
+                        <option>هندسة قري المنزلة</option>
+                        <option>هندسة مدينة المنزلة</option>
+                        <option>هندسة المطرية</option>
+
+                        <!-- جنوب الدقهلية -->
+                        <option>هندسة شرق المنصورة</option>
+                        <option>هندسة غرب المنصورة</option>
+                        <option>هندسة طلخا</option>
+                        <option>هندسة نبروه</option>
+                        <option>هندسة قري المنصورة 1</option>
+                        <option>هندسة قري المنصورة 2</option>
+                        <option>هندسة اجا</option>
+                        <option>هندسة مدينة السنبلاوين</option>
+                        <option>هندسة قري السنبلاوين</option>
+                        <option>هندسة تمي الامديد</option>
+                        <option>هندسة مدينة ميت غمر</option>
+                        <option>هندسة قري ميت غمر</option>
+                        <option>هندسة كوم النور</option>
+
+                        <!-- كفر الشيخ -->
+                        <option>هندسة مدينة كفر الشيخ</option>
+                        <option>هندسة غرب كفر الشيخ</option>
+                        <option>هندسة شرق كفر الشيخ</option>
+                        <option>هندسة قلين</option>
+                        <option>هندسة قرى سيدي سالم</option>
+                        <option>هندسة مدينة سيدي سالم</option>
+                        <option>هندسة الرياض</option>
+                        <option>هندسة مدينة دسوق</option>
+                        <option>هندسة قرى شمال دسوق</option>
+                        <option>هندسة قرى جنوب دسوق</option>
+                        <option>هندسة فوه</option>
+                        <option>هندسة مطوبس</option>
+                        <option>هندسة مدينة الحامول</option>
+                        <option>هندسة قرى الحامول</option>
+                        <option>هندسة بيلا</option>
+                        <option>هندسة بلطيم</option>
+                        <option>هندسة برج البرلس</option>
+                    </select>
+
+                    <select id="removingfor" aria-label="سبب الرفع">
+                        <option value="">▾سبب الرفع</option>
+                        <option>الفحص</option>
+                        <option>الصيانة</option>
+                        <option>الهدم والبناء</option>
+                        <option>تصفية مشترك</option>
+                        <option>زيادة قدرة</option>
+                        <option>احلال رباعي</option>
+                        <option>تنازل</option>
+                        <option>خطة احلال</option>
+                        <option>احلال عدم سداد</option>
+                    </select>
+
+                    <select id="mremovingfor" aria-label="تقرير فحص الهندسة">
+                        <option value="">▾ تقرير فحص الهندسة</option>
+                        <option>عطل بالبطارية ارسالة للشركة الموردة للصيانة</option>
+                        <option>قارىء الكروت لا يعمل ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد لا يقبل الشحن ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد لا يقوم بالتوصيل ارسالة للشركة الموردة للصيانة</option>
+                        <option>الشاشة عاطلة ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد يحتاج للتهيئة ارسالة للشركة الموردة للصيانة</option>
+                        <option>تقرير فحص للعداد من قبل الشركة الموردة</option>
+                        <option>تلف بجسم/روزتة العداد ارسالة للشركة الموردة للصيانة</option>
+                        <option>زيادة قدرة ارسالة للشركة الموردة للصيانة</option>
+                        <option>بحث مديونية بالعداد ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد محترق ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد لا يعمل ارسالة للشركة الموردة للصيانة</option>
+                        <option>لمبة التلاعب تعمل باستمرار ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد يعمل بدون شحن ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد لا يسجل الاستهلاك ارسالة للشركة الموردة للصيانة</option>
+                        <option>العداد يسجل استهلاك بدون حمل ارسالة للشركة الموردة للصيانة</option>
+                        <option>blocking</option>
+                    </select>
+                </div>
+
+                <div class="buttons">
+                    <button id="clearBtn" class="secondary">تفريغ</button>
+                </div>
+
+            </section>
+        </div>
+
+    </main>
+
+    <script type="module">
+        /* ================= FIREBASE ================= */
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528",
+            measurementId: "G-W3TZ1EKWWN"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        /* ================= ELEMENTS ================= */
+        const tableBody = document.getElementById("tableBody");
+        const searchInput = document.getElementById("searchInput");
+        const rowCount = document.getElementById("rowCountValue");
+
+        const types = document.getElementById("types");
+        const mtype = document.getElementById("mtype");
+        const mconn = document.getElementById("mconn");
+        const keta3 = document.getElementById("keta3");
+        const handsa = document.getElementById("handsa");
+        const nashattype = document.getElementById("nashattype");
+        const removingfor = document.getElementById("removingfor");
+        const mremovingfor = document.getElementById("mremovingfor");
+        const startDate = document.getElementById("startDate");
+        const endDate = document.getElementById("endDate");
+        const year = document.getElementById("year");
+
+        const exportBtn = document.getElementById("exportBtn");
+        const clearBtn = document.getElementById("clearBtn");
+
+        const scrollUpBtn = document.getElementById("scrollUp");
+        const scrollDownBtn = document.getElementById("scrollDown");
+
+        /* ================= DATA ================= */
+        let allData = [];
+        let filteredData = [];
+
+        /* ================= HELPERS ================= */
+        const formatDate = d => d ? new Date(d).toLocaleDateString("ar-EG") : "";
+
+        /* ================= FETCH ================= */
+        async function fetchAllData() {
+            tableBody.innerHTML = `<tr><td colspan="22">جاري التحميل...</td></tr>`;
+
+            try {
+                const snapshot = await get(ref(db, "Enter_Calib"));
+                if (!snapshot.exists()) {
+                    tableBody.innerHTML = `<tr><td colspan="22">لا توجد بيانات</td></tr>`;
+                    rowCount.textContent = "0";
+                    return;
+                }
+
+                allData = [];
+                snapshot.forEach(child => {
+                    const record = child.val().otherdata || child.val();
+                    allData.push(record);
+                });
+
+                filteredData = [...allData];
+                renderTable();
+            } catch (e) {
+                console.error(e);
+                tableBody.innerHTML = `<tr><td colspan="22">خطأ في جلب البيانات</td></tr>`;
+            }
+        }
+
+        /* ================= RENDER ================= */
+        function renderTable() {
+            tableBody.innerHTML = "";
+
+            if (!filteredData.length) {
+                tableBody.innerHTML = `
+            <tr>
+                <td colspan="22" style="text-align:center;padding:30px;">
+                    لا توجد بيانات مطابقة
+                </td>
+            </tr>`;
+                rowCount.textContent = "0";
+                return;
+            }
+
+            filteredData.forEach((d, i) => {
+                tableBody.innerHTML += `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${d.Type || ""}</td>
+            <td>${d.MNO || ""}</td>
+            <td>${d.MCO || ""}</td>
+            <td>${d.MNAME || ""}</td>
+            <td>${d.Mtype || ""}</td>
+            <td>${d.Connection || ""}</td>
+            <td>${d.Voltage || ""}</td>
+            <td>${d.ACCNO || ""}</td>
+            <td>${d.PLACE || ""}</td>
+            <td>${d.YEAR || ""}</td>
+            <td>${d.MPOWER || ""}</td>
+            <td>${d.Keta3 || ""}</td>
+            <td>${d.Handsa || ""}</td>
+            <td>${d.Nashattype || ""}</td>
+            <td>${d.Removingfor || ""}</td>
+            <td>${formatDate(d.Uploaddate)}</td>
+            <td>${d.Mremovingfor || ""}</td>
+            <td>${formatDate(d.Enter_Calib_Date)}</td>
+            <td>${d.Notes || ""}</td>
+            <td><span class="status">قيد الفحص</span></td>
+        </tr>`;
+            });
+
+            rowCount.textContent = filteredData.length;
+        }
+
+        /* ================= FILTER ================= */
+        function applyFilters() {
+            let result = [...allData];
+
+            const q = searchInput.value.trim().toLowerCase();
+            const y = year.value.trim().toLowerCase();
+            if (q) {
+                result = result.filter(o =>
+                    o.MNO && o.MNO.toString().toLowerCase().includes(q)
+                );
+            }
+
+            if (y) {
+                result = result.filter(o =>
+                    o.YEAR && o.YEAR.toString().toLowerCase().includes(y)
+                );
+            }
+
+            if (types.value) result = result.filter(o => o.Type === types.value);
+            if (mtype.value) result = result.filter(o => o.Mtype === mtype.value);
+            if (mconn.value) result = result.filter(o => o.Connection === mconn.value);
+            if (keta3.value) result = result.filter(o => o.Keta3 === keta3.value);
+            if (handsa.value) result = result.filter(o => o.Handsa === handsa.value);
+            if (nashattype.value) result = result.filter(o => o.Nashattype === nashattype.value);
+            if (removingfor.value) result = result.filter(o => o.Removingfor === removingfor.value);
+            if (mremovingfor.value) result = result.filter(o => o.Mremovingfor === mremovingfor.value);
+
+            if (startDate.value) {
+                result = result.filter(o =>
+                    o.Enter_Calib_Date >= startDate.value
+                );
+            }
+
+            if (endDate.value) {
+                result = result.filter(o =>
+                    o.Enter_Calib_Date <= endDate.value
+                );
+            }
+
+            filteredData = result;
+            renderTable();
+        }
+
+        /* ================= CLEAR ================= */
+        function clearFilters() {
+            document.querySelectorAll(".left-side select, .left-side input").forEach(el => {
+                if (el.tagName === "SELECT") el.selectedIndex = 0;
+                else el.value = "";
+            });
+            searchInput.value = "";
+            year.value = "";
+
+            filteredData = [...allData];
+            renderTable();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'تم إعادة التعيين',
+                text: 'تم تنظيف كافة الفلاتر وعرض جميع البيانات',
+                timer: 1500,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        }
+
+        /* ================= EXPORT ================= */
+        function exportToExcel() {
+            if (!filteredData.length) return;
+
+            const data = filteredData.map((o, i) => ({
+                "م": i + 1,
+                "نوع النظام": o.Type || "",
+                "رقم العداد": o.MNO || "",
+                "كود المشترك": o.MCO || "",
+                "اسم المشترك": o.MNAME || "",
+                "نوع العداد": o.Mtype || "",
+                "نوع التوصيل": o.Connection || "",
+                "الجهد": o.Voltage || "",
+                "رقم الحساب": o.ACCNO || "",
+                "مكان التركيب": o.PLACE || "",
+                "سنة الصنع": o.YEAR || "",
+                "القدرة": o.MPOWER || "",
+                "القطاع": o.Keta3 || "",
+                "الهندسة": o.Handsa || "",
+                "نوع النشاط": o.Nashattype || "",
+                "سبب الرفع": o.Removingfor || "",
+                "تاريخ الرفع": formatDate(o.Uploaddate),
+                "تقرير فحص الهندسة": o.Mremovingfor || "",
+                "تاريخ دخول الفحص": formatDate(o.Enter_Calib_Date),
+                "ملاحظات": o.Notes || ""
+                , "حالة العداد": o.MeterStatus || ""
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Report");
+            XLSX.writeFile(wb, "تقرير_دخول_الفحص.xlsx");
+        }
+
+        /* ================= EVENTS ================= */
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchAllData();
+
+            searchInput.addEventListener("input", applyFilters);
+            year.addEventListener("input", applyFilters);
+            exportBtn.addEventListener("click", exportToExcel);
+            clearBtn.addEventListener("click", clearFilters);
+
+            [
+                types, mtype, mconn, keta3, handsa,
+                nashattype, removingfor, mremovingfor,
+                startDate, endDate
+            ].forEach(el => el.addEventListener("change", applyFilters));
+
+            scrollUpBtn.onclick = () =>
+                window.scrollTo({ top: 0, behavior: "smooth" });
+
+            scrollDownBtn.onclick = () =>
+                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        });
+
+        /* ================= SCROLL FUNCTIONS ================= */
+        function scrollUp() {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
+
+        function scrollDown() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: "smooth"
+            });
+        }
+
+        // ربط الأزرار بالدوال
+        document.querySelectorAll("#scrollUp").forEach(btn => {
+            btn.addEventListener("click", scrollUp);
+        });
+
+        document.querySelectorAll("#scrollDown").forEach(btn => {
+            btn.addEventListener("click", scrollDown);
+        });
+
+
+
+        // Dropdown Menu Functionality
+        const btn = document.getElementById("dropdownBtn");
+        const menu = document.getElementById("dropdownMenu");
+
+        btn.addEventListener("click", () => {
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        });
+
+        document.querySelectorAll('.dropdown-item[data-page]').forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                window.open(page, '_blank'); // فتح في تبويب جديد
+            });
+        });
+
+        // إغلاق عند الضغط خارج القائمة
+        document.addEventListener("click", e => {
+            if (!e.target.closest(".modern-dropdown")) {
+                menu.style.display = "none";
+            }
+        });
+
+
+
+    </script>
+</body>
+
+</html>

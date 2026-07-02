@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>
+    Distance Relay Protection | Precision Fault Locator & Zone Decision
+  </title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", "Roboto", system-ui, sans-serif;
+      background: #eef2f7;
+      color: #1a2c3e;
+      line-height: 1.5;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 36px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0a3b44 0%, #146b5e 100%);
+      color: white;
+      padding: 2rem 2.5rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.3px;
+    }
+
+    .hero p {
+      opacity: 0.9;
+      max-width: 85%;
+    }
+
+    .badge {
+      background: #ffb34740;
+      display: inline-block;
+      padding: 0.2rem 1rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .content {
+      padding: 2rem 2.5rem;
+    }
+
+    .topic-section {
+      margin: 2rem 0 1rem 0;
+      border-bottom: 2px solid #e0eaf1;
+      padding-bottom: 0.5rem;
+    }
+
+    .topic-section h2 {
+      font-size: 1.6rem;
+      color: #0f3b3a;
+      border-left: 6px solid #1e8f7a;
+      padding-left: 1rem;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .calc-card {
+      background: #f9fbfe;
+      border-radius: 26px;
+      padding: 1.2rem;
+      border: 1px solid #e0eaf1;
+      transition: box-shadow 0.2s;
+    }
+
+    .discussion-card {
+      background: #eef3fc;
+      border-radius: 24px;
+      padding: 1.2rem;
+      border-left: 5px solid #2c7da0;
+    }
+
+    .equation-card {
+      background: #fef7e0;
+      border-radius: 20px;
+      padding: 1rem 1.2rem;
+      margin: 1rem 0;
+      font-family: "Courier New", monospace;
+      border-left: 4px solid #f4a261;
+    }
+
+    .input-group {
+      margin: 0.7rem 0;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #2c5a6e;
+      margin-bottom: 0.2rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.5rem 0.7rem;
+      border-radius: 14px;
+      border: 1px solid #cbdbe2;
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    .calc-btn {
+      background: #1e6f5c;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 34px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      width: 100%;
+      transition: 0.2s;
+    }
+
+    .calc-btn:hover {
+      background: #0f5545;
+      transform: scale(0.98);
+    }
+
+    .result-area {
+      background: #eef2f5;
+      border-radius: 16px;
+      padding: 0.7rem;
+      margin-top: 0.8rem;
+      font-size: 0.85rem;
+      font-family: monospace;
+      word-break: break-word;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+    }
+
+    th {
+      background: #1e6f5c;
+      color: white;
+      padding: 10px;
+    }
+
+    td {
+      border: 1px solid #dee4ec;
+      padding: 8px 12px;
+    }
+
+    .fault-locator {
+      background: linear-gradient(135deg, #fff8ed, #fff3e0);
+      border-radius: 32px;
+      padding: 1.8rem;
+      margin: 2rem 0;
+      border: 1px solid #ffddb0;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .output-panel {
+      background: #1e2f3a;
+      color: #e6f7f0;
+      border-radius: 24px;
+      padding: 1.3rem;
+      margin-top: 1.5rem;
+      font-family: "Courier New", monospace;
+    }
+
+    .output-panel h4 {
+      color: #ffd966;
+      margin-bottom: 0.8rem;
+      letter-spacing: 1px;
+    }
+
+    .highlight {
+      color: #ffb347;
+      font-weight: bold;
+    }
+
+    .zone1-trip {
+      color: #ff8888;
+      font-weight: bold;
+    }
+
+    .zone2-trip {
+      color: #ffb347;
+      font-weight: bold;
+    }
+
+    .footnote {
+      text-align: center;
+      font-size: 0.75rem;
+      padding: 1rem;
+      border-top: 1px solid #cbdae9;
+      margin-top: 1.5rem;
+      color: #4a627a;
+    }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1rem;
+      background: #f8f4e8;
+      padding: 1rem;
+      border-radius: 24px;
+      margin-bottom: 1rem;
+    }
+
+    hr {
+      margin: 0.8rem 0;
+    }
+
+    .zone-badge {
+      display: inline-block;
+      padding: 0.3rem 1rem;
+      border-radius: 40px;
+      font-weight: bold;
+    }
+
+    .inline-code {
+      background: #2d3e46;
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 680px) {
+      .content {
+        padding: 1rem;
+      }
+
+      .hero h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+
+    .btn-home {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      font-family: "Cairo", sans-serif;
+    }
+
+    .btn-home:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+    }
+
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="hero-header">
+        <h1>
+          <span>⚡</span>
+           Distance Relay Protection
+        </h1>
+        <button class="btn-home" onclick="window.location.href = 'Control_Calc.html'">
+          <ion-icon name="home-outline"></ion-icon>
+          <span>الصفحة الرئيسية</span>
+        </button>
+      </div>
+    </div>
+
+    <p>
+      Complete educational tool: impedance calculators, zone coordination,
+      <strong>precision fault locator & corrected zone decision</strong> —
+      exactly where the fault is, for rapid repair.
+    </p>
+    <div class="badge">
+      📍 Pinpoint Fault Distance • Zone 1/2/3 Logic • Arc Resistance
+      Compensation
+    </div>
+  </div>
+
+
+  <div class="content">
+    <!-- ==================== 1. POSITIVE SEQUENCE Z₁ ==================== -->
+    <div class="topic-section">
+      <h2>🔷 1. Positive Sequence Impedance Z₁ (Ω/km)</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>📐 Z₁ Calculator</h3>
+        <div class="input-group">
+          <label>R_ac (Ω/km)</label><input type="number" id="z1_rac" value="0.05" step="0.001" />
+        </div>
+        <div class="input-group">
+          <label>D_eq (m) - GMD</label><input type="number" id="z1_deq" value="6.0" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>GMR (m)</label><input type="number" id="z1_gmr" value="0.012" step="0.001" />
+        </div>
+        <button class="calc-btn" id="calcZ1Btn">Calculate Z₁</button>
+        <div id="z1Result" class="result-area">—</div>
+      </div>
+      <div class="discussion-card">
+        <h3>📖 Discussion</h3>
+        <p>
+          <strong>Positive sequence impedance</strong> \(Z_1 = R_{ac} + j
+          X_1\).<br />
+          \(X_1 = 0.06283 \ln(D_{eq}/GMR)\) Ω/km at 50/60 Hz. Larger spacing
+          increases reactance; larger conductor radius reduces it.
+        </p>
+      </div>
+    </div>
+    <div class="equation-card">
+      \( Z_1 = R_{ac} + j \cdot 0.06283 \ln(D_{eq}/GMR) \) Ω/km
+    </div>
+
+    <!-- ==================== 2. ZERO SEQUENCE Z₀ ==================== -->
+    <div class="topic-section">
+      <h2>🌍 2. Zero Sequence Impedance Z₀ (Ω/km)</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>📐 Z₀ Calculator</h3>
+        <div class="input-group">
+          <label>R_ac (Ω/km)</label><input type="number" id="z0_rac" value="0.05" />
+        </div>
+        <div class="input-group">
+          <label>Frequency f (Hz)</label><input type="number" id="z0_freq" value="50" />
+        </div>
+        <div class="input-group">
+          <label>Soil resistivity ρ (Ω·m)</label><input type="number" id="z0_rho" value="100" />
+        </div>
+        <div class="input-group">
+          <label>Shield wire k_sw</label><input type="number" id="z0_ksw" value="2.7" />
+        </div>
+        <div class="input-group">
+          <label>GMR (m)</label><input type="number" id="z0_gmr" value="0.012" />
+        </div>
+        <div class="input-group">
+          <label>Phase spacing D (m)</label><input type="number" id="z0_d" value="6.0" />
+        </div>
+        <button class="calc-btn" id="calcZ0Btn">Calculate Z₀</button>
+        <div id="z0Result" class="result-area">—</div>
+      </div>
+      <div class="discussion-card">
+        <h3>📖 Discussion</h3>
+        <p>
+          Zero sequence includes earth return: \(R_e = 9.88\times10^{-4}f\)
+          Ω/km, \(D_e = 658.5\sqrt{\rho/f}\) m. Shield wires increase
+          reactance via factor k_sw.
+        </p>
+      </div>
+    </div>
+    <div class="equation-card">
+      \( Z_0 = (R_{ac}+3R_e) + j k_{sw} \cdot 0.06283 \ln(D_e / \sqrt[3]{GMR
+      \cdot D^2}) \)
+    </div>
+
+    <!-- ==================== 3. COMPENSATION FACTOR k₀ ==================== -->
+    <div class="topic-section">
+      <h2>🔁 3. Zero-Sequence Compensation Factor k₀</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>📐 k₀ Calculator</h3>
+        <div class="input-group">
+          <label>R₁ (Ω/km)</label><input type="number" id="k0_r1" value="0.05" />
+        </div>
+        <div class="input-group">
+          <label>X₁ (Ω/km)</label><input type="number" id="k0_x1" value="0.4" />
+        </div>
+        <div class="input-group">
+          <label>R₀ (Ω/km)</label><input type="number" id="k0_r0" value="0.2" />
+        </div>
+        <div class="input-group">
+          <label>X₀ (Ω/km)</label><input type="number" id="k0_x0" value="1.2" />
+        </div>
+        <button class="calc-btn" id="calcK0Btn">Compute k₀</button>
+        <div id="k0Result" class="result-area">—</div>
+      </div>
+      <div class="discussion-card">
+        <h3>📖 Discussion</h3>
+        <p>
+          \(k_0 = (Z_0 - Z_1)/(3Z_1)\) compensates ground faults. \(Z_{AG} =
+          V_A/(I_A + k_0 I_{res})\).
+        </p>
+      </div>
+    </div>
+    <div class="equation-card">
+      \( k_0 = \dfrac{Z_0 - Z_1}{3 Z_1} \) (complex)
+    </div>
+
+    <!-- ==================== 4. FAULT MEASUREMENTS ==================== -->
+    <div class="topic-section">
+      <h2>⚡ 4. Fault Type Measurements</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>🔹 A-G Fault Z_AG</h3>
+        <div class="input-group">
+          <label>V_A (kV)</label><input type="number" id="ag_va" value="127" />
+        </div>
+        <div class="input-group">
+          <label>I_A (kA)</label><input type="number" id="ag_ia" value="3.0" />
+        </div>
+        <div class="input-group">
+          <label>k₀ real</label><input type="number" id="ag_k0r" value="0.672" />
+        </div>
+        <div class="input-group">
+          <label>I_residual (kA)</label><input type="number" id="ag_ires" value="3.0" />
+        </div>
+        <button class="calc-btn" id="calcAGBtn">Calculate Z_AG</button>
+        <div id="agResult" class="result-area">—</div>
+      </div>
+      <div class="calc-card">
+        <h3>🔸 Phase Fault Z_BC</h3>
+        <div class="input-group">
+          <label>|V_B - V_C| (kV)</label><input type="number" id="pp_vbc" value="220" />
+        </div>
+        <div class="input-group">
+          <label>|I_B - I_C| (kA)</label><input type="number" id="pp_ibc" value="5.0" />
+        </div>
+        <button class="calc-btn" id="calcPPBtn">Calculate Z_BC</button>
+        <div id="ppResult" class="result-area">—</div>
+      </div>
+    </div>
+    <div class="equation-card">
+      \( Z_{AG} = \dfrac{V_A}{I_A + k_0 I_{res}} \) &nbsp;|&nbsp; \( Z_{BC}
+      = \dfrac{V_B - V_C}{I_B - I_C} \)
+    </div>
+
+    <!-- ==================== 5. ZONES & COORDINATION ==================== -->
+    <div class="topic-section">
+      <h2>📏 5. Protection Zones & Coordination</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>Zone Reach Calculator</h3>
+        <div class="input-group">
+          <label>Total R_line (Ω)</label><input type="number" id="zone_rL" value="5" />
+        </div>
+        <div class="input-group">
+          <label>Total X_line (Ω)</label><input type="number" id="zone_xL" value="40" />
+        </div>
+        <button class="calc-btn" id="calcZoneBtn">
+          Compute Zone 1 & 2
+        </button>
+        <div id="zoneResult" class="result-area">—</div>
+      </div>
+      <div class="calc-card">
+        <h3>Zone 2 Time Delay</h3>
+        <div class="input-group">
+          <label>Adjacent Z1 time (s)</label><input type="number" id="t_adj" value="0.05" />
+        </div>
+        <div class="input-group">
+          <label>Breaker time (s)</label><input type="number" id="t_brk" value="0.06" />
+        </div>
+        <div class="input-group">
+          <label>CTI (s)</label><input type="number" id="cti" value="0.2" />
+        </div>
+        <button class="calc-btn" id="calcTimeBtn">Calculate t₂</button>
+        <div id="timeResult" class="result-area">—</div>
+      </div>
+    </div>
+    <div class="discussion-card">
+      <h3>📖 Zone Coordination Table</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>Reach</th>
+            <th>Time Delay</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zone 1</strong></td>
+            <td>80-90% of line</td>
+            <td>0–0.1 s (instant)</td>
+            <td>Primary protection</td>
+          </tr>
+          <tr>
+            <td><strong>Zone 2</strong></td>
+            <td>120-150%</td>
+            <td>0.2–0.5 s</td>
+            <td>Backup + remote end</td>
+          </tr>
+          <tr>
+            <td><strong>Zone 3</strong></td>
+            <td>200-300%</td>
+            <td>0.5–1.0 s</td>
+            <td>Remote backup</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        \( Z_{zone1} = 0.8 \times Z_{line} \), \( Z_{zone2} = 1.2 \times
+        Z_{line} \), \( t_2 = t_{adj,Z1} + t_{breaker} + CTI \)
+      </p>
+    </div>
+
+    <!-- ==================== 6. MHO CHARACTERISTIC ==================== -->
+    <div class="topic-section">
+      <h2>🟢 6. Mho (Impedance) Relay Characteristic</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>Mho Operating Check</h3>
+        <div class="input-group">
+          <label>Z_meas R (Ω)</label><input type="number" id="mho_rm" value="7.64" />
+        </div>
+        <div class="input-group">
+          <label>Z_meas X (Ω)</label><input type="number" id="mho_xm" value="16.95" />
+        </div>
+        <div class="input-group">
+          <label>Z_reach R (Ω)</label><input type="number" id="mho_rr" value="4" />
+        </div>
+        <div class="input-group">
+          <label>Z_reach X (Ω)</label><input type="number" id="mho_xr" value="32" />
+        </div>
+        <button class="calc-btn" id="calcMhoBtn">Check Operation</button>
+        <div id="mhoResult" class="result-area">—</div>
+      </div>
+      <div class="discussion-card">
+        <h3>📖 Discussion</h3>
+        <p>
+          Mho relay operates if \(|Z_{meas} - Z_{reach}| \le |Z_{reach}|\).
+          Inherently directional.
+        </p>
+      </div>
+    </div>
+    <div class="equation-card">
+      \( |Z_{meas} - Z_{reach}| \le |Z_{reach}| \) → Trip
+    </div>
+
+    <!-- ==================== 7. EARTH PARAMETERS ==================== -->
+    <div class="topic-section">
+      <h2>🌎 7. Earth Return Parameters</h2>
+    </div>
+    <div class="card-grid">
+      <div class="calc-card">
+        <h3>Rₑ & Dₑ Calculator</h3>
+        <div class="input-group">
+          <label>Frequency (Hz)</label><input type="number" id="earth_f" value="50" />
+        </div>
+        <div class="input-group">
+          <label>Soil resistivity ρ (Ω·m)</label><input type="number" id="earth_rho" value="100" />
+        </div>
+        <button class="calc-btn" id="calcEarthBtn">Calculate</button>
+        <div id="earthResult" class="result-area">—</div>
+      </div>
+      <div class="discussion-card">
+        <h3>📖 Discussion</h3>
+        <p>
+          \( R_e = 9.88\times10^{-4} f \) Ω/km, \( D_e = 658.5 \sqrt{\rho/f}
+          \) m.
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== 8. VARIABLE REFERENCE TABLE ==================== -->
+    <div class="topic-section">
+      <h2>📚 Complete Variable Reference Table</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th>Name</th>
+          <th>Physical Meaning</th>
+          <th>Typical (220 kV)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>\(R_{ac}\)</td>
+          <td>AC Resistance</td>
+          <td>Conductor resistance at operating temp</td>
+          <td>0.05 Ω/km</td>
+        </tr>
+        <tr>
+          <td>\(D_{eq}\)</td>
+          <td>Geometric Mean Distance</td>
+          <td>Equivalent phase spacing</td>
+          <td>6–8 m</td>
+        </tr>
+        <tr>
+          <td>\(GMR\)</td>
+          <td>Geometric Mean Radius</td>
+          <td>Conductor effective radius</td>
+          <td>0.012–0.02 m</td>
+        </tr>
+        <tr>
+          <td>\(X_1\)</td>
+          <td>Pos. Sequence Reactance</td>
+          <td>Inductive reactance per km</td>
+          <td>0.35–0.45 Ω/km</td>
+        </tr>
+        <tr>
+          <td>\(R_e\)</td>
+          <td>Earth Return Resistance</td>
+          <td>Ground path resistance</td>
+          <td>0.0494 Ω/km (50 Hz)</td>
+        </tr>
+        <tr>
+          <td>\(k_0\)</td>
+          <td>Compensation Factor</td>
+          <td>Ground fault compensation</td>
+          <td>0.67 ∠ -3°</td>
+        </tr>
+        <tr>
+          <td>\(\rho\)</td>
+          <td>Soil Resistivity</td>
+          <td>Earth electrical resistivity</td>
+          <td>100 Ω·m</td>
+        </tr>
+        <tr>
+          <td>\(CTI\)</td>
+          <td>Coordination Time Interval</td>
+          <td>Safety margin</td>
+          <td>0.2–0.3 s</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ==================== 9. MAIN FAULT LOCATOR - CORRECTED (PRECISION) ==================== -->
+    <div class="fault-locator">
+      <h2 style="
+              margin-top: 0;
+              color: #b45f06;
+              border-left: none;
+              padding-left: 0;
+            ">
+        📍 PRECISION FAULT LOCATOR & ACCURATE ZONE DECISION
+      </h2>
+      <p>
+        <strong>Enter actual line parameters and fault measurements:</strong>
+        The algorithm calculates exact fault distance (km) using
+        positive-sequence impedance and arc resistance model.
+        <span class="highlight">Fixed zone decision based on km distance — perfect for field
+          repair.</span>
+      </p>
+      <div class="param-grid">
+        <div class="input-group">
+          <label>📐 R_ac (Ω/km)</label><input type="number" id="loc_rac" value="0.052" step="0.001" />
+        </div>
+        <div class="input-group">
+          <label>📏 D_eq (m)</label><input type="number" id="loc_deq" value="6.2" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>⚡ GMR (m)</label><input type="number" id="loc_gmr" value="0.013" step="0.001" />
+        </div>
+        <div class="input-group">
+          <label>🌡️ Frequency f (Hz)</label><input type="number" id="loc_freq" value="50" />
+        </div>
+        <div class="input-group">
+          <label>🌍 Soil resistivity ρ (Ω·m)</label><input type="number" id="loc_rho" value="120" />
+        </div>
+        <div class="input-group">
+          <label>🛡️ Shield wire k_sw</label><input type="number" id="loc_ksw" value="2.7" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>📐 Phase spacing D (m)</label><input type="number" id="loc_d" value="6.2" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label>📏 Line Length (km)</label><input type="number" id="loc_len" value="100" />
+        </div>
+        <div class="input-group">
+          <label>🔥 Arc Resistance R_f (Ω)</label><input type="number" id="loc_rf" value="18.5" step="0.5" />
+        </div>
+      </div>
+      <div class="param-grid" style="background: #e9f0f5">
+        <div class="input-group">
+          <label>🔌 VT: V_A (kV) - phase voltage during fault</label><input type="number" id="loc_va" value="62.4"
+            step="0.5" />
+        </div>
+        <div class="input-group">
+          <label>⚡ CT: I_A (kA) - phase current</label><input type="number" id="loc_ia" value="2.45" step="0.05" />
+        </div>
+        <div class="input-group">
+          <label>🌀 I_residual (kA) = I_A+I_B+I_C</label><input type="number" id="loc_ires" value="2.45" step="0.05" />
+        </div>
+        <div class="input-group">
+          <label>⏱️ Adjacent Zone 1 time (s)</label><input type="number" id="loc_tadj" value="0.05" />
+        </div>
+        <div class="input-group">
+          <label>🔧 Breaker time (s)</label><input type="number" id="loc_tbrk" value="0.06" />
+        </div>
+        <div class="input-group">
+          <label>📊 CTI (s)</label><input type="number" id="loc_cti" value="0.2" />
+        </div>
+      </div>
+      <button class="calc-btn" id="runFaultLocatorBtn" style="
+              background: #c4450f;
+              width: auto;
+              padding: 0.8rem 2.2rem;
+              font-size: 1rem;
+              margin: 0 auto;
+              display: block;
+            ">
+        🔍 LOCATE FAULT & GET ZONE TRIP DECISION
+      </button>
+      <div id="locatorOutput" class="output-panel">
+        <h4>📋 CALCULATION RESULTS (PRECISION FAULT DISTANCE)</h4>
+        <div id="outputContent">
+          Click calculate to determine exact fault location and relay zone
+          decision.
+        </div>
+      </div>
+    </div>
+    <div class="footnote">
+      ⚡ Based on IEEE C37.113 / IEC 60255-121. Zone decision uses fault
+      distance (km) vs Zone 1 reach (80% of line) and Zone 2 reach (120% of
+      line).
+      <strong>Corrected logic: instantaneous trip if distance ≤ 80% line
+        length.</strong>
+      Field-ready fault locator.
+    </div>
+  </div>
+  </div>
+
+  <script>
+    // Helper math functions
+    function calcZ1_km(Rac, Deq, GMR) {
+      let X1 = 0.06283 * Math.log(Deq / GMR);
+      return { re: Rac, im: X1 };
+    }
+    function calcZ0_km(Rac, f, rho, ksw, GMR, D) {
+      let Re = 9.88e-4 * f,
+        De = 658.5 * Math.sqrt(rho / f);
+      let GMR0 = Math.cbrt(GMR * D * D);
+      let X0 = 0.06283 * Math.log(De / GMR0) * ksw;
+      return { re: Rac + 3 * Re, im: X0 };
+    }
+    function calcK0(Z1, Z0) {
+      let num_re = Z0.re - Z1.re,
+        num_im = Z0.im - Z1.im;
+      let den_re = 3 * Z1.re,
+        den_im = 3 * Z1.im;
+      let magNum = Math.hypot(num_re, num_im),
+        magDen = Math.hypot(den_re, den_im);
+      let angNum = Math.atan2(num_im, num_re),
+        angDen = Math.atan2(den_im, den_re);
+      let magK = magNum / magDen,
+        angK = angNum - angDen;
+      return {
+        re: magK * Math.cos(angK),
+        im: magK * Math.sin(angK),
+        mag: magK,
+        ang: angK,
+      };
+    }
+
+    // Event bindings (existing calculators)
+    document.getElementById("calcZ1Btn").onclick = () => {
+      let Rac = parseFloat(document.getElementById("z1_rac").value);
+      let Deq = parseFloat(document.getElementById("z1_deq").value);
+      let GMR = parseFloat(document.getElementById("z1_gmr").value);
+      let Z = calcZ1_km(Rac, Deq, GMR);
+      document.getElementById("z1Result").innerHTML =
+        `<strong>Z₁ = ${Z.re.toFixed(5)} + j ${Z.im.toFixed(5)} Ω/km</strong>`;
+    };
+    document.getElementById("calcZ0Btn").onclick = () => {
+      let Rac = parseFloat(document.getElementById("z0_rac").value);
+      let f = parseFloat(document.getElementById("z0_freq").value);
+      let rho = parseFloat(document.getElementById("z0_rho").value);
+      let ksw = parseFloat(document.getElementById("z0_ksw").value);
+      let GMR = parseFloat(document.getElementById("z0_gmr").value);
+      let D = parseFloat(document.getElementById("z0_d").value);
+      let Z = calcZ0_km(Rac, f, rho, ksw, GMR, D);
+      document.getElementById("z0Result").innerHTML =
+        `<strong>Z₀ = ${Z.re.toFixed(5)} + j ${Z.im.toFixed(5)} Ω/km</strong>`;
+    };
+    document.getElementById("calcK0Btn").onclick = () => {
+      let Z1 = {
+        re: parseFloat(document.getElementById("k0_r1").value),
+        im: parseFloat(document.getElementById("k0_x1").value),
+      };
+      let Z0 = {
+        re: parseFloat(document.getElementById("k0_r0").value),
+        im: parseFloat(document.getElementById("k0_x0").value),
+      };
+      let k0 = calcK0(Z1, Z0);
+      document.getElementById("k0Result").innerHTML =
+        `<strong>k₀ = ${k0.re.toFixed(5)} + j ${k0.im.toFixed(5)}</strong><br>|k₀|=${k0.mag.toFixed(4)}, angle=${((k0.ang * 180) / Math.PI).toFixed(2)}°`;
+    };
+    document.getElementById("calcAGBtn").onclick = () => {
+      let Va = parseFloat(document.getElementById("ag_va").value) * 1000;
+      let Ia = parseFloat(document.getElementById("ag_ia").value) * 1000;
+      let k0r = parseFloat(document.getElementById("ag_k0r").value);
+      let Ires = parseFloat(document.getElementById("ag_ires").value) * 1000;
+      let compRe = Ia + k0r * Ires;
+      let Z_re = Va / compRe;
+      document.getElementById("agResult").innerHTML =
+        `<strong>Z_AG = ${Z_re.toFixed(2)} Ω</strong>`;
+    };
+    document.getElementById("calcPPBtn").onclick = () => {
+      let V = parseFloat(document.getElementById("pp_vbc").value) * 1000;
+      let I = parseFloat(document.getElementById("pp_ibc").value) * 1000;
+      document.getElementById("ppResult").innerHTML =
+        `<strong>Z_BC = ${(V / I).toFixed(2)} Ω</strong>`;
+    };
+    document.getElementById("calcZoneBtn").onclick = () => {
+      let R = parseFloat(document.getElementById("zone_rL").value);
+      let X = parseFloat(document.getElementById("zone_xL").value);
+      document.getElementById("zoneResult").innerHTML =
+        `<strong>Zone1 (80%):</strong> ${(0.8 * R).toFixed(2)}+j${(0.8 * X).toFixed(2)} Ω &nbsp;|&nbsp; <strong>Zone2 (120%):</strong> ${(1.2 * R).toFixed(2)}+j${(1.2 * X).toFixed(2)} Ω`;
+    };
+    document.getElementById("calcTimeBtn").onclick = () => {
+      let t2 =
+        parseFloat(document.getElementById("t_adj").value) +
+        parseFloat(document.getElementById("t_brk").value) +
+        parseFloat(document.getElementById("cti").value);
+      document.getElementById("timeResult").innerHTML =
+        `<strong>t₂ = ${t2.toFixed(3)} seconds</strong>`;
+    };
+    document.getElementById("calcMhoBtn").onclick = () => {
+      let Rm = parseFloat(document.getElementById("mho_rm").value),
+        Xm = parseFloat(document.getElementById("mho_xm").value);
+      let Rr = parseFloat(document.getElementById("mho_rr").value),
+        Xr = parseFloat(document.getElementById("mho_xr").value);
+      let dist = Math.hypot(Rm - Rr, Xm - Xr),
+        rad = Math.hypot(Rr, Xr);
+      document.getElementById("mhoResult").innerHTML =
+        `|Z_meas - Z_reach| = ${dist.toFixed(2)} Ω &nbsp; |Z_reach| = ${rad.toFixed(2)} Ω<br><strong>${dist <= rad ? "✅ OPERATE (TRIP)" : "❌ RESTRAIN"}</strong>`;
+    };
+    document.getElementById("calcEarthBtn").onclick = () => {
+      let f = parseFloat(document.getElementById("earth_f").value),
+        rho = parseFloat(document.getElementById("earth_rho").value);
+      let Re = 9.88e-4 * f,
+        De = 658.5 * Math.sqrt(rho / f);
+      document.getElementById("earthResult").innerHTML =
+        `<strong>Rₑ = ${Re.toFixed(5)} Ω/km</strong><br><strong>Dₑ = ${De.toFixed(1)} m</strong>`;
+    };
+
+    // MAIN FAULT LOCATOR (PRECISION DISTANCE & ZONE)
+    document.getElementById("runFaultLocatorBtn").onclick = () => {
+      // inputs
+      let Rac = parseFloat(document.getElementById("loc_rac").value);
+      let Deq = parseFloat(document.getElementById("loc_deq").value);
+      let GMR = parseFloat(document.getElementById("loc_gmr").value);
+      let f = parseFloat(document.getElementById("loc_freq").value);
+      let rho = parseFloat(document.getElementById("loc_rho").value);
+      let ksw = parseFloat(document.getElementById("loc_ksw").value);
+      let D = parseFloat(document.getElementById("loc_d").value);
+      let lineLen = parseFloat(document.getElementById("loc_len").value);
+      let Rf = parseFloat(document.getElementById("loc_rf").value);
+      let Va_kV = parseFloat(document.getElementById("loc_va").value);
+      let Ia_kA = parseFloat(document.getElementById("loc_ia").value);
+      let Ires_kA = parseFloat(document.getElementById("loc_ires").value);
+      let t_adj = parseFloat(document.getElementById("loc_tadj").value);
+      let t_brk = parseFloat(document.getElementById("loc_tbrk").value);
+      let cti = parseFloat(document.getElementById("loc_cti").value);
+
+      let Z1_km = calcZ1_km(Rac, Deq, GMR);
+      let Z0_km = calcZ0_km(Rac, f, rho, ksw, GMR, D);
+      let k0 = calcK0(Z1_km, Z0_km);
+
+      let Va = Va_kV * 1000;
+      let Ia = Ia_kA * 1000;
+      let Ires = Ires_kA * 1000;
+
+      let I_comp_re = Ia + k0.re * Ires;
+      let I_comp_im = 0 + k0.im * Ires;
+      let I_comp_mag = Math.hypot(I_comp_re, I_comp_im);
+      let Z_meas_mag = Va / I_comp_mag;
+      let oneK_mag = Math.hypot(1 + k0.re, k0.im);
+      let Z_fault_mag = Z_meas_mag * oneK_mag;
+
+      let R1 = Z1_km.re,
+        X1 = Z1_km.im;
+      let A = R1 * R1 + X1 * X1;
+      let B = 2 * R1 * Rf;
+      let C = Rf * Rf - Z_fault_mag * Z_fault_mag;
+      let faultDist = 0;
+      if (A !== 0) {
+        let disc = B * B - 4 * A * C;
+        if (disc >= 0) {
+          let d1 = (-B + Math.sqrt(disc)) / (2 * A);
+          let d2 = (-B - Math.sqrt(disc)) / (2 * A);
+          if (d1 > 0 && d1 <= lineLen) faultDist = d1;
+          else if (d2 > 0 && d2 <= lineLen) faultDist = d2;
+        }
+      }
+      if (faultDist <= 0 || isNaN(faultDist))
+        faultDist = Z_fault_mag / Math.hypot(R1, X1);
+      faultDist = Math.min(Math.max(faultDist, 0), lineLen);
+
+      let zone1_reach_km = 0.8 * lineLen;
+      let zone2_reach_km = 1.2 * lineLen;
+      let t2 = t_adj + t_brk + cti;
+      let zoneDecision = "",
+        tripTime = "",
+        zoneColor = "";
+      if (faultDist <= zone1_reach_km) {
+        zoneDecision = "🔴 ZONE 1 — Instantaneous Trip";
+        tripTime = "0.00 seconds (instant)";
+        zoneColor = "#ff8888";
+      } else if (faultDist <= zone2_reach_km) {
+        zoneDecision = "🟡 ZONE 2 — Time-Delayed Trip";
+        tripTime = `${t2.toFixed(3)} seconds`;
+        zoneColor = "#ffb347";
+      } else {
+        zoneDecision = "🔵 OUTSIDE ZONES 1 & 2 — No Trip (Check Zone 3)";
+        tripTime = "No trip from Zones 1/2";
+        zoneColor = "#88aaff";
+      }
+      let boundaryMsg = "";
+      if (Math.abs(faultDist - zone1_reach_km) < 0.05)
+        boundaryMsg =
+          "⚠️ Fault at Zone 1 boundary → instantaneous clearance.";
+      else if (
+        Math.abs(faultDist - zone2_reach_km) < 0.05 &&
+        faultDist > zone1_reach_km
+      )
+        boundaryMsg = "⚠️ Fault at Zone 2 boundary → time-delayed trip.";
+
+      let outputHtml = `
+            <div style="font-family: monospace; line-height: 1.6;">
+                <strong>🔧 LINE MODEL (per km):</strong><br>
+                Z₁ = ${Z1_km.re.toFixed(5)} + j${Z1_km.im.toFixed(5)} Ω/km &nbsp; | Z₀ = ${Z0_km.re.toFixed(5)} + j${Z0_km.im.toFixed(5)} Ω/km<br>
+                k₀ = ${k0.re.toFixed(5)} + j${k0.im.toFixed(5)} &nbsp; |1+k₀| = ${oneK_mag.toFixed(4)}<br>
+                <hr>
+                <strong>📏 ZONE SETTINGS (line length = ${lineLen.toFixed(1)} km):</strong><br>
+                ✅ Zone 1 Reach: ${zone1_reach_km.toFixed(2)} km (80%) → Instant trip<br>
+                ✅ Zone 2 Reach: ${zone2_reach_km.toFixed(2)} km (120%) → Delay ${t2.toFixed(3)} s<br>
+                <hr>
+                <strong>📍 FAULT LOCATION (EXACT DISTANCE):</strong><br>
+                <span style="font-size: 1.4rem; color: #ffaa66;">➤ ${faultDist.toFixed(2)} km from relay</span><br>
+                Measured Z_relay = ${Z_meas_mag.toFixed(2)} Ω &nbsp; | Equivalent fault loop Z = ${Z_fault_mag.toFixed(2)} Ω<br>
+                Arc resistance R_f = ${Rf} Ω (user input)<br>
+                <hr>
+                <strong>⚡ RELAY DECISION (FIELD ACTION):</strong><br>
+                <span style="font-size: 1.2rem; font-weight: bold; color: ${zoneColor};">${zoneDecision}</span><br>
+                Trip delay: <strong>${tripTime}</strong><br>
+                ${boundaryMsg ? `<span style="color:#ffaa66;">${boundaryMsg}</span><br>` : ""}
+                <div style="background:#2a3b44; padding:0.7rem; border-radius:18px; margin-top:0.8rem;">
+                💡 <strong>Field repair guidance:</strong> Fault at ${faultDist.toFixed(1)} km. 
+                ${faultDist <= zone1_reach_km ? "Zone 1 immediate trip — inspect first 80% of line." : faultDist <= zone2_reach_km ? "Zone 2 delayed trip — fault beyond 80% but within 120% of line length. Check remote end coordination." : "Fault beyond Zone 2 → remote backup protection required. Inspect further downstream."}
+                </div>
+            </div>
+        `;
+      document.getElementById("outputContent").innerHTML = outputHtml;
+    };
+    setTimeout(
+      () => document.getElementById("runFaultLocatorBtn").click(),
+      180,
+    );
+  </script>
+</body>
+
+</html>
