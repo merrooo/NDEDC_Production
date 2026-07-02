@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
+    </script>
+    <style>
+        * {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 0.5rem;
+            margin: 0;
+            background: linear-gradient(135deg, #e0e7ff, #ede9fe, #fae8ff);
+            transition: all 0.3s;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+        }
+
+        .neo-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 28px;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s;
+        }
+
+        .neo-card:hover {
+            box-shadow: 0 24px 48px -12px rgba(79, 70, 229, 0.15);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease, border-color 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+
+        .stat-card .number {
+            font-size: 2.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .stat-card .label {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-modern {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 0.35rem 1rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+            letter-spacing: 0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-modern.small {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.75rem;
+        }
+
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            color: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 40px;
+            padding: 0.35rem 1rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.25s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.45);
+            border-color: rgba(165, 180, 252, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.6rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.6rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+        }
+
+        input,
+        select,
+        textarea {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(226, 232, 240, 0.4);
+            border-radius: 16px;
+            padding: 0.5rem 1rem;
+            color: #1e293b;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #94a3b8;
+        }
+
+        select option {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .user-card {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .user-card .user-info .name {
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .user-card .user-info .email {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .user-card .user-info .role {
+            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        .user-card .user-info .perm-count {
+            font-size: 0.6rem;
+            color: #64748b;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.1);
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .tab-btn:hover {
+            color: #1e293b;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-btn.active {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #4f46e5;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.05);
+        }
+
+        .permission-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .permission-checkbox:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
+        .permission-checkbox input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .permission-checkbox label {
+            color: #1e293b;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            user-select: none;
+            flex-grow: 1;
+        }
+
+        .permission-checkbox .perm-icon {
+            width: 1.2rem;
+            text-align: center;
+            opacity: 0.6;
+            font-size: 0.8rem;
+        }
+
+        .permission-group {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            padding: 0.7rem;
+            margin-bottom: 0.7rem;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .permission-group .group-title {
+            color: #64748b;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .permission-group .group-title .badge {
+            font-size: 0.55rem;
+            padding: 1px 8px;
+            border-radius: 10px;
+            background: rgba(139, 92, 246, 0.15);
+            color: #4f46e5;
+        }
+
+        .role-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 20px;
+            color: #4f46e5;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0.2rem;
+            transition: all 0.2s;
+        }
+
+        .role-tag:hover {
+            background: rgba(139, 92, 246, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .role-tag .remove-role {
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.6rem;
+            padding: 2px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .role-tag .remove-role:hover {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.75rem 1.5rem;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            color: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(16px);
+            border-radius: 28px;
+            padding: 2rem;
+            max-width: 700px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-content h3 {
+            color: #1e293b;
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        .modal-content .subtitle {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            color: #1e293b;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-display {
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.12);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .password-display .label {
+            color: #059669;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .password-display .value {
+            color: #1e293b;
+            font-family: ui-monospace, monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            word-break: break-all;
+            flex-grow: 1;
+        }
+
+        .password-display .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #64748b;
+            padding: 0.4rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .password-display .copy-btn:hover {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(199, 210, 254, 0.7);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(165, 180, 252, 0.9);
+        }
+
+        .sync-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .sync-status.synced {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .sync-status.unsynced {
+            background: rgba(251, 191, 36, 0.15);
+            color: #d97706;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .module-tag {
+            display: inline-block;
+            font-size: 0.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 0.3rem;
+        }
+
+        .module-tag.main-app {
+            background: rgba(99, 102, 241, 0.2);
+            color: #4f46e5;
+        }
+
+        .module-tag.processes {
+            background: rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+        }
+
+        .module-tag.summary {
+            background: rgba(16, 185, 129, 0.2);
+            color: #059669;
+        }
+
+        .module-tag.help {
+            background: rgba(245, 158, 11, 0.2);
+            color: #d97706;
+        }
+
+        .module-tag.dashboard {
+            background: rgba(99, 102, 241, 0.2);
+            color: #4f46e5;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+        }
+
+        .module-btn.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #8b5cf6;
+            color: #4f46e5;
+        }
+
+        .module-btn {
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .module-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .avatar-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .user-avatar-preview {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #8b5cf6;
+        }
+
+        .user-avatar-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px dashed rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 1.8rem;
+        }
+
+        .role-select-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .role-select-wrapper select {
+            flex: 1;
+        }
+
+        .role-select-wrapper .btn-sm {
+            white-space: nowrap;
+        }
+
+        .quick-add-role {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            padding: 0.4rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .quick-add-role input {
+            flex: 1;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .role-badge-new {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            font-size: 0.5rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .select-all-btns {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .select-all-btns button {
+            padding: 0.2rem 0.8rem;
+            font-size: 0.65rem;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .select-all-btns button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .select-all-btns .select-all-btn:hover {
+            border-color: #10b981;
+            color: #059669;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .select-all-btns .deselect-all-btn:hover {
+            border-color: #ef4444;
+            color: #dc2626;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .clear-page-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #1e293b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .clear-page-btn:hover {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #d97706;
+        }
+
+        .clear-page-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #dc2626;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.65rem;
+            color: #64748b;
+        }
+
+        .dashboard-apps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .dashboard-app-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #1e293b;
+        }
+
+        .dashboard-app-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+        }
+
+        .dashboard-app-card .app-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+
+        .dashboard-app-card .app-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .dashboard-app-card .app-desc {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin-top: 0.15rem;
+        }
+
+        .dashboard-app-card .app-badge {
+            display: inline-block;
+            margin-top: 0.3rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.5rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .main-card {
+            max-width: 100%;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .glass-card.rounded-[28px] {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 110px);
+            max-height: calc(100vh - 110px);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content:not(.hidden) {
+            display: flex;
+        }
+
+        #usersList,
+        #permissionsContainer,
+        #databasesList {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        #usersList {
+            max-height: calc(100vh - 320px);
+            min-height: 200px;
+        }
+
+        #permissionsContainer {
+            max-height: calc(100vh - 440px);
+            min-height: 200px;
+        }
+
+        #databasesList {
+            max-height: calc(100vh - 300px);
+            min-height: 200px;
+        }
+
+        #dashboardContent {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .theme-dark body {
+            background: linear-gradient(135deg, #0b1120, #1a1a2e, #16213e);
+        }
+
+        .theme-dark .glass-card {
+            background: rgba(20, 30, 50, 0.4);
+            border-color: rgba(42, 58, 90, 0.4);
+        }
+
+        .theme-dark .modal-content {
+            background: rgba(20, 30, 50, 0.4);
+            border-color: rgba(42, 58, 90, 0.4);
+        }
+
+        .theme-dark .stat-card {
+            background: rgba(20, 30, 50, 0.3);
+            border-color: rgba(42, 58, 90, 0.3);
+        }
+
+        .theme-dark .user-card {
+            background: rgba(20, 30, 50, 0.3);
+            border-color: rgba(42, 58, 90, 0.3);
+        }
+
+        .theme-dark .user-card .user-info .name {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .user-card .user-info .email {
+            color: #94a3b8;
+        }
+
+        .theme-dark .user-card .user-info .role {
+            color: #a78bfa;
+        }
+
+        .theme-dark .tab-btn {
+            color: #94a3b8;
+        }
+
+        .theme-dark .tab-btn:hover {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .tab-btn.active {
+            color: #a78bfa;
+        }
+
+        .theme-dark .permission-checkbox label {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .permission-group .group-title {
+            color: #94a3b8;
+        }
+
+        .theme-dark .role-tag {
+            color: #a78bfa;
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .theme-dark .section-title {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .modal-content h3 {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .modal-content .subtitle {
+            color: #94a3b8;
+        }
+
+        .theme-dark .password-display .value {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .select-all-btns button {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .clear-page-btn {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .role-tag .remove-role {
+            color: #f87171;
+        }
+
+        .theme-dark .user-name {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .user-role {
+            color: #94a3b8;
+        }
+
+        .theme-dark .dashboard-app-card {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .dashboard-app-card .app-desc {
+            color: #94a3b8;
+        }
+
+        .theme-ocean body {
+            background: linear-gradient(135deg, #064663, #0a4b6e, #1a7a9e);
+        }
+
+        .theme-ocean .glass-card {
+            background: rgba(6, 70, 99, 0.5);
+            border-color: rgba(56, 189, 248, 0.25);
+        }
+
+        .theme-ocean .modal-content {
+            background: rgba(6, 70, 99, 0.5);
+            border-color: rgba(56, 189, 248, 0.25);
+        }
+
+        .theme-ocean .stat-card {
+            background: rgba(6, 70, 99, 0.3);
+            border-color: rgba(56, 189, 248, 0.2);
+        }
+
+        .theme-ocean .user-card {
+            background: rgba(6, 70, 99, 0.3);
+            border-color: rgba(56, 189, 248, 0.2);
+        }
+
+        .theme-ocean .user-card .user-info .name {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .user-card .user-info .email {
+            color: #7dd3fc;
+        }
+
+        .theme-ocean .user-card .user-info .role {
+            color: #38bdf8;
+        }
+
+        .theme-ocean .tab-btn {
+            color: #7dd3fc;
+        }
+
+        .theme-ocean .tab-btn:hover {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .tab-btn.active {
+            color: #38bdf8;
+        }
+
+        .theme-ocean .permission-checkbox label {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .permission-group .group-title {
+            color: #7dd3fc;
+        }
+
+        .theme-ocean .role-tag {
+            color: #38bdf8;
+            background: rgba(6, 70, 99, 0.6);
+        }
+
+        .theme-ocean .section-title {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .modal-content h3 {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .modal-content .subtitle {
+            color: #7dd3fc;
+        }
+
+        .theme-ocean .password-display .value {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .select-all-btns button {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .clear-page-btn {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .role-tag .remove-role {
+            color: #f87171;
+        }
+
+        .theme-ocean input,
+        .theme-ocean select,
+        .theme-ocean textarea {
+            background: rgba(13, 79, 117, 0.4);
+            border-color: rgba(56, 189, 248, 0.25);
+            color: #f0f9ff;
+        }
+
+        .theme-dark input,
+        .theme-dark select,
+        .theme-dark textarea {
+            background: rgba(26, 39, 64, 0.4);
+            border-color: rgba(42, 58, 90, 0.4);
+            color: #e2e8f0;
+        }
+
+        .theme-dark input::placeholder,
+        .theme-dark textarea::placeholder {
+            color: #64748b;
+        }
+
+        .theme-ocean input::placeholder,
+        .theme-ocean textarea::placeholder {
+            color: #7dd3fc;
+        }
+
+        .theme-dark .stat-card .number {
+            background: linear-gradient(to right, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-ocean .stat-card .number {
+            background: linear-gradient(to right, #38bdf8, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-dark .gradient-text {
+            background: linear-gradient(135deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-ocean .gradient-text {
+            background: linear-gradient(135deg, #38bdf8, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-dark .user-name {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .user-role {
+            color: #94a3b8;
+        }
+
+        .theme-dark .dashboard-app-card {
+            color: #e2e8f0;
+        }
+
+        .theme-dark .dashboard-app-card .app-desc {
+            color: #94a3b8;
+        }
+
+        .theme-ocean .user-name {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .user-role {
+            color: #7dd3fc;
+        }
+
+        .theme-ocean .dashboard-app-card {
+            color: #f0f9ff;
+        }
+
+        .theme-ocean .dashboard-app-card .app-desc {
+            color: #7dd3fc;
+        }
+    </style>
+    <base target="_blank">
+    <base target="_blank">
+</head>
+
+<body class="theme-light">
+    <div id="mainApp" class="main-card">
+        <div class="glass-card rounded-[28px] p-4 flex flex-col min-h-[97vh] w-full">
+
+            <div class="flex justify-between items-center mb-3 pb-3 border-b border-white/15 flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div class="user-name" id="userNameDisplay">Admin</div>
+                        <div class="user-role" id="userRoleDisplay">Role: admin</div>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div class="bg-white/20 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-sm">
+                        <span id="connectionStatus" class="text-xs font-medium text-gray-600"><i
+                                class="fas fa-circle text-green-400 mr-1.5 animate-pulse"></i> Connected</span>
+                    </div>
+                    <button onclick="window.location.href='Deploy_Loggin_Dashboard.html'" class="btn-glass small text-xs"><i
+                            class="fas fa-arrow-left mr-1"></i> Dashboard</button>
+                    <button onclick="handleLogout()" class="btn-danger small text-xs"><i
+                            class="fas fa-sign-out-alt mr-1"></i> Logout</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 mb-3">
+                <div class="stat-card p-3">
+                    <div class="number text-2xl" id="totalUsers">0</div>
+                    <div class="label text-[10px]">Total Users</div>
+                </div>
+                <div class="stat-card p-3">
+                    <div class="number text-2xl" id="totalRoles">0</div>
+                    <div class="label text-[10px]">Total Roles</div>
+                </div>
+                <div class="stat-card p-3">
+                    <div class="number text-2xl" id="totalPermissions">0</div>
+                    <div class="label text-[10px]">Button Permissions</div>
+                </div>
+                <div class="stat-card p-3">
+                    <div class="number text-2xl" id="totalModules">0</div>
+                    <div class="label text-[10px]">Modules</div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mb-3 flex-wrap">
+                <button class="tab-btn active" data-tab="users"><i class="fas fa-users mr-1"></i> Users</button>
+                <button class="tab-btn" data-tab="permissions"><i class="fas fa-eye-slash mr-1"></i> Visibility</button>
+                <button class="tab-btn" data-tab="databases"><i class="fas fa-database mr-1"></i> Databases</button>
+                <button class="tab-btn" data-tab="cache"><i class="fas fa-broom mr-1"></i> Cache</button>
+            </div>
+
+            <div class="flex-1 overflow-hidden">
+                <div id="tab-users" class="tab-content">
+                    <div class="flex justify-between items-center mb-3 border-b border-white/15 pb-2">
+                        <h2 class="section-title mb-0 text-sm"><i
+                                class="fas fa-users text-purple-400 mr-2"></i>Directory</h2>
+                        <button onclick="showAddUserModal()" class="btn-modern text-xs"><i
+                                class="fas fa-user-plus mr-1"></i> New User</button>
+                    </div>
+                    <div id="usersList" class="space-y-2"></div>
+                </div>
+
+                <div id="tab-permissions" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-3 border-b border-white/15 pb-2">
+                        <h2 class="section-title mb-0 text-sm"><i
+                                class="fas fa-eye-slash text-purple-400 mr-2"></i>Button Visibility</h2>
+                        <div class="flex gap-2">
+                            <span id="syncStatusBadge" class="sync-status synced">✅ Synced</span>
+                            <button onclick="showAddRoleModal()" class="btn-modern text-xs"><i
+                                    class="fas fa-plus mr-1"></i> Role</button>
+                        </div>
+                    </div>
+                    <div class="mb-3 p-3 bg-white/10 rounded-xl border border-white/15">
+                        <h3 class="text-gray-700 font-bold mb-2 uppercase text-[10px] tracking-wider">Available Roles
+                        </h3>
+                        <div id="rolesContainer" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="mb-3 p-3 bg-white/10 rounded-xl border border-white/15">
+                        <h3 class="text-gray-700 font-bold mb-2 uppercase text-[10px] tracking-wider">Module</h3>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button class="module-btn btn-glass text-xs px-3 py-1.5 active" data-module="main_app">Main
+                                App</button>
+                            <button class="module-btn btn-glass text-xs px-3 py-1.5"
+                                data-module="processes">Processes</button>
+                            <button class="module-btn btn-glass text-xs px-3 py-1.5"
+                                data-module="summary">Summary</button>
+                            <button class="module-btn btn-glass text-xs px-3 py-1.5" data-module="help">Help</button>
+                            <button class="module-btn btn-glass text-xs px-3 py-1.5"
+                                data-module="dashboard">Dashboard</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 p-3 bg-white/10 rounded-xl border border-white/15 overflow-hidden flex flex-col">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-700 font-bold uppercase text-[10px] tracking-wider">Visible for: <span
+                                    id="selectedRoleDisplay"
+                                    class="text-purple-600 ml-1 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20 text-[10px]">admin</span>
+                            </h3>
+                            <div class="select-all-btns">
+                                <button class="select-all-btn text-[10px]" onclick="selectAllPermissions()"><i
+                                        class="fas fa-check-double mr-0.5"></i> All</button>
+                                <button class="deselect-all-btn text-[10px]" onclick="deselectAllPermissions()"><i
+                                        class="fas fa-times mr-0.5"></i> None</button>
+                                <span class="text-[10px] text-gray-500" id="permCountDisplay">0 checked</span>
+                            </div>
+                        </div>
+                        <div id="permissionsContainer" class="flex-1 overflow-y-auto pr-1"></div>
+                        <div class="flex gap-2 mt-3 pt-3 border-t border-white/15">
+                            <button onclick="savePermissions()" class="btn-modern text-xs"><i
+                                    class="fas fa-save mr-1"></i> Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-databases" class="tab-content hidden">
+                    <div class="mb-3 border-b border-white/15 pb-2">
+                        <h2 class="section-title mb-0 text-sm"><i class="fas fa-server text-purple-400 mr-2"></i>Storage
+                            Volumes</h2>
+                    </div>
+                    <div id="databasesList" class="space-y-2 flex-1 overflow-y-auto"></div>
+                </div>
+
+                <div id="tab-cache" class="tab-content hidden">
+                    <div class="mb-3 border-b border-white/15 pb-2">
+                        <h2 class="section-title mb-0 text-sm"><i class="fas fa-broom text-yellow-400 mr-2"></i>Clear
+                            Cache</h2>
+                        <p class="text-gray-500 text-xs mt-0.5">Clear cache for a page and open it in a new tab</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 flex-1">
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-yellow-400/30 transition flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-home text-blue-400 mr-1"></i>Main</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Main_App.html</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Main_App.html')" class="clear-page-btn text-[10px]">
+                                <i class="fas fa-broom"></i> Clear
+                            </button>
+                        </div>
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-yellow-400/30 transition flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-cogs text-red-400 mr-1"></i>Processes</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Processes.html</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Processes.html')" class="clear-page-btn text-[10px]">
+                                <i class="fas fa-broom"></i> Clear
+                            </button>
+                        </div>
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-yellow-400/30 transition flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-chart-bar text-green-400 mr-1"></i>Summary</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Summary.html</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Summary.html')" class="clear-page-btn text-[10px]">
+                                <i class="fas fa-broom"></i> Clear
+                            </button>
+                        </div>
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-yellow-400/30 transition flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-life-ring text-yellow-400 mr-1"></i>Help</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Help.html</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Help.html')" class="clear-page-btn text-[10px]">
+                                <i class="fas fa-broom"></i> Clear
+                            </button>
+                        </div>
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-yellow-400/30 transition flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-th-large text-purple-400 mr-1"></i>Dashboard</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Loggin_Dashboard.html</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Loggin_Dashboard.html')"
+                                class="clear-page-btn text-[10px]">
+                                <i class="fas fa-broom"></i> Clear
+                            </button>
+                        </div>
+                        <div
+                            class="bg-white/10 rounded-xl p-3 border border-white/15 hover:border-red-400/30 transition col-span-2 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-gray-800 font-bold text-sm"><i
+                                        class="fas fa-shield-alt text-purple-400 mr-1"></i>Control Panel</h4>
+                                <p class="text-gray-400 text-[10px]">Deploy_Control.html (this page)</p>
+                            </div>
+                            <button onclick="clearPageCache('Deploy_Control.html')" class="clear-page-btn danger text-[10px]">
+                                <i class="fas fa-broom"></i> Clear & Reload
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 p-3 bg-yellow-400/10 border border-yellow-400/20 rounded-xl">
+                        <p class="text-yellow-600 text-[11px]">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Clearing cache removes local storage, session storage, and browser cache for the selected
+                            page.
+                            Theme and login session are preserved.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addUserModal" class="modal-overlay hidden">
+        <div class="modal-content relative">
+            <button
+                class="absolute top-3 right-3 text-slate-600 hover:text-rose-600 transition-colors w-7 h-7 rounded-full hover:bg-rose-50/40 flex items-center justify-center bg-black/5 text-sm"
+                onclick="closeModal('addUserModal')"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-user-plus text-purple-400 mr-2"></i>Create Account</h3>
+            <p class="subtitle text-sm">Provision a new user profile with image and role access.</p>
+            <div class="space-y-3">
+                <div class="avatar-upload-area">
+                    <div class="shrink-0 relative">
+                        <img id="newImagePreview" class="hidden user-avatar-preview" src="" alt="Preview">
+                        <div id="newImagePlaceholder" class="user-avatar-placeholder"><i class="fas fa-user"></i></div>
+                    </div>
+                    <div class="flex-grow">
+                        <label class="block text-xs font-medium text-gray-600 mb-0.5">Profile Avatar</label>
+                        <input type="file" id="newUserImage" accept="image/*" class="w-full text-xs"
+                            onchange="previewImage(event, 'newImagePreview', 'newImagePlaceholder')">
+                        <p class="text-[10px] text-gray-400 mt-0.5">Upload a profile picture (optional)</p>
+                    </div>
+                </div>
+                <input type="text" id="newUserUsername" placeholder="Username" class="w-full text-sm">
+                <div class="role-select-wrapper">
+                    <select id="newUserRole" class="w-full text-sm"></select>
+                    <button onclick="showQuickAddRole()" class="btn-modern btn-sm text-xs" title="Add New Role"><i
+                            class="fas fa-plus"></i> Add Role</button>
+                </div>
+                <div id="quickAddRoleContainer" class="quick-add-role hidden">
+                    <input type="text" id="quickRoleName" placeholder="New role name" class="w-full text-sm">
+                    <button onclick="quickAddRole()" class="btn-success btn-sm text-xs"><i class="fas fa-check"></i>
+                        Add</button>
+                    <button onclick="hideQuickAddRole()" class="btn-glass btn-sm text-xs"><i
+                            class="fas fa-times"></i></button>
+                </div>
+                <input type="email" id="newUserEmail" placeholder="Email Address (Optional)" class="w-full text-sm">
+                <input type="password" id="newUserPassword" placeholder="Secure Password" class="w-full text-sm">
+                <div class="flex gap-2 justify-end mt-4">
+                    <button onclick="closeModal('addUserModal')" class="btn-glass text-xs">Cancel</button>
+                    <button onclick="addUser()" class="btn-modern text-xs"><i class="fas fa-check mr-1"></i>
+                        Provision</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal-overlay hidden">
+        <div class="modal-content relative">
+            <button
+                class="absolute top-3 right-3 text-slate-600 hover:text-rose-600 transition-colors w-7 h-7 rounded-full hover:bg-rose-50/40 flex items-center justify-center bg-black/5 text-sm"
+                onclick="closeModal('editUserModal')"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-user-edit text-purple-400 mr-2"></i>Modify Account</h3>
+            <p class="subtitle text-sm">Update user profile, credentials, and access tier.</p>
+            <div class="space-y-3">
+                <div class="avatar-upload-area">
+                    <div class="shrink-0 relative">
+                        <img id="editImagePreview" class="hidden user-avatar-preview" src="" alt="Preview">
+                        <div id="editImagePlaceholder" class="user-avatar-placeholder"><i class="fas fa-user"></i></div>
+                    </div>
+                    <div class="flex-grow">
+                        <label class="block text-xs font-medium text-gray-600 mb-0.5">Update Avatar</label>
+                        <input type="file" id="editUserImage" accept="image/*" class="w-full text-xs"
+                            onchange="previewImage(event, 'editImagePreview', 'editImagePlaceholder')">
+                        <p class="text-[10px] text-gray-400 mt-0.5">Upload a new profile picture (optional)</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="editUserUsername" placeholder="Username" class="w-full text-sm">
+                    <select id="editUserRole" class="w-full text-sm"></select>
+                </div>
+                <input type="email" id="editUserEmail" placeholder="Email Address (Optional)" class="w-full text-sm">
+                <div class="p-3 bg-white/10 rounded-xl border border-white/15">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Authentication Reset</label>
+                    <input type="password" id="editUserPassword" placeholder="Leave blank to keep current password"
+                        class="w-full text-sm">
+                </div>
+                <div class="password-display">
+                    <span class="label text-[10px]"><i class="fas fa-key mr-1"></i>Active Key:</span>
+                    <span class="value text-sm" id="editUserCurrentPassword">••••••••</span>
+                    <button class="copy-btn" onclick="copyPassword()" title="Copy to clipboard"><i
+                            class="fas fa-copy"></i></button>
+                </div>
+                <input type="hidden" id="editUserId">
+                <div class="flex gap-2 justify-end mt-4">
+                    <button onclick="closeModal('editUserModal')" class="btn-glass text-xs">Cancel</button>
+                    <button onclick="updateUser()" class="btn-modern text-xs"><i class="fas fa-save mr-1"></i>
+                        Commit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addRoleModal" class="modal-overlay hidden">
+        <div class="modal-content relative">
+            <button
+                class="absolute top-3 right-3 text-slate-600 hover:text-rose-600 transition-colors w-7 h-7 rounded-full hover:bg-rose-50/40 flex items-center justify-center bg-black/5 text-sm"
+                onclick="closeModal('addRoleModal')"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-user-tag text-purple-400 mr-2"></i>Define New Role</h3>
+            <p class="subtitle text-sm">Establish a new access tier for system users.</p>
+            <div class="space-y-3">
+                <input type="text" id="newRoleName" placeholder="Role Identity (e.g., moderator)"
+                    class="w-full text-sm">
+                <div class="flex gap-2 justify-end mt-4">
+                    <button onclick="closeModal('addRoleModal')" class="btn-glass text-xs">Cancel</button>
+                    <button onclick="addRole()" class="btn-modern text-xs"><i class="fas fa-plus mr-1"></i>
+                        Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // FIREBASE CONFIG
+        // ============================================================
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528"
+        };
+
+        let firebaseDB = null;
+        let users = {};
+        let rolePermissions = {};
+        let savedDatabases = {};
+        let selectedRole = 'admin';
+        let selectedModule = 'main_app';
+        let currentUser = null;
+
+        const APPS = [{
+            id: 'main_app',
+            name: 'Main App',
+            icon: 'fa-home',
+            desc: 'Database management & operations',
+            color: 'text-blue-500',
+            path: 'Deploy_Main_App.html',
+            badge: 'Core'
+        }, {
+            id: 'processes',
+            name: 'Processes',
+            icon: 'fa-cogs',
+            desc: 'Excel tools & data processing',
+            color: 'text-red-500',
+            path: 'Deploy_Processes.html',
+            badge: 'Tools'
+        }, {
+            id: 'summary',
+            name: 'Summary',
+            icon: 'fa-chart-bar',
+            desc: 'Data analysis & pivot tables',
+            color: 'text-green-500',
+            path: 'Deploy_Summary.html',
+            badge: 'Analytics'
+        }, {
+            id: 'help',
+            name: 'Help',
+            icon: 'fa-life-ring',
+            desc: 'Support & ticket system',
+            color: 'text-yellow-500',
+            path: 'Deploy_Help.html',
+            badge: 'Support'
+        }, {
+            id: 'dashboard',
+            name: 'Dashboard',
+            icon: 'fa-th-large',
+            desc: 'Main dashboard & navigation',
+            color: 'text-purple-500',
+            path: 'Deploy_Loggin_Dashboard.html',
+            badge: 'Home'
+        }, {
+            id: 'control',
+            name: 'Control Panel',
+            icon: 'fa-shield-alt',
+            desc: 'User & permission management',
+            color: 'text-red-500',
+            path: 'Deploy_Control.html',
+            badge: 'Admin'
+        }];
+
+        const ALL_BUTTONS = {
+            main_app: [
+                { id: 'dbActionsBtn', label: '📁 Database Actions', group: 'top_bar' },
+                { id: 'columnOpsBtn', label: '📋 Column Operations', group: 'top_bar' },
+                { id: 'rowOpsBtn', label: '📋 Row Operations', group: 'top_bar' },
+                { id: 'showStatsBtn', label: '📊 Statistics', group: 'top_bar' },
+                { id: 'settingsExportJsonBtn', label: '📄 Export JSON', group: 'settings_sub' },
+                { id: 'settingsExportExcelBtn', label: '📊 Export Excel', group: 'settings_sub' },
+                { id: 'settingsImportExcel', label: '📂 Import Excel', group: 'settings_sub' },
+                { id: 'settingsAddPageBtn', label: '🌐 Add Page', group: 'settings_sub' },
+                { id: 'settingsSleepBtn', label: '💤 Sleep', group: 'settings_sub' },
+                { id: 'settingsLogoutBtn', label: '🚪 Logout', group: 'settings_sub' },
+                { id: 'theme-option-small', label: '🎨 Theme: Light ☀️ / Dark 🌙 / Ocean 🌊', group: 'settings_sub' },
+                { id: 'dbCreateBtn', label: '📁 New Project', group: 'db_actions_sub' },
+                { id: 'dbSwitchBtn2', label: '📂 Load / Switch', group: 'db_actions_sub' },
+                { id: 'dbSaveBtn', label: '💾 Save Current', group: 'db_actions_sub' },
+                { id: 'dbUserSaveBtn', label: '📋 Manage Saved DBs', group: 'db_actions_sub' },
+                { id: 'menuAddRowBtn', label: '➕ Add Row', group: 'row_ops_sub' },
+                { id: 'menuBulkShiftBtn', label: '🔄 Bulk Shift', group: 'row_ops_sub' },
+                { id: 'menuBulkDeleteBtn', label: '🗑️ Bulk Delete Rows', group: 'row_ops_sub' },
+            ],
+            processes: [
+                { id: 'dbActionsBtn', label: '📁 Database Actions', group: 'top_bar' },
+                { id: 'rowOpsBtn', label: '📋 Row Operations', group: 'top_bar' },
+                { id: 'excelCleanBtn', label: '🧹 Data Cleaner', group: 'top_bar' },
+                { id: 'excelDateBtn', label: '📅 Date Converter', group: 'top_bar' },
+                { id: 'excelTextBtn', label: '✂️ Text Stripper', group: 'top_bar' },
+                { id: 'excelWordBtn', label: '✏️ Add Word to Cells', group: 'top_bar' },
+                { id: 'excelSeqBtn', label: '🔢 Sequence Generator', group: 'top_bar' },
+                { id: 'excelDupBtn', label: '📋 Duplicate Manager', group: 'top_bar' },
+                { id: 'excelSplitBtn', label: '✂️ Excel Splitter', group: 'top_bar' },
+                { id: 'excelMergeBtn', label: '🔗 Merger (2 files)', group: 'top_bar' },
+                { id: 'excelAdvMergeBtn', label: '🔗 Advanced Merger', group: 'top_bar' },
+                { id: 'excelProximityBtn', label: '🎯 Proximity Merge', group: 'top_bar' },
+                { id: 'settingsExportJsonBtn', label: '📄 Export JSON', group: 'settings_sub' },
+                { id: 'settingsExportExcelBtn', label: '📊 Export Excel', group: 'settings_sub' },
+                { id: 'settingsImportExcel', label: '📂 Import Excel', group: 'settings_sub' },
+                { id: 'settingsAddPageBtn', label: '🌐 Add Page', group: 'settings_sub' },
+                { id: 'settingsSleepBtn', label: '💤 Sleep', group: 'settings_sub' },
+                { id: 'settingsLogoutBtn', label: '🚪 Logout', group: 'settings_sub' },
+                { id: 'theme-option-small', label: '🎨 Theme: Light ☀️ / Dark 🌙 / Ocean 🌊', group: 'settings_sub' },
+                { id: 'dbCreateBtn', label: '📁 New Project', group: 'db_actions_sub' },
+                { id: 'dbSwitchBtn2', label: '📂 Load / Switch', group: 'db_actions_sub' },
+                { id: 'dbSaveBtn', label: '💾 Save Current', group: 'db_actions_sub' },
+                { id: 'dbUserSaveBtn', label: '📋 Manage Saved DBs', group: 'db_actions_sub' },
+                { id: 'menuAddRowBtn', label: '➕ Add Row', group: 'row_ops_sub' },
+                { id: 'menuBulkDeleteBtn', label: '🗑️ Bulk Delete Rows', group: 'row_ops_sub' },
+            ],
+            summary: [
+                { id: 'dbSwitchBtn', label: '📁 Load / Switch Database', group: 'top_bar' },
+                { id: 'excelSummaryBtn', label: '📊 Count Summary', group: 'top_bar' },
+                { id: 'excelPivotBtn', label: '📊 Pivot Studio', group: 'top_bar' },
+                { id: 'settingsExportJsonBtn', label: '📄 Export JSON', group: 'settings_sub' },
+                { id: 'settingsExportExcelBtn', label: '📊 Export Excel', group: 'settings_sub' },
+                { id: 'settingsImportExcel', label: '📂 Import Excel', group: 'settings_sub' },
+                { id: 'settingsAddPageBtn', label: '🌐 Add Page', group: 'settings_sub' },
+                { id: 'settingsSleepBtn', label: '💤 Sleep', group: 'settings_sub' },
+                { id: 'settingsLogoutBtn', label: '🚪 Logout', group: 'settings_sub' },
+                { id: 'theme-option-small', label: '🎨 Theme: Light ☀️ / Dark 🌙 / Ocean 🌊', group: 'settings_sub' },
+            ],
+            help: [
+                { id: 'contactInfo', label: '📞 Contact Info', group: 'top_bar' },
+                { id: 'ticketForm', label: '🎫 Ticket Form', group: 'top_bar' },
+            ],
+            dashboard: [
+                { id: 'viewDashboard', label: '📊 View Dashboard', group: 'top_bar' },
+                { id: 'viewUserInfo', label: '👤 View User Info (Avatar, Name, Role)', group: 'top_bar' },
+                { id: 'goToMainApp', label: '🚀 Go to Main App', group: 'top_bar' },
+                { id: 'goToProcesses', label: '⚙️ Go to Processes', group: 'top_bar' },
+                { id: 'goToSummary', label: '📈 Go to Summary', group: 'top_bar' },
+                { id: 'goToHelp', label: '❓ Go to Help', group: 'top_bar' },
+                { id: 'goToControl', label: '🛡️ Go to Control Panel', group: 'top_bar' },
+                { id: 'refreshPermissions', label: '🔄 Refresh Permissions Button', group: 'top_bar' },
+                { id: 'theme-option-small', label: '🎨 Theme Buttons (Light/Dark/Ocean)', group: 'top_bar' },
+                { id: 'logout', label: '🚪 Logout Button', group: 'top_bar' },
+            ]
+        };
+
+        function getAllButtonIds() {
+            return Object.values(ALL_BUTTONS).flatMap(module => module.map(p => p.id));
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
+
+        function showToast(msg, type = 'info') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-check-circle text-emerald-500' : type === 'error' ?
+                'fa-exclamation-triangle text-red-500' : 'fa-info-circle text-blue-500';
+            toast.innerHTML = `<i class="fas ${icon} text-sm"></i> <span class="tracking-wide text-sm">${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.style.opacity = '0';
+            setTimeout(() => { modal.classList.add('hidden'); modal.style.opacity = ''; }, 300);
+        }
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function previewImage(event, previewId, placeholderId) {
+            const file = event.target.files[0];
+            const preview = document.getElementById(previewId);
+            const placeholder = document.getElementById(placeholderId);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = "";
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+        }
+
+        function generateUserId(username) {
+            const randomNum = Math.floor(100000 + Math.random() * 900000);
+            return `${username.toLowerCase()}-${randomNum}`;
+        }
+
+        function ensureRoleExists(role) {
+            if (!role) return false;
+            if (rolePermissions[role]) return true;
+            rolePermissions[role] = {
+                permissions: getAllButtonIds()
+            };
+            console.log(`✅ Auto-created role "${role}" in permissions with all buttons`);
+            return true;
+        }
+
+        function initFirebase() {
+            try {
+                firebase.initializeApp(FIREBASE_CONFIG);
+                firebaseDB = firebase.database();
+                console.log("Firebase initialized");
+                return true;
+            } catch (e) {
+                console.error("Firebase init error:", e);
+                showToast("Failed to connect to Firebase", "error");
+                return false;
+            }
+        }
+
+        async function loadAllData() {
+            if (!firebaseDB) return;
+            try {
+                const usersSnap = await firebaseDB.ref('users-generatedcode').once('value');
+                users = usersSnap.val() || {};
+                console.log('📋 Users loaded:', Object.keys(users).length);
+
+                const permsSnap = await firebaseDB.ref('rolePermissions').once('value');
+                const permsFromFirebase = permsSnap.val();
+
+                if (permsFromFirebase && Object.keys(permsFromFirebase).length > 0) {
+                    rolePermissions = permsFromFirebase;
+                    document.getElementById('syncStatusBadge').className = 'sync-status synced';
+                    document.getElementById('syncStatusBadge').innerHTML = '✅ Synced';
+                } else {
+                    rolePermissions = {};
+                    document.getElementById('syncStatusBadge').className = 'sync-status synced';
+                    document.getElementById('syncStatusBadge').innerHTML = '✅ Synced';
+                }
+
+                // ✅ Create permissions for each role found in users
+                let rolesAdded = 0;
+                for (let key in users) {
+                    const role = users[key].author || 'visitor';
+                    if (!rolePermissions[role]) {
+                        rolePermissions[role] = { permissions: getAllButtonIds() };
+                        rolesAdded++;
+                        console.log(`🔧 Created permissions for role: "${role}" from user: ${users[key].username}`);
+                    }
+                }
+                if (rolesAdded > 0) {
+                    console.log(`✅ Added ${rolesAdded} new roles from users`);
+                }
+
+                // ✅ If no roles exist at all, create a basic visitor role
+                if (Object.keys(rolePermissions).length === 0) {
+                    rolePermissions = {
+                        visitor: { permissions: ['dbActionsBtn', 'showStatsBtn', 'viewDashboard'] }
+                    };
+                    await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                    console.log('✅ Created default visitor role (no users found)');
+                }
+
+                // ✅ Save permissions to Firebase if changed
+                const permsSnapCheck = await firebaseDB.ref('rolePermissions').once('value');
+                const currentPerms = permsSnapCheck.val() || {};
+                if (JSON.stringify(currentPerms) !== JSON.stringify(rolePermissions)) {
+                    await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                    console.log('✅ Saved updated permissions to Firebase');
+                }
+
+                const dbSnap = await firebaseDB.ref('Project_1').once('value');
+                savedDatabases = dbSnap.val() || {};
+
+                await loadUserSession();
+                updateUI();
+                showToast("Data loaded successfully", "success");
+            } catch (e) {
+                console.error("Load error:", e);
+                showToast("Error loading data", "error");
+            }
+        }
+
+        async function loadUserSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            if (savedUser && isLoggedIn) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    const snap = await firebaseDB.ref('users-generatedcode/' + currentUser.id).once('value');
+                    if (snap.exists()) {
+                        document.getElementById('userNameDisplay').textContent = currentUser.username || 'Admin';
+                        document.getElementById('userRoleDisplay').textContent = `Role: ${currentUser.author || 'admin'}`;
+                        const avatar = document.getElementById('userAvatar');
+                        if (currentUser.profileImage) {
+                            avatar.innerHTML = `<img src="${currentUser.profileImage}" alt="${currentUser.username}">`;
+                        } else {
+                            avatar.innerHTML = `<i class="fas fa-user"></i>`;
+                        }
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Error loading user session:', e);
+                }
+            }
+            document.getElementById('userNameDisplay').textContent = 'Admin';
+            document.getElementById('userRoleDisplay').textContent = 'Role: admin';
+            return false;
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            localStorage.setItem('isLoggedIn', 'false');
+            sessionStorage.setItem('wasLoggedIn', 'false');
+            window.location.href = 'Deploy_Loggin_Dashboard.html';
+        }
+
+        function updateUI() {
+            updateStats();
+            renderUsers();
+            renderRoles();
+            renderPermissions();
+            renderDatabases();
+            renderDashboardApps();
+            populateRoleDropdowns();
+            updateConnectionStatus();
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = Object.keys(users).length;
+            document.getElementById('totalRoles').textContent = Object.keys(rolePermissions).length;
+            const totalPerms = Object.values(ALL_BUTTONS).reduce((sum, arr) => sum + arr.length, 0);
+            document.getElementById('totalPermissions').textContent = totalPerms;
+            document.getElementById('totalModules').textContent = Object.keys(ALL_BUTTONS).length;
+        }
+
+        function renderUsers() {
+            const container = document.getElementById('usersList');
+            if (!container) return;
+            const userEntries = Object.entries(users);
+            if (userEntries.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm font-medium">No users found</div>';
+                return;
+            }
+            let html = '';
+            userEntries.forEach(([key, user]) => {
+                const avatarHtml = user.profileImage ?
+                    `<img src="${escapeHtml(user.profileImage)}" class="w-10 h-10 rounded-full border-2 border-purple-500/50 object-cover">` :
+                    `<div class="w-10 h-10 rounded-full bg-white/40 border-2 border-purple-500/30 flex items-center justify-center text-purple-400 shadow-inner"><i class="fas fa-user text-base"></i></div>`;
+
+                const role = user.author || 'visitor';
+                const perms = rolePermissions[role] || { permissions: [] };
+                const permCount = (perms.permissions || []).length;
+                const statusBadge = user.status === 'active' ?
+                    '<span class="text-[10px] text-emerald-600 bg-emerald-50/60 px-2 py-0.5 rounded-full border border-emerald-200">Active</span>' :
+                    '<span class="text-[10px] text-gray-400 bg-gray-100/60 px-2 py-0.5 rounded-full border border-gray-200">Inactive</span>';
+
+                html += `<div class="user-card"><div class="user-info flex items-center gap-3 flex-wrap"><div class="shrink-0">${avatarHtml}</div><div class="flex flex-col"><span class="name text-sm">${escapeHtml(user.username)}</span><div class="flex items-center gap-2 mt-0.5 flex-wrap">${user.email ? `<span class="email text-xs"><i class="fas fa-envelope mr-1 text-gray-400"></i>${escapeHtml(user.email)}</span>` : ''}<span class="role text-[10px]"><i class="fas fa-tag mr-1 opacity-70"></i>${escapeHtml(role)}</span><span class="perm-count text-[10px]"><i class="fas fa-eye mr-1"></i>${permCount}</span>${statusBadge}</div></div></div><div class="flex gap-1.5"><button onclick="editUser('${key}')" class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all flex items-center justify-center border border-blue-500/20 hover:border-blue-500/40"><i class="fas fa-pen text-[11px]"></i></button>${user.username !== 'amir' ? `<button onclick="deleteUser('${key}')" class="w-8 h-8 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all flex items-center justify-center border border-red-500/20 hover:border-red-500/40"><i class="fas fa-trash-alt text-[11px]"></i></button>` : ''}</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('rolesContainer');
+            if (!container) return;
+            let html = '';
+            const roles = Object.keys(rolePermissions);
+
+            if (roles.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-xs">No roles defined.</div>';
+                return;
+            }
+
+            roles.forEach(role => {
+                const displayName = role.charAt(0).toUpperCase() + role.slice(1);
+                const activeStyle = selectedRole === role ?
+                    'background: rgba(139,92,246,0.15); border-color: #8b5cf6; box-shadow: 0 0 10px rgba(139,92,246,0.1);' :
+                    '';
+                const perms = rolePermissions[role] || { permissions: [] };
+                const permCount = (perms.permissions || []).length;
+
+                let usedBy = [];
+                for (let key in users) {
+                    if ((users[key].author || 'visitor') === role) {
+                        usedBy.push(users[key].username);
+                    }
+                }
+                const usedByText = usedBy.length > 0 ? `👤 ${usedBy.slice(0, 2).join(', ')}${usedBy.length > 2 ? ` +${usedBy.length - 2}` : ''}` : '';
+
+                html +=
+                    `<span class="role-tag cursor-pointer text-xs" style="${activeStyle}" onclick="selectRole('${role}')">
+                        <i class="fas fa-user-tag mr-1"></i> 
+                        ${displayName}
+                        <span class="text-[10px] text-gray-400">(${permCount})</span>
+                        ${usedByText ? `<span class="text-[10px] text-gray-400 ml-1">${usedByText}</span>` : ''}
+                        <span class="remove-role ml-1" onclick="event.stopPropagation();deleteRole('${role}')"><i class="fas fa-times"></i></span>
+                    </span>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function getCurrentModuleButtons() {
+            return ALL_BUTTONS[selectedModule] || [];
+        }
+
+        function selectAllPermissions() {
+            const checkboxes = document.querySelectorAll('#permissionsContainer .perm-checkbox');
+            checkboxes.forEach(cb => {
+                if (!cb.checked) {
+                    cb.checked = true;
+                    const event = new Event('change', { bubbles: true });
+                    cb.dispatchEvent(event);
+                }
+            });
+            updatePermCount();
+            showToast('All permissions selected', 'info');
+        }
+
+        function deselectAllPermissions() {
+            const checkboxes = document.querySelectorAll('#permissionsContainer .perm-checkbox');
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    cb.checked = false;
+                    const event = new Event('change', { bubbles: true });
+                    cb.dispatchEvent(event);
+                }
+            });
+            updatePermCount();
+            showToast('All permissions deselected', 'info');
+        }
+
+        function updatePermCount() {
+            const checkboxes = document.querySelectorAll('#permissionsContainer .perm-checkbox');
+            const checked = document.querySelectorAll('#permissionsContainer .perm-checkbox:checked');
+            const countDisplay = document.getElementById('permCountDisplay');
+            if (countDisplay) {
+                countDisplay.textContent = `${checked.length} / ${checkboxes.length} checked`;
+            }
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsContainer');
+            if (!container) return;
+            if (!rolePermissions[selectedRole]) {
+                rolePermissions[selectedRole] = { permissions: [] };
+            }
+            const perms = rolePermissions[selectedRole] || { permissions: [] };
+            const allowedPerms = perms.permissions || [];
+            const moduleButtons = getCurrentModuleButtons();
+
+            document.getElementById('selectedRoleDisplay').textContent = selectedRole;
+
+            if (moduleButtons.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No buttons defined for this module.</div>';
+                return;
+            }
+
+            const groups = {};
+            moduleButtons.forEach(p => {
+                if (!groups[p.group]) groups[p.group] = [];
+                groups[p.group].push(p);
+            });
+
+            const groupLabels = {
+                top_bar: '🔵 Top Bar - Main Buttons',
+                settings_sub: '⚙️ Settings - Sub Buttons',
+                db_actions_sub: '📁 Database Actions - Sub Buttons',
+                row_ops_sub: '📋 Row Operations - Sub Buttons',
+            };
+
+            let html = '';
+            for (const [groupKey, permsList] of Object.entries(groups)) {
+                const checkedCount = permsList.filter(p => allowedPerms.includes(p.id)).length;
+
+                html += `<div class="permission-group">
+                    <div class="group-title text-[10px]">
+                        ${groupLabels[groupKey] || groupKey}
+                        <span class="badge text-[9px]">${checkedCount}/${permsList.length}</span>
+                    </div>`;
+
+                permsList.forEach(perm => {
+                    const checked = allowedPerms.includes(perm.id) ? 'checked' : '';
+                    const moduleTag = selectedModule !== 'main_app' ?
+                        `<span class="module-tag ${selectedModule}">${selectedModule}</span>` :
+                        '';
+
+                    html += `<div class="permission-checkbox">
+                        <input type="checkbox" class="perm-checkbox" data-role="${selectedRole}" data-perm="${perm.id}" ${checked}>
+                        <span class="perm-icon text-xs">${checked ? '👁️' : '🚫'}</span>
+                        <label class="text-xs">${perm.label} ${moduleTag}</label>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+
+            document.querySelectorAll('.perm-checkbox').forEach(cb => {
+                cb.onchange = function () {
+                    const role = this.getAttribute('data-role');
+                    const perm = this.getAttribute('data-perm');
+                    if (!rolePermissions[role]) {
+                        rolePermissions[role] = { permissions: [] };
+                    }
+                    if (!rolePermissions[role].permissions) {
+                        rolePermissions[role].permissions = [];
+                    }
+                    if (this.checked) {
+                        if (!rolePermissions[role].permissions.includes(perm)) {
+                            rolePermissions[role].permissions.push(perm);
+                        }
+                    } else {
+                        rolePermissions[role].permissions = rolePermissions[role].permissions.filter(p => p !== perm);
+                    }
+                    document.getElementById('syncStatusBadge').className = 'sync-status unsynced';
+                    document.getElementById('syncStatusBadge').innerHTML = '⚠️ Unsaved Changes';
+                    renderPermissions();
+                    renderRoles();
+                    updatePermCount();
+                };
+            });
+
+            updatePermCount();
+        }
+
+        function renderDatabases() {
+            const container = document.getElementById('databasesList');
+            if (!container) return;
+            const dbEntries = Object.entries(savedDatabases);
+            if (dbEntries.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm font-medium">No databases found</div>';
+                return;
+            }
+            let html = '';
+            dbEntries.forEach(([name, data]) => {
+                const rowCount = data ? Object.keys(data).filter(k => k.startsWith('row_')).length : 0;
+                const colCount = data && data['row_1'] ? Object.keys(data['row_1']).length : 0;
+                html += `<div class="user-card"><div class="user-info flex items-center gap-3 flex-wrap"><div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-500"><i class="fas fa-database text-sm"></i></div><div class="flex flex-col"><span class="name text-sm">${escapeHtml(name)}</span><span class="text-gray-400 text-xs mt-0.5"><i class="fas fa-table mr-1"></i> ${rowCount} rows, ${colCount} columns</span></div></div><button onclick="deleteDatabase('${name}')" class="w-8 h-8 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all flex items-center justify-center border border-red-500/20 hover:border-red-500/40"><i class="fas fa-trash-alt text-[11px]"></i></button></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderDashboardApps() {
+            const container = document.getElementById('appsContainer');
+            if (!container) return;
+            container.innerHTML = APPS.map(app => `
+                <a href="${app.path}" class="dashboard-app-card">
+                    <span class="app-icon ${app.color}"><i class="fas ${app.icon}"></i></span>
+                    <div class="app-name">${app.name}</div>
+                    <div class="app-desc">${app.desc}</div>
+                    <span class="app-badge">${app.badge}</span>
+                </a>
+            `).join('');
+        }
+
+        function populateRoleDropdowns() {
+            const selects = ['newUserRole', 'editUserRole'];
+
+            let roles = [];
+            for (let key in users) {
+                const role = users[key].author || 'visitor';
+                if (!roles.includes(role)) {
+                    roles.push(role);
+                }
+            }
+
+            // Also include roles that exist in rolePermissions but not in users
+            for (let role in rolePermissions) {
+                if (!roles.includes(role)) {
+                    roles.push(role);
+                }
+            }
+
+            if (roles.length === 0) {
+                roles = ['visitor'];
+            }
+
+            roles.forEach(role => {
+                if (!rolePermissions[role]) {
+                    rolePermissions[role] = { permissions: getAllButtonIds() };
+                    console.log(`🔧 Created permissions for role: "${role}"`);
+                }
+            });
+
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const currentValue = select.value;
+                select.innerHTML = '';
+
+                roles.sort().forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                    select.appendChild(option);
+                });
+
+                if (currentValue && roles.includes(currentValue)) {
+                    select.value = currentValue;
+                } else if (roles.length > 0) {
+                    select.value = roles[0];
+                }
+            });
+        }
+
+        function updateConnectionStatus() {
+            const status = document.getElementById('connectionStatus');
+            if (firebaseDB) {
+                firebaseDB.ref('.info/connected').once('value', (snap) => {
+                    if (snap.val()) {
+                        status.innerHTML = '<i class="fas fa-circle text-green-400 mr-1.5 animate-pulse"></i> System Online';
+                    } else {
+                        status.innerHTML = '<i class="fas fa-circle text-red-500 mr-1.5"></i> Disconnected';
+                    }
+                });
+            }
+        }
+
+        function showQuickAddRole() {
+            document.getElementById('quickAddRoleContainer').classList.remove('hidden');
+            document.getElementById('quickRoleName').focus();
+        }
+
+        function hideQuickAddRole() {
+            document.getElementById('quickAddRoleContainer').classList.add('hidden');
+            document.getElementById('quickRoleName').value = '';
+        }
+
+        function quickAddRole() {
+            const input = document.getElementById('quickRoleName');
+            const roleName = input.value.toLowerCase().trim().replace(/\s+/g, '-');
+            if (!roleName) { showToast('Enter a role name', 'error'); return; }
+
+            ensureRoleExists(roleName);
+
+            document.getElementById('syncStatusBadge').className = 'sync-status unsynced';
+            document.getElementById('syncStatusBadge').innerHTML = '⚠️ Unsaved Changes';
+
+            populateRoleDropdowns();
+            document.getElementById('newUserRole').value = roleName;
+
+            hideQuickAddRole();
+            showToast(`Role "${roleName}" added!`, 'success');
+
+            renderRoles();
+            if (selectedRole === roleName) {
+                renderPermissions();
+            }
+        }
+
+        function selectRole(role) {
+            selectedRole = role;
+            renderRoles();
+            renderPermissions();
+        }
+
+        function showAddRoleModal() {
+            document.getElementById('addRoleModal').classList.remove('hidden');
+            document.getElementById('newRoleName').value = '';
+        }
+
+        function addRole() {
+            const input = document.getElementById('newRoleName');
+            const roleName = input.value.toLowerCase().trim().replace(/\s+/g, '-');
+            if (!roleName) { showToast('Enter a role name', 'error'); return; }
+
+            ensureRoleExists(roleName);
+
+            document.getElementById('syncStatusBadge').className = 'sync-status unsynced';
+            document.getElementById('syncStatusBadge').innerHTML = '⚠️ Unsaved Changes';
+            showToast(`Role "${roleName}" added!`, 'success');
+
+            populateRoleDropdowns();
+            renderRoles();
+            renderPermissions();
+            updateStats();
+            closeModal('addRoleModal');
+        }
+
+        function deleteRole(role) {
+            let usersWithRole = [];
+            for (let key in users) {
+                if ((users[key].author || 'visitor') === role) {
+                    usersWithRole.push(users[key].username);
+                }
+            }
+
+            if (usersWithRole.length > 0) {
+                showToast(`Cannot delete role "${role}" - assigned to: ${usersWithRole.join(', ')}`, 'error');
+                return;
+            }
+
+            if (confirm(`Delete role "${role}"?`)) {
+                delete rolePermissions[role];
+                if (selectedRole === role) selectedRole = 'visitor';
+                document.getElementById('syncStatusBadge').className = 'sync-status unsynced';
+                document.getElementById('syncStatusBadge').innerHTML = '⚠️ Unsaved Changes';
+                populateRoleDropdowns();
+                renderRoles();
+                renderPermissions();
+                updateStats();
+                showToast(`Role "${role}" deleted`, 'success');
+            }
+        }
+
+        function showAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('hidden');
+            document.getElementById('newUserUsername').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            document.getElementById('newUserImage').value = '';
+            document.getElementById('newImagePreview').classList.add('hidden');
+            document.getElementById('newImagePlaceholder').classList.remove('hidden');
+            hideQuickAddRole();
+            populateRoleDropdowns();
+        }
+
+        async function addUser() {
+            const username = document.getElementById('newUserUsername').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+            const imageFile = document.getElementById('newUserImage').files[0];
+
+            if (!username || !password || !role) {
+                showToast('Please fill all required fields (Username, Password, Role)', 'error');
+                return;
+            }
+            if (username.length < 3) {
+                showToast('Username must be at least 3 characters', 'error');
+                return;
+            }
+
+            try {
+                const snap = await firebaseDB.ref('users-generatedcode').once('value');
+                const existing = snap.val() || {};
+                for (let key in existing) {
+                    if (existing[key].username && existing[key].username.toLowerCase() === username.toLowerCase()) {
+                        showToast('Username already exists', 'error');
+                        return;
+                    }
+                }
+
+                ensureRoleExists(role);
+
+                let userId = generateUserId(username);
+                if (existing[userId]) {
+                    userId = `${username.toLowerCase()}-${Date.now().toString().slice(-6)}`;
+                }
+
+                const userData = {
+                    username,
+                    author: role,
+                    password: password,
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                };
+                if (email) userData.email = email;
+                if (imageFile) userData.profileImage = await getBase64(imageFile);
+
+                await firebaseDB.ref('users-generatedcode/' + userId).set(userData);
+
+                closeModal('addUserModal');
+                showToast(`User "${username}" created with role: ${role}`, 'success');
+                await loadAllData();
+            } catch (e) {
+                console.error('Add user error:', e);
+                showToast('Error adding user: ' + e.message, 'error');
+            }
+        }
+
+        function editUser(userId) {
+            const user = users[userId];
+            if (!user) return;
+
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUserUsername').value = user.username || '';
+            document.getElementById('editUserEmail').value = user.email || '';
+            document.getElementById('editUserPassword').value = '';
+            populateRoleDropdowns();
+            document.getElementById('editUserRole').value = user.author || 'visitor';
+            document.getElementById('editUserImage').value = '';
+            const preview = document.getElementById('editImagePreview');
+            const placeholder = document.getElementById('editImagePlaceholder');
+            if (user.profileImage) {
+                preview.src = user.profileImage;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+            const currentPasswordDisplay = document.getElementById('editUserCurrentPassword');
+            if (currentPasswordDisplay) currentPasswordDisplay.textContent = user.password || 'No password set';
+            document.getElementById('editUserModal').classList.remove('hidden');
+        }
+
+        function copyPassword() {
+            const passwordElement = document.getElementById('editUserCurrentPassword');
+            const password = passwordElement.textContent;
+            if (password && password !== 'No password set') {
+                navigator.clipboard.writeText(password).then(() => showToast('Credentials copied to clipboard!',
+                    'success')).catch(() => {
+                        const textArea = document.createElement('textarea');
+                        textArea.value = password;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        textArea.remove();
+                        showToast('Credentials copied to clipboard!', 'success');
+                    });
+            } else showToast('No password to copy', 'error');
+        }
+
+        async function updateUser() {
+            const userId = document.getElementById('editUserId').value;
+            const username = document.getElementById('editUserUsername').value.trim();
+            const email = document.getElementById('editUserEmail').value.trim();
+            const password = document.getElementById('editUserPassword').value;
+            const role = document.getElementById('editUserRole').value;
+            const imageFile = document.getElementById('editUserImage').files[0];
+
+            if (!username || !role) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            if (username.length < 3) {
+                showToast('Username must be at least 3 characters', 'error');
+                return;
+            }
+
+            try {
+                ensureRoleExists(role);
+
+                const updateData = { username, author: role };
+                if (email) updateData.email = email;
+                if (password) updateData.password = password;
+                if (imageFile) updateData.profileImage = await getBase64(imageFile);
+
+                await firebaseDB.ref('users-generatedcode/' + userId).update(updateData);
+                closeModal('editUserModal');
+                showToast('User profile updated successfully!', 'success');
+                await loadAllData();
+            } catch (e) {
+                console.error('Update user error:', e);
+                showToast('Error updating user: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you absolutely sure you want to permanently remove this user?')) return;
+            try {
+                await firebaseDB.ref('users-generatedcode/' + userId).remove();
+                showToast('User record removed.', 'success');
+                await loadAllData();
+            } catch (e) {
+                console.error('Delete user error:', e);
+                showToast('Error deleting user: ' + e.message, 'error');
+            }
+        }
+
+        async function savePermissionsToFirebase() {
+            try {
+                await firebaseDB.ref('rolePermissions').set(rolePermissions);
+                document.getElementById('syncStatusBadge').className = 'sync-status synced';
+                document.getElementById('syncStatusBadge').innerHTML = '✅ Synced';
+                showToast('Button visibility settings saved to Firebase!', 'success');
+                renderPermissions();
+                renderRoles();
+            } catch (e) {
+                console.error('Save permissions error:', e);
+                showToast('Error saving permissions: ' + e.message, 'error');
+            }
+        }
+
+        function savePermissions() { savePermissionsToFirebase(); }
+
+        function clearPageCache(pageName) {
+            if (!confirm(`Clear cache and open ${pageName} in a new tab?`)) return;
+
+            showToast(`🔄 Clearing cache for ${pageName}...`, 'warning');
+
+            const theme = localStorage.getItem('selectedTheme');
+            const user = localStorage.getItem('currentUser');
+
+            localStorage.clear();
+            sessionStorage.clear();
+
+            if (theme) localStorage.setItem('selectedTheme', theme);
+            if (user) localStorage.setItem('currentUser', user);
+
+            if ('caches' in window) {
+                try {
+                    caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+                } catch (e) { }
+            }
+
+            const url = new URL(pageName, window.location.href);
+            url.searchParams.set('v', Date.now());
+            url.searchParams.set('nocache', Math.random().toString(36).substring(7));
+
+            showToast(`✅ Cache cleared! Opening ${pageName} in new tab...`, 'success');
+
+            window.open(url.toString(), '_blank');
+        }
+
+        async function deleteDatabase(dbName) {
+            if (!confirm(`Delete database "${dbName}" permanently?`)) return;
+            try {
+                delete savedDatabases[dbName];
+                await firebaseDB.ref('Project_1').set(savedDatabases);
+                showToast(`Database "${dbName}" deleted`, 'success');
+                await loadAllData();
+            } catch (e) {
+                console.error('Delete database error:', e);
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = function () {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const tabName = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                const activeTab = document.getElementById(`tab-${tabName}`);
+                activeTab.classList.remove('hidden');
+            };
+        });
+
+        document.querySelectorAll('.module-btn').forEach(btn => {
+            btn.onclick = function () {
+                document.querySelectorAll('.module-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedModule = this.getAttribute('data-module');
+                renderPermissions();
+            };
+        });
+
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function (e) {
+                if (e.target === this) closeModal(this.id);
+            });
+        });
+
+        function setTheme(theme) {
+            document.body.className = `theme-${theme}`;
+            localStorage.setItem('selectedTheme', theme);
+        }
+
+        async function init() {
+            const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+            setTheme(savedTheme);
+
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'Deploy_Loggin_Dashboard.html';
+                return;
+            }
+
+            if (initFirebase()) {
+                await loadAllData();
+                setInterval(updateConnectionStatus, 3000);
+            }
+        }
+        init();
+
+        window.showAddUserModal = showAddUserModal;
+        window.addUser = addUser;
+        window.editUser = editUser;
+        window.updateUser = updateUser;
+        window.deleteUser = deleteUser;
+        window.closeModal = closeModal;
+        window.copyPassword = copyPassword;
+        window.selectRole = selectRole;
+        window.showAddRoleModal = showAddRoleModal;
+        window.addRole = addRole;
+        window.deleteRole = deleteRole;
+        window.savePermissions = savePermissions;
+        window.clearPageCache = clearPageCache;
+        window.deleteDatabase = deleteDatabase;
+        window.previewImage = previewImage;
+        window.showQuickAddRole = showQuickAddRole;
+        window.hideQuickAddRole = hideQuickAddRole;
+        window.quickAddRole = quickAddRole;
+        window.selectAllPermissions = selectAllPermissions;
+        window.deselectAllPermissions = deselectAllPermissions;
+        window.handleLogout = handleLogout;
+
+        console.log('✅ Admin Control Panel loaded');
+        console.log('✅ Dynamic roles supported - roles come from users');
+    </script>
+</body>
+
+</html>
