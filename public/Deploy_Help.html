@@ -13,39 +13,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
 
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      set,
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
-      authDomain: "production1-ae85.firebaseapp.com",
-      projectId: "production1-ae85",
-      storageBucket: "production1-ae85.firebasestorage.app",
-      messagingSenderId: "490438031865",
-      appId: "1:490438031865:web:a4a69335989f30cd13a528"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-
-    window.fbDB = database;
-    window.fbRef = ref;
-    window.fbPush = push;
-    window.fbSet = set;
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
   </script>
 
   <style>
     * {
       font-family: 'Inter', system-ui, sans-serif;
+      box-sizing: border-box;
     }
 
     body {
@@ -180,6 +156,8 @@
       width: 100%;
       transition: all 0.3s;
       font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.85rem;
+      box-sizing: border-box;
     }
 
     input:focus,
@@ -364,10 +342,10 @@
     .form-group {
       display: flex;
       flex-direction: column;
+      gap: 4px;
     }
 
     .form-group label {
-      margin-bottom: 4px;
       font-weight: 700;
       color: #1e293b;
       font-size: 0.75rem;
@@ -392,6 +370,7 @@
       backdrop-filter: blur(8px);
       transition: all 0.2s ease;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .form-group input:focus,
@@ -609,6 +588,7 @@
       }
     }
 
+    /* Theme Styles */
     .theme-dark body {
       background: linear-gradient(135deg, #0b1120, #1a1a2e, #16213e);
     }
@@ -870,7 +850,7 @@
       </div>
     </section>
 
-    <section id="ticketFormSection" class="contact-section animate" style="animation-delay: 0.2s">
+    <section id="ticketSection" class="contact-section animate" style="animation-delay: 0.2s">
       <h2>
         <i class="fas fa-ticket-alt"></i>
         إنشاء تذكرة دعم
@@ -944,9 +924,12 @@
   </a>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function() {
       document.getElementById("year").textContent = new Date().getFullYear();
 
+      // ============================================================
+      // THEME SUPPORT
+      // ============================================================
       function setTheme(theme) {
         document.body.className = `theme-${theme}`;
         localStorage.setItem('selectedTheme', theme);
@@ -955,35 +938,71 @@
       const savedTheme = localStorage.getItem('selectedTheme') || 'light';
       setTheme(savedTheme);
 
-      const form = document.getElementById("ticketForm");
-      const statusMessage = document.getElementById("statusMessage");
-      const submitBtn = document.getElementById("submitBtn");
-
-      const typeMapping = {
-        "عطل تقني": "عطل تقني",
-        "اضافة بيانات": "اضافة بيانات",
-        "تعديل بيانات": "تعديل بيانات",
+      // ============================================================
+      // FIREBASE CONFIG - CORRECT DATABASE URL
+      // ============================================================
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+        authDomain: "production1-ae85.firebaseapp.com",
+        databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+        projectId: "production1-ae85",
+        storageBucket: "production1-ae85.firebasestorage.app",
+        messagingSenderId: "490438031865",
+        appId: "1:490438031865:web:a4a69335989f30cd13a528"
       };
 
+      // Initialize Firebase
+      let firebaseDB = null;
+      let isFirebaseReady = false;
+
+      function initFirebase() {
+        try {
+          if (typeof firebase === 'undefined') {
+            console.error('❌ Firebase SDK not loaded');
+            return false;
+          }
+
+          // Check if already initialized
+          let app;
+          try {
+            app = firebase.app();
+          } catch (e) {
+            app = firebase.initializeApp(FIREBASE_CONFIG);
+          }
+
+          firebaseDB = firebase.database(app);
+          isFirebaseReady = true;
+
+          // Test connection
+          firebaseDB.ref('.info/connected').once('value', (snap) => {
+            if (snap.val() === true) {
+              console.log('✅ Firebase connected successfully');
+            } else {
+              console.warn('⚠️ Firebase is not connected');
+            }
+          });
+
+          console.log('✅ Firebase initialized successfully');
+          return true;
+        } catch (e) {
+          console.error('❌ Firebase init error:', e);
+          isFirebaseReady = false;
+          return false;
+        }
+      }
+
+      // Initialize Firebase
+      const firebaseInitialized = initFirebase();
+
+      // ============================================================
+      // LOAD PERMISSIONS FOR VISIBILITY
+      // ============================================================
       async function loadSmartPermissions() {
         try {
-          const FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBm5-7ZN7frav9FvJFf9tgkE-mg8nex6t0",
-            authDomain: "publish-ae85.firebaseapp.com",
-            projectId: "publish-ae85",
-            storageBucket: "publish-ae85.firebasestorage.app",
-            messagingSenderId: "515415500647",
-            appId: "1:515415500647:web:5d4335363aaf948a5e71c2",
-            measurementId: "G-HM8M3DGXJD"
-          };
-
-          let mainApp;
-          try {
-            mainApp = firebase.app('mainApp');
-          } catch (e) {
-            mainApp = firebase.initializeApp(FIREBASE_CONFIG, 'mainApp');
+          if (!firebaseDB) {
+            console.warn('Firebase not initialized, skipping permissions');
+            return;
           }
-          const mainDB = firebase.database(mainApp);
 
           const savedUser = localStorage.getItem('currentUser');
           if (!savedUser) {
@@ -994,32 +1013,38 @@
           const user = JSON.parse(savedUser);
           const role = user.author || 'visitor';
 
-          const snap = await mainDB.ref('rolePermissions').once('value');
+          const snap = await firebaseDB.ref('rolePermissions').once('value');
           const permissions = snap.val() || {};
           const userPerms = permissions[role] || { permissions: [] };
           const allowed = userPerms.permissions || [];
 
           console.log(`🔐 Help - User role: ${role}, Permissions: ${allowed.length}`);
 
-          // الـ Visibility وعملية الإخفاء بناءً على صلاحيات الـ Control Panel
+          // Apply visibility based on permissions
           const contactSection = document.getElementById('contactInfo');
           if (contactSection) {
             contactSection.style.display = allowed.includes('contactInfo') ? '' : 'none';
-            console.log(`${allowed.includes('contactInfo') ? '🔓' : '🔒'} contactInfo`);
           }
 
-          const ticketSection = document.getElementById('ticketFormSection');
+          // CHANGED: Targets 'ticketSection' correctly instead of breaking form behavior
+          const ticketSection = document.getElementById('ticketSection');
           if (ticketSection) {
             ticketSection.style.display = allowed.includes('ticketForm') ? '' : 'none';
-            console.log(`${allowed.includes('ticketForm') ? '🔓' : '🔒'} ticketForm`);
           }
 
         } catch (e) {
-          console.error('Error loading SMART permissions:', e);
+          console.error('Error loading permissions:', e);
         }
       }
-      loadSmartPermissions();
 
+      // Load permissions after Firebase is ready
+      if (firebaseInitialized) {
+        loadSmartPermissions();
+      }
+
+      // ============================================================
+      // COPY TO CLIPBOARD
+      // ============================================================
       const contactItems = document.querySelectorAll('.contact-item[data-copy]');
 
       const showCopyFeedback = (message) => {
@@ -1029,7 +1054,7 @@
         document.body.appendChild(feedback);
         setTimeout(() => {
           feedback.remove();
-        }, 150);
+        }, 1500);
       };
 
       contactItems.forEach(item => {
@@ -1052,8 +1077,29 @@
         });
       });
 
-      form.addEventListener("submit", async function (e) {
+      // ============================================================
+      // FORM SUBMISSION - SAVE TO FIREBASE
+      // ============================================================
+      // FIXED: Because the section ID is changed, this correctly targets the `<form id="ticketForm">` element.
+      const form = document.getElementById("ticketForm");
+      const statusMessage = document.getElementById("statusMessage");
+      const submitBtn = document.getElementById("submitBtn");
+
+      const typeMapping = {
+        "عطل تقني": "عطل تقني",
+        "اضافة بيانات": "اضافة بيانات",
+        "تعديل بيانات": "تعديل بيانات",
+      };
+
+      form.addEventListener("submit", async function(e) {
         e.preventDefault();
+
+        // Check if Firebase is ready
+        if (!firebaseDB || !isFirebaseReady) {
+          showStatusMessage("❌ Firebase غير متصل، حاول تحديث الصفحة", "error");
+          initFirebase();
+          return;
+        }
 
         const formData = new FormData(form);
         const selectedArabicType = formData.get("request_type");
@@ -1066,10 +1112,10 @@
         const dbFolder = typeMapping[selectedArabicType] || "General";
 
         const ticketData = {
-          name: formData.get("name"),
-          meter_id: formData.get("meter_id"),
-          message: formData.get("message"),
-          email: formData.get("email"),
+          name: formData.get("name").trim(),
+          meter_id: formData.get("meter_id").trim(),
+          message: formData.get("message").trim(),
+          email: formData.get("email").trim(),
           timestamp: new Date().toLocaleString("ar-EG", {
             year: 'numeric',
             month: 'long',
@@ -1078,9 +1124,11 @@
             minute: '2-digit'
           }),
           type: selectedArabicType,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          status: 'pending'
         };
 
+        // Validation
         if (!ticketData.name || !ticketData.meter_id || !ticketData.email || !ticketData.message) {
           showStatusMessage("الرجاء تعبئة جميع الحقول المطلوبة", "error");
           return;
@@ -1094,23 +1142,30 @@
 
         submitBtn.disabled = true;
         submitBtn.classList.add("loading");
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> jاري الحفظ...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> جاري الحفظ...';
 
         try {
-          const ticketsRef = window.fbRef(window.fbDB, `tickets/${dbFolder}`);
-          const newTicketRef = window.fbPush(ticketsRef);
-          await window.fbSet(newTicketRef, ticketData);
+          console.log('📤 Saving ticket to Firebase...', ticketData);
+
+          // Save to Firebase under tickets/{dbFolder}
+          const ticketsRef = firebaseDB.ref(`tickets/${dbFolder}`);
+          const newTicketRef = ticketsRef.push();
+          await newTicketRef.set(ticketData);
+
+          console.log("✅ Ticket saved successfully! Key:", newTicketRef.key);
+          console.log("📁 Path: tickets/" + dbFolder + "/" + newTicketRef.key);
 
           showStatusMessage("✅ تم إرسال التذكرة بنجاح", "success");
           form.reset();
 
           setTimeout(() => {
             statusMessage.style.display = "none";
-          }, 400);
+          }, 4000);
+
         } catch (error) {
-          console.error("Firebase Error:", error);
+          console.error("❌ Firebase Error:", error);
           showStatusMessage(
-            "❌ خطأ في الإرسال: تأكد من الاتصال بالإنترنت وحاول مرة أخرى",
+            "❌ خطأ في الإرسال: " + (error.message || "تأكد من الاتصال بالإنترنت وحاول مرة أخرى"),
             "error"
           );
         } finally {
@@ -1126,30 +1181,33 @@
         statusMessage.style.color = type === "success" ? "#065f46" : "#991b1b";
         statusMessage.style.border = type === "success" ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(239,68,68,0.2)";
         statusMessage.innerHTML = message;
-
-        setTimeout(() => {
-          if (statusMessage.style.display === "block") {
-            statusMessage.style.display = "none";
-          }
-        }, 400);
       }
 
+      // ============================================================
+      // INPUT VALIDATION - Only numbers for meter_id
+      // ============================================================
       const meterInput = document.querySelector('input[name="meter_id"]');
       if (meterInput) {
-        meterInput.addEventListener('input', function (e) {
+        meterInput.addEventListener('input', function(e) {
           this.value = this.value.replace(/[^0-9]/g, '');
         });
       }
 
+      // ============================================================
+      // TOUCH FEEDBACK
+      // ============================================================
       const allInputs = document.querySelectorAll('input, select, textarea');
       allInputs.forEach(input => {
-        input.addEventListener('touchstart', function () {
+        input.addEventListener('touchstart', function() {
           this.style.transform = 'scale(1.01)';
           setTimeout(() => {
             this.style.transform = '';
           }, 100);
         });
       });
+
+      console.log('✅ Ticket form loaded');
+      console.log('📡 Firebase status:', isFirebaseReady ? 'Connected' : 'Disconnected');
     });
   </script>
 </body>

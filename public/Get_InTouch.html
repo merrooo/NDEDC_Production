@@ -5,15 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Get in Touch | Support Center</title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     * {
       font-family: 'Inter', system-ui, sans-serif;
@@ -283,18 +280,6 @@
       font-size: 0.65rem;
       font-weight: 600;
       color: white;
-    }
-
-    .type-badge.modify {
-      background: #FF9800;
-    }
-
-    .type-badge.new_record {
-      background: #4CAF50;
-    }
-
-    .type-badge.technical {
-      background: #f44336;
     }
 
     .main-content {
@@ -758,15 +743,13 @@
 
   <div class="main-layout">
 
-    <!-- SIDEBAR -->
     <div class="sidebar glass-card">
       <div class="sidebar-header">
         <h3><i class="fas fa-list-ul text-purple-500"></i> Database Records</h3>
       </div>
 
       <div class="table-filters">
-        <input type="text" id="tableFilter" placeholder="🔍 Filter by Meter ID, Name or Email..."
-          class="filter-input-small" />
+        <input type="text" id="tableFilter" placeholder="🔍 Filter by Meter ID, Name or Email..." class="filter-input-small" />
       </div>
 
       <div class="table-container" id="tableContainer">
@@ -793,11 +776,9 @@
       </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="main-content">
       <div class="container">
 
-        <!-- TOP BAR with User Info -->
         <div class="top-bar glass-card" style="border-radius: 20px; margin-bottom: 1.5rem; padding: 0.75rem 1.25rem;">
           <div class="user-info">
             <div class="user-avatar" id="userAvatar">
@@ -905,14 +886,32 @@
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
       authDomain: "production1-ae85.firebaseapp.com",
+      databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
       projectId: "production1-ae85",
       storageBucket: "production1-ae85.firebasestorage.app",
       messagingSenderId: "490438031865",
-      appId: "1:490438031865:web:a4a69335989f30cd13a528"
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+      measurementId: "G-W3TZ1EKWWN"
     };
 
     let firebaseDB = null;
     let allRecords = [];
+
+    // ============================================================
+    // OBFUSCATED EMAILJS KEYS (Encrypted in Base64 to hide from standard code view)
+    // ============================================================
+    const _0x5a1e = {
+      s: "c2VydmljZV9vcTY4anZl", // service_oq68jve
+      t: "dGVtcGxhdGVfanRvYmVnZQ==", // template_jtobege
+      p: "TktBcjN5aG04dWpQZTBhTVA=" // NKAr3yhm8ujPe0aMP
+    };
+
+    // Initialize EmailJS with decoded Public Key
+    try {
+      emailjs.init(atob(_0x5a1e.p));
+    } catch(e) {
+      console.error("EmailJS initialization error");
+    }
 
     // ============================================================
     // INIT FIREBASE
@@ -1158,7 +1157,7 @@
     }
 
     // ============================================================
-    // HANDLE SUBMISSION
+    // HANDLE SUBMISSION WITH ACTIVE EMAILJS ROUTING
     // ============================================================
     async function handleSubmission() {
       const selectedRow = document.querySelector("#tableBody tr.selected");
@@ -1169,9 +1168,7 @@
       const userNameInput = document.getElementById('userName');
       const meterIdInput = document.getElementById('meterId');
 
-      const toEmail = fullEmailInput?.value ||
-        (emailUsername?.value + emailDomain?.value);
-
+      const toEmail = fullEmailInput?.value || (emailUsername?.value + emailDomain?.value);
       const msgContent = messageInput?.value || "";
       const currentTime = new Date().toLocaleString("en-US", {
         dateStyle: "full",
@@ -1229,14 +1226,26 @@ Time: ${currentTime}
         `;
       }
 
-      // For now, simulate email sending since EmailJS might not be configured
-      console.log("📧 Email would be sent to:", toEmail);
-      console.log("📧 Email body:", emailBody);
+      // --- LIVE EMAIL TRANSMISSION (EmailJS) ---
+      try {
+        // Build variables to feed into your EmailJS template layout
+        const templateParams = {
+          to_email: toEmail,
+          reply_to: "amirmerrooo@gmail.com",
+          message: emailBody
+        };
 
-      // Simulate success
-      showToast("✅ Email sent successfully! (Demo)", "success");
+        // Decodes the obfuscated properties using the native atob() window environment object
+        await emailjs.send(atob(_0x5a1e.s), atob(_0x5a1e.t), templateParams);
+        showToast("✅ Email sent successfully via EmailJS!", "success");
 
-      // If this was a ticket reply, delete from database
+      } catch (mailError) {
+        console.error("❌ Email transmission error:", mailError);
+        showToast("❌ Failed to send email. Check credentials.", "error");
+        return false; 
+      }
+
+      // If this was a ticket reply, safely remove it from the database
       if (isProcessA && pathToDelete) {
         const deleted = await deleteTicketFromDatabase(pathToDelete);
         if (deleted) {
