@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Excel Text Stripper &amp; Cleaner - Professional Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --accent-success: #10b981;
+            --slate-dark: #1e293b;
+            --accent-purple: #7c3aed;
+            --accent-purple-hover: #6d28d9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        .master-layout {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 340px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .feature-category {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            background: #eff6ff;
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+
+        .feature-item {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .feature-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compact-select,
+        .compact-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fff;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .compact-select:focus,
+        .compact-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-group-compact {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .input-group-compact .compact-input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .small-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .small-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        /* ACTION BUTTON GRID SETUP */
+        .action-button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .action-btn-purple {
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .action-btn-purple:hover {
+            background: var(--accent-purple-hover);
+        }
+
+        /* HISTORY LOG TAGS CONTAINER */
+        .word-tag-container-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            min-height: 45px;
+            border: 1px solid var(--border-color);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 4px 6px;
+            background: #fff;
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+        }
+
+        /* MAIN CONTENT LAYOUT */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f1f5f9;
+            padding: 24px;
+            overflow-y: auto;
+            gap: 20px;
+        }
+
+        .compact-header {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .upload-area-compact {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .upload-btn-compact {
+            background: var(--slate-dark);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .master-btn-small {
+            background: var(--accent-success);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .master-btn-small:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        /* DATA WORKSPACE GRID DESIGN */
+        .grid-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 450px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .grid-toolbar {
+            padding: 12px 20px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-wrapper {
+            overflow: auto;
+            flex: 1;
+        }
+
+        table.professional-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table.professional-table th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            padding: 12px 15px;
+            border-bottom: 2px solid var(--border-color);
+            text-align: left;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        table.professional-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        table.professional-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* ARABIC DIRECTION HANDLERS */
+        .text-arabic {
+            direction: rtl;
+            text-align: right !important;
+        }
+
+        /* LOGS PANEL */
+        .log-section {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-radius: 12px;
+            padding: 15px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .log-success { color: #4ade80; }
+        .log-info { color: #60a5fa; }
+        .log-error { color: #f87171; }
+
+        .back-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #2563eb;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            margin-bottom: 15px;
+        }
+
+        .back-link:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <nav class="back-nav">
+                    <a href="Control_Excel.html" class="back-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6" />
+                        </svg>
+                        Return to Home
+                    </a>
+                </nav>
+                <h2>✂️ Text Column Sanitizer</h2>
+                <p>Isolate and clean targeting cell strings</p>
+            </div>
+
+            <div class="feature-category">Configuration</div>
+            <div class="feature-item">
+                <div class="feature-title"><span>🔍</span> 1. Select Active Column</div>
+                <select id="previewColumnSelect" class="compact-select" disabled>
+                    <option value="">Choose data column</option>
+                </select>
+
+                <div class="feature-title" style="margin-top:15px;"><span>🏷️</span> 2. Filter String Removal</div>
+                <div class="input-group-compact">
+                    <input type="text" id="wordInput" class="compact-input" placeholder="Type word to strip..." dir="auto">
+                    <button id="addWordBtn" class="small-btn">Run Strip</button>
+                </div>
+
+                <div class="feature-title" style="margin-top:15px;"><span>💥</span> 3. Range Wiping Controls</div>
+                <input type="text" id="contextWordInput" class="compact-input" placeholder="Type anchor string..." dir="auto">
+                <div class="action-button-grid">
+                    <button id="removeNextBtn" class="action-btn-purple">💥 Word + After</button>
+                    <button id="removeBeforeBtn" class="action-btn-purple">💥 Word + Before</button>
+                </div>
+
+                <div class="feature-title" style="margin-top:15px;"><span>📜</span> Action Execution Log</div>
+                <div class="word-tag-container-compact" id="tagContainer">
+                    <div style="color:#64748b; font-size:11px; padding: 4px;">Modifications ledger is empty...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="compact-header">
+                <div class="header-left">
+                    <h1 style="font-size:1.2rem; font-weight:700;">Data Clean Matrix</h1>
+                    <p style="font-size:11px; color:#64748b;">Live Engine Spreadsheet Mutation Architecture</p>
+                </div>
+                <div class="upload-area-compact">
+                    <label for="excelFile" class="upload-btn-compact">📁 Upload File</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="fileNameCompact" style="font-size:12px; color:#64748b;">No file loaded</span>
+                    <button id="exportMainBtn" class="master-btn-small" disabled>💾 Export Cleaned Sheet</button>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-toolbar">
+                    <div style="font-weight:600; font-size:13px;">📋 Worksheet Data Matrix View (All Rows)</div>
+                    <span id="gridStats" style="background:#f1f5f9; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; color:#2563eb;">0 rows × 0 cols</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="readonlyTable" class="professional-table">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td style="padding:20px; color:#64748b; text-align:center;">Upload a file to begin previewing real-time workspace mutations.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="log-section" id="logSection">
+                <div class="log-info">> Core engine offline. Awaiting spreadsheet document configuration stream.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentGridData = [];
+        let currentHeaders = [];
+        let historyLogs = [];
+        let sheetName = null;
+
+        const fileInput = document.getElementById("excelFile");
+        const fileNameSpan = document.getElementById("fileNameCompact");
+        const previewColumnSelect = document.getElementById("previewColumnSelect");
+        const wordInput = document.getElementById("wordInput");
+        const addWordBtn = document.getElementById("addWordBtn");
+        const contextWordInput = document.getElementById("contextWordInput");
+        const removeNextBtn = document.getElementById("removeNextBtn");
+        const removeBeforeBtn = document.getElementById("removeBeforeBtn");
+        const tagContainer = document.getElementById("tagContainer");
+        const exportMainBtn = document.getElementById("exportMainBtn");
+        const tableHeader = document.getElementById("tableHeader");
+        const tableBody = document.getElementById("tableBody");
+        const gridStatsSpan = document.getElementById("gridStats");
+        const logSection = document.getElementById("logSection");
+
+        function addLog(msg, type = "info") {
+            const entry = document.createElement("div");
+            entry.className = `log-${type}`;
+            entry.textContent = `> ${msg}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+        }
+
+        function cleanTextValue(text) {
+            if (text === null || text === undefined) return "";
+            let cleaned = String(text).trim().replace(/\s+/g, " ");
+            return (cleaned.toLowerCase() === "nan") ? "" : cleaned;
+        }
+
+        function populateColumnDropdown() {
+            if (!currentHeaders.length) {
+                previewColumnSelect.disabled = true;
+                return;
+            }
+            previewColumnSelect.disabled = false;
+            previewColumnSelect.innerHTML = '<option value="">-- Choose target column --</option>' +
+                currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            
+            if (currentHeaders.length > 0) {
+                previewColumnSelect.selectedIndex = 1; 
+            }
+        }
+
+        // PERMANENT MUTATION CONTROLLER ENGINE
+        function executeDataMutation(targetValue, mode) {
+            const selectedColumn = previewColumnSelect.value;
+            if (!selectedColumn) {
+                addLog("Mutation blocked: No active target column selected.", "error");
+                return;
+            }
+            if (!targetValue) return;
+
+            const escapedTarget = targetValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            let regex;
+
+            if (mode === 'next') {
+                regex = new RegExp('(' + escapedTarget + ')' + '.*$', 'g');
+            } else if (mode === 'before') {
+                regex = new RegExp('^.*' + '(' + escapedTarget + ')', 'g');
+            } else {
+                regex = new RegExp(escapedTarget, 'g');
+            }
+
+            currentGridData.forEach(row => {
+                if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
+                    let textStr = String(row[selectedColumn]).trim();
+                    if (mode === 'next') {
+                        textStr = textStr.replace(regex, '$1');
+                    } else if (mode === 'before') {
+                        textStr = textStr.replace(regex, '$1');
+                    } else {
+                        textStr = textStr.replace(regex, '');
+                    }
+                    row[selectedColumn] = textStr.replace(/^-+|-+$/g, '').trim();
+                }
+            });
+
+            historyLogs.push(`Cleaned [Col: ${selectedColumn}] using search string "${targetValue}" (${mode.toUpperCase()})`);
+            renderHistoryLedger();
+            
+            renderMainTable();
+            addLog(`Permanently modified column "${selectedColumn}" contents.`, "success");
+        }
+
+        function renderHistoryLedger() {
+            if (historyLogs.length === 0) {
+                tagContainer.innerHTML = '<div style="color:#64748b; font-size:11px; padding: 4px;">Modifications ledger is empty...</div>';
+                return;
+            }
+            tagContainer.innerHTML = historyLogs.map(logText => `<div class="history-item">${logText}</div>`).join('');
+            tagContainer.scrollTop = tagContainer.scrollHeight;
+        }
+
+        // Clean Table Grid UI Engine
+        function renderMainTable() {
+            if (!currentHeaders.length) {
+                tableHeader.innerHTML = "";
+                tableBody.innerHTML = "";
+                gridStatsSpan.innerText = "0 rows × 0 cols";
+                return;
+            }
+
+            let headerHTML = '<tr>';
+            currentHeaders.forEach(h => {
+                headerHTML += `<th>${h}</th>`;
+            });
+            headerHTML += '</tr>';
+            tableHeader.innerHTML = headerHTML;
+
+            const fragment = document.createDocumentFragment();
+            currentGridData.forEach(row => {
+                const tr = document.createElement("tr");
+                
+                currentHeaders.forEach(h => {
+                    const td = document.createElement("td");
+                    let val = row[h] ?? "";
+
+                    td.textContent = val;
+                    if (/[\u0600-\u06FF]/.test(val)) {
+                        td.className = "text-arabic";
+                    }
+                    tr.appendChild(td);
+                });
+
+                fragment.appendChild(tr);
+            });
+
+            tableBody.innerHTML = "";
+            tableBody.appendChild(fragment);
+
+            gridStatsSpan.innerText = `${currentGridData.length} rows × ${currentHeaders.length} cols`;
+        }
+
+        // Action Subscriptions
+        addWordBtn.addEventListener("click", () => {
+            executeDataMutation(wordInput.value.trim(), 'exact');
+            wordInput.value = '';
+        });
+        wordInput.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') {
+                executeDataMutation(wordInput.value.trim(), 'exact');
+                wordInput.value = '';
+            }
+        });
+
+        removeNextBtn.addEventListener("click", () => {
+            executeDataMutation(contextWordInput.value.trim(), 'next');
+            contextWordInput.value = '';
+        });
+
+        removeBeforeBtn.addEventListener("click", () => {
+            executeDataMutation(contextWordInput.value.trim(), 'before');
+            contextWordInput.value = '';
+        });
+
+        fileInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameSpan.textContent = file.name;
+            try {
+                const buffer = await file.arrayBuffer();
+                const wb = XLSX.read(buffer);
+                sheetName = wb.SheetNames[0];
+                const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "" });
+                
+                if (raw.length === 0) {
+                    throw new Error("The uploaded spreadsheet contains no readable rows.");
+                }
+
+                currentHeaders = raw[0].map((h, i) => cleanTextValue(h) || `Col_${i + 1}`);
+                currentGridData = raw.slice(1).map(row => {
+                    let obj = {};
+                    currentHeaders.forEach((h, i) => obj[h] = cleanTextValue(row[i]));
+                    return obj;
+                });
+
+                historyLogs = [];
+                renderHistoryLedger();
+                populateColumnDropdown();
+                renderMainTable();
+                exportMainBtn.disabled = false;
+                addLog(`File loaded successfully: [${sheetName}] with ${currentGridData.length} records.`, "success");
+            } catch (err) { 
+                addLog(err.message, "error"); 
+                exportMainBtn.disabled = true;
+            }
+        });
+
+        previewColumnSelect.addEventListener("change", () => {
+            renderMainTable();
+            addLog(`Active focus target switched to column: "${previewColumnSelect.value}"`, "info");
+        });
+
+        exportMainBtn.addEventListener("click", () => {
+            if (!currentGridData.length) return;
+
+            const ws = XLSX.utils.json_to_sheet(currentGridData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName || "Cleaned Data");
+            XLSX.writeFile(wb, `Cleaned_Worksheet_${Date.now()}.xlsx`);
+            addLog(`Successfully saved data to downloadable file Excel package.`, "success");
+        });
+    </script>
+</body>
+
+</html>

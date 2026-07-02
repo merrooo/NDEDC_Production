@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequence Generator Pro - Full Load</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 340px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        /* --- Updated Colored Home Button --- */
+        .back-nav {
+            padding: 20px 20px 10px 20px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #2563eb;
+            /* Primary Blue */
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .back-link:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px -2px rgba(37, 99, 235, 0.3);
+        }
+
+        .back-link:active {
+            transform: translateY(0);
+        }
+
+        .sidebar-header {
+            padding: 16px 20px 24px 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .feature-category {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+
+        .feature-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .feature-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .compact-select,
+        .compact-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+
+        .compact-select:focus,
+        .compact-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .small-btn {
+            width: 100%;
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .small-btn:hover:not(:disabled) {
+            background: #0f172a;
+        }
+
+        .small-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+            min-width: 0;
+        }
+
+        .header-bar {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .upload-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-label {
+            background: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .grid-container {
+            flex: 1;
+            margin: 20px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: auto;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+            z-index: 2;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background-color: #fefce8;
+        }
+
+        .log-section {
+            height: 120px;
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            border-top: 4px solid #334155;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .log-warning {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <!-- Navigation Back (NOW COLOURED) -->
+        <nav class="back-nav">
+            <a href="Control_Excel.html" class="back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                Return to Home
+            </a>
+        </nav>
+
+        <div class="sidebar-header">
+            <h2>🔢 Sequence Gen</h2>
+            <p>Data Automation Tool</p>
+        </div>
+
+        <div class="feature-category">Configuration</div>
+        <div class="feature-item">
+            <label class="feature-label">Target Column</label>
+            <select id="seqColumnSelect" class="compact-select" disabled>
+                <option value="">Upload a file first</option>
+            </select>
+
+            <label class="feature-label">Start Value</label>
+            <input type="text" id="startNumber" class="compact-input" placeholder="e.g. 8920040112411098548">
+
+            <label class="feature-label">Count / Step</label>
+            <input type="number" id="rowCount" class="compact-input" placeholder="100" min="1">
+
+            <label class="feature-label">Execution Mode</label>
+            <select id="seqMode" class="compact-select">
+                <option value="append">Append New Rows (Bottom)</option>
+                <option value="replace">Overwrite Existing (Top-Down)</option>
+            </select>
+
+            <button id="generateSeqBtn" class="small-btn" disabled>⚡ Run Sequence</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header-bar">
+            <div>
+                <h1 style="font-size: 18px;">Full Data Preview</h1>
+                <span id="gridStats" style="font-size: 11px; color: #64748b;">No data loaded</span>
+            </div>
+            <div class="upload-controls">
+                <label for="excelFile" class="file-label">📁 Choose File</label>
+                <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                <button id="exportBtn" class="small-btn" style="width: auto; background: #2563eb;" disabled>💾 Export
+                    Excel</button>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <div class="table-wrapper">
+                <table id="readonlyTable">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="log-section" id="logSection">
+            <div class="log-entry log-info">> System Initialized. Use the sidebar to start.</div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let currentGridData = [];
+        let currentHeaders = [];
+
+        const elements = {
+            fileInput: document.getElementById("excelFile"),
+            columnSelect: document.getElementById("seqColumnSelect"),
+            startInput: document.getElementById("startNumber"),
+            countInput: document.getElementById("rowCount"),
+            modeSelect: document.getElementById("seqMode"),
+            generateBtn: document.getElementById("generateSeqBtn"),
+            exportBtn: document.getElementById("exportBtn"),
+            tableHeader: document.getElementById("tableHeader"),
+            tableBody: document.getElementById("tableBody"),
+            stats: document.getElementById("gridStats"),
+            logs: document.getElementById("logSection")
+        };
+
+        function addLog(msg, type = "info") {
+            const div = document.createElement("div");
+            div.className = `log-entry log-${type}`;
+            div.textContent = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+            elements.logs.appendChild(div);
+            elements.logs.scrollTop = elements.logs.scrollHeight;
+        }
+
+        // --- File Loading ---
+        elements.fileInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            addLog(`Loading all data from: ${file.name}...`);
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const raw = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                if (raw.length === 0) throw new Error("The selected file is empty.");
+                currentHeaders = raw[0].map((h, i) => (h ? String(h).trim() : `Column_${i + 1}`));
+                currentGridData = raw.slice(1).map(row => {
+                    let obj = {};
+                    currentHeaders.forEach((h, i) => obj[h] = row[i] ?? "");
+                    return obj;
+                });
+                updateUIAfterLoad();
+                addLog(`Load complete. Processing ${currentGridData.length} rows.`, "success");
+            } catch (err) {
+                addLog(err.message, "error");
+            }
+        });
+
+        function updateUIAfterLoad() {
+            elements.columnSelect.disabled = false;
+            elements.columnSelect.innerHTML = currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            elements.generateBtn.disabled = false;
+            elements.exportBtn.disabled = false;
+            elements.stats.textContent = `${currentGridData.length} rows × ${currentHeaders.length} columns`;
+            renderFullTable();
+        }
+
+        function renderFullTable() {
+            elements.tableHeader.innerHTML = `<tr>${currentHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`;
+            const bodyHTML = currentGridData.map(row => {
+                let cells = "";
+                for (let i = 0; i < currentHeaders.length; i++) {
+                    cells += `<td>${row[currentHeaders[i]] ?? ""}</td>`;
+                }
+                return `<tr>${cells}</tr>`;
+            }).join('');
+            elements.tableBody.innerHTML = bodyHTML;
+        }
+
+        elements.generateBtn.addEventListener("click", () => {
+            const col = elements.columnSelect.value;
+            const mode = elements.modeSelect.value;
+            const count = parseInt(elements.countInput.value) || 0;
+            let startRaw = elements.startInput.value.trim();
+            if (!startRaw) { addLog("Please enter a starting number.", "error"); return; }
+            let currentVal;
+            try { currentVal = startRaw.includes('.') ? parseFloat(startRaw) : BigInt(startRaw); }
+            catch (e) { addLog("Invalid number format.", "error"); return; }
+            addLog("Executing sequence generation...");
+            if (mode === 'replace') {
+                const limit = count > 0 ? Math.min(count, currentGridData.length) : currentGridData.length;
+                for (let i = 0; i < limit; i++) {
+                    currentGridData[i][col] = currentVal.toString();
+                    currentVal = (typeof currentVal === 'bigint') ? currentVal + 1n : currentVal + 1;
+                }
+                addLog(`Updated rows in column "${col}".`, "success");
+            } else {
+                if (count <= 0) { addLog("Enter count for append mode", "error"); return; }
+                for (let i = 0; i < count; i++) {
+                    let newRow = {};
+                    currentHeaders.forEach(h => { newRow[h] = (h === col ? currentVal.toString() : ""); });
+                    currentGridData.push(newRow);
+                    currentVal = (typeof currentVal === 'bigint') ? currentVal + 1n : currentVal + 1;
+                }
+                addLog(`Appended ${count} new rows.`, "success");
+            }
+            renderFullTable();
+            elements.stats.textContent = `${currentGridData.length} rows × ${currentHeaders.length} columns`;
+        });
+
+        elements.exportBtn.addEventListener("click", () => {
+            addLog("Preparing Excel file...");
+            try {
+                const worksheet = XLSX.utils.json_to_sheet(currentGridData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "SequenceData");
+                XLSX.writeFile(workbook, `sequence_export_${Date.now()}.xlsx`);
+                addLog("Export complete.", "success");
+            } catch (err) {
+                addLog(`Export failed: ${err.message}`, "error");
+            }
+        });
+    </script>
+</body>
+
+</html>

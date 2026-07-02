@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Creat Studio · Drag & Drop Matrix Builder</title>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #eef2f6;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-toolbar {
+      background: white;
+      padding: 12px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .select-proj {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.8rem;
+      background: white;
+      min-width: 200px;
+    }
+
+    .action-btn {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .save-btn { background: #10b981; color: white; }
+    .save-btn:hover { background: #059669; }
+    .clear-btn { background: #ef4444; color: white; }
+    .clear-btn:hover { background: #dc2626; }
+
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 0;
+    }
+
+    /* LEFT SIDEBAR - DRAG TOOLBOX */
+    .drag-sidebar {
+      width: 280px;
+      background: white;
+      overflow-y: auto;
+      padding: 16px;
+      border-right: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .toolbox-category {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #475569;
+      margin: 16px 0 8px 0;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .draggable-token {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: grab;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .draggable-token:hover {
+      background: #3b82f6;
+      color: white;
+      transform: translateX(4px);
+      border-color: #3b82f6;
+    }
+
+    .draggable-token:active { cursor: grabbing; }
+
+    /* RIGHT SIDE - BUILDER WORKSPACE */
+    .builder-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+
+    .workspace-header {
+      background: white;
+      padding: 12px 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .workspace-header h3 {
+      font-size: 1rem;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .workspace-header p {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .canvas-scroll {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .workspace-layout {
+      min-width: 900px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      display: flex;
+      gap: 16px;
+    }
+
+    .sidebar-target {
+      flex: 0 0 100px;
+      background: #fafcff;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 16px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .main-content-layout {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .layout-row {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+    }
+    .top-row { min-height: 120px; }
+    .middle-row { flex: 1; min-height: 320px; }
+    .bottom-row { min-height: 100px; }
+
+    .col-left { flex: 0 0 30%; display: flex; flex-direction: column; gap: 16px; }
+    .col-main { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+    .drop-zone-card {
+      background: #fafcff;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      position: relative;
+      transition: all 0.2s;
+      min-height: 80px;
+    }
+
+    .drop-zone-card::before {
+      content: attr(data-placeholder);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 500;
+      pointer-events: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .drop-zone-card:not(:empty)::before { display: none; }
+    .drag-hover { 
+      border: 2px solid #3b82f6 !important; 
+      background: #eff6ff !important;
+    }
+
+    /* Component Styles */
+    .rendered-element-wrapper {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .rendered-element-wrapper:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-color: #3b82f6;
+    }
+
+    .rendered-element-wrapper:hover .element-delete-trigger { display: flex; }
+
+    .element-delete-trigger {
+      display: none;
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 24px;
+      height: 24px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+
+    .element-delete-trigger:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    .form-group-block { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+      width: 100%; 
+    }
+
+    .form-group-block label { 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      color: #475569;
+    }
+
+    input, select, textarea { 
+      padding: 8px 10px; 
+      border-radius: 6px; 
+      border: 1px solid #cbd5e1; 
+      font-size: 0.75rem;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      ring: 2px solid #3b82f6;
+    }
+
+    .rendered-btn { 
+      background: #3b82f6; 
+      color: white; 
+      border: none; 
+      padding: 8px 16px; 
+      border-radius: 8px; 
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .rendered-btn:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .preview-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 0.75rem; 
+    }
+
+    .preview-table th, .preview-table td { 
+      border: 1px solid #cbd5e1; 
+      padding: 6px; 
+      text-align: left;
+    }
+
+    .preview-table th {
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .drag-instruction {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="top-toolbar">
+    <select id="projectSelect" class="select-proj">
+      <option value="">-- Load Saved Matrix Project --</option>
+    </select>
+    <button id="saveProjectBtn" class="action-btn save-btn">💾 Save to Database</button>
+    <button id="clearAllBtn" class="action-btn clear-btn">🗑️ Clear All Zones</button>
+  </div>
+
+  <div class="main-layout">
+    <!-- LEFT: Drag Toolbox -->
+    <div class="drag-sidebar">
+      <div class="drag-instruction">
+        🎯 Drag any component and drop into the workspace zones below
+      </div>
+
+      <div class="toolbox-category">📄 Text & Headings</div>
+      <div class="draggable-token" draggable="true" data-type="label">🏷️ Label Heading</div>
+
+      <div class="toolbox-category">✍️ Input Fields</div>
+      <div class="draggable-token" draggable="true" data-type="text">📝 Text Field</div>
+      <div class="draggable-token" draggable="true" data-type="password">🔒 Password Field</div>
+      <div class="draggable-token" draggable="true" data-type="number">🔢 Number Field</div>
+      <div class="draggable-token" draggable="true" data-type="textarea">📄 Textarea Field</div>
+
+      <div class="toolbox-category">⚙️ Selection Controls</div>
+      <div class="draggable-token" draggable="true" data-type="dropdown">📋 Dropdown Select</div>
+      <div class="draggable-token" draggable="true" data-type="radio">🔘 Single Radio</div>
+      <div class="draggable-token" draggable="true" data-type="radiogroup">🎛️ Radio Group</div>
+      <div class="draggable-token" draggable="true" data-type="checkbox">☑️ Checkbox</div>
+
+      <div class="toolbox-category">📅 Advanced Components</div>
+      <div class="draggable-token" draggable="true" data-type="date">📅 Date Picker</div>
+      <div class="draggable-token" draggable="true" data-type="range">🎚️ Range Slider</div>
+      <div class="draggable-token" draggable="true" data-type="file">📂 File Upload</div>
+      <div class="draggable-token" draggable="true" data-type="list">📜 Nested List</div>
+
+      <div class="toolbox-category">📊 Data Displays</div>
+      <div class="draggable-token" draggable="true" data-type="table">📊 Static Table</div>
+      <div class="draggable-token" draggable="true" data-type="exceltable">🗃️ Editable Grid</div>
+
+      <div class="toolbox-category">🎯 Action Elements</div>
+      <div class="draggable-token" draggable="true" data-type="button">⚡ Action Button</div>
+      <div class="draggable-token" draggable="true" data-type="image">🖼️ Image Frame</div>
+    </div>
+
+    <!-- RIGHT: Builder Workspace -->
+    <div class="builder-workspace">
+      <div class="workspace-header">
+        <h3>🏗️ Builder Workspace</h3>
+        <p>Drag elements from the left panel and drop them into any zone below</p>
+      </div>
+
+      <div class="canvas-scroll">
+        <div class="workspace-layout">
+          <div class="dashboard-container">
+            <aside class="sidebar-target drop-zone-card" id="left-sidebar" data-placeholder="Left Sidebar"></aside>
+            
+            <div class="main-content-layout">
+              <div class="layout-row top-row">
+                <div class="drop-zone-card full-width" id="top-left-card" data-placeholder="Top Left Section"></div>
+                <div class="drop-zone-card full-width" id="top-right-card" data-placeholder="Top Right Section"></div>
+              </div>
+
+              <div class="layout-row middle-row">
+                <div class="col-left">
+                  <div class="drop-zone-card" id="middle-left-tall" data-placeholder="Left Tall Panel"></div>
+                  <div class="drop-zone-card" id="middle-left-short" data-placeholder="Left Short Panel"></div>
+                </div>
+                <div class="col-main">
+                  <div class="drop-zone-card" id="middle-main-tall" data-placeholder="Main Center Area"></div>
+                  <div class="drop-zone-card" id="middle-main-short" data-placeholder="Secondary Area"></div>
+                </div>
+              </div>
+
+              <div class="layout-row bottom-row">
+                <div class="drop-zone-card full-width" id="bottom-left-card" data-placeholder="Bottom Left Footer"></div>
+                <div class="drop-zone-card full-width" id="bottom-right-card" data-placeholder="Bottom Right Footer"></div>
+              </div>
+            </div>
+            
+            <aside class="sidebar-target drop-zone-card" id="right-sidebar" data-placeholder="Right Sidebar"></aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBrwioR6w9GHIxVnHWriyYB4BaJbXZ8xlU",
+    authDomain: "codeae-85.firebaseapp.com",
+    databaseURL: "https://codeae-85-default-rtdb.firebaseio.com/",
+    projectId: "codeae-85",
+    storageBucket: "codeae-85.firebasestorage.app",
+    messagingSenderId: "855701949624",
+    appId: "1:855701949624:web:2cf2ea8802a2d372f3384d"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  let activeDragType = null;
+
+  // Setup drag from toolbox
+  document.querySelectorAll('.draggable-token').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      activeDragType = el.getAttribute('data-type');
+      e.dataTransfer.setData('text/plain', activeDragType);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+
+  // Setup drop zones
+  const dropZones = document.querySelectorAll('.drop-zone-card');
+  dropZones.forEach(zone => {
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.classList.add('drag-hover');
+    });
+    
+    zone.addEventListener('dragleave', () => {
+      zone.classList.remove('drag-hover');
+    });
+    
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('drag-hover');
+      const compType = e.dataTransfer.getData('text/plain') || activeDragType;
+      if (compType) {
+        instantiateComponent(zone, compType);
+      }
+    });
+  });
+
+  function instantiateComponent(container, type, savedData = null) {
+    const wrapper = document.createElement('div');
+    wrapper.className = "rendered-element-wrapper";
+    wrapper.setAttribute('data-comp-type', type);
+    const uniqueId = "comp_" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+    wrapper.setAttribute('data-unique-id', uniqueId);
+
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.className = "element-delete-trigger";
+    delBtn.textContent = "✕";
+    delBtn.onclick = (ev) => { 
+      ev.stopPropagation(); 
+      wrapper.remove(); 
+    };
+    wrapper.appendChild(delBtn);
+
+    let contentHtml = "";
+    let metaLabel = savedData?.label || "";
+    let metaOptions = savedData?.options || "";
+    let metaSrc = savedData?.src || "";
+    let metaText = savedData?.text || "";
+
+    const askIfNeeded = (promptMsg, defaultVal, existingVal) => {
+      if (savedData && existingVal !== undefined && existingVal !== "") return existingVal;
+      let result = prompt(promptMsg, defaultVal);
+      if (!result) return defaultVal;
+      return result;
+    };
+
+    switch(type) {
+      case 'label':
+        const headingText = askIfNeeded("Heading text:", "New Section Title", metaText);
+        wrapper.setAttribute('data-meta-text', headingText);
+        contentHtml = `<h3 style="font-size:1.1rem; font-weight:600; margin:0;">${escapeHtml(headingText)}</h3>`;
+        break;
+        
+      case 'text':
+        const txtLabel = askIfNeeded("Field label:", "Input Field", metaLabel);
+        wrapper.setAttribute('data-meta-label', txtLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(txtLabel)}</label><input type="text" placeholder="Enter text..."></div>`;
+        break;
+        
+      case 'password':
+        const pwdLabel = askIfNeeded("Password label:", "Password", metaLabel);
+        wrapper.setAttribute('data-meta-label', pwdLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(pwdLabel)}</label><input type="password" placeholder="Enter password"></div>`;
+        break;
+        
+      case 'number':
+        const numLabel = askIfNeeded("Number field label:", "Quantity", metaLabel);
+        wrapper.setAttribute('data-meta-label', numLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(numLabel)}</label><input type="number"></div>`;
+        break;
+        
+      case 'textarea':
+        const areaLabel = askIfNeeded("Textarea label:", "Description", metaLabel);
+        wrapper.setAttribute('data-meta-label', areaLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(areaLabel)}</label><textarea rows="3" placeholder="Write something..."></textarea></div>`;
+        break;
+        
+      case 'dropdown':
+        const dropLabel = askIfNeeded("Dropdown label:", "Select Option", metaLabel);
+        let dropOpts = (savedData && metaOptions) ? metaOptions : prompt("Options (comma separated):", "Option 1, Option 2, Option 3");
+        if (!dropOpts) dropOpts = "Option 1, Option 2, Option 3";
+        wrapper.setAttribute('data-meta-label', dropLabel);
+        wrapper.setAttribute('data-meta-options', dropOpts);
+        const optsArr = dropOpts.split(',').map(o => `<option>${escapeHtml(o.trim())}</option>`).join('');
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(dropLabel)}</label><select>${optsArr}</select></div>`;
+        break;
+        
+      case 'radio':
+        const radioLabel = askIfNeeded("Radio option text:", "Select this option", metaLabel);
+        wrapper.setAttribute('data-meta-label', radioLabel);
+        contentHtml = `<div style="display:flex; gap:8px; align-items:center;"><input type="radio" id="${uniqueId}"> <label for="${uniqueId}" style="margin:0;">${escapeHtml(radioLabel)}</label></div>`;
+        break;
+        
+      case 'radiogroup':
+        const rgLabel = askIfNeeded("Radio group label:", "Choose option", metaLabel);
+        let rgOpts = (savedData && metaOptions) ? metaOptions : prompt("Radio options (comma):", "Option A, Option B, Option C");
+        if (!rgOpts) rgOpts = "Option A, Option B, Option C";
+        wrapper.setAttribute('data-meta-label', rgLabel);
+        wrapper.setAttribute('data-meta-options', rgOpts);
+        const groupName = "rg_" + uniqueId;
+        const radiosHtml = rgOpts.split(',').map((opt, idx) => `<div style="display:flex; gap:8px; align-items:center; margin:6px 0;"><input type="radio" name="${groupName}" id="${uniqueId}_${idx}" value="${escapeHtml(opt.trim())}"> <label for="${uniqueId}_${idx}" style="margin:0;">${escapeHtml(opt.trim())}</label></div>`).join('');
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(rgLabel)}</label>${radiosHtml}</div>`;
+        break;
+        
+      case 'checkbox':
+        const chkLabel = askIfNeeded("Checkbox label:", "Accept terms & conditions", metaLabel);
+        wrapper.setAttribute('data-meta-label', chkLabel);
+        contentHtml = `<div style="display:flex; gap:8px; align-items:center;"><input type="checkbox" id="${uniqueId}"> <label for="${uniqueId}" style="margin:0;">${escapeHtml(chkLabel)}</label></div>`;
+        break;
+        
+      case 'date':
+        const dateLabel = askIfNeeded("Date picker label:", "Select Date", metaLabel);
+        wrapper.setAttribute('data-meta-label', dateLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(dateLabel)}</label><input type="date"></div>`;
+        break;
+        
+      case 'range':
+        const rangeLabel = askIfNeeded("Range slider label:", "Adjust value", metaLabel);
+        wrapper.setAttribute('data-meta-label', rangeLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(rangeLabel)}</label><input type="range" min="0" max="100"></div>`;
+        break;
+        
+      case 'file':
+        const fileLabel = askIfNeeded("File upload label:", "Upload File", metaLabel);
+        wrapper.setAttribute('data-meta-label', fileLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(fileLabel)}</label><input type="file"></div>`;
+        break;
+        
+      case 'list':
+        const listLabel = askIfNeeded("List title:", "Items List", metaLabel);
+        let listItems = (savedData && metaOptions) ? metaOptions : prompt("List items (comma):", "Item 1, Item 2, Item 3");
+        if (!listItems) listItems = "Item 1, Item 2, Item 3";
+        wrapper.setAttribute('data-meta-label', listLabel);
+        wrapper.setAttribute('data-meta-options', listItems);
+        const itemsHtml = listItems.split(',').map(i => `<li style="margin:4px 0;">${escapeHtml(i.trim())}</li>`).join('');
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(listLabel)}</label><ul style="margin-left: 20px; margin-top: 8px;">${itemsHtml}</ul></div>`;
+        break;
+        
+      case 'table':
+        const tableLabel = askIfNeeded("Table title:", "Data Table", metaLabel);
+        wrapper.setAttribute('data-meta-label', tableLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(tableLabel)}</label><table class="preview-table" style="margin-top:8px;"><thead><tr><th>ID</th><th>Name</th><th>Status</th></tr></thead><tbody><tr><td>1</td><td>Sample Item</td><td>Active</td></tr><tr><td>2</td><td>Another Item</td><td>Pending</td></tr></tbody></table></div>`;
+        break;
+        
+      case 'exceltable':
+        const excelLabel = askIfNeeded("Spreadsheet title:", "Editable Grid", metaLabel);
+        wrapper.setAttribute('data-meta-label', excelLabel);
+        contentHtml = `<div class="form-group-block"><label>${escapeHtml(excelLabel)}</label><table class="preview-table" contenteditable="true" style="margin-top:8px;"><thead><tr><th>Column A</th><th>Column B</th><th>Column C</th></tr></thead><tbody><tr><td>Edit me</td><td>Value 1</td><td>✔️</td></tr><tr><td>Row 2</td><td>Value 2</td><td>✔️</td></tr></tbody></table></div>`;
+        break;
+        
+      case 'button':
+        const btnLabel = askIfNeeded("Button text:", "Click Me", metaLabel);
+        wrapper.setAttribute('data-meta-label', btnLabel);
+        contentHtml = `<button class="rendered-btn">${escapeHtml(btnLabel)}</button>`;
+        break;
+        
+      case 'image':
+        let imgSrc = (savedData && metaSrc) ? metaSrc : prompt("Image URL:", "https://picsum.photos/300/150");
+        if (!imgSrc) imgSrc = "https://picsum.photos/300/150";
+        wrapper.setAttribute('data-meta-src', imgSrc);
+        contentHtml = `<img src="${escapeHtml(imgSrc)}" style="max-width:100%; max-height:150px; object-fit:contain; border-radius: 8px;">`;
+        break;
+        
+      default:
+        return;
+    }
+    
+    wrapper.insertAdjacentHTML('beforeend', contentHtml);
+    container.appendChild(wrapper);
+    
+    // Scroll to show new element
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function escapeHtml(str) { 
+    if(!str) return ''; 
+    return str.replace(/[&<>]/g, function(m){
+      if(m === '&') return '&amp;'; 
+      if(m === '<') return '&lt;'; 
+      if(m === '>') return '&gt;'; 
+      return m;
+    }); 
+  }
+
+  async function saveFullLayoutToDB() {
+    const projName = prompt("Project name:", "Project_" + new Date().toISOString().slice(0,19).replace(/:/g, '-'));
+    if (!projName) return;
+    
+    const snapshot = [];
+    document.querySelectorAll('.drop-zone-card').forEach(zone => {
+      const zoneId = zone.id;
+      const wrappers = zone.querySelectorAll('.rendered-element-wrapper');
+      wrappers.forEach(w => {
+        snapshot.push({
+          locationId: zoneId,
+          type: w.getAttribute('data-comp-type'),
+          label: w.getAttribute('data-meta-label') || '',
+          options: w.getAttribute('data-meta-options') || '',
+          text: w.getAttribute('data-meta-text') || '',
+          src: w.getAttribute('data-meta-src') || ''
+        });
+      });
+    });
+    
+    await database.ref('CompleteMatrixProjects/' + projName).set({ 
+      components: snapshot, 
+      timestamp: Date.now() 
+    });
+    alert(`✅ Project "${projName}" saved successfully!`);
+    loadProjectsList();
+  }
+
+  async function loadProjectFromDB() {
+    const sel = document.getElementById('projectSelect');
+    const key = sel.value;
+    if (!key) return;
+    
+    const snap = await database.ref('CompleteMatrixProjects/' + key).once('value');
+    const data = snap.val();
+    if (!data || !data.components) return;
+    
+    // Clear all zones
+    document.querySelectorAll('.drop-zone-card').forEach(zone => zone.innerHTML = "");
+    
+    for (const comp of data.components) {
+      const targetZone = document.getElementById(comp.locationId);
+      if (targetZone) {
+        instantiateComponent(targetZone, comp.type, comp);
+      }
+    }
+    alert(`✅ Project "${key}" loaded successfully!`);
+  }
+
+  async function loadProjectsList() {
+    const snap = await database.ref('CompleteMatrixProjects').once('value');
+    const select = document.getElementById('projectSelect');
+    select.innerHTML = '<option value="">-- Load Saved Matrix Project --</option>';
+    const projects = snap.val();
+    if (projects) {
+      Object.keys(projects).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        select.appendChild(opt);
+      });
+    }
+  }
+
+  function clearAllZones() {
+    if (confirm('Clear all elements from all workspace zones?')) {
+      document.querySelectorAll('.drop-zone-card').forEach(zone => zone.innerHTML = '');
+    }
+  }
+
+  // Event listeners
+  document.getElementById('saveProjectBtn').onclick = saveFullLayoutToDB;
+  document.getElementById('projectSelect').onchange = loadProjectFromDB;
+  document.getElementById('clearAllBtn').onclick = clearAllZones;
+
+  // Initialize
+  loadProjectsList();
+</script>
+</body>
+</html>

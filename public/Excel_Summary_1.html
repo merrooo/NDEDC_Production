@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام متابعة العدادات الذكية | لوحة القيادة</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background: #f1f5f9;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .toolbar {
+            background: white;
+            border-radius: 24px;
+            padding: 12px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: #1e40af;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3a8a;
+        }
+
+        .btn-outline {
+            background: #f1f5f9;
+            color: #1e293b;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-outline:hover {
+            background: #e2e8f0;
+        }
+
+        .info-badge {
+            background: #e6f0ff;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            color: #0c4a6e;
+            font-weight: 500;
+        }
+
+        .info-badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 32px;
+            border: 1px solid #e9eef3;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #0f172a;
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn {
+            background: #2dd4bf;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 40px;
+            color: #0f172a;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .export-btn:hover {
+            background: #14b8a6;
+        }
+
+        .filter-area {
+            padding: 14px 24px;
+            background: #fafcff;
+            border-bottom: 1px solid #eef2f8;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 20px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #1e293b;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.7rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            padding: 16px;
+        }
+
+        .preview-wrapper {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 2px solid #cbd5e1;
+            font-weight: 800;
+        }
+
+        td {
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 1px solid #ecf3fa;
+        }
+
+        .total-row {
+            background: #eef2ff;
+            font-weight: 800;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        .kpi-grid {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 14px 24px;
+            background: #f0fdf4;
+            border-top: 1px solid #dcfce7;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 20px;
+            padding: 12px 16px;
+            flex: 1;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f3b2c;
+        }
+
+        .kpi-label {
+            font-size: 0.6rem;
+            color: #475569;
+            margin-top: 4px;
+        }
+
+        .editable-input {
+            width: 85px;
+            padding: 5px 6px;
+            text-align: center;
+            font-weight: bold;
+            background: #fffbeb;
+            border-radius: 20px;
+            border: 1px solid #fbbf24;
+        }
+
+        .percentage-badge {
+            background: #dcfce7;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+        }
+
+        .type-check-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .type-check-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+        }
+
+        .info-note {
+            background: #eef2ff;
+            padding: 8px 20px;
+            font-size: 0.65rem;
+            color: #1e3a8a;
+            border-bottom: 1px solid #c7d2fe;
+        }
+
+        .summary-cell-total {
+            background: #e0f2fe;
+            font-weight: 800;
+        }
+
+        .type-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .type-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 5px 20px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .selected-tag {
+            background: #1e40af;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.65rem;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        @media (max-width: 700px) {
+
+            .filter-area,
+            .kpi-grid {
+                flex-direction: column;
+            }
+        }
+
+        .back-link {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2563eb;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-link:hover {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <div class="toolbar">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button id="uploadBtn" class="btn btn-primary">📂 رفع ملف Excel</button>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                <button id="resetBtn" class="btn btn-outline">🔄 إعادة تعيين</button>
+                <div id="infoBadge" class="info-badge">⚡ انتظر رفع ملف المشروع
+                </div>
+            </div>
+            <nav class="back-nav">
+                <a href="Control_Excel.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Return to Home
+                </a>
+            </nav>
+        </div>
+
+        <div class="card" id="previewCard" style="display: none;">
+            <div class="card-header">
+                <h2>📋 معاينة البيانات <span id="previewRowCount"></span></h2>
+                <button id="exportPreviewBtn" class="export-btn">📎 تصدير CSV</button>
+            </div>
+            <div class="table-wrapper preview-wrapper">
+                <table id="previewTable">
+                    <thead id="previewHeader"></thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" id="targetSummaryCard" style="display: none;">
+            <div class="card-header">
+                <h2>🎯 ملخص المستهدف VS المنفذ - حسب القطاع</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button id="refreshTargetBtn" class="export-btn" style="background:#10b981;">🔄 تحديث</button>
+                    <button id="exportTargetBtn" class="export-btn">📎 CSV</button>
+                </div>
+            </div>
+            <div class="filter-area">
+                <div class="filter-group">
+                    <label>🏢 عمود القطاع (DiscoBranch / DiscoSection)</label>
+                    <select id="discoColumnSelect">
+                        <option value="">-- اختر العمود --</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🔖 تصفية حسب TYPE (A1..A5)</label>
+                    <div class="type-check-group" id="typeCheckGroup">
+                        <label><input type="checkbox" value="ALL" checked> الكل</label>
+                        <label><input type="checkbox" value="A1"> A1</label>
+                        <label><input type="checkbox" value="A2"> A2</label>
+                        <label><input type="checkbox" value="A3"> A3</label>
+                        <label><input type="checkbox" value="A4"> A4</label>
+                        <label><input type="checkbox" value="A5"> A5</label>
+                    </div>
+                </div>
+            </div>
+            <div class="info-note" id="targetSourceNote">📌 يرجى اختيار عمود القطاع</div>
+            <div class="table-wrapper" style="max-height: 500px;">
+                <table id="targetTable">
+                    <thead id="targetHeader"></thead>
+                    <tbody id="targetBody"></tbody>
+                </table>
+            </div>
+            <div id="targetKPIs" class="kpi-grid"></div>
+        </div>
+
+        <div class="card" id="pivotCard" style="display: none;">
+            <div class="card-header">
+                <h2>📊 Pivot Table Builder</h2>
+                <button id="exportPivotBtn" class="export-btn">📎 تصدير</button>
+            </div>
+            <div class="filter-area">
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; width:100%;">
+                    <div style="flex:1;"><label>🏷️ Group By</label><select id="pivotGroupColumn"></select></div>
+                    <div style="flex:1;"><label>🔢 Count Unique from</label><select id="pivotCountColumn"></select>
+                    </div>
+                    <div style="display:flex; align-items:end;"><button id="generatePivotBtn" class="btn btn-primary"
+                            style="background:#7c3aed;">إنشاء</button></div>
+                </div>
+            </div>
+            <div id="pivotOutput" style="padding: 0 20px 20px 20px;"></div>
+        </div>
+
+        <div class="card" id="summaryCard" style="display: none;">
+            <div class="card-header">
+                <h2>📊 عدد العدادات حسب TYPE (A1-A5)</h2>
+                <button id="exportSummaryBtn" class="export-btn">📎 CSV</button>
+            </div>
+            <div class="filter-area">
+                <div class="filter-group"><label>عمود القطاع</label><select id="sectorColumnSelect"></select></div>
+                <div class="filter-group"><label>عمود TYPE</label><select id="typeColumnSelect"></select></div>
+            </div>
+            <div class="filter-area" style="background:#fef9e3;">
+                <div class="type-buttons">
+                    <button class="type-btn" data-type="A1">A1</button>
+                    <button class="type-btn" data-type="A2">A2</button>
+                    <button class="type-btn" data-type="A3">A3</button>
+                    <button class="type-btn" data-type="A4">A4</button>
+                    <button class="type-btn" data-type="A5">A5</button>
+                </div>
+            </div>
+            <div id="selectedTypesArea" style="display: none;">
+                <div style="padding: 8px 20px; background:#dbeafe; display:flex; flex-wrap:wrap; gap:8px;">
+                    <span>✅ الأنواع المضافة:</span>
+                    <div id="selectedTypesList" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    <button id="removeAllTypesBtn" class="export-btn" style="background:#ef4444;">🗑️</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="summaryTable">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let headers = [], rawData = [];
+        let currentDiscoColumn = null;
+        let currentSectorColumn = null, currentTypeColumn = null;
+        let selectedTypesForSummary = new Set();
+
+        // =========================================================================
+        // COMPLETE DATA FROM YOUR EXCEL (ALL 55 ENGINEERING OFFICES)
+        // Total = 19,931
+        // =========================================================================
+
+        // دمياط (11 items) - Total: 3,796
+        const DAMIETTA = {
+            "هندسة شمال دمياط": 310, "هندسة جنوب دمياط": 535, "هندسة عزبة البرج": 250,
+            "هندسة كفر سعد": 95, "هندسة كفر البطيخ": 829, "هندسة راس البر": 232,
+            "هندسة دمياط الجديدة": 162, "هندسة الزرقا": 434, "هندسة فارسكور": 369,
+            "هندسة الروضة": 281, "هندسة الشعراء": 299
+        };
+
+        // شمال الدقهلية (14 items) - Total: 3,800
+        const NORTH_DAKAHLIA = {
+            "هندسة مدينة شربين": 193, "هندسة قري شربين": 324, "هندسة دكرنس": 271,
+            "هندسة جمصة": 240, "هندسة قري بلقاس": 421, "هندسة مدينة بلقاس": 223,
+            "هندسة الستامونى": 364, "هندسة بني عبيد": 254, "هندسة منية النصر": 308,
+            "هندسة ميت سلسيل": 230, "هندسة الجمالية": 260, "هندسة قري المنزلة": 296,
+            "هندسة مدينة المنزلة": 119, "هندسة المطرية": 297
+        };
+
+        // جنوب الدقهلية (13 items) - Total: 6,383
+        const SOUTH_DAKAHLIA = {
+            "هندسة شرق المنصورة": 707, "هندسة غرب المنصورة": 880, "هندسة طلخا": 637,
+            "هندسة نبروه": 371, "هندسة قري المنصورة 1": 497, "هندسة قري المنصورة 2": 387,
+            "هندسة اجا": 760, "هندسة مدينة السنبلاوين": 139, "هندسة قري السنبلاوين": 571,
+            "هندسة تمي الامديد": 275, "هندسة مدينة ميت غمر": 339, "هندسة قري ميت غمر": 475,
+            "هندسة كوم النور": 345
+        };
+
+        // كفر الشيخ (17 items) - Total: 5,952
+        const KAFR_SHEIKH = {
+            "هندسة مدينة كفر الشيخ": 446, "هندسة غرب كفر الشيخ": 357, "هندسة شرق كفر الشيخ": 332,
+            "هندسة قلين": 313, "هندسة قرى سيدي سالم": 389, "هندسة مدينة سيدي سالم": 353,
+            "هندسة الرياض": 435, "هندسة مدينة دسوق": 201, "هندسة قرى شمال دسوق": 385,
+            "هندسة قرى جنوب دسوق": 225, "هندسة فوه": 332, "هندسة مطوبس": 586,
+            "هندسة مدينة الحامول": 243, "هندسة قرى الحامول": 333, "هندسة بيلا": 502,
+            "هندسة بلطيم": 365, "هندسة برج البرلس": 155
+        };
+
+        // Complete individual targets (55 items)
+        const INDIVIDUAL_TARGETS = {
+            ...DAMIETTA,
+            ...NORTH_DAKAHLIA,
+            ...SOUTH_DAKAHLIA,
+            ...KAFR_SHEIKH
+        };
+
+        const DAM_TOTAL = Object.values(DAMIETTA).reduce((a, b) => a + b, 0);
+        const NORTH_TOTAL = Object.values(NORTH_DAKAHLIA).reduce((a, b) => a + b, 0);
+        const SOUTH_TOTAL = Object.values(SOUTH_DAKAHLIA).reduce((a, b) => a + b, 0);
+        const KAFR_TOTAL = Object.values(KAFR_SHEIKH).reduce((a, b) => a + b, 0);
+        const GRAND_TOTAL = DAM_TOTAL + NORTH_TOTAL + SOUTH_TOTAL + KAFR_TOTAL;
+
+        const SECTOR_TOTALS = {
+            "دمياط": DAM_TOTAL,
+            "شمال الدقهلية": NORTH_TOTAL,
+            "جنوب الدقهلية": SOUTH_TOTAL,
+            "كفر الشيخ": KAFR_TOTAL
+        };
+
+        let TARGET_DATA = [];
+
+        function toSafe(v) { return (v === undefined || v === null) ? "" : String(v).trim(); }
+        function escapeHtml(s) { if (!s) return ''; return String(s).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+        function normalizeType(v) { let s = toSafe(v).toUpperCase(); return ['A1', 'A2', 'A3', 'A4', 'A5'].includes(s) ? s : null; }
+        function roundUp(x) { return Math.ceil(x); }
+
+        function isDiscoSectionMode() {
+            if (!currentDiscoColumn) return false;
+            let colName = headers[parseInt(currentDiscoColumn)].toLowerCase();
+            return colName.includes('قطاع') || colName.includes('section') || colName === 'المستهدف';
+        }
+
+        function getTargetForSector(sectorName) {
+            if (isDiscoSectionMode()) {
+                for (let [sectorKey, totalVal] of Object.entries(SECTOR_TOTALS)) {
+                    if (sectorName.includes(sectorKey) || sectorKey.includes(sectorName)) {
+                        return totalVal;
+                    }
+                }
+                return 0;
+            } else {
+                for (let [key, val] of Object.entries(INDIVIDUAL_TARGETS)) {
+                    if (sectorName === key) return val;
+                }
+                for (let [key, val] of Object.entries(INDIVIDUAL_TARGETS)) {
+                    if (key.includes(sectorName) || sectorName.includes(key)) return val;
+                }
+                return 0;
+            }
+        }
+
+        function getSelectedTypeFilters() {
+            let allChk = document.querySelector('#typeCheckGroup input[value="ALL"]');
+            if (allChk && allChk.checked) return ["ALL"];
+            let selected = [];
+            document.querySelectorAll('#typeCheckGroup input:checked').forEach(cb => { if (cb.value !== "ALL") selected.push(cb.value); });
+            return selected.length ? selected : ["ALL"];
+        }
+
+        function buildTargetDataFromSectors() {
+            if (!headers.length || !rawData.length || currentDiscoColumn === null) return [];
+            let discoIdx = parseInt(currentDiscoColumn);
+            let sectorsSet = new Set();
+            for (let row of rawData) {
+                let sec = toSafe(row[discoIdx]);
+                if (sec) sectorsSet.add(sec);
+            }
+            let arr = Array.from(sectorsSet).map(sec => ({
+                sector: sec,
+                target: getTargetForSector(sec),
+                done: 0
+            }));
+            arr.sort((a, b) => a.sector.localeCompare(b.sector));
+            return arr;
+        }
+
+        function updateDoneAndRender() {
+            if (!headers.length || currentDiscoColumn === null) return;
+            let discoIdx = parseInt(currentDiscoColumn);
+            let typeFilters = getSelectedTypeFilters();
+            let allTypes = typeFilters.includes("ALL");
+            let typeIdx = -1;
+            for (let i = 0; i < headers.length; i++) {
+                let h = headers[i].toLowerCase();
+                if (h === 'type' || h.includes('نوع')) { typeIdx = i; break; }
+            }
+
+            let countMap = new Map();
+            for (let row of rawData) {
+                let sector = toSafe(row[discoIdx]);
+                if (!sector) continue;
+                if (!allTypes && typeIdx !== -1) {
+                    let typ = normalizeType(toSafe(row[typeIdx]));
+                    if (!typ || !typeFilters.includes(typ)) continue;
+                }
+                countMap.set(sector, (countMap.get(sector) || 0) + 1);
+            }
+
+            TARGET_DATA = buildTargetDataFromSectors();
+            for (let item of TARGET_DATA) {
+                item.done = countMap.get(item.sector) || 0;
+            }
+            renderTargetTable();
+        }
+
+        function renderTargetTable() {
+            if (!TARGET_DATA.length) {
+                document.getElementById('targetHeader').innerHTML = `<tr><th>⚠️ يرجى اختيار عمود القطاع</th></tr>`;
+                document.getElementById('targetBody').innerHTML = '';
+                document.getElementById('targetKPIs').innerHTML = '';
+                return;
+            }
+
+            let totalT = 0, totalD = 0;
+            for (let r of TARGET_DATA) { totalT += r.target; totalD += r.done; }
+            let totalBal = totalT - totalD;
+            let totalPct = totalT ? (totalD / totalT) * 100 : 0;
+
+            let noteDiv = document.getElementById('targetSourceNote');
+            if (isDiscoSectionMode()) {
+                noteDiv.innerHTML = `📌 وضع DiscoSection: المستهدف لكل قطاع = إجمالي القطاع (دمياط: ${DAM_TOTAL.toLocaleString()} | شمال الدقهلية: ${NORTH_TOTAL.toLocaleString()} | جنوب الدقهلية: ${SOUTH_TOTAL.toLocaleString()} | كفر الشيخ: ${KAFR_TOTAL.toLocaleString()}) — الإجمالي الكلي: ${GRAND_TOTAL.toLocaleString()}`;
+                noteDiv.style.background = "#fef3c7";
+                noteDiv.style.color = "#92400e";
+            } else {
+                noteDiv.innerHTML = `📌 وضع DiscoBranch: المستهدف لكل هندسة/قطاع فردي (55 قطاع هندسي) — الإجمالي الكلي للمستهدف: ${GRAND_TOTAL.toLocaleString()}`;
+                noteDiv.style.background = "#e0f2fe";
+                noteDiv.style.color = "#0369a1";
+            }
+
+            let headerHtml = `<tr><th>القطاع / الهندسة</th><th>المستهدف (Target)</th><th>المنفذ (Done)</th><th>المتبقي</th><th>نسبة الإنجاز</th><th>المستهدف الأسبوعي</th><th>المستهدف اليومي</th></tr>`;
+            document.getElementById('targetHeader').innerHTML = headerHtml;
+
+            let body = '';
+            for (let item of TARGET_DATA) {
+                let bal = item.target - item.done;
+                let pct = item.target ? (item.done / item.target) * 100 : 0;
+                let weekly = roundUp(bal / 8);
+                let daily = roundUp(weekly / 6);
+                body += `<tr>
+                <td style="text-align:right; font-weight:600;">${escapeHtml(item.sector)}</td>
+                <td style="background:#e0f2fe; font-weight:600;">${item.target.toLocaleString()}</td>
+                <td><input type="number" class="editable-input" data-sector="${escapeHtml(item.sector)}" value="${item.done}" style="width:85px;"></td>
+                <td>${bal.toLocaleString()}</td>
+                <td><span class="percentage-badge">${pct.toFixed(1)}%</span></td>
+                <td style="background:#e0f2fe;">${weekly}</td>
+                <td style="background:#e0f2fe;">${daily}</td>
+            </tr>`;
+            }
+
+            body += `<tr class="total-row">
+            <td style="font-weight:800;">الإجمالي الكلي</td>
+            <td style="font-weight:800;">${totalT.toLocaleString()}</td>
+            <td style="font-weight:800;">${totalD.toLocaleString()}</td>
+            <td style="font-weight:800;">${totalBal.toLocaleString()}</td>
+            <td style="font-weight:800;">${totalPct.toFixed(1)}%</td>
+            <td style="font-weight:800;">${roundUp(totalBal / 8)}</td>
+            <td style="font-weight:800;">${roundUp(roundUp(totalBal / 8) / 6)}</td>
+        </table>`;
+
+            document.getElementById('targetBody').innerHTML = body;
+
+            document.querySelectorAll('.editable-input').forEach(inp => {
+                inp.removeEventListener('change', inp._listener);
+                let listener = (e) => {
+                    let sector = inp.dataset.sector;
+                    let newVal = parseInt(inp.value) || 0;
+                    let tgt = TARGET_DATA.find(t => t.sector === sector);
+                    if (tgt) tgt.done = newVal;
+                    renderTargetTable();
+                };
+                inp.addEventListener('change', listener);
+                inp._listener = listener;
+            });
+
+            document.getElementById('targetKPIs').innerHTML = `
+            <div class="kpi-card"><div class="kpi-value">${totalT.toLocaleString()}</div><div class="kpi-label">إجمالي المستهدف</div></div>
+            <div class="kpi-card"><div class="kpi-value">${totalD.toLocaleString()}</div><div class="kpi-label">المنفذ</div></div>
+            <div class="kpi-card"><div class="kpi-value">${totalBal.toLocaleString()}</div><div class="kpi-label">المتبقي</div></div>
+            <div class="kpi-card"><div class="kpi-value">${totalPct.toFixed(1)}%</div><div class="kpi-label">نسبة الإنجاز الكلية</div></div>
+        `;
+        }
+
+        // Pivot functions
+        function generatePivot() {
+            let groupCol = document.getElementById('pivotGroupColumn').value;
+            let countCol = document.getElementById('pivotCountColumn').value;
+            if (!groupCol || !countCol) { alert("اختر عمودين"); return; }
+            let gIdx = parseInt(groupCol), cIdx = parseInt(countCol);
+            let map = new Map();
+            for (let row of rawData) {
+                let group = toSafe(row[gIdx]) || "(فارغ)";
+                let val = toSafe(row[cIdx]);
+                if (!map.has(group)) map.set(group, { unique: new Set(), empty: 0, zero: 0 });
+                let stat = map.get(group);
+                if (val !== "") stat.unique.add(val);
+                else stat.empty++;
+                let num = parseFloat(val);
+                if (val !== "" && !isNaN(num) && num === 0) stat.zero++;
+            }
+            let results = Array.from(map.entries()).map(([g, st]) => ({ group: g, unique: st.unique.size, empty: st.empty, zero: st.zero, sum: st.unique.size + st.empty + st.zero }));
+            results.sort((a, b) => b.sum - a.sum);
+            let totalUnique = results.reduce((s, r) => s + r.unique, 0);
+            let totalEmpty = results.reduce((s, r) => s + r.empty, 0);
+            let totalZero = results.reduce((s, r) => s + r.zero, 0);
+            let outHtml = `<div style="background:#ede9fe; border-radius:20px; padding:12px; margin-bottom:16px; display:flex; gap:16px; flex-wrap:wrap;">
+            <div><strong>📌 المجموعات:</strong> ${results.length}</div>
+            <div><strong>🔢 Unique:</strong> ${totalUnique}</div>
+            <div><strong>📭 Empty:</strong> ${totalEmpty}</div>
+            <div><strong>0️⃣ Zero:</strong> ${totalZero}</div>
+            <div><strong>➕ الإجمالي:</strong> ${totalUnique + totalEmpty + totalZero}</div>
+        </div><div class="table-wrapper"><tr><thead><tr><th>#</th><th>${escapeHtml(headers[gIdx])}</th><th>Unique</th><th>Empty</th><th>Zero</th><th>Summation</th></tr></thead><tbody>${results.map((r, i) => `<tr><td>${i + 1}</td><td style="text-align:right;">${escapeHtml(r.group)}</td><td>${r.unique}</td><td>${r.empty}</td><td>${r.zero}</td><td class="summary-cell-total">${r.sum}</td></tr>`).join('')}<tr class="total-row"><td colspan="2">الإجمالي</td><td>${totalUnique}</td><td>${totalEmpty}</td><td>${totalZero}</td><td>${totalUnique + totalEmpty + totalZero}</td></tr></tbody>}</div>`;
+            document.getElementById('pivotOutput').innerHTML = outHtml;
+            window.pivotCache = { results, groupName: headers[gIdx] };
+        }
+        function exportPivotCSV() { if (!window.pivotCache) { alert("لا توجد نتائج"); return; } let { results, groupName } = window.pivotCache; let csv = [[groupName, "Unique", "Empty", "Zero", "Summation"]]; results.forEach(r => csv.push([r.group, r.unique, r.empty, r.zero, r.sum])); let blob = new Blob(["\uFEFF" + csv.map(r => r.join(',')).join('\n')], { type: 'text/csv' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `pivot_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href); }
+
+        // TYPE Summary
+        function getTypeSummary() {
+            if (!currentSectorColumn || !currentTypeColumn || selectedTypesForSummary.size === 0) return null;
+            let sIdx = parseInt(currentSectorColumn), tIdx = parseInt(currentTypeColumn);
+            let typeList = ['A1', 'A2', 'A3', 'A4', 'A5'].filter(t => selectedTypesForSummary.has(t));
+            let map = new Map();
+            for (let row of rawData) {
+                let sector = toSafe(row[sIdx]) || "غير محدد";
+                let typeVal = normalizeType(toSafe(row[tIdx]));
+                if (!typeVal || !selectedTypesForSummary.has(typeVal)) continue;
+                if (!map.has(sector)) { let obj = {}; typeList.forEach(t => obj[t] = 0); obj.total = 0; map.set(sector, obj); }
+                let stat = map.get(sector);
+                stat[typeVal]++; stat.total++;
+            }
+            let rows = [], totals = {}; typeList.forEach(t => totals[t] = 0); totals.total = 0;
+            for (let [sec, agg] of map.entries()) {
+                let row = { sector: sec }; let rowSum = 0;
+                for (let t of typeList) { row[t] = agg[t]; rowSum += agg[t]; totals[t] += agg[t]; }
+                row.total = rowSum; totals.total += rowSum; rows.push(row);
+            }
+            rows.sort((a, b) => a.sector.localeCompare(b.sector));
+            return { rows, totals, types: typeList, headerName: headers[sIdx] };
+        }
+        function buildTypeTable() {
+            let sum = getTypeSummary();
+            if (!sum) { document.getElementById('tableHeader').innerHTML = '<tr><th>⚠️ اختر القطاع و TYPE</th></tr>'; document.getElementById('tableBody').innerHTML = ''; return; }
+            let { rows, totals, types, headerName } = sum;
+            let headerHtml = `<tr><th>${escapeHtml(headerName)}</th>${types.map(t => `<th>${t}</th>`).join('')}<th>المجموع الكلي</th></tr>`;
+            document.getElementById('tableHeader').innerHTML = headerHtml;
+            let body = '';
+            for (let r of rows) {
+                body += `<tr><td style="text-align:right;">${escapeHtml(r.sector)}</td>`;
+                for (let t of types) body += `<td>${r[t] || 0}</td>`;
+                body += `<td class="summary-cell-total">${r.total}</td></td>`;
+            }
+            body += `<tr class="total-row"><td>الإجمالي</td>${types.map(t => `<td class="summary-cell-total">${totals[t]}</td>`).join('')}<td class="summary-cell-total">${totals.total}</td></tr>`;
+            document.getElementById('tableBody').innerHTML = body;
+        }
+        function updateSelectedDisplay() {
+            let area = document.getElementById('selectedTypesArea'), listDiv = document.getElementById('selectedTypesList');
+            if (selectedTypesForSummary.size === 0) { area.style.display = 'none'; return; }
+            area.style.display = 'block';
+            let html = '';
+            for (let t of ['A1', 'A2', 'A3', 'A4', 'A5']) {
+                if (selectedTypesForSummary.has(t)) html += `<div class="selected-tag">${t} <button class="remove-single-type" data-type="${t}" style="background:none; border:none; color:#fca5a5; cursor:pointer;">✖</button></div>`;
+            }
+            listDiv.innerHTML = html;
+            document.querySelectorAll('.remove-single-type').forEach(btn => btn.addEventListener('click', () => { selectedTypesForSummary.delete(btn.dataset.type); updateSelectedDisplay(); buildTypeTable(); }));
+            buildTypeTable();
+        }
+
+        function buildPreviewTable() {
+            let headerHtml = '<tr>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>';
+            document.getElementById('previewHeader').innerHTML = headerHtml;
+            let body = '';
+            for (let row of rawData.slice(0, 300)) body += '<tr>' + row.map(c => `<td title="${escapeHtml(toSafe(c))}">${escapeHtml(toSafe(c).substring(0, 30)) || '—'}</td>`).join('') + '</tr>';
+            if (rawData.length > 300) body += `<tr><td colspan="${headers.length}">... ${rawData.length - 300} صف إضافي<\/td><\/tr>`;
+            document.getElementById('previewBody').innerHTML = body;
+            document.getElementById('previewRowCount').innerHTML = `(${rawData.length} صف × ${headers.length} عمود)`;
+        }
+
+        function updateDropdowns() {
+            let opts = '<option value="">-- اختر عمود --</option>' + headers.map((h, i) => `<option value="${i}">${escapeHtml(h)}</option>`).join('');
+            document.getElementById('discoColumnSelect').innerHTML = opts;
+            document.getElementById('sectorColumnSelect').innerHTML = opts;
+            document.getElementById('typeColumnSelect').innerHTML = opts;
+            document.getElementById('pivotGroupColumn').innerHTML = opts;
+            document.getElementById('pivotCountColumn').innerHTML = opts;
+        }
+
+        function processExcel(file) {
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                let wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                let sheet = wb.Sheets[wb.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (!rows || rows.length < 2) { alert("لا توجد بيانات"); return; }
+                headers = rows[0].map((c, i) => c && String(c).trim() ? String(c).trim() : `Col${i + 1}`);
+                rawData = [];
+                for (let i = 1; i < rows.length; i++) { let row = []; for (let j = 0; j < headers.length; j++) row.push(rows[i][j] || ""); if (row.some(v => v !== "")) rawData.push(row); }
+                document.getElementById('infoBadge').innerHTML = `✅ ${rawData.length} صف | ${headers.length} عمود`;
+                document.getElementById('infoBadge').className = "info-badge success";
+                document.getElementById('previewCard').style.display = 'block';
+                document.getElementById('targetSummaryCard').style.display = 'block';
+                document.getElementById('pivotCard').style.display = 'block';
+                document.getElementById('summaryCard').style.display = 'block';
+                updateDropdowns();
+                buildPreviewTable();
+                for (let i = 0; i < headers.length; i++) { let h = headers[i].toLowerCase(); if (h.includes('discobranch') || h.includes('disco') || h.includes('قطاع') || h.includes('هندسة')) { document.getElementById('discoColumnSelect').value = i; currentDiscoColumn = i; break; } }
+                if (currentDiscoColumn !== null) updateDoneAndRender();
+                buildTypeTable();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Event Listeners
+        document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+        document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) processExcel(e.target.files[0]); });
+        document.getElementById('resetBtn').addEventListener('click', () => location.reload());
+        document.getElementById('refreshTargetBtn').addEventListener('click', () => updateDoneAndRender());
+        document.getElementById('typeCheckGroup').addEventListener('change', () => updateDoneAndRender());
+        document.getElementById('discoColumnSelect').addEventListener('change', e => { currentDiscoColumn = e.target.value; if (currentDiscoColumn) updateDoneAndRender(); });
+        document.getElementById('exportTargetBtn').addEventListener('click', () => { if (!TARGET_DATA.length) return; let csv = [["القطاع", "المستهدف", "المنفذ", "المتبقي", "النسبة%", "الأسبوعي", "اليومي"]]; TARGET_DATA.forEach(t => { let bal = t.target - t.done; csv.push([t.sector, t.target, t.done, bal, ((t.done / t.target) * 100).toFixed(1), roundUp(bal / 8), roundUp(roundUp(bal / 8) / 6)]); }); let tt = TARGET_DATA.reduce((s, x) => s + x.target, 0), td = TARGET_DATA.reduce((s, x) => s + x.done, 0); csv.push(["الإجمالي", tt, td, tt - td, ((td / tt) * 100).toFixed(1), roundUp((tt - td) / 8), roundUp(roundUp((tt - td) / 8) / 6)]); let blob = new Blob(["\uFEFF" + csv.map(r => r.join(',')).join('\n')], { type: 'text/csv' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `target_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href); });
+        document.getElementById('generatePivotBtn').addEventListener('click', generatePivot);
+        document.getElementById('exportPivotBtn').addEventListener('click', exportPivotCSV);
+        document.getElementById('exportSummaryBtn').addEventListener('click', () => { let s = getTypeSummary(); if (!s) return; let csv = [[s.headerName, ...s.types, "المجموع الكلي"]]; s.rows.forEach(r => csv.push([r.sector, ...s.types.map(t => r[t]), r.total])); csv.push(["الإجمالي الكلي", ...s.types.map(t => s.totals[t]), s.totals.total]); let blob = new Blob(["\uFEFF" + csv.map(r => r.join(',')).join('\n')], { type: 'text/csv' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `type_summary_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href); });
+        document.getElementById('sectorColumnSelect').addEventListener('change', e => { currentSectorColumn = e.target.value; buildTypeTable(); });
+        document.getElementById('typeColumnSelect').addEventListener('change', e => { currentTypeColumn = e.target.value; buildTypeTable(); });
+        document.getElementById('removeAllTypesBtn').addEventListener('click', () => { selectedTypesForSummary.clear(); updateSelectedDisplay(); });
+        document.querySelectorAll('.type-btn').forEach(btn => btn.addEventListener('click', () => { selectedTypesForSummary.add(btn.dataset.type); updateSelectedDisplay(); }));
+        document.getElementById('exportPreviewBtn').addEventListener('click', () => { let csv = [headers, ...rawData].map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(',')).join('\n'); let blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' }); let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href); });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge-Data</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #1e293b;
+            padding: 2rem 0;
+        }
+
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            background: white;
+            color: var(--primary);
+            border: 1px solid #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-home:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 1.2rem;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            height: 100%;
+        }
+
+        .type-info {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .type-sim {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .type-std {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-run {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            border-radius: 12px;
+            font-weight: 800;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .btn-run:hover:not(:disabled) {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-run:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .column-selector-box {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .btn-toggle-all {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        #fullscreenPreviewModal .modal-dialog {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+        }
+
+        #fullscreenPreviewModal .modal-content {
+            border-radius: 0 !important;
+            height: 100vh;
+        }
+
+        #fullscreenPreviewModal .modal-body {
+            padding: 0.75rem !important;
+            overflow: hidden;
+        }
+
+        #modalTable {
+            font-size: 0.82rem !important;
+            border-collapse: collapse !important;
+        }
+
+        #modalTable thead th {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            padding: 10px 14px !important;
+            border: 1px solid #334155 !important;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+        }
+
+        #modalTable tbody td {
+            padding: 8px 14px !important;
+            border: 1px solid #e2e8f0 !important;
+            white-space: nowrap;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #modalTable tbody tr:nth-of-type(odd) {
+            background-color: #ffffff !important;
+        }
+        #modalTable tbody tr:nth-of-type(even) {
+            background-color: #f8fafc !important;
+        }
+        #modalTable tbody tr:hover {
+            background-color: #f1f5f9 !important;
+        }
+
+        #fullscreenPreviewModal .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-5">
+        <div class="nav-header">
+            <h2 class="fw-800 mb-0 text-primary"><i class="fas fa-layer-group me-2"></i>Smart Excel Merger</h2>
+            <a href="Control_Excel.html" class="btn-home"><i class="fas fa-home me-2"></i>Return Home</a>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="text-muted small fw-bold">TOTAL ROWS</div>
+                    <div class="h4 mb-0 fw-800" id="totalCount">0</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="text-success small fw-bold">MATCHED</div>
+                    <div class="h4 mb-0 fw-800" id="matchedCount">0</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="text-danger small fw-bold">UNMATCHED</div>
+                    <div class="h4 mb-0 fw-800" id="unmatchedCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="row g-4">
+                <!-- Source File Panel -->
+                <div class="col-md-5">
+                    <div class="p-3 border rounded-4 h-100 d-flex flex-column">
+                        <label class="fw-bold mb-2"><i class="fas fa-file-alt text-primary me-2"></i>1. Source File (شمال الدلتا-250)</label>
+                        <input type="file" id="f1" class="form-control mb-2" accept=".xlsx,.xls,.csv">
+                        <select id="s1" class="form-select mb-3" disabled onchange="updateTypeInfo(1)"></select>
+                        <div id="ti1" class="type-info d-none mb-3"></div>
+
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold text-muted">Output Columns to Include:</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary btn-toggle-all me-1" onclick="toggleSelectAll('colsContainer1', true)">Select All</button>
+                                    <button class="btn btn-sm btn-outline-secondary btn-toggle-all" onclick="toggleSelectAll('colsContainer1', false)">Deselect All</button>
+                                </div>
+                            </div>
+                            <div id="colsContainer1" class="column-selector-box">
+                                <span class="text-muted small italic">Upload source file to see columns...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swap Icon Divider -->
+                <div class="col-md-2 d-flex align-items-center justify-content-center">
+                    <i class="fas fa-exchange-alt fa-2x text-muted"></i>
+                </div>
+
+                <!-- Database Panel -->
+                <div class="col-md-5">
+                    <div class="p-3 border rounded-4 h-100 d-flex flex-column">
+                        <label class="fw-bold mb-2"><i class="fas fa-database text-primary me-2"></i>2. Search Database(Device_data_fixed)</label>
+                        <input type="file" id="f2" class="form-control mb-2" accept=".xlsx,.xls,.csv">
+                        <select id="s2" class="form-select mb-3" disabled onchange="updateTypeInfo(2)"></select>
+                        <div id="ti2" class="type-info d-none mb-3"></div>
+
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold text-muted">Output Columns to Include:</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary btn-toggle-all me-1" onclick="toggleSelectAll('colsContainer2', true)">Select All</button>
+                                    <button class="btn btn-sm btn-outline-secondary btn-toggle-all" onclick="toggleSelectAll('colsContainer2', false)">Deselect All</button>
+                                </div>
+                            </div>
+                            <div id="colsContainer2" class="column-selector-box">
+                                <span class="text-muted small italic">Upload database file to see columns...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-run" onclick="startMerge()" id="runBtn" disabled>
+                    <i class="fas fa-play-circle me-2"></i> RUN PRECISION MERGE
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="resultTable" class="table table-hover w-100"></table>
+        </div>
+    </div>
+
+    <!-- Fullscreen Workspace Modal -->
+    <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content shadow-none border-0">
+                <div class="modal-header bg-dark text-white py-2 px-3">
+                    <h6 class="modal-title" id="modalTitle"><i class="fas fa-table me-2 text-info"></i> Full-Screen Work Area View (Maximized Mode)</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <div class="table-responsive w-100 h-100">
+                        <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+                    </div>
+                </div>
+                <div class="modal-footer py-1 px-3 bg-light border-top">
+                    <span class="text-muted small me-auto"><i class="fas fa-info-circle me-1"></i> Press ESC or click Close to return. Hold Shift to scroll table horizontally.</span>
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Close Workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let d1 = [], d2 = [];
+        let h1 = [], h2 = [];
+        let globalProcessedResult = [];
+
+        function cleanString(v) {
+            if (v === undefined || v === null || v === "") return "";
+            let s = String(v).trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
+            if (s.toLowerCase().includes('e+') && !isNaN(Number(v))) {
+                try { return BigInt(Math.round(Number(v))).toString(); } catch (e) { return s; }
+            }
+            return s.replace(/\.0$/, "");
+        }
+
+        function buildColumnCheckboxes(containerId, headers, prefix) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+            headers.forEach(h => {
+                if (!h) return;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-check small';
+                wrapper.innerHTML = `
+                    <input class="form-check-input column-chk" type="checkbox" value="${h}" data-prefix="${prefix}" id="chk_${prefix}_${h}" checked>
+                    <label class="form-check-label text-truncate w-100" for="chk_${prefix}_${h}">${h}</label>
+                `;
+                container.appendChild(wrapper);
+            });
+        }
+
+        function toggleSelectAll(containerId, checkState) {
+            const checkboxes = document.querySelectorAll(`#${containerId} .column-chk`);
+            checkboxes.forEach(chk => chk.checked = checkState);
+        }
+
+        function load(e, target) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array', cellNF: true, cellText: true });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+
+                const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: "" });
+                const headers = raw[0].map(h => String(h).trim());
+
+                const data = [];
+                for (let i = 1; i < raw.length; i++) {
+                    let row = {};
+                    raw[i].forEach((cell, idx) => { row[headers[idx]] = cleanString(cell); });
+                    data.push(row);
+                }
+
+                const sel = document.getElementById('s' + target);
+                sel.innerHTML = '<option value="">-- Choose Column --</option>';
+                headers.forEach(h => { if (h) sel.innerHTML += `<option value="${h}">${h}</option>`; });
+                sel.disabled = false;
+
+                if (target === 1) {
+                    d1 = data;
+                    h1 = headers;
+                    buildColumnCheckboxes('colsContainer1', h1, '[List]');
+                } else {
+                    d2 = data;
+                    h2 = headers;
+                    buildColumnCheckboxes('colsContainer2', h2, '[DB]');
+                }
+                document.getElementById('runBtn').disabled = !(d1.length && d2.length);
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        }
+
+        document.getElementById('f1').onchange = (e) => load(e, 1);
+        document.getElementById('f2').onchange = (e) => load(e, 2);
+
+        function updateTypeInfo(num) {
+            const col = document.getElementById('s' + num).value;
+            const data = num === 1 ? d1 : d2;
+            const box = document.getElementById('ti' + num);
+            if (!col || !data.length) { box.classList.add('d-none'); return; }
+
+            const sample = data.find(r => r[col])?.[col] || "Empty";
+            const isLong = sample.length > 12 && /^\d+$/.test(sample);
+
+            box.classList.remove('d-none');
+            box.className = `type-info ${isLong ? 'type-sim' : 'type-std'}`;
+            box.innerHTML = `<i class="fas ${isLong ? 'fa-fingerprint' : 'fa-font'} me-1"></i> Detected: ${isLong ? 'SIM/Big ID' : 'Text'}<br><small>Sample: ${sample}</small>`;
+        }
+
+        function startMerge() {
+            const k1 = document.getElementById('s1').value;
+            const k2 = document.getElementById('s2').value;
+            if (!k1 || !k2) return;
+
+            const selectedD1Cols = Array.from(document.querySelectorAll('#colsContainer1 .column-chk:checked')).map(el => el.value);
+            const selectedD2Cols = Array.from(document.querySelectorAll('#colsContainer2 .column-chk:checked')).map(el => el.value);
+
+            const finalD1Cols = selectedD1Cols.length ? selectedD1Cols : h1.filter(Boolean);
+            const finalD2Cols = selectedD2Cols.length ? selectedD2Cols : h2.filter(Boolean);
+
+            const map = new Map();
+            const fallback = new Map();
+
+            d2.forEach(r => {
+                if (r[k2]) map.set(r[k2], r);
+                if (r["SerialNum"]) fallback.set(r["SerialNum"], r);
+            });
+
+            globalProcessedResult = d1.map(r => {
+                let match = map.get(r[k1]);
+                let type = "Direct Match";
+
+                if (!match && r["SerialNum"]) {
+                    match = fallback.get(r["SerialNum"]);
+                    type = "Serial Fallback";
+                }
+
+                let out = { "Status": match ? type : "#N/A" };
+
+                finalD1Cols.forEach(k => {
+                    out[`[List] ${k}`] = r[k] !== undefined ? r[k] : "";
+                });
+
+                finalD2Cols.forEach(k => {
+                    out[`[DB] ${k}`] = match && match[k] !== undefined ? match[k] : "#N/A";
+                });
+
+                return out;
+            });
+
+            const matchedCount = globalProcessedResult.filter(r => r.Status !== "#N/A").length;
+            document.getElementById('totalCount').innerText = globalProcessedResult.length;
+            document.getElementById('matchedCount').innerText = matchedCount;
+            document.getElementById('unmatchedCount').innerText = globalProcessedResult.length - matchedCount;
+
+            renderTable(globalProcessedResult);
+        }
+
+        function renderTable(data) {
+            const colsConfig = Object.keys(data[0]).map(k => ({ title: k, data: k }));
+
+            if ($.fn.DataTable.isDataTable('#resultTable')) $('#resultTable').DataTable().destroy();
+            $('#resultTable').empty().DataTable({
+                data: data,
+                columns: colsConfig,
+                scrollX: true, 
+                paging: true, 
+                pageLength: 10, 
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5', title: 'Smart_Merge_Results',
+                        exportOptions: { format: { body: (v) => (typeof v === 'string' && v.length > 10) ? '\u200C' + v : v } }
+                    },
+                    'print', 'copy',
+                    {
+                        text: '<i class="fas fa-expand-arrows-alt me-1"></i> Full-Screen Live Preview',
+                        className: 'btn btn-primary btn-sm dt-button shadow-sm',
+                        action: function () {
+                            openFullScreenPreview(colsConfig);
+                        }
+                    }
+                ]
+            });
+        }
+
+        function openFullScreenPreview(columnsConfig) {
+            if ($.fn.DataTable.isDataTable('#modalTable')) $('#modalTable').DataTable().destroy();
+            $('#modalTable').empty();
+
+            const previewModal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+            previewModal.show();
+
+            setTimeout(() => {
+                $('#modalTable').DataTable({
+                    data: globalProcessedResult,
+                    columns: columnsConfig,
+                    scrollX: true,
+                    scrollY: 'calc(100vh - 170px)',
+                    scrollCollapse: true,
+                    pageLength: 50,
+                    dom: 'frtip'
+                });
+            }, 220);
+        }
+    </script>
+</body>
+
+</html>

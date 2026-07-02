@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Duplicate Manager - Full Column Pair Preview & Clean</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #eef2f7;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .master-layout {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* SIDEBAR STYLES */
+        .sidebar {
+            width: 360px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .sidebar-header {
+            padding: 20px 16px 16px;
+            border-bottom: 1px solid #eef2f8;
+            background: #fafcff;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 12px;
+        }
+
+        .sidebar-header p {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .back-nav {
+            padding-bottom: 4px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #2563eb;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .back-link:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .feature-category {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #3b82f6;
+            background: #eff6ff;
+            padding: 8px 16px 6px;
+            margin-top: 6px;
+        }
+
+        .feature-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .feature-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .compact-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 12px;
+            background: white;
+            font-family: inherit;
+        }
+
+        .small-btn {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: white;
+        }
+
+        .small-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .small-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-preview {
+            background: #6366f1;
+        }
+
+        .btn-danger {
+            background: #b91c1c;
+        }
+
+        .btn-warning {
+            background: #d97706;
+        }
+
+        .btn-pairs {
+            background: #0f3b5c;
+            border: 1px solid #2c5a7a;
+        }
+
+        .duplicate-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-row .small-btn {
+            flex: 1;
+        }
+
+        .stats-badge {
+            background: #e2e8f0;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .info-tip {
+            font-size: 10px;
+            color: #5a6e8a;
+            padding: 8px 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* MAIN CONTENT AREA */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .compact-header {
+            background: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .upload-area-compact {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 6px 16px;
+            border-radius: 40px;
+        }
+
+        .upload-btn-compact {
+            background: #1e3a5f;
+            color: white;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .master-btn-small {
+            background: linear-gradient(95deg, #1e3a5f, #0f2a44);
+            color: white;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* TABLE & GRID */
+        .grid-container {
+            background: white;
+            margin: 12px 24px 0 24px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .grid-toolbar {
+            background: #fafcff;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9edf2;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .mode-badge {
+            background: #eef2ff;
+            padding: 4px 12px;
+            border-radius: 24px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1e40af;
+        }
+
+        .table-wrapper {
+            overflow: auto;
+            flex: 1;
+        }
+
+        #readonlyTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        #readonlyTable th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: #1e4a76;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        #readonlyTable td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .preview-active-row {
+            background-color: #fff7ed !important;
+        }
+
+        .pair-group-separator {
+            background-color: #e6f7ec !important;
+            border-top: 2px solid #10b981;
+        }
+        
+        .duplicate-key-badge {
+            background-color: #dbeafe;
+            font-weight: 600;
+            color: #1e40af;
+        }
+        
+        .log-section {
+            background: #0f1722;
+            color: #cbd5e6;
+            border-radius: 16px;
+            padding: 10px;
+            margin: 8px 24px 16px 24px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 3px;
+            padding-left: 8px;
+            border-left: 2px solid #3b82f6;
+        }
+
+        .log-success {
+            border-left-color: #22c55e;
+            color: #bef264;
+        }
+
+        .log-warning {
+            border-left-color: #f59e0b;
+            color: #fed7aa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <nav class="back-nav">
+                    <a href="Control_Excel.html" class="back-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6" />
+                        </svg>
+                        Return to Home
+                    </a>
+                </nav>
+                <h2>🧹 Duplicate Manager</h2>
+                <p>Full column pair preview & cleaning</p>
+            </div>
+
+            <div class="feature-category">🧹 DUPLICATE MANAGEMENT</div>
+            <div class="feature-item">
+                <div class="feature-title"><span>🔍</span> Step 1: Column to analyze</div>
+                <select id="dupColumnSelect" class="compact-select" disabled>
+                    <option value="">Upload file first</option>
+                </select>
+
+                <div class="feature-title" style="margin-top:20px;"><span>⚙️</span> Step 2: Actions</div>
+                <div class="duplicate-buttons">
+                    <button id="previewBtn" class="small-btn btn-preview" style="width:100%; margin-bottom:6px;" disabled>
+                        👁️ Preview Duplicates (Filter)
+                    </button>
+                    
+                    <!-- NEW BUTTON: PREVIEW DUPLICATE PAIRS with ALL columns -->
+                    <button id="previewPairsBtn" class="small-btn btn-pairs" style="width:100%; margin-bottom:6px;" disabled>
+                        🔗 Preview Duplicate Pairs (All Columns)
+                    </button>
+                    
+                    <div class="button-row">
+                        <button id="removeDuplicatesBtn" class="small-btn btn-danger" disabled>❌ Remove Dups</button>
+                        <button id="exportDuplicatesBtn" class="small-btn btn-warning" disabled>📤 Export Dups</button>
+                    </div>
+                </div>
+
+                <div id="duplicateStats" class="stats-badge">⚡ Ready to scan</div>
+
+                <div class="info-tip">
+                    💡 <b>Pairs Preview (All Columns):</b> Shows duplicate groups with ALL original columns. Each duplicate key value appears grouped together, so you can see side-by-side which rows share the same key (like 8451245 and 8754123 both linked to 89254125412451). All data columns are preserved.
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="compact-header">
+                <div class="header-left">
+                    <h1 style="font-size: 20px;">📊 Data Viewer</h1>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <p id="viewStatus" style="font-size: 11px; color: #5b6e8c;">Full Data Mode</p>
+                        <span id="activeModeBadge" class="mode-badge">📄 All rows</span>
+                    </div>
+                </div>
+                <div class="upload-area-compact">
+                    <label for="excelFile" class="upload-btn-compact">📁 Upload File</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="fileNameCompact" style="font-size: 12px; color: #334155;">No file</span>
+                    <button id="exportMainBtn" class="master-btn-small" disabled>💾 Export Data</button>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-toolbar">
+                    <div id="gridTitle" style="font-size: 13px; font-weight: 600;">📋 Read-Only Preview</div>
+                    <span id="gridStats"
+                        style="background:#e2e8f0; padding:3px 12px; border-radius:30px; font-size:11px;">0 rows × 0
+                        cols</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="readonlyTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="log-section" id="logSection">
+                <div class="log-entry">📋 Ready. Upload a file to begin.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- GLOBAL STATE ----------
+        let currentGridData = [];      // array of objects (full dataset)
+        let currentHeaders = [];
+        let activeDisplayMode = "full";  // "full", "duplicateFilter", "pairsAllColumns"
+        let renderScheduled = false;
+        
+        // DOM elements
+        const fileInput = document.getElementById("excelFile");
+        const fileNameSpan = document.getElementById("fileNameCompact");
+        const dupColumnSelect = document.getElementById("dupColumnSelect");
+        const previewBtn = document.getElementById("previewBtn");
+        const previewPairsBtn = document.getElementById("previewPairsBtn");
+        const removeDuplicatesBtn = document.getElementById("removeDuplicatesBtn");
+        const exportDuplicatesBtn = document.getElementById("exportDuplicatesBtn");
+        const exportMainBtn = document.getElementById("exportMainBtn");
+        const duplicateStats = document.getElementById("duplicateStats");
+        const tableHeader = document.getElementById("tableHeader");
+        const tableBody = document.getElementById("tableBody");
+        const gridStatsSpan = document.getElementById("gridStats");
+        const logSection = document.getElementById("logSection");
+        const viewStatus = document.getElementById("viewStatus");
+        const gridTitle = document.getElementById("gridTitle");
+        const activeModeBadge = document.getElementById("activeModeBadge");
+
+        // Helper: add log
+        function addLog(msg, type = "info") {
+            const entry = document.createElement("div");
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = msg;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+            // keep only last 50 logs to avoid overflow
+            while (logSection.children.length > 50) logSection.removeChild(logSection.firstChild);
+        }
+
+        // Helper: clean value
+        function cleanTextValue(text) {
+            if (text === null || text === undefined) return "";
+            let cleaned = String(text).trim().replace(/\s+/g, " ");
+            return (cleaned.toLowerCase() === "nan") ? "" : cleaned;
+        }
+
+        // Get duplicate groups based on selected column: map { normalized value -> array of row objects }
+        function getDuplicateGroups() {
+            const colName = dupColumnSelect.value;
+            if (!colName || !currentGridData.length) return new Map();
+            const groupMap = new Map();
+            currentGridData.forEach((row, idx) => {
+                let rawVal = row[colName];
+                let normVal = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : "";
+                if (normVal === "") normVal = "(empty)";
+                if (!groupMap.has(normVal)) groupMap.set(normVal, []);
+                groupMap.get(normVal).push({ row, originalIndex: idx });
+            });
+            // Keep only groups with duplicate entries (>1)
+            const duplicateGroups = new Map();
+            for (let [val, rowsArr] of groupMap.entries()) {
+                if (rowsArr.length > 1) {
+                    duplicateGroups.set(val, rowsArr);
+                }
+            }
+            return duplicateGroups;
+        }
+
+        // Get all duplicate rows (flat list for legacy preview)
+        function getDuplicateRowsFlat() {
+            const groups = getDuplicateGroups();
+            const flat = [];
+            for (let rowsArr of groups.values()) {
+                rowsArr.forEach(item => flat.push(item.row));
+            }
+            return flat;
+        }
+
+        // NEW: Generate "Pairs View" that preserves ALL columns and groups duplicates together.
+        // Returns an array of rows enhanced with group metadata, but structure remains same columns.
+        // To visually separate groups, we will later add visual separators in rendering.
+        function getGroupedDuplicateRowsAllColumns() {
+            const groups = getDuplicateGroups();
+            if (groups.size === 0) return [];
+            
+            const resultRows = [];
+            // For each duplicate group, push all rows belonging to that group in order.
+            // We'll also attach a hidden groupKey for styling separation
+            for (let [dupKey, rowsData] of groups.entries()) {
+                rowsData.forEach((item, idx) => {
+                    const enhancedRow = { ...item.row };
+                    // Add metadata for rendering (but not as visible column)
+                    enhancedRow.__groupKey = dupKey;
+                    enhancedRow.__isFirstInGroup = (idx === 0);
+                    resultRows.push(enhancedRow);
+                });
+            }
+            return resultRows;
+        }
+        
+        // Main render logic for table based on activeDisplayMode
+        function renderTableByMode() {
+            if (!currentHeaders.length) {
+                tableHeader.innerHTML = "";
+                tableBody.innerHTML = "";
+                gridStatsSpan.innerText = "0 rows × 0 cols";
+                return;
+            }
+            
+            let displayData = [];
+            let displayHeaders = [...currentHeaders];
+            let isGroupedMode = false;
+            let groupKeyMap = new Map(); // to store group key per row index
+            
+            if (activeDisplayMode === "duplicateFilter") {
+                displayData = getDuplicateRowsFlat();
+                viewStatus.textContent = "⚠️ Preview: Duplicate Rows Only (All columns)";
+                gridTitle.textContent = "🔍 Duplicate Rows (Filtered)";
+                activeModeBadge.textContent = "🔁 Duplicate rows filter";
+                isGroupedMode = false;
+            } 
+            else if (activeDisplayMode === "pairsAllColumns") {
+                const groupedRows = getGroupedDuplicateRowsAllColumns();
+                if (groupedRows.length === 0) {
+                    displayData = [];
+                    // Show empty message
+                    tableHeader.innerHTML = "<tr><th>No duplicate groups found</th></tr>";
+                    tableBody.innerHTML = `<tr><td colspan="100">✨ No duplicate values in column "${dupColumnSelect.value || 'selected'}". Try another column.</td></tr>`;
+                    gridStatsSpan.innerText = "0 duplicate groups";
+                    updateDuplicateStats();
+                    return;
+                } else {
+                    displayData = groupedRows;
+                    displayHeaders = [...currentHeaders];
+                    isGroupedMode = true;
+                    // Build a map of group keys for each row index in displayData for styling
+                    for (let i = 0; i < displayData.length; i++) {
+                        groupKeyMap.set(i, displayData[i].__groupKey);
+                    }
+                }
+                viewStatus.textContent = "🔗 Pairs Mode: All duplicate rows grouped by key (All columns visible)";
+                gridTitle.textContent = "🔗 Duplicate Pairs - Full Data View";
+                activeModeBadge.textContent = "📌 Pairs View (Grouped by duplicate key)";
+            } 
+            else { // full mode
+                displayData = currentGridData;
+                viewStatus.textContent = "✅ Showing Full Dataset";
+                gridTitle.textContent = "📋 Read-Only Preview";
+                activeModeBadge.textContent = "📄 All rows";
+                isGroupedMode = false;
+            }
+            
+            // Render table
+            if (displayData.length === 0 && activeDisplayMode !== "pairsAllColumns") {
+                tableHeader.innerHTML = "<tr><th>No data to display</th></tr>";
+                tableBody.innerHTML = "<tr><td colspan='100'>No duplicate rows found or empty dataset</td></tr>";
+                gridStatsSpan.innerText = `0 rows × ${currentHeaders.length} cols`;
+            } 
+            else if (displayData.length === 0 && activeDisplayMode === "pairsAllColumns") {
+                // already handled above, but for safety
+                tableHeader.innerHTML = "<tr><th>Info</th></tr>";
+                tableBody.innerHTML = "<tr><td>No duplicate groups exist for selected column</td></tr>";
+                gridStatsSpan.innerText = `0 groups`;
+            }
+            else {
+                // Render headers (standard columns, no metadata fields)
+                const cleanHeaders = displayHeaders.filter(h => !h.startsWith("__"));
+                tableHeader.innerHTML = "<tr>" + cleanHeaders.map(h => `<th>${escapeHtml(h)}</th>`).join('') + "</tr>";
+                
+                const fragment = document.createDocumentFragment();
+                let lastGroupKey = null;
+                
+                displayData.forEach((row, idx) => {
+                    const tr = document.createElement("tr");
+                    
+                    // For pairs mode, add visual grouping: different background for each duplicate group
+                    if (isGroupedMode) {
+                        const currentGroupKey = row.__groupKey;
+                        if (lastGroupKey !== null && currentGroupKey !== lastGroupKey) {
+                            // Add separator row? Not a real row but we add a class for top border
+                            tr.classList.add("pair-group-separator");
+                        }
+                        // Highlight duplicate key column cells for readability
+                        lastGroupKey = currentGroupKey;
+                        tr.style.backgroundColor = (currentGroupKey.charCodeAt(0) % 2 === 0) ? '#fefce8' : '#f0f9ff';
+                    }
+                    
+                    if (activeDisplayMode === "duplicateFilter") {
+                        tr.className = "preview-active-row";
+                    }
+                    
+                    cleanHeaders.forEach(h => {
+                        const td = document.createElement("td");
+                        let val = row[h];
+                        if (val === undefined || val === null) val = "";
+                        // Highlight the duplicate key column in pairs mode to emphasize the duplicate value
+                        if (isGroupedMode && h === dupColumnSelect.value) {
+                            td.innerHTML = `<span class="duplicate-key-badge" style="background:#dbeafe; padding:2px 6px; border-radius:12px;">🔑 ${escapeHtml(String(val))}</span>`;
+                        } else {
+                            td.textContent = String(val);
+                        }
+                        tr.appendChild(td);
+                    });
+                    fragment.appendChild(tr);
+                });
+                
+                tableBody.innerHTML = "";
+                tableBody.appendChild(fragment);
+                
+                if (activeDisplayMode === "pairsAllColumns") {
+                    const uniqueGroups = new Set(displayData.map(r => r.__groupKey)).size;
+                    gridStatsSpan.innerText = `${displayData.length} rows (${uniqueGroups} duplicate groups) × ${cleanHeaders.length} cols`;
+                } else {
+                    gridStatsSpan.innerText = `${displayData.length} rows × ${cleanHeaders.length} cols`;
+                }
+            }
+            
+            updateDuplicateStats();
+        }
+        
+        // simple escape to avoid XSS issues
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function scheduleRender() {
+            if (renderScheduled) return;
+            renderScheduled = true;
+            requestAnimationFrame(() => {
+                renderTableByMode();
+                renderScheduled = false;
+            });
+        }
+        
+        function updateDuplicateStats() {
+            const colName = dupColumnSelect.value;
+            if (!colName || !currentGridData.length) {
+                duplicateStats.innerHTML = `⚡ Select column & upload data`;
+                duplicateStats.style.background = "#e2e8f0";
+                return;
+            }
+            const groups = getDuplicateGroups();
+            const duplicateCount = Array.from(groups.values()).reduce((acc, arr) => acc + arr.length, 0);
+            const uniqueDuplicateKeys = groups.size;
+            if (uniqueDuplicateKeys === 0) {
+                duplicateStats.innerHTML = `✅ No duplicates found in "${escapeHtml(colName)}"`;
+                duplicateStats.style.background = "#dcfce7";
+            } else {
+                duplicateStats.innerHTML = `⚠️ ${duplicateCount} duplicate rows across ${uniqueDuplicateKeys} duplicate key(s)`;
+                duplicateStats.style.background = "#fef3c7";
+            }
+        }
+        
+        function enableUiForData(hasData) {
+            const disabledState = !hasData;
+            dupColumnSelect.disabled = disabledState;
+            previewBtn.disabled = disabledState;
+            previewPairsBtn.disabled = disabledState;
+            removeDuplicatesBtn.disabled = disabledState;
+            exportDuplicatesBtn.disabled = disabledState;
+            exportMainBtn.disabled = disabledState;
+            if (hasData && currentHeaders.length) {
+                const options = currentHeaders.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+                dupColumnSelect.innerHTML = `<option value="">-- Select Column --</option>${options}`;
+            } else if (!hasData) {
+                dupColumnSelect.innerHTML = `<option value="">Upload file first</option>`;
+            }
+        }
+        
+        // Handle file upload
+        fileInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameSpan.textContent = file.name;
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawJson = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (!rawJson.length) throw new Error("Empty sheet");
+                currentHeaders = rawJson[0].map((h, i) => cleanTextValue(h) || `Column_${i + 1}`);
+                currentGridData = rawJson.slice(1).map(row => {
+                    let obj = {};
+                    currentHeaders.forEach((h, i) => obj[h] = cleanTextValue(row[i]));
+                    return obj;
+                });
+                // reset to full view after upload
+                activeDisplayMode = "full";
+                previewBtn.textContent = "👁️ Preview Duplicates";
+                previewPairsBtn.textContent = "🔗 Preview Duplicate Pairs (All Columns)";
+                enableUiForData(true);
+                scheduleRender();
+                addLog(`✅ Loaded ${currentGridData.length} rows, ${currentHeaders.length} columns.`, "success");
+            } catch (err) {
+                addLog(`Error loading file: ${err.message}`, "warning");
+                currentGridData = [];
+                currentHeaders = [];
+                enableUiForData(false);
+                scheduleRender();
+            }
+        });
+        
+        // Toggle classic duplicate filter mode (shows only duplicate rows, all columns)
+        previewBtn.addEventListener("click", () => {
+            if (!dupColumnSelect.value) {
+                addLog("Please select a column to preview duplicates", "warning");
+                return;
+            }
+            if (activeDisplayMode === "duplicateFilter") {
+                activeDisplayMode = "full";
+                previewBtn.textContent = "👁️ Preview Duplicates";
+            } else {
+                activeDisplayMode = "duplicateFilter";
+                previewBtn.textContent = "⬅️ Show Full Data";
+            }
+            // Sync pairs button text to avoid confusion
+            if (activeDisplayMode !== "pairsAllColumns") {
+                previewPairsBtn.textContent = "🔗 Preview Duplicate Pairs (All Columns)";
+            } else {
+                // if currently pairs, we will switch on its own click
+            }
+            scheduleRender();
+        });
+        
+        // NEW: Pairs preview button – shows duplicate groups with ALL columns, groups together
+        previewPairsBtn.addEventListener("click", () => {
+            if (!dupColumnSelect.value) {
+                addLog("Please select a column to generate duplicate pairs view", "warning");
+                return;
+            }
+            const groups = getDuplicateGroups();
+            if (groups.size === 0 && currentGridData.length > 0) {
+                addLog(`No duplicate values found in column "${dupColumnSelect.value}". Try another column.`, "warning");
+                return;
+            }
+            if (activeDisplayMode === "pairsAllColumns") {
+                activeDisplayMode = "full";
+                previewPairsBtn.textContent = "🔗 Preview Duplicate Pairs (All Columns)";
+                previewBtn.textContent = "👁️ Preview Duplicates";
+            } else {
+                activeDisplayMode = "pairsAllColumns";
+                previewPairsBtn.textContent = "⬅️ Back to Full Data";
+                // ensure regular preview button reflects non-active state
+                previewBtn.textContent = "👁️ Preview Duplicates";
+            }
+            scheduleRender();
+        });
+        
+        // Remove duplicates (keep first occurrence of each unique value in selected column)
+        removeDuplicatesBtn.addEventListener("click", () => {
+            const colName = dupColumnSelect.value;
+            if (!colName) {
+                addLog("Select a column for deduplication", "warning");
+                return;
+            }
+            const seen = new Set();
+            const newData = [];
+            let removedCount = 0;
+            currentGridData.forEach(row => {
+                let val = String(row[colName] || "").trim() || "(empty)";
+                if (!seen.has(val)) {
+                    seen.add(val);
+                    newData.push(row);
+                } else {
+                    removedCount++;
+                }
+            });
+            currentGridData = newData;
+            // Always reset to full mode after removal
+            if (activeDisplayMode !== "full") {
+                activeDisplayMode = "full";
+                previewBtn.textContent = "👁️ Preview Duplicates";
+                previewPairsBtn.textContent = "🔗 Preview Duplicate Pairs (All Columns)";
+            }
+            scheduleRender();
+            addLog(`🗑️ Removed ${removedCount} duplicate rows. Kept unique values based on "${colName}".`, "success");
+        });
+        
+        // Export current visible data (according to active mode, but without internal metadata)
+        function exportCurrentData() {
+            let dataToExport = [];
+            let fileName = "data_export";
+            if (activeDisplayMode === "duplicateFilter") {
+                dataToExport = getDuplicateRowsFlat();
+                fileName = "duplicate_rows";
+            } else if (activeDisplayMode === "pairsAllColumns") {
+                const grouped = getGroupedDuplicateRowsAllColumns();
+                // Remove internal __groupKey and __isFirstInGroup
+                dataToExport = grouped.map(row => {
+                    const cleanRow = { ...row };
+                    delete cleanRow.__groupKey;
+                    delete cleanRow.__isFirstInGroup;
+                    return cleanRow;
+                });
+                fileName = "duplicate_pairs_all_columns";
+            } else {
+                dataToExport = currentGridData;
+                fileName = "cleaned_data";
+            }
+            if (dataToExport.length === 0) {
+                addLog("No data to export", "warning");
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, `${fileName}.xlsx`);
+            addLog(`📎 Export completed: ${dataToExport.length} rows.`, "success");
+        }
+        
+        exportMainBtn.addEventListener("click", exportCurrentData);
+        
+        exportDuplicatesBtn.addEventListener("click", () => {
+            const dups = getDuplicateRowsFlat();
+            if (dups.length === 0) {
+                addLog("No duplicate rows to export", "warning");
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(dups);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Duplicates");
+            XLSX.writeFile(wb, `duplicate_rows_export.xlsx`);
+            addLog(`📤 Exported ${dups.length} duplicate rows.`, "success");
+        });
+        
+        // initial state
+        enableUiForData(false);
+        scheduleRender();
+    </script>
+</body>
+
+</html>

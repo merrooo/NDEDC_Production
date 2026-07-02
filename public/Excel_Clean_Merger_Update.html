@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update & Merge-Data</title>
+
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --bg-light: #f8fafc;
+            --card-white: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-blue);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-home:hover {
+            background: #1d4ed8;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: var(--card-white);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-run {
+            background-color: var(--primary-blue);
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 1rem 3rem;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn-run:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .stats-container {
+            background: var(--card-white);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            border-right: 1px solid var(--border-color);
+        }
+
+        .stat-box:last-child {
+            border-right: none;
+        }
+
+        .file-status {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        /* --- Default Table Styling --- */
+        #resultTable thead th {
+            background-color: #f1f5f9;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .dt-buttons {
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        /* --- FEATURE UPDATED: Ultra-Wide CSS Tweaks for Modal Data Views --- */
+        #fullscreenPreviewModal .modal-dialog {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+        }
+
+        #fullscreenPreviewModal .modal-content {
+            border-radius: 0 !important;
+            height: 100vh;
+        }
+
+        #fullscreenPreviewModal .modal-body {
+            padding: 0.75rem !important; /* Tiny edge margins to squeeze max width */
+            overflow: hidden;
+        }
+
+        /* High Density Table Formatting specifically for the Large Workspace */
+        #modalTable {
+            font-size: 0.82rem !important; /* Denser text to minimize text wrapping */
+            border-collapse: collapse !important;
+        }
+
+        #modalTable thead th {
+            background-color: #1e293b !important; /* Dark theme contrast for sticky header row */
+            color: #ffffff !important;
+            font-weight: 700;
+            padding: 10px 14px !important;
+            border: 1px solid #334155 !important;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+        }
+
+        #modalTable tbody td {
+            padding: 8px 14px !important;
+            border: 1px solid #e2e8f0 !important;
+            white-space: nowrap; /* Prevents rows from growing tall vertically */
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Crisp striping colors so your eyes can follow horizontal lines easily */
+        #modalTable tbody tr:nth-of-type(odd) {
+            background-color: #ffffff !important;
+        }
+        #modalTable tbody tr:nth-of-type(even) {
+            background-color: #f8fafc !important;
+        }
+        #modalTable tbody tr:hover {
+            background-color: #f1f5f9 !important;
+        }
+
+        /* Style tweaks for DataTables layout controls within the modal header footprint */
+        #fullscreenPreviewModal .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-5">
+        <!-- Header -->
+        <div class="nav-header">
+            <h2 class="fw-800 mb-0"><i class="fas fa-layer-group me-2 text-primary"></i> Multi-Excel Updater Pro</h2>
+            <a href="Control_Excel.html" class="btn-home">
+                <i class="fas fa-home"></i> Return to Home
+            </a>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-container row text-center g-0">
+            <div class="col-md-4 stat-box">
+                <div class="text-muted small fw-bold">MASTER ROWS</div>
+                <div class="h4 mb-0 fw-bold" id="totalCount">0</div>
+            </div>
+            <div class="col-md-4 stat-box">
+                <div class="text-success small fw-bold">PROCESSED METRICS</div>
+                <div class="h4 mb-0 fw-bold text-success" id="matchedCount">0</div>
+            </div>
+            <div class="col-md-4 stat-box">
+                <div class="text-primary small fw-bold">SOURCE FILES</div>
+                <div class="h4 mb-0 fw-bold text-primary" id="filesCount">0</div>
+            </div>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="card">
+            <div class="row g-4">
+                <div class="col-md-6 border-end">
+                    <label class="fw-bold mb-2"><i class="fas fa-file-invoice me-2 text-primary"></i> 1. Master File</label>
+                    <p class="text-muted small">Ex -> Handsat.xlsx</p>
+                    <input type="file" id="masterFile" class="form-control" accept=".xlsx, .xls">
+                    <select id="keyDropdown" class="form-select mt-3" disabled>
+                        <option value="">Select Key Column (e.g., Serial/ID)...</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="fw-bold mb-2"><i class="fas fa-file-import me-2 text-success"></i> 2. Update Sources</label>
+                    <p class="text-muted small">Files containing the new data to fill into Master (Ex -> Device_Data_fixed.xlsx).</p>
+                    <input type="file" id="updateFiles" class="form-control" accept=".xlsx, .xls" multiple>
+                    <div id="updateFilesStatus" class="file-status text-muted mt-2">No source files selected</div>
+                </div>
+            </div>
+
+            <!-- Merge Strategy Configuration Selectors -->
+            <div class="row mt-4 pt-4 border-top justify-content-center">
+                <div class="col-md-8 text-center">
+                    <label class="fw-bold mb-3 d-block"><i class="fas fa-sliders-h me-2 text-secondary"></i> 3. Select Merge Action</label>
+                    <div class="btn-group w-100" role="group" aria-label="Processing Mode">
+                        <input type="radio" class="btn-check" name="mergeMode" id="modeBoth" value="both" checked>
+                        <label class="btn btn-outline-primary py-2 fw-bold" for="modeBoth">
+                            <i class="fas fa-list-ol me-2"></i>Update Existing &amp; Add New
+                        </label>
+
+                        <input type="radio" class="btn-check" name="mergeMode" id="modeUpdate" value="update">
+                        <label class="btn btn-outline-primary py-2 fw-bold" for="modeUpdate">
+                            <i class="fas fa-sync-alt me-2"></i>Update Existing Only
+                        </label>
+
+                        <input type="radio" class="btn-check" name="mergeMode" id="modeNew" value="new">
+                        <label class="btn btn-outline-primary py-2 fw-bold" for="modeNew">
+                            <i class="fas fa-plus-circle me-2"></i>Add New Rows Only
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <button class="btn btn-run shadow-sm" onclick="mergeAndProcess()" id="processBtn" disabled>
+                    <i class="fas fa-sync-alt me-2"></i> Start Multi-Update Process
+                </button>
+            </div>
+        </div>
+
+        <!-- Data Preview Card -->
+        <div class="card">
+            <h5 class="fw-bold mb-4">Live Data Preview & Export</h5>
+            <div class="table-responsive">
+                <table id="resultTable" class="table table-hover w-100"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURE UPDATED: Fluid Edge-to-Edge Fullscreen Workspace Data Container -->
+    <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content shadow-none border-0">
+                <div class="modal-header bg-dark text-white py-2 px-3">
+                    <h6 class="modal-title" id="modalTitle"><i class="fas fa-table me-2 text-info"></i> Full-Screen Work Area View (Maximized Mode)</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <div class="table-responsive w-100 h-100">
+                        <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+                    </div>
+                </div>
+                <div class="modal-footer py-1 px-3 bg-light border-top">
+                    <span class="text-muted small me-auto"><i class="fas fa-info-circle me-1"></i> Press ESC or click Close to return. Hold Shift to scroll table horizontally.</span>
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Close Workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let masterData = [];
+        let sourceFilesData = [];
+        let globalProcessedResult = [];
+
+        // --- Utility: Cleaning for SIMs and Long Numbers ---
+        function cleanValue(val) {
+            if (val === undefined || val === null || val === "") return "";
+            let s = String(val).replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+            if (typeof val === 'number' && val > 1e14) return val.toFixed(0);
+            return s;
+        }
+
+        function cleanForMatch(val) {
+            return cleanValue(val).toLowerCase().replace(/^0+/, '');
+        }
+
+        async function parseExcel(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- File Inputs ---
+        document.getElementById('masterFile').onchange = async (e) => {
+            if(!e.target.files.length) return;
+            masterData = await parseExcel(e.target.files[0]);
+            if (masterData.length > 0) {
+                const headers = Object.keys(masterData[0]);
+                const dropdown = document.getElementById('keyDropdown');
+                dropdown.innerHTML = '<option value="">-- Choose Key Column --</option>';
+                headers.forEach(h => {
+                    if (h.trim() !== "") dropdown.innerHTML += `<option value="${h}">${h}</option>`;
+                });
+                dropdown.disabled = false;
+                document.getElementById('totalCount').innerText = masterData.length.toLocaleString();
+            }
+            checkEnableButton();
+        };
+
+        document.getElementById('updateFiles').onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            if(!files.length) return;
+            sourceFilesData = [];
+            for (let file of files) {
+                const data = await parseExcel(file);
+                sourceFilesData.push(data);
+            }
+            document.getElementById('updateFilesStatus').innerText = `${files.length} file(s) loaded successfully`;
+            document.getElementById('filesCount').innerText = files.length;
+            checkEnableButton();
+        };
+
+        function checkEnableButton() {
+            document.getElementById('processBtn').disabled = !(masterData.length > 0 && sourceFilesData.length > 0);
+        }
+
+        // --- Core Multi-Merge Logic ---
+        function mergeAndProcess() {
+            const keyCol = document.getElementById('keyDropdown').value;
+            if (!keyCol) {
+                alert("Please select the common Key Column first.");
+                return;
+            }
+
+            const activeMode = document.querySelector('input[name="mergeMode"]:checked').value;
+
+            const masterMap = new Map();
+            masterData.forEach(row => {
+                masterMap.set(cleanForMatch(row[keyCol]), { ...row });
+            });
+
+            if (activeMode === 'new') {
+                masterMap.clear(); 
+                masterData.forEach(row => {
+                    masterMap.set(cleanForMatch(row[keyCol]), "EXISTS_IN_MASTER");
+                });
+            }
+
+            let updateCounter = 0;
+            let newRowsCounter = 0;
+
+            sourceFilesData.forEach(fileData => {
+                fileData.forEach(sourceRow => {
+                    if (sourceRow[keyCol] === undefined || sourceRow[keyCol] === null || String(sourceRow[keyCol]).trim() === "") {
+                        return;
+                    }
+
+                    const matchKey = cleanForMatch(sourceRow[keyCol]);
+                    const hasKey = masterMap.has(matchKey);
+                    const isPlaceholder = hasKey && masterMap.get(matchKey) === "EXISTS_IN_MASTER";
+
+                    if (hasKey && !isPlaceholder) {
+                        if (activeMode === 'both' || activeMode === 'update') {
+                            const existingRow = masterMap.get(matchKey);
+                            masterMap.set(matchKey, { ...existingRow, ...sourceRow });
+                            updateCounter++;
+                        }
+                    } else if (isPlaceholder) {
+                        return;
+                    } else {
+                        if (activeMode === 'both' || activeMode === 'new') {
+                            masterMap.set(matchKey, { ...sourceRow });
+                            newRowsCounter++;
+                        }
+                    }
+                });
+            });
+
+            if (activeMode === 'new') {
+                for (let [key, value] of masterMap.entries()) {
+                    if (value === "EXISTS_IN_MASTER") masterMap.delete(key);
+                }
+            }
+
+            globalProcessedResult = Array.from(masterMap.values());
+            
+            if (activeMode === 'update') {
+                document.getElementById('matchedCount').innerText = `${updateCounter.toLocaleString()} Updated`;
+            } else if (activeMode === 'new') {
+                document.getElementById('matchedCount').innerText = `${newRowsCounter.toLocaleString()} New Appended`;
+            } else {
+                document.getElementById('matchedCount').innerText = `${updateCounter.toLocaleString()} Updated (+${newRowsCounter.toLocaleString()} New)`;
+            }
+
+            renderResultTable(globalProcessedResult);
+        }
+
+        // --- Result Rendering ---
+        function renderResultTable(data) {
+            if ($.fn.DataTable.isDataTable('#resultTable')) $('#resultTable').DataTable().destroy();
+            $('#resultTable').empty();
+
+            if (data.length === 0) {
+                $('#resultTable').html('<tbody><tr><td class="text-center text-muted py-4">No matching records found based on your parameters.</td></tr></tbody>');
+                return;
+            }
+
+            const cols = Object.keys(data[0]).map(k => ({ title: k, data: k }));
+
+            $('#resultTable').DataTable({
+                data: data,
+                columns: cols,
+                scrollX: true,
+                pageLength: 10,
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        title: 'Updated_Master_Report',
+                        className: 'btn btn-success btn-sm mt-2 shadow-sm',
+                        text: '<i class="fas fa-file-excel me-1"></i> Export Updated Excel',
+                        exportOptions: {
+                            format: {
+                                body: function (innerData) {
+                                    let strData = String(innerData);
+                                    if (/^\d{15,}$/.test(strData)) {
+                                        return '\u200C' + strData;
+                                    }
+                                    return innerData;
+                                }
+                            }
+                        }
+                    },
+                    {
+                        text: '<i class="fas fa-expand me-1"></i> Full-Screen Live Preview',
+                        className: 'btn btn-primary btn-sm mt-2 shadow-sm btn-show-fullscreen',
+                        action: function () {
+                            openFullScreenPreview(cols);
+                        }
+                    }
+                ]
+            });
+
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // --- FEATURE UPDATED: Display Edge-to-Edge Spreadsheet Layout ---
+        function openFullScreenPreview(columnsConfig) {
+            if ($.fn.DataTable.isDataTable('#modalTable')) $('#modalTable').DataTable().destroy();
+            $('#modalTable').empty();
+
+            const previewModal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+            previewModal.show();
+
+            setTimeout(() => {
+                $('#modalTable').DataTable({
+                    data: globalProcessedResult,
+                    columns: columnsConfig,
+                    scrollX: true,
+                    scrollY: 'calc(100vh - 170px)', // Pushed lower to provide a larger vertical canvas footprint
+                    scrollCollapse: true,
+                    pageLength: 50, // Bumped to 50 entries per page view space allocation
+                    dom: 'frtip'
+                });
+            }, 200);
+        }
+    </script>
+</body>
+
+</html>

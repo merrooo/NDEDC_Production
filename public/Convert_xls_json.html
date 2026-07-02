@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON ⇄ Excel Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #eef2f7;
+      min-height: 100vh;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, #0f2b3d, #1a3a4f);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar h2 {
+      padding: 1.8rem 1.5rem;
+      font-size: 1.3rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar h2 i {
+      margin-right: 10px;
+    }
+
+    .mode {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 1rem 1.5rem;
+      margin: 0.3rem 0.8rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 500;
+    }
+
+    .mode:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .mode.active {
+      background: #2c7da0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .mode i {
+      width: 26px;
+    }
+
+    .sidebar-footer {
+      padding: 1.5rem;
+      font-size: 0.7rem;
+      text-align: center;
+      opacity: 0.6;
+      margin-top: auto;
+    }
+
+    .main {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 1.8rem;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-header {
+      background: linear-gradient(95deg, #1e5a6e, #1b4e5f);
+      color: #fff;
+      padding: 1rem 1.8rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .card-header i {
+      margin-right: 10px;
+    }
+
+    .card-body {
+      padding: 1.8rem;
+    }
+
+    .upload-zone {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 1.2rem;
+      padding: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+      transition: 0.2s;
+    }
+
+    .upload-zone:hover {
+      border-color: #2c7da0;
+      background: #f1f5f9;
+    }
+
+    .upload-zone i {
+      font-size: 2rem;
+      color: #2c7da0;
+      margin-bottom: 0.3rem;
+    }
+
+    .upload-zone p {
+      font-weight: 500;
+    }
+
+    .preview-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .preview-title {
+      background: #f0f4f9;
+      padding: 0.6rem 1rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      background: #e2e8f0;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+    }
+
+    .badge.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.75rem;
+      padding: 1rem;
+      border: none;
+      resize: vertical;
+      background: #fefefe;
+    }
+
+    textarea:focus {
+      outline: none;
+      background: #fffef7;
+    }
+
+    .table-wrapper {
+      max-height: 400px;
+      overflow: auto;
+      position: relative;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      border: 1px solid #d4dee8;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+    }
+
+    .data-table th {
+      background: #eef3fc;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-weight: 600;
+    }
+
+    .data-table td input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.7rem;
+      padding: 0.2rem;
+    }
+
+    .data-table td input:focus {
+      outline: 1px solid #2c7da0;
+      background: #fef9e6;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      background: #f9fbfd;
+      border-top: 1px solid #e2edf7;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-sm {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      padding: 0.3rem 0.8rem;
+      border-radius: 30px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-sm:hover {
+      background: #eef2f8;
+      border-color: #2c7da0;
+    }
+
+    .btn-sm.danger:hover {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #b91c1c;
+    }
+
+    .btn-primary {
+      background: #2c7da0;
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-success {
+      background: #2c6e5c;
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-warning {
+      background: #d97706;
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .flex-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .empty-msg {
+      padding: 1.5rem;
+      text-align: center;
+      color: #8ba0bc;
+    }
+
+    .col-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #dc2626;
+      font-size: 0.7rem;
+      padding: 0 4px;
+    }
+
+    .col-action-btn:hover {
+      opacity: 0.7;
+    }
+
+    .info-bar {
+      font-size: 0.7rem;
+      padding: 0.4rem 1rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      color: #4a627a;
+    }
+
+    .undo-redo-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+
+    i {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <h2><i class="fas fa-code-branch"></i> Data Flow</h2>
+      <div style="flex:1; margin-top:1rem;">
+        <div class="mode active" data-mode="json2excel"><i class="fas fa-file-code"></i> JSON → Excel</div>
+        <div class="mode" data-mode="excel2json"><i class="fas fa-file-excel"></i> Excel → JSON</div>
+      </div>
+      <div class="sidebar-footer"><i class="fas fa-history"></i> Undo/Redo • Apply Changes • Edit with control</div>
+    </div>
+    <div class="main" id="mainArea"></div>
+  </div>
+
+  <script>
+    // ========== STATE ==========
+    let currentMode = 'json2excel';
+
+    // JSON → Excel state
+    let jsonData = [];
+    let jsonFileName = null;
+    let jsonHistory = [];
+    let jsonHistoryIndex = -1;
+    let jsonPendingChanges = false;
+
+    // Excel → JSON state
+    let excelData = [];
+    let excelOriginalData = [];
+    let excelFileName = null;
+    let excelHistory = [];
+    let excelHistoryIndex = -1;
+    let excelPendingChanges = false;
+
+    // History helpers
+    function saveJsonToHistory() {
+      const snapshot = JSON.parse(JSON.stringify(jsonData));
+      if (jsonHistoryIndex < jsonHistory.length - 1) {
+        jsonHistory = jsonHistory.slice(0, jsonHistoryIndex + 1);
+      }
+      jsonHistory.push(snapshot);
+      jsonHistoryIndex++;
+      if (jsonHistory.length > 50) {
+        jsonHistory.shift();
+        jsonHistoryIndex--;
+      }
+      jsonPendingChanges = false;
+    }
+
+    function undoJson() {
+      if (jsonHistoryIndex > 0) {
+        jsonHistoryIndex--;
+        jsonData = JSON.parse(JSON.stringify(jsonHistory[jsonHistoryIndex]));
+        syncJsonUI();
+      }
+    }
+
+    function redoJson() {
+      if (jsonHistoryIndex < jsonHistory.length - 1) {
+        jsonHistoryIndex++;
+        jsonData = JSON.parse(JSON.stringify(jsonHistory[jsonHistoryIndex]));
+        syncJsonUI();
+      }
+    }
+
+    function syncJsonUI() {
+      const editor = document.getElementById('jsonEditor');
+      if (editor) editor.value = JSON.stringify(jsonData, null, 2);
+      updateExcelPreviewFromJson();
+    }
+
+    function saveExcelToHistory() {
+      const snapshot = JSON.parse(JSON.stringify(excelData));
+      if (excelHistoryIndex < excelHistory.length - 1) {
+        excelHistory = excelHistory.slice(0, excelHistoryIndex + 1);
+      }
+      excelHistory.push(snapshot);
+      excelHistoryIndex++;
+      if (excelHistory.length > 50) {
+        excelHistory.shift();
+        excelHistoryIndex--;
+      }
+      excelPendingChanges = false;
+    }
+
+    function undoExcel() {
+      if (excelHistoryIndex > 0) {
+        excelHistoryIndex--;
+        excelData = JSON.parse(JSON.stringify(excelHistory[excelHistoryIndex]));
+        syncExcelUI();
+      }
+    }
+
+    function redoExcel() {
+      if (excelHistoryIndex < excelHistory.length - 1) {
+        excelHistoryIndex++;
+        excelData = JSON.parse(JSON.stringify(excelHistory[excelHistoryIndex]));
+        syncExcelUI();
+      }
+    }
+
+    function syncExcelUI() {
+      renderExcelTable();
+      updateJsonOutputFromExcel();
+    }
+
+    // ========== RENDER MAIN ==========
+    function render() {
+      const main = document.getElementById('mainArea');
+      if (currentMode === 'json2excel') {
+        main.innerHTML = `
+      <div class="card">
+        <div class="card-header"><i class="fas fa-file-code"></i> JSON → Excel Converter</div>
+        <div class="card-body">
+          <div class="upload-zone" id="jsonUploadZone"><i class="fas fa-cloud-upload-alt"></i><p>Upload JSON file</p><small>.json (array of objects)</small><input type="file" id="jsonFile" accept=".json"></div>
+          <div class="preview-box">
+            <div class="preview-title"><span><i class="fas fa-edit"></i> EDITABLE JSON SOURCE</span><span class="badge" id="jsonBadge">No file</span></div>
+            <textarea id="jsonEditor" placeholder='Paste JSON array here...&#10;Example: [{"name":"Alice","age":30},{"name":"Bob","age":25}]'></textarea>
+            <div class="toolbar">
+              <button class="btn-sm" id="applyJsonChangesBtn"><i class="fas fa-check-circle"></i> Apply Changes</button>
+              <button class="btn-sm" id="undoJsonBtn"><i class="fas fa-undo"></i> Undo</button>
+              <button class="btn-sm" id="redoJsonBtn"><i class="fas fa-redo"></i> Redo</button>
+              <div style="flex:1"></div>
+              <button class="btn-sm" id="removeJsonColBtn"><i class="fas fa-columns"></i> Remove Column</button>
+              <button class="btn-sm danger" id="removeJsonRowBtn"><i class="fas fa-trash"></i> Remove Row</button>
+            </div>
+          </div>
+          <div class="preview-box">
+            <div class="preview-title"><span><i class="fas fa-table"></i> EXCEL PREVIEW</span><span class="badge" id="excelPreviewBadge">Live</span></div>
+            <div id="excelPreviewContainer"><div class="empty-msg">👈 Edit JSON → Click Apply to see Excel preview</div></div>
+            <div class="info-bar" id="jsonStats"></div>
+          </div>
+          <div class="flex-btns"><button id="downloadExcelBtn" class="btn-success"><i class="fas fa-download"></i> Download as Excel</button></div>
+        </div>
+      </div>
+    `;
+        attachJsonListeners();
+        if (jsonData.length) {
+          document.getElementById('jsonEditor').value = JSON.stringify(jsonData, null, 2);
+          updateExcelPreviewFromJson();
+        }
+      }
+      else {
+        main.innerHTML = `
+      <div class="card">
+        <div class="card-header"><i class="fas fa-file-excel"></i> Excel → JSON Converter</div>
+        <div class="card-body">
+          <div class="upload-zone" id="excelUploadZone"><i class="fas fa-cloud-upload-alt"></i><p>Upload Excel file</p><small>.xlsx, .xls, .csv (supports large files)</small><input type="file" id="excelFile" accept=".xlsx,.xls,.csv,.xlsm"></div>
+          <div class="preview-box">
+            <div class="preview-title"><span><i class="fas fa-edit"></i> EDITABLE EXCEL TABLE</span><span class="badge" id="excelBadge">No data</span></div>
+            <div id="excelTableContainer"><div class="empty-msg">📂 Upload Excel or edit below</div></div>
+            <div class="toolbar">
+              <button class="btn-sm" id="applyExcelChangesBtn"><i class="fas fa-check-circle"></i> Apply Changes</button>
+              <button class="btn-sm" id="undoExcelBtn"><i class="fas fa-undo"></i> Undo</button>
+              <button class="btn-sm" id="redoExcelBtn"><i class="fas fa-redo"></i> Redo</button>
+              <div style="flex:1"></div>
+              <button class="btn-sm" id="addExcelRowBtn"><i class="fas fa-plus"></i> Add Row</button>
+              <button class="btn-sm" id="addExcelColBtn"><i class="fas fa-plus"></i> Add Col</button>
+              <button class="btn-sm danger" id="delExcelRowBtn"><i class="fas fa-trash"></i> Del Row</button>
+              <button class="btn-sm danger" id="delExcelColBtn"><i class="fas fa-trash"></i> Del Col</button>
+              <button class="btn-sm" id="resetExcelBtn"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+            <div class="info-bar" id="excelStats"></div>
+          </div>
+          <div class="preview-box">
+            <div class="preview-title"><span><i class="fas fa-brackets-curly"></i> JSON OUTPUT</span><span class="badge success">Auto after Apply</span></div>
+            <textarea id="jsonOutput" readonly placeholder="JSON will appear after clicking Apply Changes..." style="background:#f8f9fc; min-height:150px;"></textarea>
+          </div>
+          <div class="flex-btns"><button id="downloadJsonBtn" class="btn-success"><i class="fas fa-download"></i> Download as JSON</button></div>
+        </div>
+      </div>
+    `;
+        attachExcelListeners();
+        if (excelData.length) {
+          renderExcelTable();
+          updateJsonOutputFromExcel();
+        }
+      }
+    }
+
+    // ========== JSON → Excel with Apply & Undo/Redo ==========
+    function attachJsonListeners() {
+      const zone = document.getElementById('jsonUploadZone');
+      const fileInput = document.getElementById('jsonFile');
+      const editor = document.getElementById('jsonEditor');
+      const badge = document.getElementById('jsonBadge');
+
+      zone.onclick = () => fileInput.click();
+      fileInput.onchange = (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            let arr = Array.isArray(parsed) ? parsed : [parsed];
+            if (!arr.length) arr = [];
+            jsonData = arr;
+            jsonFileName = f.name.replace(/\.json$/i, '');
+            badge.textContent = f.name;
+            editor.value = JSON.stringify(jsonData, null, 2);
+            saveJsonToHistory();
+            updateExcelPreviewFromJson();
+          } catch (err) { alert('JSON error: ' + err.message); }
+        };
+        reader.readAsText(f);
+      };
+
+      // Apply Changes button
+      document.getElementById('applyJsonChangesBtn').onclick = () => {
+        try {
+          const parsed = JSON.parse(editor.value);
+          let arr = Array.isArray(parsed) ? parsed : [parsed];
+          jsonData = arr;
+          saveJsonToHistory();
+          updateExcelPreviewFromJson();
+          badge.textContent = jsonFileName ? jsonFileName + '.json' : 'applied.json';
+        } catch (e) { alert('Invalid JSON: ' + e.message); }
+      };
+
+      document.getElementById('undoJsonBtn').onclick = () => undoJson();
+      document.getElementById('redoJsonBtn').onclick = () => redoJson();
+
+      document.getElementById('removeJsonColBtn').onclick = () => {
+        if (!jsonData.length) return;
+        const headers = Object.keys(jsonData[0]);
+        if (!headers.length) return;
+        const colToRemove = prompt(`Remove which column? Available: ${headers.join(', ')}`, headers[headers.length - 1]);
+        if (colToRemove && headers.includes(colToRemove)) {
+          jsonData = jsonData.map(row => {
+            const newRow = { ...row };
+            delete newRow[colToRemove];
+            return newRow;
+          });
+          saveJsonToHistory();
+          document.getElementById('jsonEditor').value = JSON.stringify(jsonData, null, 2);
+          updateExcelPreviewFromJson();
+        } else if (colToRemove) alert('Column not found');
+      };
+
+      document.getElementById('removeJsonRowBtn').onclick = () => {
+        if (!jsonData.length) return;
+        const rowIdx = prompt(`Remove row index (0 to ${jsonData.length - 1})`, jsonData.length - 1);
+        const idx = parseInt(rowIdx);
+        if (!isNaN(idx) && idx >= 0 && idx < jsonData.length) {
+          jsonData.splice(idx, 1);
+          saveJsonToHistory();
+          document.getElementById('jsonEditor').value = JSON.stringify(jsonData, null, 2);
+          updateExcelPreviewFromJson();
+        } else alert('Invalid row index');
+      };
+
+      document.getElementById('downloadExcelBtn').onclick = () => {
+        if (!jsonData.length) { alert('No JSON data'); return; }
+        const ws = XLSX.utils.json_to_sheet(jsonData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        let name = jsonFileName || 'data';
+        XLSX.writeFile(wb, `${name}.xlsx`);
+      };
+    }
+
+    function updateExcelPreviewFromJson() {
+      const container = document.getElementById('excelPreviewContainer');
+      const statsDiv = document.getElementById('jsonStats');
+      if (!jsonData.length) { container.innerHTML = '<div class="empty-msg">⚠️ No JSON data</div>'; if (statsDiv) statsDiv.textContent = ''; return; }
+
+      const headers = Object.keys(jsonData[0] || {});
+      if (!headers.length) { container.innerHTML = '<div class="empty-msg">Empty objects</div>'; return; }
+
+      let html = '<div class="table-wrapper"><table class="data-table"><thead><tr>';
+      headers.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+      html += ' hilab</thead><tbody>';
+
+      jsonData.slice(0, 100).forEach((row, idx) => {
+        html += '<tr>';
+        headers.forEach(h => {
+          let val = row[h] !== undefined && row[h] !== null ? String(row[h]) : '';
+          html += `<td>${escapeHtml(val.substring(0, 50))}${val.length > 50 ? '...' : ''}</td>`;
+        });
+        html += '</tr>';
+      });
+      if (jsonData.length > 100) html += `<tr><td colspan="${headers.length}" style="text-align:center">+ ${jsonData.length - 100} more rows</td></tr>`;
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+      if (statsDiv) statsDiv.textContent = `📊 ${jsonData.length} rows × ${headers.length} columns | Click Apply to confirm edits`;
+    }
+
+    // ========== Excel → JSON with Apply & Undo/Redo ==========
+    function attachExcelListeners() {
+      const zone = document.getElementById('excelUploadZone');
+      const fileInput = document.getElementById('excelFile');
+      zone.onclick = () => fileInput.click();
+      fileInput.onchange = (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            excelData = rows;
+            excelOriginalData = JSON.parse(JSON.stringify(rows));
+            excelFileName = f.name.replace(/\.(xlsx|xls|csv)$/i, '');
+            document.getElementById('excelBadge').textContent = f.name;
+            saveExcelToHistory();
+            renderExcelTable();
+            updateJsonOutputFromExcel();
+          } catch (err) { alert('Excel error: ' + err.message); }
+        };
+        reader.readAsArrayBuffer(f);
+      };
+
+      // Apply Changes button
+      document.getElementById('applyExcelChangesBtn').onclick = () => {
+        saveExcelToHistory();
+        updateJsonOutputFromExcel();
+        renderExcelTable();
+        alert('Changes applied! JSON updated.');
+      };
+
+      document.getElementById('undoExcelBtn').onclick = () => undoExcel();
+      document.getElementById('redoExcelBtn').onclick = () => redoExcel();
+
+      document.getElementById('addExcelRowBtn').onclick = () => {
+        if (!excelData.length && !excelFileName) {
+          excelData = [{ newCol: '' }];
+        }
+        let newRow = {};
+        const headers = excelData.length ? Object.keys(excelData[0]) : ['column1'];
+        headers.forEach(h => newRow[h] = '');
+        excelData.push(newRow);
+        renderExcelTable();
+        document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+      };
+
+      document.getElementById('addExcelColBtn').onclick = () => {
+        const colName = prompt('New column name:', `col_${Date.now()}`);
+        if (!colName) return;
+        if (!excelData.length) excelData = [{}];
+        excelData.forEach(row => row[colName] = '');
+        renderExcelTable();
+        document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+      };
+
+      document.getElementById('delExcelRowBtn').onclick = () => {
+        if (!excelData.length) return;
+        const idx = prompt(`Delete row index (0 to ${excelData.length - 1})`, excelData.length - 1);
+        const rowIdx = parseInt(idx);
+        if (!isNaN(rowIdx) && rowIdx >= 0 && rowIdx < excelData.length) {
+          excelData.splice(rowIdx, 1);
+          renderExcelTable();
+          document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+        } else alert('Invalid index');
+      };
+
+      document.getElementById('delExcelColBtn').onclick = () => {
+        if (!excelData.length) return;
+        const headers = Object.keys(excelData[0]);
+        if (!headers.length) return;
+        const colName = prompt(`Delete which column? Available: ${headers.join(', ')}`, headers[headers.length - 1]);
+        if (colName && headers.includes(colName)) {
+          excelData.forEach(row => delete row[colName]);
+          renderExcelTable();
+          document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+        } else alert('Column not found');
+      };
+
+      document.getElementById('resetExcelBtn').onclick = () => {
+        if (excelOriginalData.length) {
+          excelData = JSON.parse(JSON.stringify(excelOriginalData));
+          renderExcelTable();
+          updateJsonOutputFromExcel();
+          document.getElementById('applyExcelChangesBtn').style.background = '#2c7da0';
+        } else alert('No original data to reset');
+      };
+
+      document.getElementById('downloadJsonBtn').onclick = () => {
+        if (!excelData.length) { alert('No data'); return; }
+        const name = excelFileName || 'export';
+        const jsonStr = JSON.stringify(excelData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${name}.json`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      };
+    }
+
+    function renderExcelTable() {
+      const container = document.getElementById('excelTableContainer');
+      const statsDiv = document.getElementById('excelStats');
+      if (!excelData.length) {
+        container.innerHTML = '<div class="empty-msg">📂 Upload Excel or add rows/columns</div>';
+        if (statsDiv) statsDiv.textContent = '';
+        return;
+      }
+
+      const headers = Object.keys(excelData[0]);
+      if (!headers.length) {
+        container.innerHTML = '<div class="empty-msg">No columns</div>';
+        return;
+      }
+
+      let html = '<div class="table-wrapper"><table class="data-table"><thead><tr>';
+      headers.forEach(h => html += `<th>${escapeHtml(h)} <button class="excel-col-del" data-col="${escapeHtml(h)}" style="background:none;border:none;color:#dc2626;cursor:pointer;margin-left:5px;">✖</button></th>`);
+      html += '</tr></thead><tbody>';
+
+      excelData.slice(0, 100).forEach((row, idx) => {
+        html += '<tr>';
+        headers.forEach(h => {
+          let val = row[h] !== undefined && row[h] !== null ? String(row[h]) : '';
+          html += `<td><input type="text" value="${escapeHtml(val)}" data-row="${idx}" data-col="${escapeHtml(h)}" class="excel-cell-edit" style="width:100%"></td>`;
+        });
+        html += '</tr>';
+      });
+      if (excelData.length > 100) html += `<tr><td colspan="${headers.length}" style="text-align:center">+ ${excelData.length - 100} more rows</td></tr>`;
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+      if (statsDiv) statsDiv.textContent = `📊 ${excelData.length} rows × ${headers.length} columns | Click Apply to confirm changes & update JSON`;
+
+      // Live cell editing (temporary, needs apply to save to history)
+      document.querySelectorAll('.excel-cell-edit').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const rowIdx = parseInt(inp.dataset.row);
+          const colName = inp.dataset.col;
+          if (excelData[rowIdx]) {
+            excelData[rowIdx][colName] = inp.value;
+            document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+          }
+        });
+      });
+
+      document.querySelectorAll('.excel-col-del').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const colToRemove = btn.dataset.col;
+          if (colToRemove && confirm(`Remove column "${colToRemove}"?`)) {
+            excelData.forEach(row => delete row[colToRemove]);
+            renderExcelTable();
+            document.getElementById('applyExcelChangesBtn').style.background = '#d97706';
+          }
+        };
+      });
+    }
+
+    function updateJsonOutputFromExcel() {
+      const textarea = document.getElementById('jsonOutput');
+      if (!textarea) return;
+      if (!excelData.length) {
+        textarea.value = '[]';
+        return;
+      }
+      textarea.value = JSON.stringify(excelData, null, 2);
+    }
+
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+
+    // Mode switching
+    document.querySelectorAll('.mode').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+        currentMode = el.dataset.mode;
+        render();
+      });
+    });
+
+    // Initialize
+    render();
+  </script>
+</body>
+
+</html>

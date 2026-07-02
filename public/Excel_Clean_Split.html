@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Excel Pro Splitter & Column Filter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --accent-success: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        .master-layout { display: flex; height: 100vh; width: 100%; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 350px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+        }
+
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-header h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .sidebar-header p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        .feature-category {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--primary); background: #f1f5f9;
+            padding: 8px 20px; margin-top: 5px;
+        }
+
+        .feature-item { padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        .feature-title { font-size: 12px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+        .list-card {
+            background: #fdfdfd; border: 1px solid var(--border-color);
+            border-radius: 8px; margin-top: 5px; max-height: 140px;
+            overflow-y: auto; padding: 5px;
+        }
+
+        .checkbox-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 8px; font-size: 11px; cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .checkbox-item:hover { background: #f8fafc; }
+        .checkbox-item input { cursor: pointer; }
+
+        .selection-utils { display: flex; gap: 10px; margin-bottom: 5px; }
+        .text-btn {
+            background: none; border: none; color: var(--primary);
+            font-size: 10px; font-weight: 700; cursor: pointer; padding: 0;
+        }
+
+        .compact-select, .compact-input {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border-color);
+            border-radius: 6px; font-size: 12px; background: #fff; outline: none;
+        }
+
+        .small-btn {
+            background: var(--primary); color: white; border: none;
+            padding: 12px; border-radius: 8px; font-size: 13px;
+            font-weight: 700; cursor: pointer; transition: 0.2s; width: 100%;
+        }
+        .small-btn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
+        .small-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        /* MAIN CONTENT */
+        .main-content { flex: 1; display: flex; flex-direction: column; background: #f1f5f9; padding: 20px; overflow: hidden; }
+        .compact-header {
+            background: white; padding: 12px 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 15px;
+        }
+
+        .upload-btn-compact { background: #334155; color: white; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+        .master-btn-small { background: var(--accent-success); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 11px; cursor: pointer; }
+
+        .grid-container {
+            background: white; border-radius: 10px; border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; flex: 1; overflow: hidden;
+        }
+
+        .grid-toolbar { padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .grid-stats { background: #f1f5f9; padding: 3px 10px; border-radius: 15px; font-size: 10px; font-weight: 700; color: var(--primary); }
+
+        .table-wrapper { overflow: auto; flex: 1; }
+        #dataTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+        #dataTable th { background: #f8fafc; position: sticky; top: 0; padding: 10px; border-bottom: 2px solid var(--border-color); text-align: left; z-index: 5; }
+        #dataTable td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+
+        .log-section {
+            background: #1e293b; color: #cbd5e1; border-radius: 10px; padding: 12px;
+            margin-top: 15px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 10px;
+        }
+
+        .progress-bar { background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s; }
+
+        .back-link {
+            text-decoration: none; display: flex; align-items: center; justify-content: center;
+            gap: 8px; background: #2563eb; color: white; padding: 8px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="Control_Excel.html" class="back-link">Return Home</a>
+                <h2>⚡ Excel Processor</h2>
+                <p>Splitting & Column Filtering</p>
+            </div>
+
+            <div class="feature-category">1. Setup Column</div>
+            <div class="feature-item">
+                <div class="feature-title"><span>📂</span> Split By:</div>
+                <select id="splitColumnSidebar" class="compact-select" disabled>
+                    <option value="">Upload file first</option>
+                </select>
+            </div>
+
+            <div class="feature-category">2. Filter Columns</div>
+            <div class="feature-item">
+                <div class="selection-utils">
+                    <button class="text-btn" onclick="toggleAll('col-check', true)">All</button>
+                    <button class="text-btn" onclick="toggleAll('col-check', false)">None</button>
+                </div>
+                <div class="list-card" id="colSelectionContainer">
+                    <p style="text-align: center; color: #94a3b8; font-size: 10px; padding: 10px;">Waiting for data...</p>
+                </div>
+            </div>
+
+            <div class="feature-category">3. Filter Values</div>
+            <div class="feature-item">
+                <div class="selection-utils">
+                    <button class="text-btn" onclick="toggleAll('val-check', true)">All</button>
+                    <button class="text-btn" onclick="toggleAll('val-check', false)">None</button>
+                </div>
+                <div class="list-card" id="uniqueValuesContainer">
+                    <p style="text-align: center; color: #94a3b8; font-size: 10px; padding: 10px;">Waiting for data...</p>
+                </div>
+                
+                <div style="background: #f8fafc; border: 1px dashed #e2e8f0; padding: 8px; border-radius: 6px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; cursor: pointer;">
+                        <input type="radio" name="exportMode" value="split" checked> Separate Files
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="radio" name="exportMode" value="combined"> Combined (Group)
+                    </label>
+                </div>
+            </div>
+
+            <div class="feature-category">4. Export</div>
+            <div class="feature-item">
+                <input type="text" id="customFileName" class="compact-input" placeholder="Custom filename (Optional)">
+                <button id="masterActionBtn" class="small-btn" disabled style="margin-top: 15px;">🚀 START EXPORT</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="compact-header">
+                <div><h1>Workspace</h1></div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label for="excelFile" class="upload-btn-compact">📁 Choose File</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="fileNameCompact" style="font-size: 11px; color: #64748b;">No file</span>
+                    <button id="exportMainBtn" class="master-btn-small" disabled>💾 Export Master</button>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-toolbar">
+                    <div style="font-weight: 600; font-size: 12px;">Data Preview</div>
+                    <span class="grid-stats" id="gridStats">0 rows</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="dataTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table>
+                </div>
+            </div>
+
+            <div class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+
+            <div class="log-section" id="logSection">
+                <div class="log-entry">> Ready. Load a file to begin.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentGridData = [];
+        let currentHeaders = [];
+
+        const fileInput = document.getElementById("excelFile");
+        const fileNameSpan = document.getElementById("fileNameCompact");
+        const splitColumnSelect = document.getElementById("splitColumnSidebar");
+        const colContainer = document.getElementById("colSelectionContainer");
+        const valContainer = document.getElementById("uniqueValuesContainer");
+        const customNameInput = document.getElementById("customFileName");
+        const masterActionBtn = document.getElementById("masterActionBtn");
+        const exportMainBtn = document.getElementById("exportMainBtn");
+        const logSection = document.getElementById("logSection");
+        const progressFill = document.getElementById("progressFill");
+
+        function addLog(msg, color = "#f1f5f9") {
+            const entry = document.createElement("div");
+            entry.style.color = color;
+            entry.textContent = `> ${msg}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+        }
+
+        function toggleAll(className, state) {
+            document.querySelectorAll(`.${className}`).forEach(c => c.checked = state);
+        }
+
+        function renderCheckboxes(container, items, className) {
+            container.innerHTML = "";
+            items.forEach(item => {
+                const label = document.createElement("label");
+                label.className = "checkbox-item";
+                label.innerHTML = `<input type="checkbox" class="${className}" value="${item.replace(/"/g, '&quot;')}" checked><span>${item}</span>`;
+                container.appendChild(label);
+            });
+        }
+
+        // --- CORE LOGIC: Apply Column Filter and Value Selection ---
+        function getProcessedData(rows, allowedValues, splitCol, allowedCols) {
+            // 1. Filter rows based on unique values selected
+            let filteredRows = rows.filter(row => allowedValues.includes(String(row[splitCol] || "").trim()));
+
+            // 2. Map rows to only include selected columns
+            return filteredRows.map(row => {
+                let cleanRow = {};
+                allowedCols.forEach(col => { cleanRow[col] = row[col]; });
+                return cleanRow;
+            });
+        }
+
+        async function performExport() {
+            const splitCol = splitColumnSelect.value;
+            const selectedValues = Array.from(document.querySelectorAll(".val-check:checked")).map(i => i.value);
+            const selectedCols = Array.from(document.querySelectorAll(".col-check:checked")).map(i => i.value);
+            const exportMode = document.querySelector('input[name="exportMode"]:checked').value;
+            const userPrefix = customNameInput.value.trim().replace(/[\\/:*?"<>|]/g, "_");
+
+            if (!splitCol || selectedValues.length === 0 || selectedCols.length === 0) {
+                return addLog("Please select column, values, and at least one output column.", "#fbbf24");
+            }
+
+            document.getElementById("progressSection").style.display = "block";
+            progressFill.style.width = "10%";
+
+            try {
+                if (exportMode === "combined") {
+                    addLog("Processing combined export...");
+                    const finalData = getProcessedData(currentGridData, selectedValues, splitCol, selectedCols);
+                    const ws = XLSX.utils.json_to_sheet(finalData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    const name = userPrefix || "Combined_Export";
+                    XLSX.writeFile(wb, `${name}.xlsx`);
+                    addLog("Combined Export successful!", "#4ade80");
+                } else {
+                    addLog("Generating ZIP archive...");
+                    const zip = new JSZip();
+                    selectedValues.forEach((val, i) => {
+                        const finalData = getProcessedData(currentGridData, [val], splitCol, selectedCols);
+                        const ws = XLSX.utils.json_to_sheet(finalData);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "Data");
+                        const wbout = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+                        const fileName = userPrefix ? `${userPrefix}_${val}` : val;
+                        zip.file(`${fileName.replace(/[\\/:*?"<>|]/g, "_")}.xlsx`, wbout);
+                        progressFill.style.width = `${((i + 1) / selectedValues.length) * 100}%`;
+                    });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(content);
+                    link.download = userPrefix ? `${userPrefix}_Archive.zip` : `Split_Export.zip`;
+                    link.click();
+                    addLog("ZIP Export successful!", "#4ade80");
+                }
+            } catch (err) { addLog(err.message, "#f87171"); }
+            setTimeout(() => document.getElementById("progressSection").style.display = "none", 2000);
+        }
+
+        fileInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameSpan.textContent = file.name;
+            addLog(`Reading file: ${file.name}...`);
+
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: "array" });
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });
+                
+                currentHeaders = rawData[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                currentGridData = rawData.slice(1).map(row => {
+                    let obj = {};
+                    currentHeaders.forEach((h, i) => obj[h] = row[i]);
+                    return obj;
+                });
+
+                // Render UI components
+                renderCheckboxes(colContainer, currentHeaders, "col-check");
+                splitColumnSelect.disabled = false;
+                splitColumnSelect.innerHTML = `<option value="">-- Choose split key --</option>` + currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+                
+                // Table Preview
+                document.getElementById("tableHeader").innerHTML = `<tr>${currentHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`;
+                document.getElementById("tableBody").innerHTML = currentGridData.slice(0, 50).map(row => 
+                    `<tr>${currentHeaders.map(h => `<td>${row[h] ?? ""}</td>`).join('')}</tr>`).join('');
+                
+                document.getElementById("gridStats").innerText = `${currentGridData.length} rows`;
+                masterActionBtn.disabled = false;
+                exportMainBtn.disabled = false;
+                addLog("File loaded. Select column to split by.", "#4ade80");
+            } catch (err) { addLog("Error reading file.", "#f87171"); }
+        });
+
+        splitColumnSelect.addEventListener("change", () => {
+            const col = splitColumnSelect.value;
+            if (!col) return;
+            const vals = [...new Set(currentGridData.map(row => String(row[col] || "").trim()))].filter(v => v !== "").sort();
+            renderCheckboxes(valContainer, vals, "val-check");
+        });
+
+        masterActionBtn.addEventListener("click", performExport);
+
+        exportMainBtn.addEventListener("click", () => {
+            const selectedCols = Array.from(document.querySelectorAll(".col-check:checked")).map(i => i.value);
+            if (selectedCols.length === 0) return addLog("Select at least one column.", "#fbbf24");
+            
+            // Re-map full data to only selected columns
+            const finalData = currentGridData.map(row => {
+                let cleanRow = {};
+                selectedCols.forEach(col => { cleanRow[col] = row[col]; });
+                return cleanRow;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(finalData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Master");
+            XLSX.writeFile(wb, "Master_Clean_Export.xlsx");
+            addLog("Master exported with column filters.", "#4ade80");
+        });
+    </script>
+</body>
+</html>

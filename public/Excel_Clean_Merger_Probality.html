@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Proximity Merge & Focus Search Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .table-container {
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .matched-row {
+            background-color: #d1e7dd !important;
+        }
+
+        .column-picker-box {
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+
+        .toggle-btn {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+        }
+
+        .custom-range-input {
+            border: 2px solid #198754 !important;
+            font-weight: bold;
+            background-color: #f8fff9;
+        }
+
+        .custom-search-input {
+            border: 2px solid #0d6efd !important;
+            font-weight: bold;
+            background-color: #f0f7ff;
+        }
+    </style>
+</head>
+
+<body class="bg-light p-4">
+
+    <div class="container bg-white p-4 rounded shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary m-0">Custom Merge</h2>
+            <button id="resetHomeBtn" class="btn btn-primary fw-bold">Return Home Page</button>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6 border-end">
+                <h5 class="text-secondary">1. Master File</h5>
+                <input type="file" id="masterFile" class="form-control mb-2" accept=".xlsx, .xls">
+
+                <label class="form-label small fw-bold text-danger">Key Column</label>
+                <select id="masterCol" class="form-select mb-3" disabled>
+                    <option>-- Upload Master --</option>
+                </select>
+
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-bold m-0">Include Master Fields:</label>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn"
+                            onclick="toggleCheckboxes('master', true)">Select All</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn"
+                            onclick="toggleCheckboxes('master', false)">Deselect All</button>
+                    </div>
+                </div>
+                <div id="masterFieldsPick" class="column-picker-box"><span class="text-muted small">Upload master file
+                        to choose fields...</span></div>
+            </div>
+
+            <div class="col-md-6">
+                <h5 class="text-secondary">2. Search File (Lookup Source)</h5>
+                <input type="file" id="searchFile" class="form-control mb-2" accept=".xlsx, .xls">
+
+                <label class="form-label small fw-bold text-danger">Key Column</label>
+                <select id="searchCol" class="form-select mb-3" disabled>
+                    <option>-- Upload Search File --</option>
+                </select>
+
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-bold m-0">Include Search Fields:</label>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn"
+                            onclick="toggleCheckboxes('search', true)">Select All</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn"
+                            onclick="toggleCheckboxes('search', false)">Deselect All</button>
+                    </div>
+                </div>
+                <div id="searchFieldsPick" class="column-picker-box"><span class="text-muted small">Upload search file
+                        to choose fields...</span></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4 align-items-end bg-light p-3 rounded border">
+            <div class="col-md-4 border-end">
+                <label for="explicitNumberInput" class="form-label fw-bold text-primary">3. Target Number Focus
+                    (Optional)</label>
+                <input type="text" id="explicitNumberInput" class="form-control custom-search-input"
+                    placeholder="e.g., 5514512323">
+                <div class="form-text small text-muted"></div>
+            </div>
+
+            <div class="col-md-3">
+                <label for="customOffsetInput" class="form-label fw-bold text-success">4. Proximity Allowed (±)</label>
+                <input type="number" id="customOffsetInput" class="form-control custom-range-input" value="5"
+                    placeholder="e.g., 5 or -3">
+                <div class="form-text small text-muted"></div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="showStatusCols" checked>
+                    <label class="form-check-label small fw-bold" for="showStatusCols">Include Meta Cols</label>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <button type="button" id="processMergeBtn" class="btn btn-success w-100 fw-bold" disabled>Run Proximity
+                    Merge</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div id="statusLog" class="alert alert-info d-none"></div>
+
+        <div id="outputContainer" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-secondary m-0">Dynamic Output Preview (<span id="outputCount">0</span> records
+                    processed)</h4>
+                <button type="button" id="exportBtn" class="btn btn-primary fw-bold">Download Custom Excel
+                    Sheet</button>
+            </div>
+            <div class="table-container">
+                <table class="table table-bordered table-sm" id="resultsTable">
+                    <thead class="table-dark sticky-top" id="outputHead"></thead>
+                    <tbody id="outputBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let masterData = [], searchData = [];
+        let masterHeaders = [], searchHeaders = [];
+        let completeMergedResults = [];
+
+        document.getElementById('masterFile').addEventListener('change', (e) => parseExcel(e, 'master'), false);
+        document.getElementById('searchFile').addEventListener('change', (e) => parseExcel(e, 'search'), false);
+        document.getElementById('processMergeBtn').addEventListener('click', executeRangeMerge, false);
+        document.getElementById('exportBtn').addEventListener('click', exportSelectedToExcel, false);
+        document.getElementById('resetHomeBtn').addEventListener('click', goToIndexHome, false);
+
+        function parseExcel(e, fileType) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            logStatus(`Reading ${fileType} data parameters...`, "info");
+            const reader = new FileReader();
+
+            reader.onload = function (evt) {
+                try {
+                    const buffer = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(buffer, { type: 'array', raw: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                    if (jsonData.length === 0) {
+                        logStatus(`Error: ${fileType} sheet contains no rows.`, "danger");
+                        return;
+                    }
+
+                    const headers = Object.keys(jsonData[0]);
+                    const dropdown = document.getElementById(fileType === 'master' ? 'masterCol' : 'searchCol');
+                    dropdown.innerHTML = '';
+                    headers.forEach(h => {
+                        let opt = document.createElement('option');
+                        opt.value = opt.textContent = h;
+                        dropdown.appendChild(opt);
+                    });
+                    dropdown.disabled = false;
+
+                    const checkContainer = document.getElementById(fileType === 'master' ? 'masterFieldsPick' : 'searchFieldsPick');
+                    checkContainer.innerHTML = '';
+                    headers.forEach((h, index) => {
+                        let div = document.createElement('div');
+                        div.className = 'form-check';
+                        div.innerHTML = `
+                        <input class="form-check-input column-chk ${fileType}-chk" type="checkbox" data-file="${fileType}" data-col="${h}" id="chk_${fileType}_${index}" checked>
+                        <label class="form-check-label small" for="chk_${fileType}_${index}">${h}</label>
+                    `;
+                        checkContainer.appendChild(div);
+                    });
+
+                    if (fileType === 'master') {
+                        masterData = jsonData;
+                        masterHeaders = headers;
+                    } else {
+                        searchData = jsonData;
+                        searchHeaders = headers;
+                    }
+
+                    logStatus(`Successfully loaded ${fileType === 'master' ? 'Master (' + masterData.length + ' rows)' : 'Search Source (' + searchData.length + ' rows)'}.`, "info");
+
+                    if (masterData.length > 0 && searchData.length > 0) {
+                        document.getElementById('processMergeBtn').disabled = false;
+                        logStatus("Both files loaded. Define your matching rules below and click 'Run Proximity Merge'.", "success");
+                    }
+                } catch (err) {
+                    logStatus(`Error parsing file: ${err.message}`, "danger");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function toggleCheckboxes(fileType, checkedState) {
+            const boxes = document.querySelectorAll(`.${fileType}-chk`);
+            boxes.forEach(box => box.checked = checkedState);
+        }
+
+        // Dynamic Directional Proximity Matching Engine
+        function executeRangeMerge() {
+            const mKey = document.getElementById('masterCol').value;
+            const sKey = document.getElementById('searchCol').value;
+            const offsetInputValue = parseInt(document.getElementById('customOffsetInput').value, 10);
+            const explicitSearchStr = document.getElementById('explicitNumberInput').value.trim().replace(/[^0-9]/g, '');
+
+            if (isNaN(offsetInputValue)) {
+                alert("Please enter a valid range number.");
+                return;
+            }
+
+            // Establish directional validation rules using BigInt boundaries
+            let lowerBoundBigInt, upperBoundBigInt;
+            if (offsetInputValue >= 0) {
+                // Standard behavior: positive values allow lookups above and below (±)
+                lowerBoundBigInt = -BigInt(offsetInputValue);
+                upperBoundBigInt = BigInt(offsetInputValue);
+            } else {
+                // Negative behavior: allows looking down by 'n' values up to exact match (0)
+                lowerBoundBigInt = BigInt(offsetInputValue);
+                upperBoundBigInt = 0n;
+            }
+
+            let explicitSearchNum = null;
+            if (explicitSearchStr.length > 0) {
+                try { explicitSearchNum = BigInt(explicitSearchStr); } catch (e) { alert("Invalid focus number input."); return; }
+            }
+
+            logStatus("Processing matching loops with directional offsets safely...", "info");
+
+            // Clean and optimize Lookups
+            const optimizedSearchList = searchData.map(sRow => {
+                const rawStr = String(sRow[sKey] !== undefined ? sRow[sKey] : '').trim().replace(/[^0-9]/g, '');
+                let bigIntVal = null;
+                if (rawStr.length > 0) {
+                    try { bigIntVal = BigInt(rawStr); } catch (e) { bigIntVal = null; }
+                }
+                return { originalRow: sRow, numValue: bigIntVal };
+            }).filter(item => {
+                if (item.numValue === null) return false;
+                if (explicitSearchNum !== null) {
+                    const diffFromFocus = item.numValue - explicitSearchNum;
+                    return diffFromFocus >= lowerBoundBigInt && diffFromFocus <= upperBoundBigInt;
+                }
+                return true;
+            });
+
+            // Scan the Master data set using the updated directional limits
+            completeMergedResults = masterData.map(mRow => {
+                const masterRawStr = String(mRow[mKey] !== undefined ? mRow[mKey] : '').trim().replace(/[^0-9]/g, '');
+                let masterNum = null;
+                if (masterRawStr.length > 0) {
+                    try { masterNum = BigInt(masterRawStr); } catch (e) { masterNum = null; }
+                }
+
+                let matchedSearchRow = null;
+                let foundDiff = "";
+
+                if (masterNum !== null) {
+                    for (let i = 0; i < optimizedSearchList.length; i++) {
+                        const sItem = optimizedSearchList[i];
+
+                        // Calculation matrix: Difference = Lookup Value - Master Value
+                        const diff = sItem.numValue - masterNum;
+
+                        // Evaluate if distance fits inside our customized bounding range
+                        if (diff >= lowerBoundBigInt && diff <= upperBoundBigInt) {
+                            matchedSearchRow = sItem.originalRow;
+                            foundDiff = diff.toString();
+                            break;
+                        }
+                    }
+                }
+
+                if (explicitSearchNum !== null && !matchedSearchRow) return null;
+
+                let mergedObj = {
+                    _system_status: matchedSearchRow ? "MATCHED" : "NO_MATCH",
+                    _system_offset: matchedSearchRow ? (foundDiff >= 0 ? "+" + foundDiff : foundDiff) : ""
+                };
+
+                masterHeaders.forEach(h => mergedObj["master_" + h] = mRow[h] !== undefined ? mRow[h] : "");
+                searchHeaders.forEach(h => mergedObj["search_" + h] = matchedSearchRow ? (matchedSearchRow[h] !== undefined ? matchedSearchRow[h] : "") : "");
+
+                return mergedObj;
+            }).filter(item => item !== null);
+
+            renderFilteredOutputView();
+        }
+
+        function getSelectedColumnConfiguration() {
+            let activeColumns = [];
+            if (document.getElementById('showStatusCols').checked) {
+                activeColumns.push({ id: '_system_status', title: 'Merge_Status' });
+                activeColumns.push({ id: '_system_offset', title: 'Proximity_Offset' });
+            }
+            const checkboxes = document.querySelectorAll('.column-chk:checked');
+            checkboxes.forEach(chk => {
+                const fileType = chk.getAttribute('data-file');
+                const colName = chk.getAttribute('data-col');
+                activeColumns.push({ id: fileType + "_" + colName, title: colName });
+            });
+            return activeColumns;
+        }
+
+        function renderFilteredOutputView() {
+            const thead = document.getElementById('outputHead');
+            const tbody = document.getElementById('outputBody');
+            thead.innerHTML = ''; tbody.innerHTML = '';
+
+            if (completeMergedResults.length === 0) {
+                logStatus("No matches found within that specific criteria threshold range.", "warning");
+                document.getElementById('outputContainer').classList.add('d-none');
+                return;
+            }
+
+            const activeCols = getSelectedColumnConfiguration();
+            if (activeCols.length === 0) { logStatus("Error: Select checkboxes to display columns.", "danger"); return; }
+
+            let trHead = document.createElement('tr');
+            activeCols.forEach(col => {
+                let th = document.createElement('th'); th.textContent = col.title; trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+
+            completeMergedResults.slice(0, 100).forEach(row => {
+                let tr = document.createElement('tr');
+                if (row["_system_status"] === "MATCHED") tr.classList.add('matched-row');
+                activeCols.forEach(col => {
+                    let td = document.createElement('td'); td.textContent = row[col.id]; tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('outputCount').textContent = completeMergedResults.length;
+            document.getElementById('outputContainer').classList.remove('d-none');
+            logStatus(`Done! Processed records successfully based on specified lookup directional rules.`, "success");
+        }
+
+        function exportSelectedToExcel() {
+            if (completeMergedResults.length === 0) return;
+            const activeCols = getSelectedColumnConfiguration();
+            if (activeCols.length === 0) { alert("Please check column boxes first."); return; }
+
+            const exportedRows = completeMergedResults.map(row => {
+                let cleanedRow = {};
+                activeCols.forEach(col => { cleanedRow[col.title] = row[col.id]; });
+                return cleanedRow;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportedRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Proximity Search Outputs");
+            XLSX.writeFile(wb, "Focused_Proximity_Output.xlsx");
+        }
+
+        function goToIndexHome() { window.location.href = "Control_Excel.html"; }
+        function logStatus(msg, type) {
+            const statusBox = document.getElementById('statusLog');
+            statusBox.className = `alert alert-${type}`; statusBox.textContent = msg; statusBox.classList.remove('d-none');
+        }
+    </script>
+</body>
+
+</html>

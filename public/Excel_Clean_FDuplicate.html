@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Deduplication & Merge Tool</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            padding: 30px 20px;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.3);
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .duplicate-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-left: 8px solid #2563eb;
+        }
+
+        .header-title {
+            background: linear-gradient(135deg, #60a5fa 0%, #ffffff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+            font-size: 2.2rem;
+        }
+
+        .back-nav { margin-bottom: 20px; }
+
+        .back-link {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2563eb;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: #3b82f6;
+            transform: translateX(-5px);
+            color: white;
+        }
+
+        .btn-duplicate {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            padding: 14px 40px;
+            border-radius: 40px;
+            font-weight: 700;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-duplicate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .stats-duplicate {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+            justify-content: space-around;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: block;
+            color: #60a5fa;
+        }
+
+        .info-note {
+            background: #e0f2fe;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: #0369a1;
+            margin-top: 8px;
+        }
+
+        .table-warning-custom { background-color: #fef3c7 !important; color: #92400e !important; }
+
+        footer { color: rgba(255, 255, 255, 0.5); text-align: center; margin-top: 40px; }
+    </style>
+</head>
+
+<body>
+
+    <div class="main-container">
+        <nav class="back-nav">
+            <a href="Control_Excel.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Return to Home
+            </a>
+        </nav>
+
+        <div class="mb-4">
+            <h1 class="header-title"><i class="fas fa-clone me-2"></i> Data Deduplicator</h1>
+            <p class="text-white-50">Merging engine with 19-digit numerical protection.</p>
+        </div>
+
+        <div class="card duplicate-card p-4">
+            <div class="row g-4">
+                <div class="col-12">
+                    <label class="fw-bold mb-2">1. Upload Excel File</label>
+                    <input type="file" id="duplicateFile" class="form-control" accept=".xlsx, .xls">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="fw-bold mb-2"><i class="fas fa-fingerprint"></i> Group By (Key ID Column)</label>
+                    <select id="dupRefColumn" class="form-select" disabled>
+                        <option>— Upload file first —</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="fw-bold mb-2"><i class="fas fa-list"></i> Extra Columns to Preserve</label>
+                    <select id="dupExtraColumns" class="form-select" multiple size="5" disabled></select>
+                </div>
+
+                <div class="col-12">
+                    <label class="fw-bold mb-2"><i class="fas fa-layer-group"></i> Merge Strategy</label>
+                    <select id="mergeStrategy" class="form-select">
+                        <option value="concat">🔗 Concatenate (Merge with commas)</option>
+                        <option value="first">📌 Keep First Record</option>
+                        <option value="last">📌 Keep Last Record</option>
+                        <option value="count">🔢 Entry Count Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-duplicate btn-lg" id="runDuplicateBtn" disabled onclick="processDeduplication()">
+                    <i class="fas fa-wand-magic-sparkles me-2"></i> Analyze & Merge
+                </button>
+            </div>
+        </div>
+
+        <div id="dupStats" class="stats-duplicate"></div>
+
+        <div class="card p-4">
+            <table id="duplicateTable" class="table table-hover w-100"></table>
+        </div>
+
+        <footer>
+            <i class="fas fa-shield-check"></i> Numerical Protection Active: Invisible formatting applied to preserve 15-20 digit IDs.
+        </footer>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+    <script>
+        let originalFileData = [];
+        let fileHeaders = [];
+
+        // Function to fix numeric scientific notation on load
+        function cleanValue(val) {
+            if (val === undefined || val === null || String(val).trim() === "") return "";
+            if (typeof val === 'number') return val.toLocaleString('fullwide', { useGrouping: false });
+            let strVal = String(val).trim();
+            if (/^\d+(\.\d+)?[eE][+-]?\d+$/.test(strVal)) {
+                let num = Number(strVal);
+                return !isNaN(num) ? num.toLocaleString('fullwide', { useGrouping: false }) : strVal;
+            }
+            return strVal;
+        }
+
+        document.getElementById('duplicateFile').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const workbook = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+                originalFileData = json;
+                fileHeaders = Object.keys(json[0]);
+                
+                const ref = document.getElementById('dupRefColumn');
+                const extra = document.getElementById('dupExtraColumns');
+                ref.innerHTML = '<option value="">-- Choose ID Column --</option>';
+                extra.innerHTML = '';
+                fileHeaders.forEach(h => {
+                    ref.innerHTML += `<option value="${h}">${h}</option>`;
+                    extra.innerHTML += `<option value="${h}">${h}</option>`;
+                });
+                ref.disabled = false; extra.disabled = false;
+                document.getElementById('runDuplicateBtn').disabled = false;
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        };
+
+        function processDeduplication() {
+            const refCol = document.getElementById('dupRefColumn').value;
+            const selectedExtras = Array.from(document.getElementById('dupExtraColumns').selectedOptions).map(o => o.value);
+            const strategy = document.getElementById('mergeStrategy').value;
+
+            if (!refCol) return alert("Select ID Column");
+
+            const groups = new Map();
+            originalFileData.forEach(row => {
+                const key = cleanValue(row[refCol]);
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(row);
+            });
+
+            const mergedData = [];
+            let dupTotal = 0;
+
+            groups.forEach((rows, key) => {
+                if (rows.length > 1) dupTotal += rows.length;
+                const newRow = { "Key ID": key, "Count": rows.length };
+
+                selectedExtras.forEach(col => {
+                    const vals = rows.map(r => cleanValue(r[col])).filter(v => v !== "");
+                    const unique = [...new Set(vals)];
+                    if (strategy === 'concat') newRow[col] = unique.join(", ");
+                    else if (strategy === 'first') newRow[col] = vals[0] || "";
+                    else if (strategy === 'last') newRow[col] = vals[vals.length - 1] || "";
+                    else if (strategy === 'count') newRow[col] = unique.length;
+                });
+                mergedData.push(newRow);
+            });
+
+            updateUI(mergedData, dupTotal, groups.size);
+        }
+
+        function updateUI(data, dupTotal, groupCount) {
+            const stats = document.getElementById('dupStats');
+            stats.style.display = 'flex';
+            stats.innerHTML = `
+                <div><span class="stat-value">${originalFileData.length}</span> Total Rows</div>
+                <div><span class="stat-value">${groupCount}</span> Unique Groups</div>
+                <div style="color:#f59e0b"><span class="stat-value">${dupTotal}</span> Duplicates Found</div>
+            `;
+
+            if ($.fn.DataTable.isDataTable('#duplicateTable')) $('#duplicateTable').DataTable().destroy();
+            $('#duplicateTable').empty().DataTable({
+                data: data,
+                columns: Object.keys(data[0]).map(k => ({ title: k, data: k })),
+                dom: 'Bfrtip',
+                buttons: [{
+                    extend: 'excelHtml5',
+                    title: 'Deduplicated_SIM_Report',
+                    className: 'btn btn-success btn-sm',
+                    exportOptions: {
+                        orthogonal: 'export',
+                        format: {
+                            body: function (v) {
+                                // PROTECT 19-DIGIT NUMBERS HERE
+                                return (typeof v === 'string' && /^\d{15,}$/.test(v)) ? '\u200C' + v : v;
+                            }
+                        }
+                    }
+                }],
+                scrollX: true,
+                createdRow: (row, rData) => { if (rData["Count"] > 1) $(row).addClass('table-warning-custom'); }
+            });
+        }
+    </script>
+</body>
+
+</html>

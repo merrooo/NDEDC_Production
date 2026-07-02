@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Excel Master Toolkit | Unified Filter & Replace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .master-dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .tool-sidebar {
+            width: 380px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 2px solid #eef2ff;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .home-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            margin-bottom: 18px;
+            border: none;
+        }
+
+        .home-nav-link:hover {
+            background: #2563eb;
+            color: white;
+            transform: translateX(-3px);
+        }
+
+        .feature-category {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 12px 20px;
+            margin-top: 12px;
+        }
+
+        .feature-card {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            color: #0f172a;
+        }
+
+        .compact-select,
+        .compact-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 13px;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .compact-select:focus,
+        .compact-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .small-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .small-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .danger-outline {
+            background: white;
+            border: 1.5px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .danger-outline:hover {
+            background: #fee2e2;
+            transform: none;
+        }
+
+        .unique-list-compact {
+            max-height: 320px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            margin-top: 12px;
+        }
+
+        .unique-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e9eef3;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .unique-preview-row:hover {
+            background: #dbeafe;
+        }
+
+        .unique-preview-badge {
+            background: #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        /* MAIN CONTENT */
+        .main-workspace {
+            flex: 1;
+            padding: 24px 28px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .toolbar-header {
+            background: white;
+            border-radius: 24px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .upload-zone {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .upload-btn-modern {
+            background: #1e293b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .export-btn {
+            background: #10b981;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .grid-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .grid-toolbar {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .global-search-input {
+            padding: 8px 12px 8px 34px;
+            border: 1px solid #e2e8f0;
+            border-radius: 40px;
+            width: 300px;
+            font-size: 13px;
+        }
+
+        .filter-status-bar {
+            background: #eef2ff;
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .clear-filter-btn {
+            background: none;
+            border: none;
+            color: #dc2626;
+            font-weight: 700;
+            text-decoration: underline;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .table-wrapper {
+            padding: 15px;
+        }
+
+        #unifiedDataTable {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        #unifiedDataTable thead th {
+            background: #f8fafc;
+            padding: 14px 12px;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 1.5px solid #e2e8f0;
+        }
+
+        /* HIDE THE NATIVE DATA TABLES QUICK FILTER GENERATED BOX */
+        .dataTables_filter {
+            display: none !important;
+        }
+
+        .log-console {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 14px 20px;
+            color: #cbd5e1;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 110px;
+            overflow-y: auto;
+        }
+
+        .badge-filter-active {
+            background: #2563eb10;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 880px) {
+            .master-dashboard {
+                flex-direction: column;
+            }
+            .tool-sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-dashboard">
+        <!-- SIDEBAR: UNIQUE VALUES + FIND & REPLACE + TEXT CLEANER -->
+        <div class="tool-sidebar">
+            <div class="sidebar-header">
+                <a href="Control_Excel.html" class="home-nav-link" id="fakeHomeBtn">
+                    <i class="fas fa-arrow-left"></i> Return to Home Page
+                </a>
+                <h4 style="font-weight: 800;"><i class="fas fa-magic text-primary"></i> Data Editor Pro</h4>
+            </div>
+
+            <!-- SECTION: UNIQUE VALUE EDITOR (with click-to-fill) -->
+            <div class="feature-category"><i class="fas fa-tags"></i> FIND & REPLACE</div>
+            <div class="feature-card">
+                <div class="feature-title"><i class="fas fa-columns"></i> 1. Select Column</div>
+                <select id="editorColumnSelect" class="compact-select" disabled>
+                    <option value="">— Load file first —</option>
+                </select>
+                <div id="editPanel" style="display: none;">
+                    <div class="feature-title"><i class="fas fa-search"></i> 2. Find Value <span style="font-size:10px; color:#2563eb;">(click unique value below)</span></div>
+                    <input type="text" id="findOldInput" class="compact-input" placeholder="Value to replace...">
+                    <div class="feature-title"><i class="fas fa-pen"></i> 3. Replace With</div>
+                    <input type="text" id="replaceNewInput" class="compact-input" placeholder="New value...">
+                    <button id="applyReplaceBtn" class="small-btn"><i class="fas fa-exchange-alt"></i> Apply Replacement</button>
+                </div>
+                <div class="feature-title" style="margin-top: 8px;"><i class="fas fa-list-ul"></i> Unique Values (click to filter & fill)</div>
+                <div class="unique-list-compact" id="uniqueValuesContainer">
+                    <div style="padding: 20px; text-align:center; color:#64748b;"> Select a column to see unique values</div>
+                </div>
+            </div>
+
+            <!-- SECTION: TEXT CLEANER (remove substring) -->
+            <div class="feature-category"><i class="fas fa-broom"></i> TEXT CLEANER</div>
+            <div class="feature-card">
+                <div class="feature-title"><i class="fas fa-cut"></i> Remove Substring</div>
+                <select id="cleanerColumnSelect" class="compact-select" disabled>
+                    <option value="">Select column</option>
+                </select>
+                <input type="text" id="textToStrip" class="compact-input" placeholder="e.g., 'Inc.', 'LLC', 'لوحة'">
+                <button id="applyCleanerBtn" class="small-btn danger-outline" style="background-color:  #2563eb; color: white;"><i class="fas fa-eraser"></i> Remove & Clean</button>
+            </div>
+        </div>
+
+        <!-- MAIN RIGHT PANEL: UNIFIED FILTER + DATA GRID -->
+        <div class="main-workspace">
+            <div class="toolbar-header">
+                <div>
+                </div>
+                <div class="upload-zone">
+                    <label for="globalFileUpload" class="upload-btn-modern"><i class="fas fa-upload"></i> Upload Excel/CSV</label>
+                    <input type="file" id="globalFileUpload" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="activeFileName" style="font-size:12px; color:#2563eb;">No file</span>
+                    <button id="exportMasterBtn" class="export-btn" disabled><i class="fas fa-download"></i> Export Data</button>
+                </div>
+            </div>
+
+            <!-- GRID with UNIFIED FILTER (single search + optional column filter) -->
+            <div class="grid-card">
+                <div class="grid-toolbar">
+                    <div><i class="fas fa-search"></i> <strong>Unified Filter</strong></div>
+                    <input type="text" id="globalTextFilter" class="global-search-input" placeholder="🔍 Search across ALL columns..." disabled>
+                    <div><span id="rowStats" class="badge-filter-active">0 rows</span></div>
+                </div>
+                <div id="filterBarDynamic" class="filter-status-bar" style="display: none;">
+                    <span id="filterMessage"><i class="fas fa-filter"></i> Active filter applied</span>
+                    <button id="clearFiltersGlobalBtn" class="clear-filter-btn">Clear filter</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="unifiedDataTable" class="display" style="width:100%">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="log-console" id="liveLogPanel">
+                <i class="fas fa-terminal"></i> Ready • Upload Excel to begin. Click any unique value to auto-fill Find field and filter the table.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -------------------- GLOBAL STATE --------------------
+        let masterData = [];          // array of objects
+        let masterHeaders = [];
+        let activeUnifiedFilter = "";   // single text filter applied across all columns
+        let dataTableInstance = null;     // DataTables instance
+
+        // DOM elements
+        const fileUpload = document.getElementById('globalFileUpload');
+        const fileNameSpan = document.getElementById('activeFileName');
+        const editorColumn = document.getElementById('editorColumnSelect');
+        const cleanerColumn = document.getElementById('cleanerColumnSelect');
+        const uniqueContainer = document.getElementById('uniqueValuesContainer');
+        const editPanel = document.getElementById('editPanel');
+        const findOldInput = document.getElementById('findOldInput');
+        const replaceNewInput = document.getElementById('replaceNewInput');
+        const applyReplaceBtn = document.getElementById('applyReplaceBtn');
+        const applyCleanerBtn = document.getElementById('applyCleanerBtn');
+        const textToStrip = document.getElementById('textToStrip');
+        const exportBtn = document.getElementById('exportMasterBtn');
+        const globalSearchInput = document.getElementById('globalTextFilter');
+        const filterStatusDiv = document.getElementById('filterBarDynamic');
+        const filterMessageSpan = document.getElementById('filterMessage');
+        const clearFiltersBtn = document.getElementById('clearFiltersGlobalBtn');
+        const rowStatsSpan = document.getElementById('rowStats');
+        const logPanel = document.getElementById('liveLogPanel');
+
+        function addLog(message, type = "info") {
+            const logDiv = document.createElement('div');
+            const color = type === 'success' ? '#4ade80' : (type === 'error' ? '#f87171' : '#94a3b8');
+            logDiv.innerHTML = `<span style="color:${color}">> ${new Date().toLocaleTimeString()} - ${message}</span>`;
+            logPanel.appendChild(logDiv);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            if (logPanel.children.length > 12) logPanel.removeChild(logPanel.children[0]);
+        }
+
+        function normalizeValue(v) {
+            if (v === null || v === undefined) return "";
+            let str = String(v).trim();
+            return (str.toLowerCase() === "nan" || str === "") ? "" : str;
+        }
+
+        // Refresh DataTable with UNIFIED FILTER (single filter across all columns)
+        function refreshDataTable() {
+            if (!dataTableInstance) return;
+            
+            let filteredData = [...masterData];
+            
+            // Apply unified filter (single text search across ALL columns)
+            if (activeUnifiedFilter.trim() !== "") {
+                const query = activeUnifiedFilter.trim().toLowerCase();
+                filteredData = filteredData.filter(row => {
+                    return masterHeaders.some(header => {
+                        const cellValue = row[header] !== undefined && row[header] !== null ? String(row[header]).toLowerCase() : "";
+                        return cellValue.includes(query);
+                    });
+                });
+            }
+            
+            // Update UI filter status
+            if (activeUnifiedFilter.trim() !== "") {
+                filterStatusDiv.style.display = "flex";
+                filterMessageSpan.innerHTML = `<i class="fas fa-filter"></i> Showing ${filteredData.length} of ${masterData.length} rows matching "${activeUnifiedFilter}"`;
+            } else {
+                filterStatusDiv.style.display = "none";
+            }
+            rowStatsSpan.innerText = `${filteredData.length} rows shown`;
+            
+            // Clear and redraw DataTable with filtered subset
+            dataTableInstance.clear();
+            dataTableInstance.rows.add(filteredData);
+            dataTableInstance.draw();
+        }
+        
+        // Update dropdowns and unique preview
+        function updateSidebarComponents() {
+            if (!masterHeaders.length) {
+                editorColumn.disabled = true;
+                cleanerColumn.disabled = true;
+                exportBtn.disabled = true;
+                globalSearchInput.disabled = true;
+                return;
+            }
+            editorColumn.disabled = false;
+            cleanerColumn.disabled = false;
+            exportBtn.disabled = false;
+            globalSearchInput.disabled = false;
+            
+            const currentEditor = editorColumn.value;
+            const currentCleaner = cleanerColumn.value;
+            
+            editorColumn.innerHTML = '<option value="">-- Choose column --</option>' + masterHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            cleanerColumn.innerHTML = '<option value="">-- Choose column --</option>' + masterHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            if (currentEditor && masterHeaders.includes(currentEditor)) editorColumn.value = currentEditor;
+            if (currentCleaner && masterHeaders.includes(currentCleaner)) cleanerColumn.value = currentCleaner;
+        }
+        
+        // Refresh unique values preview based on selected column
+        function refreshUniquePreview() {
+            const col = editorColumn.value;
+            if (!col || masterData.length === 0) {
+                uniqueContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#64748b;">Select a column to see unique values</div>';
+                editPanel.style.display = "none";
+                return;
+            }
+            editPanel.style.display = "block";
+            const valueMap = new Map();
+            masterData.forEach(row => {
+                let val = normalizeValue(row[col]);
+                if (val === "") val = "(empty)";
+                valueMap.set(val, (valueMap.get(val) || 0) + 1);
+            });
+            const sorted = Array.from(valueMap.entries()).sort((a, b) => b[1] - a[1]);
+            uniqueContainer.innerHTML = sorted.slice(0, 100).map(([val, cnt]) => `
+                <div class="unique-preview-row" onclick="fillAndFilter('${val.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                    <span class="unique-preview-badge">${cnt}</span>
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(val)}</span>
+                    <i class="fas fa-mouse-pointer" style="color:#2563eb; font-size:11px;"></i>
+                </div>
+            `).join('');
+        }
+        
+        // Helper to escape HTML
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // ADJUSTED FEATURE: Click on unique value now auto-fills the input AND updates the unified data filter view
+        window.fillAndFilter = (rawVal) => {
+            let displayVal = rawVal === "(empty)" ? "" : rawVal;
+            
+            // 1. Fill input fields
+            findOldInput.value = displayVal;
+            
+            // 2. Set search filter and update input box UI
+            activeUnifiedFilter = displayVal;
+            globalSearchInput.value = displayVal;
+            
+            // 3. Process the table refresh layout
+            addLog(`📋 Filtering table and readying replacement for target: "${displayVal}"`, "info");
+            refreshDataTable();
+            replaceNewInput.focus();
+        };
+        
+        // Apply find & replace (exact match)
+        function applyFindReplace() {
+            const col = editorColumn.value;
+            if (!col) { addLog("Please select a column first", "error"); return; }
+            const oldVal = findOldInput.value;
+            const newVal = replaceNewInput.value;
+            if (oldVal === "" && newVal === "") { addLog("Enter a value to find or provide a replacement", "error"); return; }
+            let replaceCount = 0;
+            masterData.forEach(row => {
+                let cell = row[col];
+                let stringCell = cell !== undefined && cell !== null ? String(cell) : "";
+                if (stringCell === oldVal) {
+                    row[col] = newVal;
+                    replaceCount++;
+                }
+            });
+            if (replaceCount > 0) {
+                addLog(`✅ Replaced ${replaceCount} occurrences of "${oldVal || '(empty)'}" → "${newVal || '(empty)'}"`, "success");
+                findOldInput.value = "";
+                replaceNewInput.value = "";
+                
+                // Clear active unique selection filter safely on execution
+                activeUnifiedFilter = "";
+                globalSearchInput.value = "";
+
+                refreshDataTable();      // update table view
+                refreshUniquePreview();  // update unique values list after modification
+            } else {
+                addLog(`No exact match for "${oldVal}" in column ${col}`, "info");
+            }
+        }
+        
+        // Apply text cleaner (remove substring)
+        function applyTextCleaner() {
+            const col = cleanerColumn.value;
+            if (!col) { addLog("Select target column for cleaning", "error"); return; }
+            const substring = textToStrip.value;
+            if (!substring) { addLog("Enter text to remove", "error"); return; }
+            let updatedCount = 0;
+            masterData.forEach(row => {
+                if (row[col] !== undefined && row[col] !== null) {
+                    let original = String(row[col]);
+                    if (original.includes(substring)) {
+                        const cleaned = original.split(substring).join("").trim();
+                        if (original !== cleaned) {
+                            row[col] = cleaned;
+                            updatedCount++;
+                        }
+                    }
+                }
+            });
+            if (updatedCount > 0) {
+                addLog(`🧹 Removed "${substring}" from ${updatedCount} cells in column "${col}"`, "success");
+                textToStrip.value = "";
+                refreshDataTable();
+                refreshUniquePreview();
+            } else {
+                addLog(`No occurrence of "${substring}" found in column ${col}`, "info");
+            }
+        }
+        
+        // Clear unified filter
+        function clearUnifiedFilter() {
+            activeUnifiedFilter = "";
+            globalSearchInput.value = "";
+            addLog("Filter cleared. Showing full dataset.", "info");
+            refreshDataTable();
+        }
+        
+        // Load Excel file
+        async function loadExcelFile(file) {
+            if (!file) return;
+            fileNameSpan.innerText = file.name;
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (!rawRows.length) throw new Error("Empty file");
+                const headersRaw = rawRows[0].map(cell => normalizeValue(cell) || `Col_${Math.random()}`);
+                masterHeaders = headersRaw;
+                const dataRows = rawRows.slice(1);
+                masterData = dataRows.map(row => {
+                    let obj = {};
+                    masterHeaders.forEach((h, idx) => {
+                        let val = row[idx] !== undefined && row[idx] !== null ? String(row[idx]).trim() : "";
+                        obj[h] = val;
+                    });
+                    return obj;
+                });
+                // Reset unified filter
+                activeUnifiedFilter = "";
+                globalSearchInput.value = "";
+                // Destroy existing DataTable if any
+                if (dataTableInstance) {
+                    dataTableInstance.destroy();
+                    $('#unifiedDataTable').empty();
+                }
+                
+                // Initialize DataTable layout (with internal search container explicitly stripped out)
+                $('#unifiedDataTable').DataTable({
+                    data: masterData,
+                    columns: masterHeaders.map(h => ({ title: h, data: h })),
+                    scrollX: true,
+                    pageLength: 15,
+                    language: { info: "_TOTAL_ entries" },
+                    dom: 'Brtip', // Removed 'f' parameter to drop "Quick Filter:" container natively
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="fas fa-file-excel"></i> Export Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'Cleaned_Data',
+                            exportOptions: {
+                                format: { 
+                                    body: function(innerData) {
+                                        let strData = String(innerData).trim();
+                                        if (/^\d{15,}$/.test(strData)) {
+                                            return '\u200C' + strData;
+                                        }
+                                        return innerData;
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    drawCallback: function() { 
+                        rowStatsSpan.innerText = `${this.api().rows({filter: 'applied'}).count()} rows`; 
+                    }
+                });
+                dataTableInstance = $('#unifiedDataTable').DataTable();
+                updateSidebarComponents();
+                refreshUniquePreview();
+                addLog(`📂 Loaded "${file.name}" — ${masterData.length} rows, ${masterHeaders.length} columns`, "success");
+                refreshDataTable();
+            } catch (err) {
+                addLog(`Error: ${err.message}`, "error");
+            }
+        }
+        
+        // Event listeners
+        fileUpload.addEventListener('change', (e) => {
+            if (e.target.files[0]) loadExcelFile(e.target.files[0]);
+        });
+        
+        applyReplaceBtn.addEventListener('click', applyFindReplace);
+        applyCleanerBtn.addEventListener('click', applyTextCleaner);
+        
+        exportBtn.addEventListener('click', () => {
+            if (!masterData.length) { addLog("No data to export", "error"); return; }
+            const ws = XLSX.utils.json_to_sheet(masterData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MasterData");
+            XLSX.writeFile(wb, `excel_master_${Date.now()}.xlsx`);
+            addLog("📎 Exported current dataset with all edits applied.", "success");
+        });
+        
+        editorColumn.addEventListener('change', () => { 
+            refreshUniquePreview(); 
+        });
+        
+        // UNIFIED FILTER: single input that filters across ALL columns
+        globalSearchInput.addEventListener('input', (e) => {
+            activeUnifiedFilter = e.target.value;
+            refreshDataTable();
+        });
+        
+        clearFiltersBtn.addEventListener('click', clearUnifiedFilter);
+        
+        // Initial log
+        addLog("⚡ Excel Master Toolkit ready. Upload file → Click any unique value to auto-fill Find field → Replace or Clean.", "info");
+    </script>
+</body>
+
+</html>

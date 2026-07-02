@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Data Studio | SIM Numbers as Text | Pivot & Filters</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 1.5rem;
+            color: #0f172a;
+        }
+
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .studio-header {
+            background: #6FDEFA;
+            border-radius: 24px;
+            padding: 1rem 2rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .logo-area h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 0;
+        }
+
+        .upload-area {
+            background: #f8fafc;
+            border-radius: 60px;
+            padding: 8px 20px;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .upload-area:hover {
+            background: #eef2ff;
+            border-color: #2563eb;
+        }
+
+        .btn-group-custom {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-studio {
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: none;
+            background: white;
+            border: 1px solid #cbd5e1;
+            transition: 0.2s;
+        }
+
+        .btn-primary-custom {
+            background: #2563eb;
+            color: white;
+            border: none;
+        }
+
+        .btn-primary-custom:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-custom:hover {
+            background: #f1f5f9;
+        }
+
+        .dashboard-split {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filters-panel {
+            flex: 1.2;
+            min-width: 320px;
+            background: white;
+            border-radius: 24px;
+            padding: 1.2rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+            height: fit-content;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .main-table-panel {
+            flex: 2.2;
+            min-width: 500px;
+            background: white;
+            border-radius: 24px;
+            padding: 1.2rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        .pivot-panel {
+            margin-top: 1.8rem;
+            background: white;
+            border-radius: 24px;
+            padding: 1.2rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-card-compact {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 0.8rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filter-card-compact h6 {
+            font-weight: 800;
+            font-size: 0.75rem;
+            color: #2563eb;
+            margin-bottom: 8px;
+        }
+
+        .filter-list-compact {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .filter-item-compact {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            padding: 3px 5px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .filter-item-compact:hover {
+            background: #eef2ff;
+        }
+
+        .filter-item-compact.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .filter-item-compact input {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+        }
+
+        .badge-count {
+            margin-left: auto;
+            font-size: 0.65rem;
+            background: #e2e8f0;
+            padding: 0px 6px;
+            border-radius: 20px;
+        }
+
+        .dim-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .dim-row select {
+            flex: 1;
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ef4444;
+        }
+
+        .summary-output {
+            margin-top: 20px;
+        }
+
+        .filter-status-bar {
+            background: #fef9c3;
+            padding: 8px 12px;
+            border-radius: 16px;
+            margin-top: 10px;
+            font-size: 0.75rem;
+        }
+
+        .stats-badge-sm {
+            background: #e2e8f0;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        .dataTable td,
+        .dataTable th {
+            font-size: 0.8rem;
+        }
+
+        .note-sim {
+            background: #eef2ff;
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="studio-header">
+            <div class="logo-area">
+                <h1><i class="fas fa-chalkboard-user me-2" style="color:#2563eb"></i> Pivot Studio </h1>
+            </div>
+            <div class="btn-group-custom">
+                <div class="upload-area" id="globalUploadBtn"><i class="fas fa-upload me-2"></i> Upload Excel/CSV <input
+                        type="file" id="masterFileInput" accept=".xlsx, .xls, .csv" style="display:none"></div>
+                <button id="clearAllGlobalFilters" class="btn-studio btn-outline-custom"><i class="fas fa-eraser"></i>
+                    Clear Filters</button>
+                <button id="applyFiltersToTableBtn" class="btn-studio btn-primary-custom"><i class="fas fa-filter"></i>
+                    Apply to Table</button>
+                <a href="Control_Excel.html" class="btn-studio btn-primary-custom"><i class="fas fa-arrow-left"></i> Return to
+                    Home</a>
+            </div>
+        </div>
+
+        <div class="dashboard-split">
+            <div class="filters-panel">
+                <div class="section-title"><i class="fas fa-project-diagram text-primary"></i> Interactive Filters <span
+                        class="badge bg-secondary ms-2" id="activeFilterCount">0 active</span></div>
+                <div id="relationalFilterContainer" class="filter-grid">
+                    <div class="text-muted text-center p-4">Upload a file to see column filters</div>
+                </div>
+                <div id="filterStatusMsg" class="filter-status-bar" style="display:none"></div>
+            </div>
+            <div class="main-table-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="section-title" style="border-bottom: none; margin-bottom:0"><i class="fas fa-table"></i>
+                        Dataset Preview</div>
+                    <div class="stats-badge-sm" id="tableStats">Rows: 0</div>
+                </div>
+                <div class="table-wrap">
+                    <table id="mainDataTable" class="table table-sm table-hover w-100"></table>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <button id="exportMainCsv" class="btn-studio btn-outline-custom" style="font-size:0.75rem"><i
+                            class="fas fa-download"></i> Export CSV</button>
+                    <button id="exportMainExcel" class="btn-studio btn-primary-custom" style="font-size:0.75rem"><i
+                            class="fas fa-file-excel"></i> Export Excel</button>
+                    <button id="clearMainTableFilters" class="btn-studio btn-outline-custom"
+                        style="font-size:0.75rem"><i class="fas fa-times-circle"></i> Clear Table Filters</button>
+                </div>
+                <div class="note-sim mt-2"><i class="fas fa-info-circle"></i> SIM / long numbers preserved as TEXT (no
+                    scientific notation)</div>
+            </div>
+        </div>
+
+        <div class="pivot-panel" id="pivotBuilderSection">
+            <div class="section-title"><i class="fas fa-chart-pie text-success"></i> Pivot Table & Count Summary</div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div id="dimensionsList" class="mb-3"></div>
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <button id="addDimensionBtn" class="btn-studio btn-outline-custom"><i class="fas fa-plus"></i>
+                            Add Dimension</button>
+                        <button id="generatePivotSummaryBtn" class="btn-studio btn-primary-custom"><i
+                                class="fas fa-calculator"></i> Generate Count Summary</button>
+                        <button id="resetDimensionsBtn" class="btn-studio btn-outline-custom">Reset Dims</button>
+                    </div>
+                    <div id="pivotOutputArea" class="summary-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rawDataset = [];
+        let headersList = [];
+        let dataTableInstance = null;
+        let currentCardSelections = {};
+        let windowCurrentFilteredDataset = [];
+        let dimensionSelectors = [];
+
+        function preserveAsText(val) {
+            if (val === undefined || val === null) return "";
+            if (typeof val === 'number') {
+                return val.toLocaleString('fullwide', { useGrouping: false });
+            }
+            return String(val).trim();
+        }
+
+        function norm(val) { return (val === undefined || val === null) ? "" : String(val).trim(); }
+
+        function loadDataFromSheet(worksheet) {
+            try {
+                let rows = XLSX.utils.sheet_to_json(worksheet, { defval: "", header: 1, raw: false });
+                if (!rows || rows.length < 2) throw new Error("Not enough rows");
+                let rawHeaders = rows[0].map((c, idx) => (c && String(c).trim()) ? String(c).trim() : `Column_${idx + 1}`);
+                headersList = rawHeaders;
+                let parsedRows = [];
+                for (let i = 1; i < rows.length; i++) {
+                    let rowObj = {};
+                    for (let j = 0; j < headersList.length; j++) {
+                        let cell = (rows[i][j] !== undefined && rows[i][j] !== null) ? rows[i][j] : "";
+                        rowObj[headersList[j]] = preserveAsText(cell);
+                    }
+                    parsedRows.push(rowObj);
+                }
+                rawDataset = parsedRows;
+                initAfterDataLoad();
+            } catch (err) { alert("Error parsing: " + err.message); }
+        }
+
+        function initAfterDataLoad() {
+            currentCardSelections = {};
+            renderRelationalCards();
+            renderMainTable(rawDataset);
+            updateDimensionDropdowns();
+            document.getElementById('tableStats').innerHTML = `Rows: ${rawDataset.length} | Cols: ${headersList.length}`;
+            windowCurrentFilteredDataset = [...rawDataset];
+        }
+
+        function getUniqueValuesForColumn(colName) {
+            let vals = new Set();
+            rawDataset.forEach(row => { let v = norm(row[colName]); if (v !== "") vals.add(v); });
+            return Array.from(vals).sort();
+        }
+
+        function getValidValuesForColumnGivenSelections(colName, selectionsMap) {
+            let filtered = rawDataset;
+            for (let [otherCol, selectedSet] of Object.entries(selectionsMap)) {
+                if (otherCol === colName) continue;
+                if (selectedSet.size === 0) continue;
+                filtered = filtered.filter(row => selectedSet.has(norm(row[otherCol])));
+            }
+            let valid = new Set();
+            filtered.forEach(row => { let v = norm(row[colName]); if (v !== "") valid.add(v); });
+            return valid;
+        }
+
+        function getCountsForColumnValues(colName, selectionsMap) {
+            let filtered = rawDataset;
+            for (let [otherCol, selectedSet] of Object.entries(selectionsMap)) {
+                if (otherCol === colName) continue;
+                if (selectedSet.size === 0) continue;
+                filtered = filtered.filter(row => selectedSet.has(norm(row[otherCol])));
+            }
+            let countMap = new Map();
+            filtered.forEach(row => { let v = norm(row[colName]); if (v !== "") countMap.set(v, (countMap.get(v) || 0) + 1); });
+            return countMap;
+        }
+
+        function getRowCountMatchingOtherSelections(targetCol, selections) {
+            let filtered = rawDataset;
+            for (let [col, set] of Object.entries(selections)) {
+                if (col === targetCol) continue;
+                if (set.size === 0) continue;
+                filtered = filtered.filter(row => set.has(norm(row[col])));
+            }
+            return filtered.length;
+        }
+
+        function renderRelationalCards() {
+            const container = document.getElementById('relationalFilterContainer');
+            if (!headersList.length) { container.innerHTML = '<div class="text-muted p-4 text-center">Upload Excel/CSV to enable smart filters</div>'; return; }
+            container.innerHTML = "";
+            for (let col of headersList) {
+                const uniqueVals = getUniqueValuesForColumn(col);
+                const card = document.createElement('div');
+                card.className = "filter-card-compact";
+                card.innerHTML = `<h6><i class="fas fa-tag"></i> ${escapeHtml(col)} <span class="badge-count" id="countHeader-${col.replace(/\s/g, '')}">0</span></h6>
+                              <div class="filter-list-compact" id="filterList-${col.replace(/\s/g, '')}"></div>`;
+                container.appendChild(card);
+                const listDiv = card.querySelector('.filter-list-compact');
+                uniqueVals.forEach(val => {
+                    const valSafe = val.replace(/[^a-z0-9]/gi, '_');
+                    const isChecked = (currentCardSelections[col] && currentCardSelections[col].has(val)) ? true : false;
+                    const item = document.createElement('label');
+                    item.className = "filter-item-compact";
+                    item.setAttribute('data-val', val);
+                    item.innerHTML = `<input type="checkbox" class="filter-chk" data-col="${escapeAttr(col)}" value="${escapeAttr(val)}" ${isChecked ? 'checked' : ''}>
+                                  <span>${escapeHtml(val.length > 25 ? val.substr(0, 22) + '...' : val)}</span>
+                                  <span class="badge-count" id="badge-${col}-${valSafe}">0</span>`;
+                    listDiv.appendChild(item);
+                });
+            }
+            attachCheckboxEvents();
+            syncAllCardsRelational();
+        }
+
+        function attachCheckboxEvents() {
+            document.querySelectorAll('.filter-chk').forEach(chk => {
+                chk.removeEventListener('change', handleFilterChange);
+                chk.addEventListener('change', handleFilterChange);
+            });
+        }
+
+        function handleFilterChange(e) {
+            const col = e.target.getAttribute('data-col');
+            const val = e.target.value;
+            if (!currentCardSelections[col]) currentCardSelections[col] = new Set();
+            if (e.target.checked) currentCardSelections[col].add(val);
+            else currentCardSelections[col].delete(val);
+            if (currentCardSelections[col].size === 0) delete currentCardSelections[col];
+            syncAllCardsRelational();
+        }
+
+        function syncAllCardsRelational() {
+            if (!headersList.length) return;
+            for (let col of headersList) {
+                const validSet = getValidValuesForColumnGivenSelections(col, currentCardSelections);
+                const countsMap = getCountsForColumnValues(col, currentCardSelections);
+                const totalRowsMatching = getRowCountMatchingOtherSelections(col, currentCardSelections);
+                const headerSpan = document.getElementById(`countHeader-${col.replace(/\s/g, '')}`);
+                if (headerSpan) headerSpan.innerText = totalRowsMatching;
+                const listDiv = document.querySelector(`#filterList-${col.replace(/\s/g, '')}`);
+                if (!listDiv) continue;
+                const items = listDiv.querySelectorAll('.filter-item-compact');
+                items.forEach(item => {
+                    const val = item.getAttribute('data-val');
+                    const chk = item.querySelector('.filter-chk');
+                    const isChecked = chk ? chk.checked : false;
+                    const countVal = countsMap.get(val) || 0;
+                    const badgeSpan = item.querySelector('.badge-count');
+                    if (badgeSpan) badgeSpan.innerText = countVal;
+                    if (!isChecked && !validSet.has(val)) item.classList.add('disabled');
+                    else item.classList.remove('disabled');
+                });
+            }
+            const activeFiltersCount = Object.values(currentCardSelections).reduce((acc, set) => acc + set.size, 0);
+            document.getElementById('activeFilterCount').innerText = `${activeFiltersCount} active`;
+            const msgDiv = document.getElementById('filterStatusMsg');
+            if (activeFiltersCount > 0) { msgDiv.style.display = 'block'; msgDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${activeFiltersCount} filter(s) selected. Click "Apply to Table" to filter data & pivot.`; }
+            else { msgDiv.style.display = 'none'; }
+        }
+
+        function renderMainTable(dataRows) {
+            if (dataTableInstance) { dataTableInstance.destroy(); $('#mainDataTable').empty(); }
+            if (!headersList.length || !dataRows.length) {
+                $('#mainDataTable').html('<thead><tr><th>No Data</th></td></thead>');
+                return;
+            }
+            const displayData = dataRows.map(row => {
+                let obj = {};
+                headersList.forEach(h => { obj[h] = row[h]; });
+                return obj;
+            });
+            dataTableInstance = $('#mainDataTable').DataTable({
+                data: displayData,
+                columns: headersList.map(h => ({
+                    title: h,
+                    data: h,
+                    render: function (data) { return String(data); }
+                })),
+                scrollX: true,
+                pageLength: 8,
+                dom: '<"d-flex justify-content-between"lf>tip',
+                language: { search: "Quick filter:" }
+            });
+            document.getElementById('tableStats').innerHTML = `Rows: ${dataRows.length} / ${rawDataset.length} | Cols: ${headersList.length}`;
+        }
+
+        function applyCurrentFiltersToTable() {
+            if (!rawDataset.length) return;
+            let filteredRows = [...rawDataset];
+            for (let [col, selectedSet] of Object.entries(currentCardSelections)) {
+                if (selectedSet.size === 0) continue;
+                filteredRows = filteredRows.filter(row => selectedSet.has(norm(row[col])));
+            }
+            renderMainTable(filteredRows);
+            windowCurrentFilteredDataset = filteredRows;
+        }
+
+        function clearAllFilters() {
+            currentCardSelections = {};
+            syncAllCardsRelational();
+            renderMainTable(rawDataset);
+            windowCurrentFilteredDataset = rawDataset;
+            if (dataTableInstance) { dataTableInstance.search('').columns().search('').draw(); }
+        }
+
+        function exportToExcel(sheetData, sheetName = "Data") {
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!ws[cellAddress]) continue;
+                    let cell = ws[cellAddress];
+                    if (cell && cell.t === 'n') {
+                        const stringVal = cell.v !== undefined && cell.v !== null ? cell.v.toString() : "";
+                        ws[cellAddress] = { t: 's', v: stringVal };
+                    }
+                }
+            }
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, `${sheetName}_export.xlsx`);
+        }
+
+        function getCurrentTableDataAsArrays() {
+            if (!dataTableInstance) return [headersList];
+            const filteredData = dataTableInstance.rows({ search: 'applied' }).data().toArray();
+            const dataRows = filteredData.map(row => headersList.map(h => row[h] !== undefined ? row[h] : ""));
+            return [headersList, ...dataRows];
+        }
+
+        function exportMainExcel() {
+            if (!headersList.length) { alert("No data to export"); return; }
+            const dataArrays = getCurrentTableDataAsArrays();
+            const stringifiedData = dataArrays.map(row => row.map(cell => {
+                if (cell === null || cell === undefined) return "";
+                return String(cell);
+            }));
+            exportToExcel(stringifiedData, "Dataset_SIM_Text");
+        }
+
+        function exportMainCSV() {
+            if (!dataTableInstance) return;
+            const filteredData = dataTableInstance.rows({ search: 'applied' }).data().toArray();
+            const csvRows = [headersList];
+            filteredData.forEach(row => {
+                const rowCells = headersList.map(h => {
+                    let val = row[h];
+                    if (val === undefined || val === null) return "";
+                    let strVal = String(val);
+                    return `"${strVal.replace(/"/g, '""')}"`;
+                });
+                csvRows.push(rowCells);
+            });
+            const csvContent = csvRows.map(row => row.join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv' });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'data_sim_as_text.csv'; link.click(); URL.revokeObjectURL(link.href);
+        }
+
+        function updateDimensionDropdowns() {
+            const container = document.getElementById('dimensionsList');
+            if (!headersList.length) { container.innerHTML = '<div class="text-muted">Upload data to enable dimensions</div>'; return; }
+            if (dimensionSelectors.length === 0) addNewDimensionRow();
+            refreshDimensionRowsUI();
+        }
+
+        function refreshDimensionRowsUI() {
+            const container = document.getElementById('dimensionsList');
+            if (!container) return;
+            container.innerHTML = '';
+            dimensionSelectors.forEach((select, idx) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'dim-row';
+                rowDiv.innerHTML = `<label style="font-weight:500; min-width:50px;">Dim ${idx + 1}:</label><select class="form-select form-select-sm dim-select" data-idx="${idx}"></select><button class="btn-icon remove-dim-btn" data-idx="${idx}"><i class="fas fa-trash-alt"></i></button>`;
+                container.appendChild(rowDiv);
+                const newSelect = rowDiv.querySelector('.dim-select');
+                let options = '<option value="">-- Select Column --</option>';
+                headersList.forEach(h => { options += `<option value="${escapeAttr(h)}">${escapeHtml(h)}</option>`; });
+                newSelect.innerHTML = options;
+                if (select.value) newSelect.value = select.value;
+                newSelect.addEventListener('change', (e) => { dimensionSelectors[idx].value = e.target.value; });
+                rowDiv.querySelector('.remove-dim-btn').addEventListener('click', () => {
+                    if (dimensionSelectors.length <= 1) { alert("At least one dimension required"); return; }
+                    dimensionSelectors.splice(idx, 1);
+                    refreshDimensionRowsUI();
+                });
+                dimensionSelectors[idx] = newSelect;
+            });
+        }
+
+        function addNewDimensionRow() { const fake = document.createElement('select'); fake.value = ""; dimensionSelectors.push(fake); refreshDimensionRowsUI(); }
+
+        function generatePivotSummary() {
+            if (!rawDataset.length) { alert("No data loaded."); return; }
+            let sourceData = (windowCurrentFilteredDataset && windowCurrentFilteredDataset.length) ? windowCurrentFilteredDataset : rawDataset;
+            const selectedDims = dimensionSelectors.filter(sel => sel && sel.value && sel.value !== "").map(sel => sel.value);
+            if (selectedDims.length === 0) { alert("Select at least one dimension for summary"); return; }
+            const groupMap = new Map();
+            for (let row of sourceData) {
+                let keyParts = selectedDims.map(dim => norm(row[dim]) || "(blank)");
+                let compositeKey = keyParts.join("|~|");
+                if (!groupMap.has(compositeKey)) groupMap.set(compositeKey, { keys: keyParts, count: 0 });
+                groupMap.get(compositeKey).count++;
+            }
+            const results = Array.from(groupMap.values()).map(item => ({ dims: item.keys, count: item.count })).sort((a, b) => b.count - a.count);
+            displayPivotOutput(results, selectedDims, sourceData.length);
+        }
+
+        function displayPivotOutput(data, dimNames, totalRecordsSource) {
+            const outputDiv = document.getElementById('pivotOutputArea');
+            const totalRecords = data.reduce((sum, i) => sum + i.count, 0);
+            let html = `<div class="mt-3 border rounded p-3 bg-light"><div class="d-flex justify-content-between mb-2"><strong><i class="fas fa-chart-simple"></i> Summary: ${data.length} groups | Total rows: ${totalRecords}</strong><div><button id="exportSummaryCsvBtn" class="btn-studio btn-outline-custom" style="font-size:0.7rem">📎 Export CSV</button><button id="exportSummaryExcelBtn" class="btn-studio btn-primary-custom ms-2" style="font-size:0.7rem">📊 Export Excel</button></div></div><div style="overflow-x:auto; max-height: 300px;"><table class="table table-sm table-bordered" style="font-size:0.75rem"><thead><tr>${dimNames.map(d => `<th>${escapeHtml(d)}</th>`).join('')}<th>COUNT</th></thead><tbody>`;
+            data.forEach(item => { html += `<tr>${item.dims.map(d => `<td>${escapeHtml(d)}</td>`).join('')}<td style="font-weight:bold">${item.count}</td>`; });
+            html += `<tr style="background:#f1f5f9;"><td colspan="${dimNames.length}" class="text-end"><strong>TOTAL</strong></td><td><strong>${totalRecords}</strong></td></tr>`;
+            html += `</tbody></table></div></div>`;
+            outputDiv.innerHTML = html;
+            document.getElementById('exportSummaryCsvBtn')?.addEventListener('click', () => { exportSummaryCSV(data, dimNames, totalRecords); });
+            document.getElementById('exportSummaryExcelBtn')?.addEventListener('click', () => { exportSummaryExcel(data, dimNames, totalRecords); });
+        }
+
+        function exportSummaryCSV(data, dimNames, totalRecords) {
+            const rows = [dimNames.concat('COUNT')];
+            data.forEach(item => { rows.push([...item.dims, item.count]); });
+            rows.push(dimNames.map(() => '').concat(totalRecords));
+            const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'pivot_summary.csv'; link.click(); URL.revokeObjectURL(link.href);
+        }
+
+        function exportSummaryExcel(data, dimNames, totalRecords) {
+            const sheetRows = [dimNames.concat('COUNT'), ...data.map(item => [...item.dims, item.count]), dimNames.map(() => '').concat(totalRecords)];
+            exportToExcel(sheetRows, "Pivot_Summary");
+        }
+
+        function resetDimensions() { dimensionSelectors = []; addNewDimensionRow(); updateDimensionDropdowns(); document.getElementById('pivotOutputArea').innerHTML = ''; }
+
+        function escapeHtml(str) { return String(str).replace(/[&<>]/g, function (m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+        function escapeAttr(str) { return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+
+        document.getElementById('globalUploadBtn').addEventListener('click', () => document.getElementById('masterFileInput').click());
+        document.getElementById('masterFileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellText: true, cellDates: false });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                loadDataFromSheet(sheet);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        document.getElementById('applyFiltersToTableBtn').addEventListener('click', () => applyCurrentFiltersToTable());
+        document.getElementById('clearAllGlobalFilters').addEventListener('click', () => clearAllFilters());
+        document.getElementById('exportMainCsv').addEventListener('click', () => exportMainCSV());
+        document.getElementById('exportMainExcel').addEventListener('click', () => exportMainExcel());
+        document.getElementById('clearMainTableFilters').addEventListener('click', () => { if (dataTableInstance) dataTableInstance.search('').columns().search('').draw(); });
+        document.getElementById('addDimensionBtn').addEventListener('click', () => addNewDimensionRow());
+        document.getElementById('generatePivotSummaryBtn').addEventListener('click', () => generatePivotSummary());
+        document.getElementById('resetDimensionsBtn').addEventListener('click', () => resetDimensions());
+
+        windowCurrentFilteredDataset = [];
+        dimensionSelectors = [];
+        addNewDimensionRow();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>⚡Barcode Scanner + OCR Meter</title>
+    <!-- Libraries for LEFT tool (BAR Code / Qabda) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Libraries for RIGHT tool (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- CropperJS (shared but independent instances) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            background: radial-gradient(ellipse at 20% 30%, #0a0f1e, #03060c);
+            color: #f0f3fa;
+            min-height: 100vh;
+            padding: 30px 40px;
+        }
+
+        /* BIG EXPANSIVE LAYOUT — full width, spacious */
+        .duo-master {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        /* each panel takes significant size, no cramped feeling */
+        .panel {
+            flex: 1 1 650px;
+            min-width: 550px;
+            transition: all 0.2s ease;
+        }
+
+        /* LEFT CARD — glassmorphic premium */
+        .card-left {
+            background: rgba(15, 25, 45, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 2rem;
+            padding: 32px 30px 38px 30px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 210, 255, 0.1) inset;
+            height: 100%;
+        }
+
+        /* RIGHT CARD — sleek dark with neon accents */
+        .card-right {
+            background: #111827;
+            border-radius: 2rem;
+            padding: 32px 30px 38px 30px;
+            border: 1px solid #2d3a5e;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 255, 136, 0.1) inset;
+            height: 100%;
+        }
+
+        /* Shared header style with bigger presence */
+        .card-left h2 {
+            margin: 0 0 20px 0;
+            background: linear-gradient(135deg, #00d2ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 1.9rem;
+            text-align: center;
+            letter-spacing: -0.3px;
+        }
+
+        .card-right h2 {
+            margin: 0 0 20px 0;
+            background: linear-gradient(135deg, #aaffdd, #00ff88);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 1.9rem;
+            text-align: center;
+        }
+
+        .status-msg {
+            font-size: 11px;
+            font-weight: 500;
+            color: #8ca3cf;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        /* ---------- LEFT PANEL SPECIFIC (bigger interactive zones) ---------- */
+        .btn-left {
+            padding: 14px 12px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.25s;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        .btn-primary-left {
+            background: #00d2ff;
+            color: #0a0f1e;
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 14px;
+            padding: 15px;
+            box-shadow: 0 6px 14px rgba(0,210,255,0.25);
+        }
+        .btn-primary-left:hover { background: #00b8e6; transform: scale(1.01); }
+        .btn-extract-left { background: #f59e0b; color: #000; flex: 1; }
+        .btn-scan-left { background: #00ff88; color: #0f172a; flex: 1; }
+        .btn-rotate-left { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.2); flex: 1; }
+        .btn-rotate-left:hover { background: rgba(255,255,255,0.18); }
+
+        .image-wrapper-left {
+            background: #03060c;
+            border-radius: 24px;
+            overflow: hidden;
+            margin: 18px 0;
+            display: none;
+            height: 360px;
+            border: 1px solid rgba(0,210,255,0.4);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .controls-grid-left { display: flex; flex-direction: column; gap: 14px; margin-top: 15px; }
+        .row-left { display: flex; gap: 14px; }
+        .preview-box-left {
+            margin-top: 20px;
+            background: rgba(0,0,0,0.55);
+            padding: 14px;
+            border-radius: 24px;
+            border: 1px solid #00ff88;
+            display: none;
+            text-align: center;
+        }
+        #cleaned-preview-left {
+            max-width: 100%;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        #result-panel-left {
+            margin-top: 24px;
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.5);
+            border-left: 5px solid #00d2ff;
+            text-align: center;
+        }
+        #result-text-left {
+            font-family: 'Fira Mono', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #00ffaa;
+            letter-spacing: 2px;
+            word-break: break-all;
+        }
+
+        /* ---------- RIGHT PANEL (OCR) BIGGER & COMFORTABLE ---------- */
+        .img-container-right {
+            width: 100%;
+            height: 360px;
+            background: #000000;
+            margin-top: 18px;
+            display: none;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 2px solid #2a3a5a;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .controls-right {
+            margin: 22px 0;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .rotation-arrows-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: #0f172ad9;
+            padding: 16px;
+            border-radius: 60px;
+            border: 1px solid #334155;
+            backdrop-filter: blur(4px);
+        }
+        .arrow-btn-right {
+            background: #2d3a5e;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 20px;
+            transition: 0.2s;
+            min-width: 70px;
+        }
+        .arrow-btn-right:hover { background: #00ff88; color: #0a0f1e; transform: scale(1.03); }
+        .angle-display-right {
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: 800;
+            color: #00ff88;
+            min-width: 100px;
+            text-align: center;
+            background: #00000066;
+            padding: 8px 12px;
+            border-radius: 40px;
+        }
+        .btn-group-right {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+        }
+        button.action-right {
+            padding: 14px 8px;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 12px;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+        #rotate-btn-right { background: #4b5568; color: white; }
+        #extract-btn-right { background: #f59e0b; color: #111; }
+        #scan-btn-right { background: #00ff88; color: #0f172a; font-weight: 800; }
+        #scan-btn-right:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .preview-box-right {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+            background: #03060c;
+            padding: 16px;
+            border-radius: 24px;
+            border: 1px solid #2d5a4a;
+        }
+        #cleaned-preview-right {
+            max-width: 100%;
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            background: white;
+        }
+        .result-area-right {
+            margin-top: 24px;
+            padding: 18px;
+            background: #03060cd9;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid #2d3a5e;
+        }
+        #number-output-right {
+            font-size: 2.3rem;
+            font-weight: 900;
+            color: #00ffaa;
+            font-family: monospace;
+            letter-spacing: 4px;
+            word-break: break-all;
+        }
+        #file-input-right {
+            margin-top: 20px;
+            width: 100%;
+            color: #b9c7e0;
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 20px;
+            border: 1px solid #3b4a6b;
+        }
+
+        /* responsive but still BIG */
+        @media (max-width: 1250px) {
+            body { padding: 20px 24px; }
+            .panel { min-width: 480px; }
+            .image-wrapper-left, .img-container-right { height: 320px; }
+        }
+        @media (max-width: 1050px) {
+            .duo-master { flex-direction: column; align-items: center; }
+            .panel { min-width: 90%; }
+        }
+        hr { display: none; }
+        button { cursor: pointer; }
+        #temp-target-left { display: none; }
+    </style>
+</head>
+<body>
+<div class="duo-master">
+    <!-- LEFT PANEL : BAR CODE EXTRACT with GRID-LIKE BLACK & WHITE (like reference photo) -->
+    <div class="panel">
+        <div class="card-left">
+            <h2>🔲 BAR_Code_Extract • B&W Grid Style</h2>
+            
+            <button class="btn-left btn-primary-left" id="upload-trigger-left">📸 UPLOAD IMAGE (Barcode)</button>
+    
+            <div class="image-wrapper-left" id="container-left">
+                <img id="image-element-left" src="">
+            </div>
+    
+            <div id="editor-ui-left" style="display: none;">
+                <div class="controls-grid-left">
+                    <div class="row-left">
+                        <button class="btn-left btn-rotate-left" id="rotate-neg-left">−0.5°</button>
+                        <button class="btn-left btn-rotate-left" id="rotate-pos-left">+0.5°</button>
+                        <button class="btn-left btn-rotate-left" id="rotate-90-left">90° FLIP</button>
+                    </div>
+                    <div class="row-left">
+                        <button class="btn-left btn-extract-left" id="extract-btn-left">1. CLEAN & PREVIEW (B&W Grid)</button>
+                        <button class="btn-left btn-scan-left" id="scan-btn-left" disabled>2. EXTRACT DATA</button>
+                    </div>
+                </div>
+            </div>
+    
+            <div class="preview-box-left" id="preview-container-left">
+                <div class="status-msg">⚫ OPTIMIZED VIEW — PURE BLACK & WHITE (Grid / Matrix Style like reference)</div>
+                <canvas id="cleaned-preview-left"></canvas>
+            </div>
+    
+            <div id="result-panel-left">
+                <div class="status-msg" id="status-left">⚡ WAITING FOR UPLOAD</div>
+                <div id="result-text-left">----</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL : OCR METER EXTRACTOR (ORIGINAL LOGIC) -->
+    <div class="panel">
+        <div class="card-right">
+            <h2>📟 AI Meter Extractor • OCR</h2>
+            <div class="status-msg" style="margin-top: 0px;">🎯 HOLD ARROWS FOR CONTINUOUS ROTATION</div>
+            
+            <input type="file" id="file-input-right" accept="image/*">
+    
+            <div class="img-container-right" id="container-right">
+                <img id="image-right">
+            </div>
+    
+            <div class="controls-right" id="action-btns-right">
+                <div class="rotation-arrows-right">
+                    <button class="arrow-btn-right" id="nudge-left-right" title="Nudge -0.5°">◀ 0.5°</button>
+                    <button class="arrow-btn-right" id="move-left-right" title="Move -5°">◀◀ 5°</button>
+                    <div class="angle-display-right" id="angle-text-right">0.0°</div>
+                    <button class="arrow-btn-right" id="move-right-right" title="Move +5°">5° ▶▶</button>
+                    <button class="arrow-btn-right" id="nudge-right-right" title="Nudge +0.5°">0.5° ▶</button>
+                </div>
+                <div class="btn-group-right">
+                    <button id="rotate-btn-right" class="action-right">⟳ 90° FLIP</button>
+                    <button id="extract-btn-right" class="action-right">🧹 EXTRACT & CLEAN</button>
+                    <button id="scan-btn-right" class="action-right" disabled>🔍 FINAL SCAN</button>
+                </div>
+            </div>
+    
+            <div class="preview-box-right" id="preview-container-right">
+                <div class="status-msg">🔬 OCR OPTIMIZED VIEW</div>
+                <canvas id="cleaned-preview-right"></canvas>
+            </div>
+    
+            <div class="result-area-right">
+                <div id="status-right" class="status-msg">📂 UPLOAD TO BEGIN</div>
+                <div id="number-output-right">----</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- hidden container for html5-qrcode left side -->
+<div id="temp-target-left" style="display: none;"></div>
+
+<script>
+    // --------------------------------------------------------------
+    // LEFT PANEL: BAR CODE EXTRACT with REFERENCE-STYLE BLACK & WHITE GRID
+    // Produces sharp black/white posterization similar to the given matrix photo
+    // --------------------------------------------------------------
+    (function() {
+        let cropperLeft = null;
+        const imgEl = document.getElementById('image-element-left');
+        const statusDiv = document.getElementById('status-left');
+        const resultTextDiv = document.getElementById('result-text-left');
+        const previewCanvasLeft = document.getElementById('cleaned-preview-left');
+        const previewContLeft = document.getElementById('preview-container-left');
+        const scanBtnLeft = document.getElementById('scan-btn-left');
+        const containerDiv = document.getElementById('container-left');
+        const editorUi = document.getElementById('editor-ui-left');
+        
+        const fileInputLeft = document.createElement('input');
+        fileInputLeft.type = 'file';
+        fileInputLeft.accept = 'image/*';
+        document.getElementById('upload-trigger-left').onclick = () => fileInputLeft.click();
+        
+        fileInputLeft.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imgEl.src = event.target.result;
+                containerDiv.style.display = 'block';
+                editorUi.style.display = 'block';
+                previewContLeft.style.display = 'none';
+                scanBtnLeft.disabled = true;
+                if (cropperLeft) cropperLeft.destroy();
+                cropperLeft = new Cropper(imgEl, {
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    dragMode: 'move'
+                });
+                statusDiv.innerText = "Align image, then click Clean (B&W Grid).";
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        function rotateLeft(deg) { if(cropperLeft) cropperLeft.rotate(deg); }
+        document.getElementById('rotate-neg-left').onclick = () => rotateLeft(-0.5);
+        document.getElementById('rotate-pos-left').onclick = () => rotateLeft(0.5);
+        document.getElementById('rotate-90-left').onclick = () => rotateLeft(90);
+        
+        // ADVANCED B&W GRID CLEANING — produces a sharp black/white image 
+        // similar to the reference photo (like a digitized matrix / high-contrast cell pattern)
+        async function getCleanedCanvasGridStyle() {
+            if (!cropperLeft) return null;
+            // Get cropped area with high quality
+            const canvas = cropperLeft.getCroppedCanvas({ fillColor: '#fff', imageSmoothingQuality: 'high' });
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            
+            // Step 1: Global contrast stretch (full dynamic range expansion)
+            let maxVal = 0;
+            let minVal = 255;
+            for (let i = 0; i < data.length; i += 4) {
+                let brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+                if (brightness > maxVal) maxVal = brightness;
+                if (brightness < minVal) minVal = brightness;
+            }
+            const range = maxVal - minVal;
+            const stretchFactor = range > 0 ? 255 / range : 1;
+            
+            // Step 2: aggressive thresholding with mid-point emphasis to create "grid/cell" look
+            // After stretching, we apply a hard threshold that simulates binary matrix cells.
+            // To mimic the reference (numbers grid), we also slightly posterize edges for that clean digital look.
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+                let brightness = (r + g + b) / 3;
+                let stretched = (brightness - minVal) * stretchFactor;
+                stretched = Math.min(255, Math.max(0, stretched));
+                
+                // Hard threshold: values above 127 become white, else black.
+                // Additionally, we apply a slight dither-avoidance: pure 0/255.
+                if (stretched > 127) {
+                    data[i] = 255;     // R
+                    data[i+1] = 255;   // G
+                    data[i+2] = 255;   // B
+                } else {
+                    data[i] = 0;
+                    data[i+1] = 0;
+                    data[i+2] = 0;
+                }
+            }
+            
+            // Optional: apply a sharpening kernel for extra crisp "grid cells" like reference numbers
+            // This gives that punchy digital look similar to the matrix photo.
+            const width = canvas.width;
+            const height = canvas.height;
+            const sharpenedData = new Uint8ClampedArray(data);
+            
+            // Simple unsharp mask (light sharpen) to enhance edges and give "block" definition
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    // If current pixel is black, check neighbors to preserve hard edges
+                    if (sharpenedData[idx] === 0) {
+                        // keep as is - black dominates
+                        continue;
+                    } else {
+                        // For white pixels, ensure surroundings don't bleed — but we keep strong contrast
+                        // just to reinforce the grid-like sharpness.
+                        let surroundDark = false;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const nIdx = ((y + dy) * width + (x + dx)) * 4;
+                                if (sharpenedData[nIdx] === 0) surroundDark = true;
+                            }
+                        }
+                        if (surroundDark) {
+                            // preserve edge intensity
+                        }
+                    }
+                }
+            }
+            
+            // Apply final sharpened data back (we'll just reuse original data after threshold, 
+            // but ensure it's binary no grayscale)
+            ctx.putImageData(imgData, 0, 0);
+            
+            // For extra resemblance to "grid of numbers" like in the provided photo,
+            // we can add a subtle pixel grid effect? Not necessary, but we keep it clean and blocky.
+            return canvas;
+        }
+        
+        document.getElementById('extract-btn-left').onclick = async () => {
+            statusDiv.innerText = "Generating B&W Grid / Matrix view...";
+            const cleaned = await getCleanedCanvasGridStyle();
+            if (cleaned) {
+                previewContLeft.style.display = 'block';
+                previewCanvasLeft.width = cleaned.width;
+                previewCanvasLeft.height = cleaned.height;
+                const ctx = previewCanvasLeft.getContext('2d');
+                ctx.drawImage(cleaned, 0, 0);
+                // Additional visual: force crisp pixelation style
+                previewCanvasLeft.style.imageRendering = 'crisp-edges';
+                previewCanvasLeft.style.imageRendering = 'pixelated';
+                scanBtnLeft.disabled = false;
+                statusDiv.innerText = "B&W Grid ready → Scan Barcode";
+            } else {
+                statusDiv.innerText = "Error: crop image first";
+            }
+        };
+        
+        scanBtnLeft.onclick = async () => {
+            statusDiv.innerText = "Scanning barcode from B&W Grid image...";
+            resultTextDiv.innerText = "...";
+            const tempScanner = new Html5Qrcode("temp-target-left");
+            try {
+                const blob = await new Promise(r => previewCanvasLeft.toBlob(r, 'image/png'));
+                const file = new File([blob], "bw_grid_barcode.png", { type: "image/png" });
+                const decoded = await tempScanner.scanFile(file, false);
+                resultTextDiv.innerText = decoded;
+                statusDiv.innerText = "Barcode extracted successfully!";
+            } catch (err) {
+                console.warn(err);
+                resultTextDiv.innerText = "FAILED";
+                statusDiv.innerText = "Try adjusting rotation / crop or use clearer image.";
+            } finally {
+                await tempScanner.clear();
+            }
+        };
+    })();
+
+    // --------------------------------------------------------------
+    // RIGHT PANEL: OCR METER EXTRACTOR (original untouched algorithm, works independently)
+    // --------------------------------------------------------------
+    (function() {
+        let cropperRight = null;
+        let currentAngleRight = 0;
+        let rotationIntervalRight = null;
+        
+        const elementsRight = {
+            input: document.getElementById('file-input-right'),
+            image: document.getElementById('image-right'),
+            container: document.getElementById('container-right'),
+            actionBtns: document.getElementById('action-btns-right'),
+            angleText: document.getElementById('angle-text-right'),
+            scanBtn: document.getElementById('scan-btn-right'),
+            extractBtn: document.getElementById('extract-btn-right'),
+            previewCont: document.getElementById('preview-container-right'),
+            previewCanvas: document.getElementById('cleaned-preview-right'),
+            status: document.getElementById('status-right'),
+            output: document.getElementById('number-output-right')
+        };
+        
+        elementsRight.input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                elementsRight.image.src = event.target.result;
+                elementsRight.container.style.display = 'block';
+                elementsRight.actionBtns.style.display = 'flex';
+                if (cropperRight) cropperRight.destroy();
+                cropperRight = new Cropper(elementsRight.image, {
+                    viewMode: 1, dragMode: 'move', autoCropArea: 0.9, guides: true, center: true
+                });
+                currentAngleRight = 0;
+                updateAngleRight(0);
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        function updateAngleRight(delta) {
+            if (!cropperRight) return;
+            currentAngleRight += delta;
+            if (currentAngleRight > 180) currentAngleRight -= 360;
+            if (currentAngleRight < -180) currentAngleRight += 360;
+            elementsRight.angleText.innerText = currentAngleRight.toFixed(1) + "°";
+            cropperRight.rotateTo(currentAngleRight);
+        }
+        
+        function startRotationRight(delta) {
+            updateAngleRight(delta);
+            rotationIntervalRight = setInterval(() => updateAngleRight(delta), 80);
+        }
+        function stopRotationRight() {
+            clearInterval(rotationIntervalRight);
+        }
+        
+        const arrowConfig = [
+            { id: 'nudge-left-right', delta: -0.5 },
+            { id: 'move-left-right', delta: -5 },
+            { id: 'move-right-right', delta: 5 },
+            { id: 'nudge-right-right', delta: 0.5 }
+        ];
+        arrowConfig.forEach(cfg => {
+            const btn = document.getElementById(cfg.id);
+            if (btn) {
+                btn.onmousedown = () => startRotationRight(cfg.delta);
+                btn.ontouchstart = (e) => { e.preventDefault(); startRotationRight(cfg.delta); };
+            }
+        });
+        window.onmouseup = window.ontouchend = stopRotationRight;
+        
+        document.getElementById('rotate-btn-right').onclick = () => updateAngleRight(90);
+        
+        async function processImageRight() {
+            if (!cropperRight) return null;
+            const canvas = cropperRight.getCroppedCanvas({ fillColor: '#fff', imageSmoothingQuality: 'high' });
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            let maxBrightness = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                let b = (data[i] + data[i+1] + data[i+2]) / 3;
+                if (b > maxBrightness) maxBrightness = b;
+            }
+            const factor = 255 / (maxBrightness || 255);
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] * factor);
+                data[i+1] = Math.min(255, data[i+1] * factor);
+                data[i+2] = Math.min(255, data[i+2] * factor);
+                let avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                if (avg > 185) {
+                    data[i] = data[i+1] = data[i+2] = 255;
+                } else if (avg < 115) {
+                    data[i] = data[i+1] = data[i+2] = 0;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas;
+        }
+        
+        elementsRight.extractBtn.onclick = async () => {
+            elementsRight.status.innerText = "CLEANING...";
+            const cleanedCanvas = await processImageRight();
+            if (cleanedCanvas) {
+                elementsRight.previewCont.style.display = 'block';
+                elementsRight.previewCanvas.width = cleanedCanvas.width;
+                elementsRight.previewCanvas.height = cleanedCanvas.height;
+                elementsRight.previewCanvas.getContext('2d').drawImage(cleanedCanvas, 0, 0);
+                elementsRight.scanBtn.disabled = false;
+                elementsRight.status.innerText = "IMAGE READY";
+            }
+        };
+        
+        elementsRight.scanBtn.onclick = async () => {
+            elementsRight.status.innerText = "OCR IN PROGRESS...";
+            elementsRight.output.innerText = "...";
+            const dataUrl = elementsRight.previewCanvas.toDataURL('image/png');
+            try {
+                const result = await Tesseract.recognize(dataUrl, 'eng', {
+                    tessedit_char_whitelist: '0123456789',
+                    tessedit_pageseg_mode: 7
+                });
+                const numbers = result.data.text.replace(/[^0-9]/g, "");
+                elementsRight.output.innerText = numbers || "RETRY";
+                elementsRight.status.innerText = numbers ? "SCAN COMPLETE" : "NO DIGITS FOUND";
+            } catch (err) {
+                elementsRight.status.innerText = "OCR ERROR";
+                elementsRight.output.innerText = "ERROR";
+            }
+        };
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Column & Row Manager - Editable Table</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2218e4;
+            --primary-hover: #4338ca;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #4338ca;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .master-layout {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* SIDEBAR STYLE */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 8px 0 0;
+        }
+
+        .feature-category {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            margin-top: 10px;
+        }
+
+        .feature-item {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* MAIN CONTENT STYLE */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .compact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .header-left p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .upload-area-compact {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* BUTTONS */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .master-btn-small {
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+        }
+
+        .master-btn-small:hover {
+            background: var(--primary-hover);
+        }
+
+        .upload-btn-compact {
+            background: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .small-btn {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* TABLE GRID */
+        .grid-container {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .grid-toolbar {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+        }
+
+        .grid-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .grid-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #f1f5f9;
+            z-index: 10;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            border-right: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            min-width: 120px;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .checkbox-col {
+            min-width: 40px;
+            text-align: center;
+            width: 40px;
+        }
+
+        /* INPUTS IN TABLE */
+        .editable-cell-input,
+        .editable-header-input {
+            width: 100%;
+            border: 2px solid var(--primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        .compact-select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        /* LOGS */
+        .log-section {
+            height: 120px;
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 12px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-warning {
+            color: #fbbf24;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .info-tip {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .back-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #2563eb;
+            /* Primary Blue */
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .back-link:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px -2px rgba(37, 99, 235, 0.3);
+        }
+
+        .back-link:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-layout">
+        <div class="sidebar">
+            <!-- Navigation Back (NOW COLOURED) -->
+            <nav class="back-nav">
+                <a href="Control_Excel.html" class="back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    Return to Home
+                </a>
+            </nav>
+            <div class="sidebar-header">
+                <h2>📐 Manager</h2>
+                <p>Manage structure and rows</p>
+            </div>
+
+            <div class="feature-category">📐 COLUMN MANAGER</div>
+            <div class="feature-item">
+                <div class="feature-title">Manage Columns</div>
+                <select id="manageColumnSelect" class="compact-select" disabled>
+                    <option value="">Upload file first</option>
+                </select>
+                <button id="deleteColumnBtn" class="small-btn btn-danger" disabled>🗑️ Delete Column</button>
+                <button id="addColumnBtn" class="small-btn btn-success" disabled>➕ Add Column</button>
+                <div class="info-tip">💡 Double-click header to rename</div>
+            </div>
+
+            <div class="feature-category">📋 ROW MANAGER</div>
+            <div class="feature-item">
+                <div class="feature-title">Manage Rows</div>
+                <button id="addRowBtn" class="small-btn btn-success" disabled>➕ Add Row</button>
+                <button id="deleteSelectedRowsBtn" class="small-btn btn-danger" disabled>🗑️ Delete Selected</button>
+                <div class="info-tip">💡 Select checkboxes to delete</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="compact-header">
+                <div class="header-left">
+                    <h1>📊 Table Editor</h1>
+                    <p>Live spreadsheet interface</p>
+                </div>
+                <div class="upload-area-compact">
+                    <label for="excelFile" class="upload-btn-compact">📁 Upload File</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="fileNameCompact" class="file-name-compact"
+                        style="font-size:0.8rem; color:var(--text-muted)">No file</span>
+                    <button id="exportBtn" class="master-btn-small" disabled>💾 Export XLSX</button>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-toolbar">
+                    <div class="grid-title">✏️ Data Grid</div>
+                    <div class="grid-actions">
+                        <span class="grid-stats" id="gridStats"
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-right: 10px;">0 × 0</span>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="editableTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div class="grid-toolbar" style="border-top: 1px solid var(--border); border-bottom: none;">
+                    <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="selectAllCheckbox"> Select All
+                    </label>
+                </div>
+            </div>
+
+            <div class="log-section" id="logSection"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentGridData = [];
+        let currentHeaders = [];
+        let renderScheduled = false;
+
+        const fileInput = document.getElementById("excelFile");
+        const fileNameSpan = document.getElementById("fileNameCompact");
+        const manageColumnSelect = document.getElementById("manageColumnSelect");
+        const deleteColumnBtn = document.getElementById("deleteColumnBtn");
+        const addColumnBtn = document.getElementById("addColumnBtn");
+        const addRowBtn = document.getElementById("addRowBtn");
+        const deleteSelectedRowsBtn = document.getElementById("deleteSelectedRowsBtn");
+        const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+        const exportBtn = document.getElementById("exportBtn");
+        const tableHeader = document.getElementById("tableHeader");
+        const tableBody = document.getElementById("tableBody");
+        const gridStatsSpan = document.getElementById("gridStats");
+        const logSection = document.getElementById("logSection");
+
+        function addLog(msg, type = "info") {
+            const entry = document.createElement("div");
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `> ${msg}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+        }
+
+        function cleanTextValue(text) {
+            if (text === null || text === undefined) return "";
+            let cleaned = String(text).trim();
+            return (cleaned.toLowerCase() === "nan") ? "" : cleaned;
+        }
+
+        function scheduleRender() {
+            if (renderScheduled) return;
+            renderScheduled = true;
+            requestAnimationFrame(() => {
+                renderTable();
+                renderScheduled = false;
+            });
+        }
+
+        function renderTable() {
+            if (!currentHeaders.length) {
+                tableHeader.innerHTML = "";
+                tableBody.innerHTML = "";
+                updateControls(false);
+                return;
+            }
+            updateControls(true);
+
+            // Header
+            let hHtml = `<tr><th class="checkbox-col">✓</th>`;
+            currentHeaders.forEach((h, i) => {
+                hHtml += `<th data-col="${i}" title="Double click to rename">${h}</th>`;
+            });
+            hHtml += `</tr>`;
+            tableHeader.innerHTML = hHtml;
+
+            // Header events
+            tableHeader.querySelectorAll('th[data-col]').forEach(th => {
+                th.addEventListener('dblclick', () => editHeader(parseInt(th.dataset.col)));
+            });
+
+            // Body
+            tableBody.innerHTML = "";
+            const fragment = document.createDocumentFragment();
+            currentGridData.forEach((row, rIdx) => {
+                const tr = document.createElement("tr");
+                let bHtml = `<td class="checkbox-col"><input type="checkbox" class="row-checkbox" data-row="${rIdx}"></td>`;
+                currentHeaders.forEach((h, cIdx) => {
+                    const val = row[h] || "";
+                    bHtml += `<td data-row="${rIdx}" data-col="${cIdx}">${val}</td>`;
+                });
+                tr.innerHTML = bHtml;
+                // Cell events
+                tr.querySelectorAll('td[data-row]').forEach(td => {
+                    if (!td.classList.contains('checkbox-col')) {
+                        td.addEventListener('dblclick', () => editCell(rIdx, parseInt(td.dataset.col)));
+                    }
+                });
+                fragment.appendChild(tr);
+            });
+            tableBody.appendChild(fragment);
+            gridStatsSpan.innerText = `${currentGridData.length} rows × ${currentHeaders.length} cols`;
+            updateColumnDropdown();
+        }
+
+        function editCell(rIdx, cIdx) {
+            const td = tableBody.rows[rIdx].cells[cIdx + 1];
+            const oldVal = currentGridData[rIdx][currentHeaders[cIdx]] || "";
+            const input = document.createElement("input");
+            input.className = "editable-cell-input";
+            input.value = oldVal;
+            td.innerHTML = "";
+            td.appendChild(input);
+            input.focus();
+
+            const save = () => {
+                const newVal = cleanTextValue(input.value);
+                currentGridData[rIdx][currentHeaders[cIdx]] = newVal;
+                scheduleRender();
+            };
+            input.onblur = save;
+            input.onkeydown = (e) => { if (e.key === "Enter") save(); };
+        }
+
+        function editHeader(cIdx) {
+            const th = tableHeader.rows[0].cells[cIdx + 1];
+            const oldName = currentHeaders[cIdx];
+            const input = document.createElement("input");
+            input.className = "editable-header-input";
+            input.value = oldName;
+            th.innerHTML = "";
+            th.appendChild(input);
+            input.focus();
+
+            const save = () => {
+                let newName = cleanTextValue(input.value);
+                if (!newName || currentHeaders.includes(newName)) newName = oldName;
+                if (newName !== oldName) {
+                    // Update data keys
+                    currentGridData.forEach(row => {
+                        row[newName] = row[oldName];
+                        delete row[oldName];
+                    });
+                    currentHeaders[cIdx] = newName;
+                    addLog(`Renamed column to "${newName}"`, "success");
+                }
+                scheduleRender();
+            };
+            input.onblur = save;
+            input.onkeydown = (e) => { if (e.key === "Enter") save(); };
+        }
+
+        function updateControls(enabled) {
+            [manageColumnSelect, deleteColumnBtn, addColumnBtn, addRowBtn, deleteSelectedRowsBtn, exportBtn].forEach(btn => {
+                btn.disabled = !enabled;
+            });
+        }
+
+        function updateColumnDropdown() {
+            const val = manageColumnSelect.value;
+            manageColumnSelect.innerHTML = '<option value="">-- Select Column --</option>' +
+                currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+            manageColumnSelect.value = val;
+        }
+
+        // Feature Actions
+        addColumnBtn.onclick = () => {
+            const name = `Col_${currentHeaders.length + 1}`;
+            currentHeaders.push(name);
+            currentGridData.forEach(r => r[name] = "");
+            addLog(`Added column "${name}"`, "success");
+            scheduleRender();
+        };
+
+        deleteColumnBtn.onclick = () => {
+            const col = manageColumnSelect.value;
+            if (!col) return addLog("Select a column first", "warning");
+            currentHeaders = currentHeaders.filter(h => h !== col);
+            currentGridData.forEach(r => delete r[col]);
+            addLog(`Deleted column "${col}"`, "danger");
+            scheduleRender();
+        };
+
+        addRowBtn.onclick = () => {
+            const newRow = {};
+            currentHeaders.forEach(h => newRow[h] = "");
+            currentGridData.push(newRow);
+            addLog("Added new row", "success");
+            scheduleRender();
+        };
+
+        deleteSelectedRowsBtn.onclick = () => {
+            const checked = Array.from(document.querySelectorAll(".row-checkbox:checked")).map(cb => parseInt(cb.dataset.row));
+            if (!checked.length) return addLog("No rows selected", "warning");
+            currentGridData = currentGridData.filter((_, i) => !checked.includes(i));
+            addLog(`Deleted ${checked.length} rows`, "danger");
+            selectAllCheckbox.checked = false;
+            scheduleRender();
+        };
+
+        selectAllCheckbox.onchange = (e) => {
+            document.querySelectorAll(".row-checkbox").forEach(cb => cb.checked = e.target.checked);
+        };
+
+        exportBtn.onclick = () => {
+            const ws = XLSX.utils.json_to_sheet(currentGridData, { header: currentHeaders });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, "table_export.xlsx");
+            addLog("Table exported successfully", "success");
+        };
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameSpan.textContent = file.name;
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                if (json.length > 0) {
+                    currentHeaders = Object.keys(json[0]);
+                    currentGridData = json;
+                    addLog(`Loaded ${file.name}`, "success");
+                    scheduleRender();
+                }
+            } catch (err) {
+                addLog("Error loading file", "error");
+            }
+        };
+
+        addLog("System initialized. Ready for upload.", "info");
+    </script>
+</body>
+
+</html>
