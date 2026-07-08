@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>حساب متوسط معامل القدرة - العدادات المتعددة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Cairo", sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #004a99;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+            border-right: 4px solid #004a99;
+            padding-right: 15px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            transition: 0.3s;
+            width: 140px;
+            font-family: "Cairo", sans-serif;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #0099ff;
+            box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.1);
+        }
+
+        .btn-save {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-save:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            height: 40px;
+        }
+
+        .btn-reset:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .meter-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 700px;
+        }
+
+        .meter-table th {
+            background: #004a99;
+            color: white;
+            padding: 10px 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .meter-table td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 8px;
+            text-align: center;
+        }
+
+        .meter-table td input {
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 6px 8px;
+            width: 100%;
+            font-size: 0.8rem;
+            background: #f8fafc;
+            font-family: monospace;
+            min-width: 700px;
+            min-width: 70px;
+        }
+
+        .meter-table td input:focus {
+            outline: none;
+            border-color: #0099ff;
+            box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.1);
+        }
+
+        .meter-table td input[readonly] {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #004a99;
+        }
+
+        .meter-table .total-row {
+            background: #eef6ff;
+            font-weight: 700;
+        }
+
+        .meter-table .total-row td {
+            border-top: 3px solid #004a99;
+        }
+
+        .meter-table .pf-row {
+            background: #f0fdf4;
+            font-weight: 700;
+        }
+
+        .meter-table .pf-row td {
+            border-top: 2px solid #27ae60;
+        }
+
+        .meter-table .penalty-row {
+            background: #fff5f5;
+            font-weight: 700;
+        }
+
+        .meter-table .penalty-row td {
+            border-top: 2px solid #e74c3c;
+        }
+
+        .result-highlight {
+            font-size: 1.2rem !important;
+            color: #27ae60 !important;
+        }
+
+        .penalty-highlight {
+            font-size: 1.2rem !important;
+            color: #e74c3c !important;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-item .stat-label {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #004a99;
+            margin-top: 4px;
+        }
+
+        .stat-item .stat-value.green {
+            color: #27ae60;
+        }
+
+        .stat-item .stat-value.red {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group input,
+            .control-group select {
+                width: 100%;
+            }
+
+            .meter-table {
+                font-size: 0.7rem;
+                min-width: 600px;
+            }
+
+            .meter-table th,
+            .meter-table td {
+                padding: 4px 6px;
+            }
+
+            .meter-table td input {
+                font-size: 0.7rem;
+                padding: 3px;
+                min-width: 50px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📊 حساب متوسط معامل القدرة</h1>
+        <div class="subtitle">للعدادات المتعددة - مع حساب الغرامة</div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>عدد العدادات</label>
+                <select id="meterCount" onchange="updateMeterTable()">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>تعرفة الكهرباء (EGP/kWh)</label>
+                <input type="number" step="0.01" id="tariffInput" value="2.74" oninput="calculateMultiMeterPF()" />
+            </div>
+
+            <div class="control-group">
+                <button class="btn-save" onclick="saveMeterData()">💾 حفظ البيانات</button>
+            </div>
+
+            <div class="control-group">
+                <button class="btn-reset" onclick="resetAll()">🔄 إعادة تعيين</button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="meter-table" id="meterTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم العداد</th>
+                        <th>KWH (قديم)</th>
+                        <th>KVARH (قديم)</th>
+                        <th>KWH (جديد)</th>
+                        <th>KVARH (جديد)</th>
+                        <th>KWH-DIFF</th>
+                        <th>KVARH-DIFF</th>
+                    </tr>
+                </thead>
+                <tbody id="meterTableBody"></tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="6"><strong>📊 المجموع الكلي</strong></td>
+                        <td><input type="text" id="totalKwhDiff" readonly style="font-weight:700;color:#004a99;font-size:1rem;" /></td>
+                        <td><input type="text" id="totalKvarhDiff" readonly style="font-weight:700;color:#004a99;font-size:1rem;" /></td>
+                    </tr>
+                    <tr class="pf-row">
+                        <td colspan="7"><strong>⚡ متوسط معامل القدرة</strong></td>
+                        <td><input type="text" id="avgPfResult" readonly class="result-highlight" /></td>
+                    </tr>
+                    <tr class="penalty-row">
+                        <td colspan="7"><strong style="color:#e74c3c;">💰 غرامة معامل القدرة</strong></td>
+                        <td><input type="text" id="pfPenaltyResult" readonly class="penalty-highlight" /></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="summary-stats" id="summaryStats">
+            <div class="stat-item">
+                <span class="stat-label">إجمالي KWH المستهلك</span>
+                <span class="stat-value" id="statTotalKwh">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">إجمالي KVARH</span>
+                <span class="stat-value" id="statTotalKvarh">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">متوسط معامل القدرة</span>
+                <span class="stat-value green" id="statAvgPf">0.0000</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">الغرامة</span>
+                <span class="stat-value red" id="statPenalty">0.00 EGP</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== DATA STORE ==========
+        let meterData = {};
+
+        function getDefaultMeterData(count) {
+            const data = {};
+            for (let i = 1; i <= count; i++) {
+                data[i] = { meterNo: '', kwhOld: '', kvarhOld: '', kwhNew: '', kvarhNew: '' };
+            }
+            return data;
+        }
+
+        // ========== RENDER TABLE ==========
+        function updateMeterTable() {
+            const count = parseInt(document.getElementById('meterCount').value);
+            const existingKeys = Object.keys(meterData).map(Number);
+            const maxKey = Math.max(...existingKeys, 0);
+
+            if (count > maxKey) {
+                for (let i = maxKey + 1; i <= count; i++) {
+                    meterData[i] = { meterNo: '', kwhOld: '', kvarhOld: '', kwhNew: '', kvarhNew: '' };
+                }
+            }
+
+            renderTable(count);
+        }
+
+        function renderTable(count) {
+            const tbody = document.getElementById('meterTableBody');
+            tbody.innerHTML = '';
+
+            const fragment = document.createDocumentFragment();
+            for (let i = 1; i <= count; i++) {
+                const data = meterData[i] || { meterNo: '', kwhOld: '', kvarhOld: '', kwhNew: '', kvarhNew: '' };
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${i}</td>
+                    <td><input type="text" id="meterNo_${i}" value="${data.meterNo ?? ''}" /></td>
+                    <td><input type="number" id="kwhOld_${i}" value="${data.kwhOld ?? ''}" oninput="calculateMultiMeterPF()" /></td>
+                    <td><input type="number" id="kvarhOld_${i}" value="${data.kvarhOld ?? ''}" oninput="calculateMultiMeterPF()" /></td>
+                    <td><input type="number" id="kwhNew_${i}" value="${data.kwhNew ?? ''}" oninput="calculateMultiMeterPF()" /></td>
+                    <td><input type="number" id="kvarhNew_${i}" value="${data.kvarhNew ?? ''}" oninput="calculateMultiMeterPF()" /></td>
+                    <td><input type="text" id="kwhDiff_${i}" readonly style="font-weight:600;color:#004a99;" /></td>
+                    <td><input type="text" id="kvarhDiff_${i}" readonly style="font-weight:600;color:#004a99;" /></td>
+                `;
+                fragment.appendChild(tr);
+            }
+            tbody.appendChild(fragment);
+            calculateMultiMeterPF();
+        }
+
+        // ========== CALCULATE ==========
+        function calculateMultiMeterPF() {
+            const count = parseInt(document.getElementById('meterCount').value);
+            let totalKwhDiff = 0;
+            let totalKvarhDiff = 0;
+
+            for (let i = 1; i <= count; i++) {
+                const kwhOld = parseFloat(document.getElementById(`kwhOld_${i}`)?.value) || 0;
+                const kvarhOld = parseFloat(document.getElementById(`kvarhOld_${i}`)?.value) || 0;
+                const kwhNew = parseFloat(document.getElementById(`kwhNew_${i}`)?.value) || 0;
+                const kvarhNew = parseFloat(document.getElementById(`kvarhNew_${i}`)?.value) || 0;
+
+                const kwhDiff = kwhNew - kwhOld;
+                const kvarhDiff = kvarhNew - kvarhOld;
+
+                const kwhDiffEl = document.getElementById(`kwhDiff_${i}`);
+                const kvarhDiffEl = document.getElementById(`kvarhDiff_${i}`);
+
+                if (kwhDiffEl) kwhDiffEl.value = kwhDiff.toFixed(0);
+                if (kvarhDiffEl) kvarhDiffEl.value = kvarhDiff.toFixed(0);
+
+                totalKwhDiff += kwhDiff;
+                totalKvarhDiff += kvarhDiff;
+            }
+
+            document.getElementById('totalKwhDiff').value = totalKwhDiff.toFixed(0);
+            document.getElementById('totalKvarhDiff').value = totalKvarhDiff.toFixed(0);
+
+            // Calculate Average Power Factor
+            let avgPf = 0;
+            if (totalKwhDiff > 0) {
+                const ratio = Math.abs(totalKvarhDiff) / totalKwhDiff;
+                avgPf = Math.cos(Math.atan(ratio));
+            }
+
+            document.getElementById('avgPfResult').value = avgPf.toFixed(4);
+
+            // Calculate Penalty
+            const tariff = parseFloat(document.getElementById('tariffInput').value) || 0;
+            let penalty = 0;
+
+            if (avgPf > 0 && avgPf < 0.92 && totalKwhDiff > 0) {
+                const factor = (avgPf < 0.72) ? ((0.72 - avgPf) * 1 + 0.1) : ((0.92 - avgPf) * 0.5);
+                penalty = factor * totalKwhDiff * tariff;
+            }
+
+            document.getElementById('pfPenaltyResult').value = penalty.toFixed(2);
+
+            // Update Summary Stats
+            document.getElementById('statTotalKwh').textContent = totalKwhDiff.toFixed(0);
+            document.getElementById('statTotalKvarh').textContent = totalKvarhDiff.toFixed(0);
+            document.getElementById('statAvgPf').textContent = avgPf.toFixed(4);
+            document.getElementById('statPenalty').textContent = penalty.toFixed(2) + ' EGP';
+        }
+
+        // ========== SAVE ==========
+        function saveMeterData() {
+            const count = parseInt(document.getElementById('meterCount').value);
+
+            for (let i = 1; i <= count; i++) {
+                meterData[i] = {
+                    meterNo: document.getElementById(`meterNo_${i}`)?.value ?? '',
+                    kwhOld: document.getElementById(`kwhOld_${i}`)?.value ?? '',
+                    kvarhOld: document.getElementById(`kvarhOld_${i}`)?.value ?? '',
+                    kwhNew: document.getElementById(`kwhNew_${i}`)?.value ?? '',
+                    kvarhNew: document.getElementById(`kvarhNew_${i}`)?.value ?? ''
+                };
+            }
+
+            localStorage.setItem('meterData', JSON.stringify(meterData));
+
+            const saveBtn = document.querySelector('.btn-save');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '✅ تم الحفظ!';
+            saveBtn.disabled = true;
+
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }, 2000);
+        }
+
+        // ========== RESET ==========
+        function resetAll() {
+            if (confirm('هل أنت متأكد من رغبتك في مسح كافة البيانات؟')) {
+                localStorage.removeItem('meterData');
+                const count = parseInt(document.getElementById('meterCount').value);
+                meterData = getDefaultMeterData(count);
+                renderTable(count);
+            }
+        }
+
+        // ========== LOAD SAVED DATA ==========
+        function loadSavedData() {
+            const saved = localStorage.getItem('meterData');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    const keys = Object.keys(parsed);
+                    if (keys.length > 0) {
+                        meterData = parsed;
+                        const count = Math.max(...keys.map(Number));
+                        document.getElementById('meterCount').value = count;
+                        renderTable(count);
+                        return true;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse saved data');
+                }
+            }
+            return false;
+        }
+
+        // ========== ONLOAD ==========
+        window.onload = function () {
+            if (!loadSavedData()) {
+                meterData = getDefaultMeterData(5);
+                document.getElementById('meterCount').value = '5';
+                renderTable(5);
+            }
+        };
+    </script>
+</body>
+
+</html>
