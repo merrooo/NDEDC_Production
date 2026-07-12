@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل تقرير فحص عداد مسبق · PDF & Image OCR</title>
+    <!-- Firebase & libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js">
+    </script>
+    <!-- Toastify library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f0f4f8;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 20px 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            max-width: 100%;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.07);
+            padding: 35px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .header-date {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e3e9ef;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-date .title-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-date .title-section h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1a2b3c;
+            margin: 0;
+        }
+
+        .header-date .date-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: #1a2b3c;
+        }
+
+        .header-date .date-section input[type="text"] {
+            padding: 8px 14px;
+            border: 2px solid #1e7b4b;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: #d7ee05;
+            color: #1a2b3c;
+            font-weight: 600;
+            transition: 0.2s;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .header-date .date-section input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(30, 123, 75, 0.2);
+            border-color: #166534;
+        }
+
+        .header-date .date-section .date-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        h2 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: #1a2b3c;
+            border-right: 6px solid #1e7b4b;
+            padding-right: 12px;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .upload-zone {
+            background: #f6faf8;
+            border: 2px dashed #2b8c5e;
+            border-radius: 20px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone:hover {
+            background: #eef7f2;
+            border-color: #166534;
+        }
+
+        .upload-zone p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e6b3f;
+            margin-bottom: 4px;
+        }
+
+        .upload-zone small {
+            color: #4a5e6b;
+            font-size: 0.9rem;
+        }
+
+        #documentFile {
+            display: none;
+        }
+
+        .image-container {
+            position: relative;
+            border: 2px solid #d7dee4;
+            border-radius: 20px;
+            overflow: auto;
+            margin-top: 12px;
+            background: #fafcfe;
+            width: 100%;
+            cursor: crosshair;
+            max-height: 850px;
+            min-height: 600px;
+            height: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            direction: ltr !important;
+        }
+
+        .image-container * {
+            direction: ltr !important;
+        }
+
+        .image-container canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            background: #fcfdff;
+            width: 100% !important;
+            height: auto !important;
+            object-fit: contain;
+        }
+
+        .selection-box {
+            position: absolute;
+            border: 2px dashed #1e7b4b;
+            background: rgba(30, 123, 75, 0.15);
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+        }
+
+        .selection-box.active {
+            display: block;
+        }
+
+        .controls-bar {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: #1e7b4b;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30, 123, 75, 0.2);
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 100%;
+            text-align: center;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #166534;
+        }
+
+        .btn-primary:disabled {
+            background: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 12px;
+            border: 1px solid #e3e9ef;
+            border-radius: 16px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-size: 0.95rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e3e9ef;
+            vertical-align: middle;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            width: 25%;
+        }
+
+        .data-table td {
+            color: #0f172a;
+        }
+
+        .data-table input,
+        .data-table textarea,
+        .data-table select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #fcfdff;
+            transition: 0.2s;
+        }
+
+        .data-table input:focus,
+        .data-table textarea:focus,
+        .data-table select:focus {
+            border-color: #1e7b4b;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(30, 123, 75, 0.15);
+        }
+
+        .data-table textarea {
+            resize: vertical;
+            min-height: 44px;
+        }
+
+        .data-table select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 10px center;
+            padding-left: 30px;
+        }
+
+        .highlight-cell input,
+        .highlight-cell textarea,
+        .highlight-cell select {
+            background: #f0fdf4;
+            border-color: #1e7b4b;
+        }
+
+        .flex-cell {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .flex-cell .text-content {
+            flex: 1;
+        }
+
+        .action-btn {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: #0369a1;
+        }
+
+        .action-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .database-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px dashed #cbd5e1;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 18px;
+            border: 2px solid #cbd5e1;
+            border-radius: 14px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus {
+            border-color: #1e7b4b;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-controls .search-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 280px;
+            flex-wrap: wrap;
+        }
+
+        .search-controls .search-group label {
+            font-weight: 600;
+            color: #1a2b3c;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .search-controls .search-group input[type="date"] {
+            padding: 8px 12px;
+            border: 2px solid #d1d9e6;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #fcfdff;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .search-controls .search-group input[type="date"]:focus {
+            border-color: #1e7b4b;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(30, 123, 75, 0.15);
+        }
+
+        .search-controls .search-group .date-sep {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .search-controls .clear-btn {
+            background: #94a3b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .search-controls .clear-btn:hover {
+            background: #64748b;
+        }
+
+        .export-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .export-btn:hover {
+            background: #047857;
+        }
+
+        .db-scroll-area {
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid #e3e9ef;
+            border-radius: 16px;
+        }
+
+        .db-table th {
+            width: auto !important;
+        }
+
+        .db-table td {
+            vertical-align: middle;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-group .edit-btn,
+        .action-group .delete-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+            white-space: nowrap;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .edit-btn {
+            background: #d97706;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #b45309;
+        }
+
+        .delete-btn {
+            background: #b91c1c;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #7f1d1d;
+        }
+
+        .save-action-container {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .btn-save-db {
+            background: #1e7b4b;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(30, 123, 75, 0.25);
+            transition: background 0.2s;
+        }
+
+        .btn-save-db:hover {
+            background: #166534;
+        }
+
+        .toastify {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            border-radius: 12px !important;
+            padding: 12px 20px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 16px;
+            }
+
+            .image-container {
+                max-height: 500px;
+                min-height: 350px;
+            }
+
+            .action-group {
+                flex-wrap: wrap;
+            }
+
+            .search-controls {
+                flex-direction: column;
+            }
+
+            .search-controls .search-group {
+                min-width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .search-controls .search-group input[type="date"] {
+                min-width: 100px;
+            }
+
+            .header-date {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-date .date-section {
+                flex-wrap: wrap;
+            }
+
+            .header-date .date-section input[type="text"] {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+
+        <!-- Header with Registration Date -->
+        <div class="header-date">
+            <div class="title-section">
+                <h1>📄 تسجيل تقرير فحص عداد مسبق</h1>
+            </div>
+            <div class="date-section">
+                <span class="date-label">📅 تاريخ التسجيل:</span>
+                <input type="text" id="headerRegistrationDate" placeholder="مثال: 22/06/2026"
+                    style="background: #d7ee05;" />
+            </div>
+        </div>
+
+        <div class="upload-zone" onclick="document.getElementById('documentFile').click()">
+            <p>📎 اضغط لرفع المستند (PDF / JPG / PNG)</p>
+            <input type="file" id="documentFile" accept="application/pdf, image/jpeg, image/png"
+                onchange="handleFileSelection(event)" />
+        </div>
+
+        <div class="image-container" id="imageContainer">
+            <canvas id="imageCanvas"></canvas>
+            <div class="selection-box" id="selectionBox"></div>
+        </div>
+
+        <div class="controls-bar">
+            <button class="btn-primary" id="extractSelectionBtn" onclick="extractSelectedArea()" disabled>
+                استخراج البيانات
+            </button>
+        </div>
+
+        <h2>📋 2. بيانات العداد</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <tbody>
+                    <tr>
+                        <th>اسم المشترك</th>
+                        <td><input type="text" id="cell_subscriberName" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>نوع العداد</th>
+                        <td><input type="text" id="cell_meterType" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>كود المشترك</th>
+                        <td><input type="text" id="cell_subscriberCode" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>الشاسية</th>
+                        <td><input type="text" id="cell_chassisNumber" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>الشركة المصنعة</th>
+                        <td><input type="text" id="cell_manufacturer" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>نوع النشاط</th>
+                        <td><input type="text" id="cell_activityType" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>تاريخ التقرير</th>
+                        <td><input type="text" id="cell_reportDate" value="-" placeholder="مثال: 22/06/2026" /></td>
+                    </tr>
+                    <tr>
+                        <th>الهندسة</th>
+                        <td><input type="text" id="cell_engineeringCenter" value="-" /></td>
+                    </tr>
+                    <tr>
+                        <th>نتيجة الفحص الظاهرى</th>
+                        <td>
+                            <div class="flex-cell">
+                                <textarea id="cell_visualResult" rows="2">-</textarea>
+                                <button class="action-btn" id="btn_extractVisual"
+                                    onclick="extractDirectlyToField('visualResult')" disabled>🔍 استخراج</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>نتيجة الفحص</th>
+                        <td>
+                            <div class="flex-cell">
+                                <textarea id="cell_technicalResult" rows="2">-</textarea>
+                                <button class="action-btn" id="btn_extractTechnical"
+                                    onclick="extractDirectlyToField('technicalResult')" disabled>🔍 استخراج</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>القطاع</th>
+                        <td>
+                            <select id="cell_sector" style="background: #d7ee05;">
+                                <option value="-"></option>
+                                <option value="قطاع شمال الدقهلية">قطاع شمال الدقهلية</option>
+                                <option value="قطاع جنوب الدقهلية">قطاع جنوب الدقهلية</option>
+                                <option value="قطاع دمياط">قطاع دمياط</option>
+                                <option value="قطاع كفر الشيخ">قطاع كفر الشيخ</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="save-action-container">
+            <button class="btn-save-db" onclick="saveCurrentDataToFirebase()">💾 حفظ
+                البيانات</button>
+        </div>
+
+        <div class="database-section">
+            <h2>🔍 3. بيانات العدادات</h2>
+            <input type="text" class="search-box" id="globalSearchInput"
+                placeholder="🔍 اكتب أي كلمة للبحث الشامل الفوري..." oninput="triggerGlobalSearch()" />
+
+            <div class="search-controls">
+                <div class="search-group">
+                    <label>📅 تاريخ التقرير:</label>
+                    <input type="date" id="reportDateFrom" onchange="filterByDateRanges()" />
+                    <span class="date-sep">إلى</span>
+                    <input type="date" id="reportDateTo" onchange="filterByDateRanges()" />
+                </div>
+                <div class="search-group">
+                    <label>📅 تاريخ التسجيل:</label>
+                    <input type="date" id="registrationDateFrom" onchange="filterByDateRanges()" />
+                    <span class="date-sep">إلى</span>
+                    <input type="date" id="registrationDateTo" onchange="filterByDateRanges()" />
+                </div>
+                <button class="clear-btn" onclick="clearDateFilters()">🗑 مسح</button>
+                <button class="export-btn" onclick="exportToExcel()">📊 تصدير Excel</button>
+            </div>
+
+            <div class="db-scroll-area">
+                <table class="data-table db-table" id="dbDataTable">
+                    <thead>
+                        <tr>
+                            <th>اسم المشترك</th>
+                            <th>كود المشترك</th>
+                            <th>نوع العداد</th>
+                            <th>الشاسيه</th>
+                            <th>النشاط</th>
+                            <th>تاريخ التقرير</th>
+                            <th>تاريخ التسجيل</th>
+                            <th>الهندسة</th>
+                            <th>القطاع</th>
+                            <th>الفحص الظاهري</th>
+                            <th>نتيجة الفحص</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dbTableBody">
+                        <tr>
+                            <td colspan="12" style="text-align:center;color:#64748b;">⏳ جاري الاتصال بقاعدة البيانات...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528",
+            measurementId: "G-W3TZ1EKWWN"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        window.firebaseDB = db;
+        window.dbRecordsCache = [];
+        window.filteredRecords = [];
+
+        // Set today's date in DD/MM/YYYY format
+        const today = new Date();
+        const formattedDate = String(today.getDate()).padStart(2, '0') + '/' +
+            String(today.getMonth() + 1).padStart(2, '0') + '/' +
+            today.getFullYear();
+        document.getElementById('headerRegistrationDate').value = formattedDate;
+
+        const newAyatRef = ref(db, 'New_Ayat');
+        onValue(newAyatRef, (snapshot) => {
+            const data = snapshot.val();
+            const tableBody = document.getElementById('dbTableBody');
+            tableBody.innerHTML = '';
+            window.dbRecordsCache = [];
+            if (!data) {
+                tableBody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#64748b;">📭 لا توجد بيانات في New_Ayat</td></tr>`;
+                return;
+            }
+            const entries = Object.entries(data);
+            entries.forEach(([key, val]) => {
+                window.dbRecordsCache.push({ id: key, ...val });
+            });
+            window.filteredRecords = [...window.dbRecordsCache];
+            renderDatabaseTable(window.filteredRecords);
+        });
+
+        window.deleteRecord = function (recordId) {
+            if (!recordId) return;
+            const recordRef = ref(db, `New_Ayat/${recordId}`);
+            remove(recordRef).then(() => {
+                showToast('✅', 'تم حذف السجل بنجاح', 'success');
+            }).catch(err => {
+                showToast('❌', 'فشل الحذف: ' + err.message, 'error');
+            });
+        };
+
+        window.editRecord = function (recordId) {
+            if (!recordId) return;
+            const record = window.dbRecordsCache.find(r => r.id === recordId);
+            if (!record) {
+                showToast('⚠️', 'السجل غير موجود', 'warning');
+                return;
+            }
+            const fields = ['subscriberName', 'meterType', 'subscriberCode', 'chassisNumber',
+                'manufacturer', 'activityType', 'engineeringCenter', 'visualResult', 'technicalResult', 'reportDate'
+            ];
+            fields.forEach(f => {
+                const el = document.getElementById(`cell_${f}`);
+                if (el) {
+                    el.value = record[f] || '-';
+                    el.classList.add('highlight-cell');
+                }
+            });
+            // Set sector dropdown
+            const sectorEl = document.getElementById('cell_sector');
+            if (sectorEl && record.sector) {
+                sectorEl.value = record.sector;
+                sectorEl.classList.add('highlight-cell');
+            }
+            // Set registration date in header
+            if (record.registrationDate) {
+                document.getElementById('headerRegistrationDate').value = record.registrationDate;
+            } else {
+                document.getElementById('headerRegistrationDate').value = formattedDate;
+            }
+            window.editingRecordId = recordId;
+            showToast('✏️', 'تم تحميل البيانات للتعديل، عدل ثم احفظ', 'info');
+            document.querySelector('.table-responsive').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+    </script>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        const FIELD_CONFIG = {
+            subscriberName: {
+                labels: ['اسم المشترك:', 'اسم المشترك', 'المشترك'],
+                id: 'subscriberName'
+            },
+            meterType: {
+                labels: ['نوع العداد:', 'نوع العداد', 'العداد'],
+                id: 'meterType'
+            },
+            subscriberCode: {
+                labels: ['كود المشترك', 'كود المشترك:', 'كود'],
+                id: 'subscriberCode'
+            },
+            chassisNumber: {
+                labels: ['الشاسية', 'الشاسيه', 'رقم الشاسية', 'شاسية'],
+                id: 'chassisNumber'
+            },
+            manufacturer: {
+                labels: ['الشركة المصنعة', 'المصنعة', 'شركة'],
+                id: 'manufacturer'
+            },
+            activityType: {
+                labels: ['نوع النشاط:', 'نوع النشاط', 'النشـاط:', 'النشاط', 'النشاط:'],
+                id: 'activityType'
+            },
+            reportDate: {
+                labels: ['تاريخ التقرير', 'التقرير', 'تاريخ التقرير:'],
+                id: 'reportDate'
+            },
+            engineeringCenter: {
+                labels: ['الهندسة', 'المركز الهندسي', 'هندسة'],
+                id: 'engineeringCenter'
+            }
+        };
+
+        function showToast(icon, message, type = 'info') {
+            const colors = {
+                success: 'linear-gradient(to right, #1e7b4b, #34a853)',
+                error: 'linear-gradient(to right, #b91c1c, #dc2626)',
+                warning: 'linear-gradient(to right, #d97706, #f59e0b)',
+                info: 'linear-gradient(to right, #0284c7, #38bdf8)'
+            };
+            Toastify({
+                text: `${icon} ${message}`,
+                duration: 3500,
+                gravity: "top",
+                position: "left",
+                stopOnFocus: true,
+                style: {
+                    background: colors[type] || colors.info,
+                    borderRadius: '12px',
+                    padding: '14px 24px',
+                    fontSize: '1rem',
+                    fontFamily: "'Segoe UI', Roboto, system-ui, sans-serif",
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    direction: 'rtl'
+                },
+                onClick: function () { }
+            }).showToast();
+        }
+        window.showToast = showToast;
+
+        let isSelecting = false;
+        let selectionStart = null;
+        let selectionRect = null;
+        let hasRenderedDocument = false;
+        let editingRecordId = null;
+
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('imageContainer');
+        const selectionBox = document.getElementById('selectionBox');
+        const extractBtn = document.getElementById('extractSelectionBtn');
+        const visualExtractBtn = document.getElementById('btn_extractVisual');
+        const techExtractBtn = document.getElementById('btn_extractTechnical');
+
+        function cleanText(txt) {
+            return txt.replace(/[\u00A0\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function renderDatabaseTable(records) {
+            const tableBody = document.getElementById('dbTableBody');
+            tableBody.innerHTML = '';
+            if (!records || records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#ea580c;">🔍 لا توجد نتائج مطابقة</td></tr>`;
+                return;
+            }
+            records.forEach(record => {
+                const tr = document.createElement('tr');
+                const reportDate = record.reportDate && record.reportDate !== '-' ? record.reportDate : '-';
+                const regDate = record.registrationDate && record.registrationDate !== '-' ? record.registrationDate : '-';
+                const sector = record.sector && record.sector !== '-' ? record.sector : '-';
+                const engineering = record.engineeringCenter && record.engineeringCenter !== '-' ? record.engineeringCenter : '-';
+                tr.innerHTML = `
+                    <td>${record.subscriberName || '-'}</td>
+                    <td>${record.subscriberCode || '-'}</td>
+                    <td>${record.meterType || '-'}</td>
+                    <td>${record.chassisNumber || '-'}</td>
+                    <td>${record.activityType || '-'}</td>
+                    <td>${reportDate}</td>
+                    <td>${regDate}</td>
+                    <td>${engineering}</td>
+                    <td>${sector}</td>
+                    <td style="font-size:0.85rem;color:#475569;">${record.visualResult || '-'}</td>
+                    <td style="font-size:0.85rem;color:#475569;">${record.technicalResult || '-'}</td>
+                    <td>
+                        <div class="action-group">
+                            <button class="edit-btn" onclick="window.editRecord('${record.id}')">✏️ تعديل</button>
+                            <button class="delete-btn" onclick="window.deleteRecord('${record.id}')">🗑 حذف</button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function filterByDateRanges() {
+            const reportFrom = document.getElementById('reportDateFrom').value;
+            const reportTo = document.getElementById('reportDateTo').value;
+            const regFrom = document.getElementById('registrationDateFrom').value;
+            const regTo = document.getElementById('registrationDateTo').value;
+
+            let records = [...window.dbRecordsCache];
+
+            if (reportFrom || reportTo) {
+                records = records.filter(record => {
+                    const reportDate = record.reportDate || '';
+                    if (reportDate === '-' || reportDate === '') return false;
+                    const parts = reportDate.split('/');
+                    if (parts.length !== 3) return false;
+                    const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    if (reportFrom && isoDate < reportFrom) return false;
+                    if (reportTo && isoDate > reportTo) return false;
+                    return true;
+                });
+            }
+
+            if (regFrom || regTo) {
+                records = records.filter(record => {
+                    const regDate = record.registrationDate || '';
+                    if (regDate === '-' || regDate === '') return false;
+                    const parts = regDate.split('/');
+                    if (parts.length !== 3) return false;
+                    const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    if (regFrom && isoDate < regFrom) return false;
+                    if (regTo && isoDate > regTo) return false;
+                    return true;
+                });
+            }
+
+            const globalSearch = document.getElementById('globalSearchInput').value.toLowerCase().trim();
+            if (globalSearch) {
+                records = records.filter(item => {
+                    return (
+                        (item.subscriberName && item.subscriberName.toLowerCase().includes(globalSearch)) ||
+                        (item.subscriberCode && item.subscriberCode.toLowerCase().includes(globalSearch)) ||
+                        (item.meterType && item.meterType.toLowerCase().includes(globalSearch)) ||
+                        (item.chassisNumber && item.chassisNumber.toLowerCase().includes(globalSearch)) ||
+                        (item.activityType && item.activityType.toLowerCase().includes(globalSearch)) ||
+                        (item.reportDate && item.reportDate.toLowerCase().includes(globalSearch)) ||
+                        (item.registrationDate && item.registrationDate.toLowerCase().includes(globalSearch)) ||
+                        (item.engineeringCenter && item.engineeringCenter.toLowerCase().includes(globalSearch)) ||
+                        (item.sector && item.sector.toLowerCase().includes(globalSearch)) ||
+                        (item.visualResult && item.visualResult.toLowerCase().includes(globalSearch)) ||
+                        (item.technicalResult && item.technicalResult.toLowerCase().includes(globalSearch))
+                    );
+                });
+            }
+
+            window.filteredRecords = records;
+            renderDatabaseTable(records);
+        }
+        window.filterByDateRanges = filterByDateRanges;
+
+        function clearDateFilters() {
+            document.getElementById('reportDateFrom').value = '';
+            document.getElementById('reportDateTo').value = '';
+            document.getElementById('registrationDateFrom').value = '';
+            document.getElementById('registrationDateTo').value = '';
+            filterByDateRanges();
+        }
+        window.clearDateFilters = clearDateFilters;
+
+        function triggerGlobalSearch() {
+            const searchVal = document.getElementById('globalSearchInput').value.toLowerCase().trim();
+            if (!window.dbRecordsCache) return;
+
+            let records = [...window.dbRecordsCache];
+
+            const reportFrom = document.getElementById('reportDateFrom').value;
+            const reportTo = document.getElementById('reportDateTo').value;
+            const regFrom = document.getElementById('registrationDateFrom').value;
+            const regTo = document.getElementById('registrationDateTo').value;
+
+            if (reportFrom || reportTo) {
+                records = records.filter(record => {
+                    const reportDate = record.reportDate || '';
+                    if (reportDate === '-' || reportDate === '') return false;
+                    const parts = reportDate.split('/');
+                    if (parts.length !== 3) return false;
+                    const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    if (reportFrom && isoDate < reportFrom) return false;
+                    if (reportTo && isoDate > reportTo) return false;
+                    return true;
+                });
+            }
+
+            if (regFrom || regTo) {
+                records = records.filter(record => {
+                    const regDate = record.registrationDate || '';
+                    if (regDate === '-' || regDate === '') return false;
+                    const parts = regDate.split('/');
+                    if (parts.length !== 3) return false;
+                    const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    if (regFrom && isoDate < regFrom) return false;
+                    if (regTo && isoDate > regTo) return false;
+                    return true;
+                });
+            }
+
+            if (searchVal === "") {
+                window.filteredRecords = records;
+                renderDatabaseTable(records);
+                return;
+            }
+
+            const filtered = records.filter(item => {
+                return (
+                    (item.subscriberName && item.subscriberName.toLowerCase().includes(searchVal)) ||
+                    (item.subscriberCode && item.subscriberCode.toLowerCase().includes(searchVal)) ||
+                    (item.meterType && item.meterType.toLowerCase().includes(searchVal)) ||
+                    (item.chassisNumber && item.chassisNumber.toLowerCase().includes(searchVal)) ||
+                    (item.activityType && item.activityType.toLowerCase().includes(searchVal)) ||
+                    (item.reportDate && item.reportDate.toLowerCase().includes(searchVal)) ||
+                    (item.registrationDate && item.registrationDate.toLowerCase().includes(searchVal)) ||
+                    (item.engineeringCenter && item.engineeringCenter.toLowerCase().includes(searchVal)) ||
+                    (item.sector && item.sector.toLowerCase().includes(searchVal)) ||
+                    (item.visualResult && item.visualResult.toLowerCase().includes(searchVal)) ||
+                    (item.technicalResult && item.technicalResult.toLowerCase().includes(searchVal))
+                );
+            });
+            window.filteredRecords = filtered;
+            renderDatabaseTable(filtered);
+        }
+        window.triggerGlobalSearch = triggerGlobalSearch;
+
+        function exportToExcel() {
+            const records = window.filteredRecords || window.dbRecordsCache;
+            if (!records || records.length === 0) {
+                showToast('⚠️', 'لا توجد بيانات للتصدير', 'warning');
+                return;
+            }
+
+            const data = records.map(record => ({
+                'اسم المشترك': record.subscriberName || '-',
+                'كود المشترك': record.subscriberCode || '-',
+                'نوع العداد': record.meterType || '-',
+                'الشاسيه': record.chassisNumber || '-',
+                'النشاط': record.activityType || '-',
+                'تاريخ التقرير': record.reportDate || '-',
+                'تاريخ التسجيل': record.registrationDate || '-',
+                'الهندسة': record.engineeringCenter || '-',
+                'القطاع': record.sector || '-',
+                'الفحص الظاهري': record.visualResult || '-',
+                'نتيجة الفحص': record.technicalResult || '-'
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'New_Ayat');
+            XLSX.writeFile(wb, `New_Ayat_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('📊', 'تم تصدير البيانات بنجاح', 'success');
+        }
+        window.exportToExcel = exportToExcel;
+
+        function saveCurrentDataToFirebase() {
+            if (!window.firebaseDB) return;
+
+            // Get all field values
+            const getVal = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return '-';
+                return el.value.trim() || '-';
+            };
+
+            // Define all required fields (except sector which is handled separately)
+            const requiredFields = [
+                'subscriberName', 'meterType', 'subscriberCode', 'chassisNumber',
+                'manufacturer', 'activityType', 'reportDate', 'engineeringCenter',
+                'visualResult', 'technicalResult'
+            ];
+
+            // Check if ALL required fields have data (not empty and not '-')
+            let allFieldsValid = true;
+            let missingFields = [];
+
+            for (const field of requiredFields) {
+                const el = document.getElementById(`cell_${field}`);
+                if (el) {
+                    const val = el.value.trim();
+                    if (val === '' || val === '-') {
+                        allFieldsValid = false;
+                        missingFields.push(field);
+                    }
+                }
+            }
+
+            // Check sector dropdown - must have a valid value
+            const sectorEl = document.getElementById('cell_sector');
+            const sectorValid = sectorEl && sectorEl.value && sectorEl.value !== '-';
+
+            // If any field is empty or sector is not selected, prevent save
+            if (!allFieldsValid || !sectorValid) {
+                let errorMsg = '⚠️ البيانات غير مكتملة! يرجى ملء جميع الحقول التالية:\n\n';
+                if (!allFieldsValid) {
+                    const fieldNames = {
+                        'subscriberName': 'اسم المشترك',
+                        'meterType': 'نوع العداد',
+                        'subscriberCode': 'كود المشترك',
+                        'chassisNumber': 'الشاسية',
+                        'manufacturer': 'الشركة المصنعة',
+                        'activityType': 'نوع النشاط',
+                        'reportDate': 'تاريخ التقرير',
+                        'engineeringCenter': 'الهندسة',
+                        'visualResult': 'نتيجة الفحص الظاهرى',
+                        'technicalResult': 'نتيجة الفحص'
+                    };
+                    missingFields.forEach(f => {
+                        errorMsg += `- ${fieldNames[f] || f}\n`;
+                    });
+                }
+                if (!sectorValid) {
+                    errorMsg += '- القطاع (يجب اختيار قيمة)\n';
+                }
+                showToast('⚠️', errorMsg.replace(/\n/g, ' | '), 'warning');
+                return;
+            }
+
+            // Get registration date from header
+            const registrationDate = document.getElementById('headerRegistrationDate').value ||
+                new Date().toLocaleDateString('en-GB');
+
+            const dataToSave = {
+                subscriberName: getVal('cell_subscriberName'),
+                meterType: getVal('cell_meterType'),
+                subscriberCode: getVal('cell_subscriberCode'),
+                chassisNumber: getVal('cell_chassisNumber'),
+                manufacturer: getVal('cell_manufacturer'),
+                activityType: getVal('cell_activityType'),
+                reportDate: getVal('cell_reportDate'),
+                registrationDate: registrationDate,
+                engineeringCenter: getVal('cell_engineeringCenter'),
+                sector: sectorEl.value,
+                visualResult: getVal('cell_visualResult'),
+                technicalResult: getVal('cell_technicalResult'),
+                timestamp: new Date().toISOString()
+            };
+
+            import("https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js").then((fb) => {
+                if (window.editingRecordId) {
+                    const recordRef = fb.ref(window.firebaseDB, `New_Ayat/${window.editingRecordId}`);
+                    fb.update(recordRef, dataToSave).then(() => {
+                        showToast('✅', 'تم تحديث السجل بنجاح!', 'success');
+                        window.editingRecordId = null;
+                    }).catch(err => {
+                        showToast('❌', 'فشل التحديث: ' + err.message, 'error');
+                    });
+                } else {
+                    const uniqueRecordId = "rec_" + Date.now();
+                    const specificRef = fb.ref(window.firebaseDB, `New_Ayat/${uniqueRecordId}`);
+                    fb.set(specificRef, dataToSave).then(() => {
+                        showToast('✅', 'تم حفظ السجل بنجاح!', 'success');
+                    }).catch(err => {
+                        showToast('❌', 'فشل الحفظ: ' + err.message, 'error');
+                    });
+                }
+            });
+        }
+        window.saveCurrentDataToFirebase = saveCurrentDataToFirebase;
+
+        function handleFileSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                showToast('⚠️', 'يرجى رفع ملفات PDF أو JPG أو PNG فقط', 'warning');
+                event.target.value = '';
+                return;
+            }
+
+            clearSelection();
+            resetTableValues();
+            hasRenderedDocument = false;
+
+            if (file.type === "application/pdf") {
+                const fileReader = new FileReader();
+                fileReader.onload = function () {
+                    try {
+                        const typedarray = new Uint8Array(this.result);
+                        pdfjsLib.getDocument({
+                            data: typedarray,
+                            useSystemFonts: true,
+                            standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/standard_fonts/'
+                        }).promise.then(function (pdf) {
+                            return pdf.getPage(1).then(function (page) {
+                                const containerWidth = container.clientWidth - 10;
+                                const viewport = page.getViewport({ scale: 1 });
+                                const ratio = viewport.width / viewport.height;
+
+                                let scale = containerWidth / viewport.width;
+                                if (scale < 0.5) scale = 0.5;
+                                if (scale > 2.5) scale = 2.5;
+
+                                const scaledViewport = page.getViewport({ scale: scale });
+                                const displayWidth = scaledViewport.width;
+                                const displayHeight = scaledViewport.height;
+
+                                canvas.width = scaledViewport.width;
+                                canvas.height = scaledViewport.height;
+                                canvas.style.width = displayWidth + 'px';
+                                canvas.style.height = displayHeight + 'px';
+
+                                const renderContext = {
+                                    canvasContext: ctx,
+                                    viewport: scaledViewport,
+                                    enableWebGL: false
+                                };
+
+                                return page.render(renderContext).promise.then(function () {
+                                    hasRenderedDocument = true;
+                                    showToast('✅', 'تم تحميل PDF بنجاح', 'success');
+                                });
+                            });
+                        }).catch(function (err) {
+                            console.error('PDF load error:', err);
+                            showToast('❌', 'خطأ في تحميل PDF: ' + err.message, 'error');
+                        });
+                    } catch (err) {
+                        console.error('PDF processing error:', err);
+                        showToast('❌', 'خطأ في معالجة PDF: ' + err.message, 'error');
+                    }
+                };
+                fileReader.readAsArrayBuffer(file);
+            } else if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        try {
+                            const containerWidth = container.clientWidth - 10;
+                            const ratio = img.width / img.height;
+                            let displayWidth = Math.min(img.width, containerWidth);
+                            let displayHeight = displayWidth / ratio;
+                            if (displayHeight < 400) {
+                                displayHeight = 400;
+                                displayWidth = displayHeight * ratio;
+                            }
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            canvas.style.width = displayWidth + 'px';
+                            canvas.style.height = displayHeight + 'px';
+                            ctx.drawImage(img, 0, 0);
+                            hasRenderedDocument = true;
+                            showToast('✅', 'تم تحميل الصورة بنجاح', 'success');
+                        } catch (err) {
+                            showToast('❌', 'خطأ في تحميل الصورة: ' + err.message, 'error');
+                        }
+                    };
+                    img.onerror = function () {
+                        showToast('❌', 'خطأ في تحميل الصورة', 'error');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        window.handleFileSelection = handleFileSelection;
+
+        function getMousePos(e) {
+            const rect = container.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / canvasRect.width;
+            const scaleY = canvas.height / canvasRect.height;
+            const x = (e.clientX - canvasRect.left) * scaleX;
+            const y = (e.clientY - canvasRect.top) * scaleY;
+            return { x: Math.max(0, Math.min(x, canvas.width)), y: Math.max(0, Math.min(y, canvas.height)) };
+        }
+
+        function startSelection(e) {
+            if (!hasRenderedDocument) return;
+            const pos = getMousePos(e);
+            selectionStart = pos;
+            isSelecting = true;
+            selectionBox.classList.add('active');
+            selectionBox.style.left = (pos.x / (canvas.width / canvas.getBoundingClientRect().width)) + 'px';
+            selectionBox.style.top = (pos.y / (canvas.height / canvas.getBoundingClientRect().height)) + 'px';
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            selectionRect = null;
+            disableAllButtons();
+        }
+
+        function updateSelection(e) {
+            if (!isSelecting || !selectionStart) return;
+            const pos = getMousePos(e);
+            const x = Math.min(selectionStart.x, pos.x);
+            const y = Math.min(selectionStart.y, pos.y);
+            const width = Math.abs(pos.x - selectionStart.x);
+            const height = Math.abs(pos.y - selectionStart.y);
+            const scaleX = canvas.width / canvas.getBoundingClientRect().width;
+            const scaleY = canvas.height / canvas.getBoundingClientRect().height;
+            selectionBox.style.left = (x / scaleX) + 'px';
+            selectionBox.style.top = (y / scaleY) + 'px';
+            selectionBox.style.width = (width / scaleX) + 'px';
+            selectionBox.style.height = (height / scaleY) + 'px';
+            selectionRect = { x, y, width, height };
+        }
+
+        function endSelection() {
+            if (!isSelecting) return;
+            isSelecting = false;
+            if (selectionRect && selectionRect.width > 10 && selectionRect.height > 10) {
+                extractBtn.disabled = false;
+                visualExtractBtn.disabled = false;
+                techExtractBtn.disabled = false;
+            } else {
+                selectionBox.classList.remove('active');
+            }
+        }
+
+        container.addEventListener('mousedown', startSelection);
+        container.addEventListener('mousemove', updateSelection);
+        container.addEventListener('mouseup', endSelection);
+        container.addEventListener('mouseleave', function (e) { if (isSelecting) endSelection(e); });
+        container.addEventListener('contextmenu', e => e.preventDefault());
+
+        async function runOCR() {
+            if (!selectionRect || !hasRenderedDocument) return null;
+            try {
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = selectionRect.width;
+                cropCanvas.height = selectionRect.height;
+                const cropCtx = cropCanvas.getContext('2d');
+                cropCtx.drawImage(canvas, selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height, 0, 0, selectionRect.width, selectionRect.height);
+                const worker = await Tesseract.createWorker(['ara', 'eng']);
+                const result = await worker.recognize(cropCanvas);
+                const rawText = result.data.text;
+                await worker.terminate();
+                return rawText;
+            } catch (err) {
+                console.error('OCR error:', err);
+                showToast('❌', 'خطأ في OCR: ' + err.message, 'error');
+                return null;
+            }
+        }
+
+        async function extractSelectedArea() {
+            disableAllButtons();
+            try {
+                const rawText = await runOCR();
+                if (rawText && rawText.trim().length > 0) {
+                    parseAndPopulateTable(rawText);
+                    showToast('📋', 'تم استخراج البيانات بنجاح', 'success');
+                } else {
+                    showToast('⚠️', 'لم يتم العثور على نص في المنطقة المحددة', 'warning');
+                }
+                selectionBox.classList.remove('active');
+            } catch (err) {
+                showToast('❌', 'خطأ في OCR: ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+        window.extractSelectedArea = extractSelectedArea;
+
+        async function extractDirectlyToField(fieldKey) {
+            disableAllButtons();
+            try {
+                const rawText = await runOCR();
+                if (rawText && rawText.trim().length > 0) {
+                    const el = document.getElementById(`cell_${fieldKey}`);
+                    if (el) {
+                        el.value = cleanText(rawText);
+                        el.classList.add('highlight-cell');
+                        showToast('✅', `تم استخراج النص بنجاح للحقل`, 'success');
+                    }
+                } else {
+                    showToast('⚠️', 'لم يتم العثور على نص في المنطقة المحددة', 'warning');
+                }
+                selectionBox.classList.remove('active');
+            } catch (err) {
+                showToast('❌', 'خطأ في OCR: ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+        window.extractDirectlyToField = extractDirectlyToField;
+
+        function parseAndPopulateTable(fullText) {
+            const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const extracted = {};
+            for (const key in FIELD_CONFIG) {
+                extracted[key] = '';
+            }
+
+            for (const [key, config] of Object.entries(FIELD_CONFIG)) {
+                let bestValue = '';
+                let foundValidValue = false;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.length < 2) continue;
+
+                    let matchedLabel = null;
+                    for (const label of config.labels) {
+                        if (line.includes(label)) {
+                            matchedLabel = label;
+                            break;
+                        }
+                    }
+
+                    if (matchedLabel) {
+                        let value = '';
+                        const labelIndex = line.indexOf(matchedLabel);
+                        const afterLabel = line.substring(labelIndex + matchedLabel.length).trim();
+
+                        const separatorMatch = afterLabel.match(/^[\s:ـ\-]+/);
+                        let cleanAfter = afterLabel;
+                        if (separatorMatch) {
+                            cleanAfter = afterLabel.substring(separatorMatch[0].length).trim();
+                        }
+
+                        if (key === 'activityType') {
+                            if (cleanAfter.length > 0 && cleanAfter.length < 50) {
+                                const invalidWords = ['لجنة', 'تكهين', 'تقرير', 'فحص', 'الفحص', 'نتيجة', 'الظاهري', 
+                                    'مسبوق', 'الدفع', 'غطاء', 'وجه', 'غير', 'مرصص', 'الشركة', 'القابضة', 'الكهرباء', 
+                                    'وزارة', 'شمال', 'الدلتا', 'توزيع', 'تقرير فحص عداد', 'بيانات العداد', 'بيانات المشترك',
+                                    'مقدم', 'لـ', 'المنطقة', 'المركز', 'الهندسة', 'القطاع', 'المشترك', 'العداد', 'كود',
+                                    'الشاسية', 'المصنعة', 'النشاط', 'التقرير', 'التسجيل', 'الفحص', 'الظاهري', 'نتيجة'];
+                                
+                                const isValid = cleanAfter.length > 2 && 
+                                    !invalidWords.some(w => cleanAfter.includes(w)) &&
+                                    !/^\d+$/.test(cleanAfter);
+                                
+                                if (isValid && !foundValidValue) {
+                                    bestValue = cleanAfter;
+                                    foundValidValue = true;
+                                }
+                            }
+
+                            if (!foundValidValue && i + 1 < lines.length) {
+                                const nextLine = lines[i + 1];
+                                let isNextLabel = false;
+                                for (const [otherKey, otherConfig] of Object.entries(FIELD_CONFIG)) {
+                                    for (const label of otherConfig.labels) {
+                                        if (nextLine.includes(label)) {
+                                            isNextLabel = true;
+                                            break;
+                                        }
+                                    }
+                                    if (isNextLabel) break;
+                                }
+                                if (!isNextLabel && nextLine.length > 1 && nextLine.length < 50) {
+                                    const cleanNext = cleanText(nextLine);
+                                    const invalidWords = ['لجنة', 'تكهين', 'تقرير', 'فحص', 'الفحص', 'نتيجة', 'الظاهري', 
+                                        'مسبوق', 'الدفع', 'غطاء', 'وجه', 'غير', 'مرصص', 'الشركة', 'القابضة', 'الكهرباء', 
+                                        'وزارة', 'شمال', 'الدلتا', 'توزيع', 'مقدم', 'لـ', 'المنطقة', 'المركز'];
+                                    const isValid = cleanNext.length > 2 && 
+                                        !invalidWords.some(w => cleanNext.includes(w)) &&
+                                        !/^\d+$/.test(cleanNext);
+                                    if (isValid && !foundValidValue) {
+                                        bestValue = cleanNext;
+                                        foundValidValue = true;
+                                    }
+                                }
+                            }
+                        } else {
+                            if (cleanAfter.length > 0 && !bestValue) {
+                                bestValue = cleanAfter;
+                            }
+                            if (!bestValue && i + 1 < lines.length) {
+                                const nextLine = lines[i + 1];
+                                let isNextLabel = false;
+                                for (const [otherKey, otherConfig] of Object.entries(FIELD_CONFIG)) {
+                                    for (const label of otherConfig.labels) {
+                                        if (nextLine.includes(label)) {
+                                            isNextLabel = true;
+                                            break;
+                                        }
+                                    }
+                                    if (isNextLabel) break;
+                                }
+                                if (!isNextLabel && nextLine.length > 1) {
+                                    bestValue = cleanText(nextLine);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (key === 'activityType' && !foundValidValue) {
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i];
+                        if (line.includes('نشاط') || line.includes('النشاط')) {
+                            let value = '';
+                            const patterns = [
+                                /نشاط\s*[:ـ\-]\s*([^\s]+(?:\s[^\s]+){0,3})/,
+                                /النشاط\s*[:ـ\-]\s*([^\s]+(?:\s[^\s]+){0,3})/
+                            ];
+                            for (const pattern of patterns) {
+                                const match = line.match(pattern);
+                                if (match && match[1]) {
+                                    value = match[1].trim();
+                                    break;
+                                }
+                            }
+                            if (value && value.length > 2) {
+                                const invalidWords = ['لجنة', 'تكهين', 'تقرير', 'فحص', 'الفحص', 'نتيجة', 'الظاهري', 
+                                    'مسبوق', 'الدفع', 'غطاء', 'وجه', 'غير', 'مرصص'];
+                                if (!invalidWords.some(w => value.includes(w))) {
+                                    bestValue = value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                extracted[key] = bestValue;
+            }
+
+            for (const [key, value] of Object.entries(extracted)) {
+                const el = document.getElementById(`cell_${key}`);
+                if (el && value && value.length > 0) {
+                    el.value = value;
+                    el.classList.add('highlight-cell');
+                }
+            }
+        }
+
+        function disableAllButtons() {
+            extractBtn.disabled = true;
+            visualExtractBtn.disabled = true;
+            techExtractBtn.disabled = true;
+        }
+
+        function clearSelection() {
+            selectionRect = null;
+            selectionBox.classList.remove('active');
+            disableAllButtons();
+        }
+
+        function resetTableValues() {
+            const fields = ['subscriberName', 'meterType', 'subscriberCode', 'chassisNumber', 'manufacturer', 'activityType', 'engineeringCenter', 'visualResult', 'technicalResult', 'reportDate'];
+            fields.forEach(id => {
+                const el = document.getElementById(`cell_${id}`);
+                if (el) { el.value = '-'; el.classList.remove('highlight-cell'); }
+            });
+            const sectorEl = document.getElementById('cell_sector');
+            if (sectorEl) { sectorEl.value = '-'; sectorEl.classList.remove('highlight-cell'); }
+            const today = new Date();
+            const formattedDate = String(today.getDate()).padStart(2, '0') + '/' +
+                String(today.getMonth() + 1).padStart(2, '0') + '/' +
+                today.getFullYear();
+            document.getElementById('headerRegistrationDate').value = formattedDate;
+            window.editingRecordId = null;
+        }
+
+        document.getElementById('documentFile').addEventListener('click', function () {
+            this.value = null;
+            hasRenderedDocument = false;
+            clearSelection();
+            resetTableValues();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        window.editRecord = window.editRecord || function (id) { };
+        window.deleteRecord = window.deleteRecord || function (id) { };
+    </script>
+</body>
+
+</html>

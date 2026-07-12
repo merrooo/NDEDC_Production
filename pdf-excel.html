@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF to Image Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 16px;
+        }
+
+        .main-card {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 2rem;
+            color: #1a2b3c;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 1.05rem;
+        }
+
+        .upload-area {
+            background: #f8fafc;
+            border: 3px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+        }
+
+        .upload-area:hover {
+            background: #f1f5f9;
+            border-color: #667eea;
+        }
+
+        .upload-area.dragover {
+            background: #eef2ff;
+            border-color: #667eea;
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-area h3 {
+            font-size: 1.3rem;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .upload-area p {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        #pdfFileInput {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-primary:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+        }
+
+        .btn-success:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #fc8181;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #f56565;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-info:hover:not(:disabled) {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+
+        .btn-info:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: #dd6b20;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .preview-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preview-header h3 {
+            color: #1e293b;
+            font-size: 1.1rem;
+        }
+
+        .preview-header .badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-card .image-wrapper {
+            position: relative;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-card .checkbox-wrapper {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-card .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .image-card .info {
+            padding: 10px 12px;
+        }
+
+        .image-card .info .name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .image-card .info .details {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        .image-card.selected {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            margin: 15px 0;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .file-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+        }
+
+        .file-tag .remove {
+            cursor: pointer;
+            color: #fc8181;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+
+        .file-tag .remove:hover {
+            color: #f56565;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #475569;
+        }
+
+        .stat-item .label {
+            font-weight: 500;
+        }
+
+        .stat-item .value {
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .selection-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .selection-controls .btn-sm {
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-select-all {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn-select-all:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-deselect-all {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn-deselect-all:hover {
+            background: #cbd5e1;
+        }
+
+        @media (max-width: 768px) {
+            .main-card {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .upload-area {
+                padding: 30px 15px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .images-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .selection-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-card">
+        <h1>🖼️ PDF to Image Converter</h1>
+        <p class="subtitle">قم بتحويل ملفات PDF إلى صور (PNG) بسهولة وسرعة</p>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📤</div>
+            <h3>اسحب وأفلت ملفات PDF هنا</h3>
+            <p>أو اضغط للاختيار من جهازك (يدعم ملفات متعددة)</p>
+            <input type="file" id="pdfFileInput" accept=".pdf" multiple />
+        </div>
+
+        <!-- File List -->
+        <div id="fileList" style="display: none;" class="file-list"></div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" id="convertBtn" disabled>
+                🔄 تحويل إلى صور
+            </button>
+            <button class="btn btn-success" id="downloadSelectedBtn" disabled>
+                📥 تحميل المحدد (ZIP)
+            </button>
+            <button class="btn btn-warning" id="downloadAllBtn" disabled>
+                📥 تحميل الكل (ZIP)
+            </button>
+            <button class="btn btn-danger" id="clearBtn" disabled>
+                🗑 مسح الكل
+            </button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">جاري المعالجة...</div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-section">
+            <div class="preview-header">
+                <h3>🖼️ الصور المحولة</h3>
+                <span class="badge" id="imageCount">0 صورة</span>
+            </div>
+
+            <!-- Selection Controls -->
+            <div class="selection-controls" id="selectionControls" style="display: none;">
+                <span style="color:#475569;font-weight:500;">تحديد:</span>
+                <button class="btn-sm btn-select-all" onclick="selectAllImages()">تحديد الكل</button>
+                <button class="btn-sm btn-deselect-all" onclick="deselectAllImages()">إلغاء الكل</button>
+                <span style="color:#64748b;font-size:0.9rem;" id="selectedCount">0 مختار</span>
+            </div>
+
+            <div id="previewContent">
+                <div class="empty-state">
+                    <div class="icon">🖼️</div>
+                    <p>لم يتم تحويل أي ملف بعد</p>
+                    <p style="font-size:0.85rem; margin-top:5px;">قم برفع ملفات PDF للبدء</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <span class="label">📄 عدد الملفات:</span>
+                <span class="value" id="fileCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">🖼️ عدد الصور:</span>
+                <span class="value" id="imageCountStat">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">📋 إجمالي الصفحات:</span>
+                <span class="value" id="pageCountStat">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        let convertedImages = [];
+        let imageBlobs = [];
+        let currentFiles = [];
+        let isConverting = false;
+        let selectedIndices = new Set();
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('pdfFileInput');
+        const fileList = document.getElementById('fileList');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewContent = document.getElementById('previewContent');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const imageCount = document.getElementById('imageCount');
+        const fileCount = document.getElementById('fileCount');
+        const imageCountStat = document.getElementById('imageCountStat');
+        const pageCountStat = document.getElementById('pageCountStat');
+        const stats = document.getElementById('stats');
+        const selectionControls = document.getElementById('selectionControls');
+        const selectedCount = document.getElementById('selectedCount');
+
+        // Click on upload area to trigger file input
+        uploadArea.addEventListener('click', function(e) {
+            // Prevent triggering if clicking on the input itself
+            if (e.target.tagName !== 'INPUT') {
+                fileInput.click();
+            }
+        });
+
+        // File input change handler
+        fileInput.addEventListener('change', handleFiles);
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFiles({ target: fileInput });
+            }
+        });
+
+        function handleFiles(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            // Add new files to current list (avoid duplicates)
+            const newFiles = Array.from(files);
+            for (const file of newFiles) {
+                if (!currentFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    currentFiles.push(file);
+                }
+            }
+
+            updateFileList();
+            convertBtn.disabled = false;
+            clearBtn.disabled = false;
+            downloadSelectedBtn.disabled = true;
+            downloadAllBtn.disabled = true;
+
+            // Auto-convert
+            convertPDFsToImages();
+        }
+
+        function updateFileList() {
+            if (currentFiles.length === 0) {
+                fileList.style.display = 'none';
+                return;
+            }
+
+            fileList.style.display = 'flex';
+            fileList.innerHTML = currentFiles.map((file, index) => `
+                <span class="file-tag">
+                    📎 ${file.name}
+                    <span class="remove" onclick="removeFile(${index})">✕</span>
+                </span>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            currentFiles.splice(index, 1);
+            updateFileList();
+            if (currentFiles.length === 0) {
+                convertBtn.disabled = true;
+                clearBtn.disabled = true;
+                downloadSelectedBtn.disabled = true;
+                downloadAllBtn.disabled = true;
+            }
+            // Update file input
+            const dt = new DataTransfer();
+            currentFiles.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+        }
+
+        async function convertPDFsToImages() {
+            if (isConverting) return;
+            if (currentFiles.length === 0) return;
+
+            isConverting = true;
+            convertedImages = [];
+            imageBlobs = [];
+            selectedIndices = new Set();
+            let totalImages = 0;
+
+            // Show progress
+            progressContainer.classList.add('active');
+            progressFill.style.width = '0%';
+            progressText.textContent = 'جاري تحويل الملفات...';
+            progressText.style.color = '';
+
+            // Clear previous preview
+            previewContent.innerHTML = '';
+            selectionControls.style.display = 'none';
+
+            try {
+                const allImages = [];
+
+                for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
+                    const file = currentFiles[fileIndex];
+                    const progressStart = (fileIndex / currentFiles.length) * 100;
+                    const progressEnd = ((fileIndex + 1) / currentFiles.length) * 100;
+
+                    progressText.textContent = `جاري معالجة: ${file.name}`;
+                    progressFill.style.width = `${progressStart}%`;
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const pageCount = pdf.numPages;
+
+                    const fileImages = [];
+
+                    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 2.0 });
+
+                        // Create canvas for this page
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+
+                        const renderContext = {
+                            canvasContext: context,
+                            viewport: viewport,
+                            background: 'white'
+                        };
+
+                        await page.render(renderContext).promise;
+
+                        // Convert to PNG
+                        const imageDataUrl = canvas.toDataURL('image/png');
+                        const blob = await dataURLToBlob(imageDataUrl);
+
+                        const imageObj = {
+                            fileName: file.name.replace('.pdf', ''),
+                            pageNumber: pageNum,
+                            totalPages: pageCount,
+                            dataUrl: imageDataUrl,
+                            blob: blob,
+                            width: viewport.width,
+                            height: viewport.height,
+                            index: allImages.length
+                        };
+
+                        fileImages.push(imageObj);
+                        allImages.push(imageObj);
+                        imageBlobs.push(blob);
+                        totalImages++;
+
+                        // Update progress
+                        const pageProgress = progressStart + ((pageNum / pageCount) * (progressEnd - progressStart));
+                        progressFill.style.width = `${pageProgress}%`;
+                        progressText.textContent = `معالجة الصفحة ${pageNum} من ${pageCount} - ${file.name}`;
+                    }
+
+                    convertedImages = allImages;
+
+                    // Update preview with images from this file
+                    showPreview(allImages);
+                }
+
+                // Update stats
+                stats.style.display = 'flex';
+                fileCount.textContent = currentFiles.length;
+                imageCountStat.textContent = totalImages;
+                pageCountStat.textContent = totalImages;
+                imageCount.textContent = `${totalImages} صورة`;
+
+                // Enable downloads
+                downloadAllBtn.disabled = false;
+                downloadSelectedBtn.disabled = false;
+                selectionControls.style.display = 'flex';
+
+                // Show success
+                progressText.textContent = '✅ تم التحويل بنجاح!';
+                progressText.style.color = '#48bb78';
+
+                setTimeout(() => {
+                    progressContainer.classList.remove('active');
+                    progressText.style.color = '';
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error converting PDFs:', error);
+                progressText.textContent = '❌ حدث خطأ أثناء المعالجة: ' + error.message;
+                progressText.style.color = '#fc8181';
+                setTimeout(() => {
+                    progressContainer.classList.remove('active');
+                    progressText.style.color = '';
+                }, 4000);
+            }
+
+            isConverting = false;
+        }
+
+        function dataURLToBlob(dataURL) {
+            return new Promise((resolve) => {
+                const arr = dataURL.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                resolve(new Blob([u8arr], { type: mime }));
+            });
+        }
+
+        function showPreview(images) {
+            if (!images || images.length === 0) {
+                previewContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🖼️</div>
+                        <p>لا توجد صور لعرضها</p>
+                        <p style="font-size:0.85rem; margin-top:5px;">قم بتحويل ملف PDF للبدء</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="images-grid">';
+            images.forEach((img) => {
+                const isChecked = selectedIndices.has(img.index) ? 'checked' : '';
+                html += `
+                    <div class="image-card ${isChecked ? 'selected' : ''}" data-index="${img.index}">
+                        <div class="image-wrapper">
+                            <img src="${img.dataUrl}" alt="صفحة ${img.pageNumber}" loading="lazy" />
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" class="image-checkbox" data-index="${img.index}" ${isChecked} onchange="toggleImageSelection(${img.index})" />
+                            </div>
+                        </div>
+                        <div class="info">
+                            <div class="name">${img.fileName}</div>
+                            <div class="details">صفحة ${img.pageNumber} / ${img.totalPages}</div>
+                            <div class="details">${Math.round(img.width)} × ${Math.round(img.height)}px</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            previewContent.innerHTML = html;
+            updateSelectedCount();
+        }
+
+        function toggleImageSelection(index) {
+            if (selectedIndices.has(index)) {
+                selectedIndices.delete(index);
+            } else {
+                selectedIndices.add(index);
+            }
+            
+            // Update card styling
+            const card = document.querySelector(`.image-card[data-index="${index}"]`);
+            if (card) {
+                if (selectedIndices.has(index)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            }
+            
+            updateSelectedCount();
+        }
+
+        function selectAllImages() {
+            convertedImages.forEach(img => selectedIndices.add(img.index));
+            // Update all checkboxes and cards
+            document.querySelectorAll('.image-checkbox').forEach(cb => {
+                cb.checked = true;
+                const card = cb.closest('.image-card');
+                if (card) card.classList.add('selected');
+            });
+            updateSelectedCount();
+        }
+
+        function deselectAllImages() {
+            selectedIndices.clear();
+            document.querySelectorAll('.image-checkbox').forEach(cb => {
+                cb.checked = false;
+                const card = cb.closest('.image-card');
+                if (card) card.classList.remove('selected');
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedIndices.size;
+            selectedCount.textContent = `${count} مختار`;
+            downloadSelectedBtn.disabled = count === 0;
+        }
+
+        async function downloadSelectedAsZip() {
+            if (selectedIndices.size === 0) {
+                alert('الرجاء تحديد الصور المراد تحميلها');
+                return;
+            }
+
+            try {
+                // Load JSZip if needed
+                if (typeof JSZip === 'undefined') {
+                    await loadJSZip();
+                }
+
+                const zip = new JSZip();
+                const selectedImages = convertedImages.filter(img => selectedIndices.has(img.index));
+
+                selectedImages.forEach((img) => {
+                    const fileName = `${img.fileName}_صفحة_${img.pageNumber}.png`;
+                    zip.file(fileName, img.blob);
+                });
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                const zipName = currentFiles.length === 1 ?
+                    currentFiles[0].name.replace('.pdf', '') :
+                    'selected_images';
+                link.download = `${zipName}_selected.zip`;
+                link.href = URL.createObjectURL(zipBlob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+
+            } catch (error) {
+                console.error('Error downloading ZIP:', error);
+                alert('حدث خطأ أثناء تحميل الملفات: ' + error.message);
+            }
+        }
+
+        async function downloadAllAsZip() {
+            if (imageBlobs.length === 0) {
+                alert('لا توجد صور للتحميل');
+                return;
+            }
+
+            try {
+                if (typeof JSZip === 'undefined') {
+                    await loadJSZip();
+                }
+
+                const zip = new JSZip();
+
+                convertedImages.forEach((img) => {
+                    const fileName = `${img.fileName}_صفحة_${img.pageNumber}.png`;
+                    zip.file(fileName, img.blob);
+                });
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+                const link = document.createElement('a');
+                const zipName = currentFiles.length === 1 ?
+                    currentFiles[0].name.replace('.pdf', '') :
+                    'pdf_images';
+                link.download = `${zipName}.zip`;
+                link.href = URL.createObjectURL(zipBlob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+
+            } catch (error) {
+                console.error('Error downloading ZIP:', error);
+                alert('حدث خطأ أثناء تحميل الملفات: ' + error.message);
+            }
+        }
+
+        function loadJSZip() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        function clearAll() {
+            if (convertedImages.length > 0 || currentFiles.length > 0) {
+                if (!confirm('هل أنت متأكد من مسح جميع البيانات؟')) return;
+            }
+
+            convertedImages = [];
+            imageBlobs = [];
+            currentFiles = [];
+            selectedIndices = new Set();
+            fileInput.value = '';
+            fileList.style.display = 'none';
+            fileList.innerHTML = '';
+            convertBtn.disabled = true;
+            downloadSelectedBtn.disabled = true;
+            downloadAllBtn.disabled = true;
+            clearBtn.disabled = true;
+            stats.style.display = 'none';
+            selectionControls.style.display = 'none';
+            imageCount.textContent = '0 صورة';
+
+            previewContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">🖼️</div>
+                    <p>لم يتم تحويل أي ملف بعد</p>
+                    <p style="font-size:0.85rem; margin-top:5px;">قم برفع ملفات PDF للبدء</p>
+                </div>
+            `;
+
+            progressContainer.classList.remove('active');
+            progressFill.style.width = '0%';
+        }
+
+        // Event listeners
+        convertBtn.addEventListener('click', convertPDFsToImages);
+        downloadSelectedBtn.addEventListener('click', downloadSelectedAsZip);
+        downloadAllBtn.addEventListener('click', downloadAllAsZip);
+        clearBtn.addEventListener('click', clearAll);
+
+        // Drag and drop for the whole page
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+
+        // Expose functions to global scope
+        window.removeFile = removeFile;
+        window.toggleImageSelection = toggleImageSelection;
+        window.selectAllImages = selectAllImages;
+        window.deselectAllImages = deselectAllImages;
+    </script>
+</body>
+
+</html>
