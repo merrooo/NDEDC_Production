@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Length Filter · Smart Column Selector</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --bg-light: #f8fafc;
+            --card-white: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-home {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-blue);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-home:hover {
+            background: #1d4ed8;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: var(--card-white);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .file-status {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        .checkbox-item {
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .checkbox-item:hover {
+            background: #f1f5f9;
+        }
+
+        .checkbox-item input {
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #334155;
+            width: 100%;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 24px;
+            flex: 1;
+        }
+
+        .left-panel {
+            flex: 0 0 450px;
+            min-width: 380px;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .right-panel .card {
+            padding: 1.5rem;
+            height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0;
+        }
+
+        .right-panel .card .table-wrap {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            margin-top: 0.5rem;
+        }
+
+        .right-panel .card .table-wrap .table-responsive {
+            height: 100%;
+        }
+
+        .right-panel .card .table-wrap table {
+            margin-bottom: 0;
+            width: 100% !important;
+        }
+
+        .right-panel .card .table-wrap .dataTables_wrapper {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-panel .card .table-wrap .dataTables_wrapper .dataTables_scroll {
+            flex: 1;
+        }
+
+        .right-panel .card .table-wrap .dataTables_wrapper .dataTables_scrollBody {
+            max-height: calc(100vh - 270px) !important;
+            height: calc(100vh - 270px) !important;
+        }
+
+        #resultTable thead th {
+            background-color: #f1f5f9;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .dt-buttons {
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        .dt-button.btn-success {
+            background-color: #198754 !important;
+            border-color: #198754 !important;
+            color: white !important;
+            border-radius: 8px !important;
+            padding: 6px 16px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+        }
+
+        .dt-button.btn-success:hover {
+            background-color: #157347 !important;
+            border-color: #146c43 !important;
+        }
+
+        .mode-radio-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .mode-radio-group .form-check {
+            padding-left: 0;
+            margin-right: 8px;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .mode-radio-group .form-check-input {
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        .mode-radio-group .form-check-label {
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        .mode-radio-group .form-check-input:checked+.form-check-label {
+            color: var(--primary-blue);
+        }
+
+        .dropdown-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .dropdown-card .dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .dropdown-card .dropdown-header .left-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .dropdown-card .dropdown-header .left-section .label-text {
+            font-weight: 600;
+            color: #0b3f57;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-card .dropdown-header .left-section .arrow {
+            transition: transform 0.25s ease;
+            display: inline-block;
+            font-size: 0.7rem;
+            color: #3a728b;
+        }
+
+        .dropdown-card .dropdown-header .left-section .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-card .dropdown-header .badge-count {
+            background: #dcebf5;
+            color: #1a4f69;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .dropdown-card .dropdown-header .bulk-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .dropdown-card .dropdown-header .bulk-actions .btn-outline {
+            background: transparent;
+            border: 1px solid #b8d0df;
+            border-radius: 30px;
+            padding: 4px 14px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1b5570;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dropdown-card .dropdown-header .bulk-actions .btn-outline:hover {
+            background: #dcebf5;
+            border-color: #8fb4cc;
+        }
+
+        .dropdown-card .dropdown-content {
+            display: none;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-top: 12px;
+            margin-top: 12px;
+            border-top: 1px solid #d7e5f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .dropdown-card .dropdown-content.open {
+            display: flex;
+        }
+
+        .dropdown-card .dropdown-content .checkbox-item {
+            flex: 0 0 100%; 
+            min-width: 100%;
+        }
+
+        @media (max-width: 992px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            .left-panel {
+                flex: 1;
+                min-width: unset;
+            }
+            .right-panel .card {
+                height: 600px;
+            }
+            .right-panel .card .table-wrap .dataTables_wrapper .dataTables_scrollBody {
+                max-height: 400px !important;
+                height: 400px !important;
+            }
+        }
+
+        #fullscreenPreviewModal .modal-dialog {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+        }
+
+        #fullscreenPreviewModal .modal-content {
+            border-radius: 0 !important;
+            height: 100vh;
+        }
+
+        #fullscreenPreviewModal .modal-body {
+            padding: 0.75rem !important;
+            overflow: hidden;
+        }
+
+        #modalTable {
+            font-size: 0.82rem !important;
+            border-collapse: collapse !important;
+        }
+
+        #modalTable thead th {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            padding: 10px 14px !important;
+            border: 1px solid #334155 !important;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+        }
+
+        #modalTable tbody td {
+            padding: 8px 14px !important;
+            border: 1px solid #e2e8f0 !important;
+            white-space: nowrap;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #modalTable tbody tr:nth-of-type(odd) {
+            background-color: #ffffff !important;
+        }
+        #modalTable tbody tr:nth-of-type(even) {
+            background-color: #f8fafc !important;
+        }
+        #modalTable tbody tr:hover {
+            background-color: #f1f5f9 !important;
+        }
+
+        #fullscreenPreviewModal .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 12px;
+        }
+
+        .text-warning {
+            color: #d48c2c;
+        }
+
+        .upload-area {
+            cursor: pointer;
+            border: 2px dashed #cbd5e1;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+
+        .upload-area.dragover {
+            border-color: #2563eb !important;
+            background: #eff6ff !important;
+        }
+
+        .preview-mini-dashboard {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-5 flex-grow-1 d-flex flex-column">
+        <div class="nav-header">
+            <h2 class="fw-800 mb-0"><i class="fas fa-filter me-2 text-primary"></i> Number Length Filter Pro</h2>
+            <a href="Control_Excel.html" class="btn-home">
+                <i class="fas fa-home"></i> Return to Home
+            </a>
+        </div>
+
+        <div class="main-layout">
+            <div class="left-panel">
+                <div class="card">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-file-invoice me-2 text-primary"></i> 1. Upload Excel File</h5>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-muted"></i>
+                        <input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls">
+                    </div>
+                    <div id="fileStatus" class="file-status text-muted mt-2">No file selected</div>
+                </div>
+
+                <div class="card">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-columns me-2 text-primary"></i> 2. Target Settings</h5>
+
+                    <div class="mb-3">
+                        <label class="fw-bold small text-muted text-uppercase mb-1">Target Column</label>
+                        <select id="columnSelect" class="form-select" disabled>
+                            <option value="">— Upload file first —</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold small text-muted text-uppercase mb-1">Target Length (digits)</label>
+                        <input type="number" id="targetLength" class="form-control" min="1" step="1" value="8" disabled>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="fw-bold small text-muted text-uppercase mb-1 d-block text-center">Compare Mode</label>
+                        <div class="mode-radio-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="compareMode" id="modeLess" value="less" checked disabled>
+                                <label class="form-check-label" for="modeLess">Less </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="compareMode" id="modeGreater" value="greater" disabled>
+                                <label class="form-check-label" for="modeGreater">Greater</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="compareMode" id="modeBoth" value="both" disabled>
+                                <label class="form-check-label" for="modeBoth">Both</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-0">
+                    <div class="dropdown-card" id="dropdownCard">
+                        <div class="dropdown-header" id="dropdownToggle">
+                            <div class="left-section w-100 justify-content-between d-flex align-items-center">
+                                <span class="label-text">
+                                    <i class="fas fa-tasks me-2 text-warning"></i> 3. Columns to Export
+                                </span>
+                                <div>
+                                    <span class="arrow me-2" id="arrowIcon">▼</span>
+                                    <span class="badge-count" id="selectionCount">0 selected</span>
+                                </div>
+                            </div>
+                            <div class="bulk-actions mt-2 w-100 justify-content-start" id="bulkActions" style="display: none;">
+                                <button class="btn-outline me-2" id="selectAllBtn"><i class="fas fa-check-square me-1"></i>Select All</button>
+                                <button class="btn-outline" id="deselectAllBtn"><i class="fas fa-square me-1"></i>Deselect All</button>
+                            </div>
+                        </div>
+                        <div class="dropdown-content" id="dropdownContent">
+                            <div class="text-center text-muted py-3 w-100" id="checkboxPlaceholderText">
+                                <i class="fas fa-info-circle me-1"></i> Upload a file to see column headers
+                            </div>
+                            <div class="row g-1 w-100 m-0" id="checkboxGridContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-table me-2 text-primary"></i> Live Data Preview</h5>
+                            <div class="preview-mini-dashboard" id="miniDashboard">Rows in Preview: 0</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" id="fullscreenBtn" disabled>
+                                <i class="fas fa-expand me-1"></i> Full Screen
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <div class="table-responsive">
+                            <table id="resultTable" class="table table-hover w-100"></table>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-muted small" id="previewStatus">
+                        <i class="fas fa-info-circle me-1"></i> Upload an Excel file to start
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content shadow-none border-0">
+                <div class="modal-header bg-dark text-white py-2 px-3">
+                    <h6 class="modal-title" id="modalTitle"><i class="fas fa-table me-2 text-info"></i> Full-Screen Preview</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <div class="table-responsive w-100 h-100">
+                        <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+                    </div>
+                </div>
+                <div class="modal-footer py-1 px-3 bg-light border-top">
+                    <span class="text-muted small me-auto"><i class="fas fa-info-circle me-1"></i> Press ESC or click Close to return.</span>
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+
+    <script>
+        let rawData = [];
+        let headers = [];
+        let filteredData = [];
+        let isDropdownOpen = false;
+
+        const fileInput = document.getElementById('excelFile');
+        const fileStatus = document.getElementById('fileStatus');
+        const columnSelect = document.getElementById('columnSelect');
+        const targetLengthInput = document.getElementById('targetLength');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const miniDashboard = document.getElementById('miniDashboard');
+        const previewStatus = document.getElementById('previewStatus');
+        const uploadArea = document.getElementById('uploadArea');
+
+        const dropdownToggle = document.getElementById('dropdownToggle');
+        const dropdownContent = document.getElementById('dropdownContent');
+        const arrowIcon = document.getElementById('arrowIcon');
+        const selectionCount = document.getElementById('selectionCount');
+        const checkboxGridContainer = document.getElementById('checkboxGridContainer');
+        const checkboxPlaceholderText = document.getElementById('checkboxPlaceholderText');
+        const bulkActions = document.getElementById('bulkActions');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+
+        let dataTable = null;
+
+        function isNumericString(val) {
+            if (val === undefined || val === null || val === '') return false;
+            const str = String(val).trim();
+            return /^\d+$/.test(str);
+        }
+
+        function getDigitLength(val) {
+            if (!isNumericString(val)) return -1;
+            return String(val).trim().length;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        async function parseExcel(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        resolve(XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        fileInput.addEventListener('change', async (e) => {
+            if (!e.target.files || !e.target.files.length) {
+                resetState();
+                return;
+            }
+
+            const file = e.target.files[0];
+            fileStatus.textContent = `✅ Loaded: ${file.name}`;
+            fileStatus.style.color = '#16a34a';
+
+            try {
+                rawData = await parseExcel(file);
+                if (!rawData || rawData.length === 0) {
+                    alert('The file appears to be empty.');
+                    resetState();
+                    return;
+                }
+
+                const headerSet = new Set();
+                rawData.forEach(row => {
+                    Object.keys(row).forEach(k => headerSet.add(k));
+                });
+                headers = Array.from(headerSet);
+
+                if (headers.length === 0) {
+                    alert('No column headers found.');
+                    resetState();
+                    return;
+                }
+
+                columnSelect.innerHTML = '<option value="">-- Select Column --</option>';
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    columnSelect.appendChild(opt);
+                });
+                
+                columnSelect.disabled = false;
+                targetLengthInput.disabled = false;
+                document.querySelectorAll('input[name="compareMode"]').forEach(radio => radio.disabled = false);
+
+                if (headers.length > 0) {
+                    columnSelect.value = headers[0];
+                }
+
+                rebuildCheckboxes(headers);
+                fullscreenBtn.disabled = false;
+
+                applyFilter();
+
+            } catch (err) {
+                alert('Error reading file: ' + err.message);
+                resetState();
+            }
+        });
+
+        function applyFilter() {
+            if (!rawData || rawData.length === 0) return;
+
+            const col = columnSelect.value;
+            if (!col) return;
+
+            const targetLen = parseInt(targetLengthInput.value);
+            if (isNaN(targetLen) || targetLen < 1) return;
+
+            const mode = document.querySelector('input[name="compareMode"]:checked').value;
+
+            const kept = [];
+            for (let i = 0; i < rawData.length; i++) {
+                const row = rawData[i];
+                const val = row[col];
+                const digitLen = getDigitLength(val);
+
+                if (digitLen === -1) {
+                    kept.push(row);
+                    continue;
+                }
+
+                let keep = false;
+                if (mode === 'less') {
+                    keep = digitLen < targetLen;
+                } else if (mode === 'greater') {
+                    keep = digitLen > targetLen;
+                } else if (mode === 'both') {
+                    keep = (digitLen < targetLen || digitLen > targetLen);
+                }
+
+                if (keep) {
+                    kept.push(row);
+                }
+            }
+
+            filteredData = kept;
+            miniDashboard.textContent = `Rows in Preview: ${filteredData.length.toLocaleString()}`;
+            renderTable(filteredData);
+
+            let modeLabel = 'less than';
+            if (mode === 'greater') modeLabel = 'greater than';
+            if (mode === 'both') modeLabel = 'not equal to';
+            
+            previewStatus.textContent = `✅ Filtered: ${kept.length} rows kept (${modeLabel} ${targetLen} digits)`;
+            previewStatus.style.color = '#16a34a';
+
+            updateSelectionCount();
+            syncPreviewColumnVisibility();
+        }
+
+        function renderTable(data) {
+            if (dataTable) {
+                dataTable.destroy();
+                dataTable = null;
+            }
+
+            if (!data || data.length === 0) {
+                $('#resultTable').html('<thead><tr><th>No Data</th></tr></thead><tbody><tr><td class="text-center text-muted py-4">No data to display</td></tr></tbody>');
+                return;
+            }
+
+            const cols = headers.map(k => ({
+                title: k,
+                data: k,
+                defaultContent: "",
+                render: function(innerData) {
+                    if (innerData === undefined || innerData === null) return '';
+                    return escapeHtml(String(innerData));
+                }
+            }));
+
+            $('#resultTable').empty();
+
+            dataTable = $('#resultTable').DataTable({
+                data: data,
+                columns: cols,
+                scrollX: true,
+                scrollY: 'calc(100vh - 270px)',
+                scrollCollapse: true,
+                pageLength: 25,
+                deferRender: true,
+                dom: 'Bfrtip',
+                buttons: [{
+                    extend: 'excelHtml5',
+                    title: 'Filtered_Data',
+                    className: 'btn btn-success btn-sm',
+                    text: '<i class="fas fa-file-excel me-2"></i> Export Live Preview Data',
+                    exportOptions: {
+                        columns: ':visible', // Clean export rule that looks at what checkboxes filtered out!
+                        format: {
+                            body: function(innerData) {
+                                let strData = String(innerData);
+                                if (/^\d{15,}$/.test(strData)) {
+                                    return '\u200C' + strData;
+                                }
+                                return innerData;
+                            }
+                        }
+                    }
+                }],
+                initComplete: function() {
+                    $('.dt-buttons').addClass('d-flex gap-2 mb-2');
+                }
+            });
+        }
+
+        function rebuildCheckboxes(headersArray) {
+            checkboxGridContainer.innerHTML = '';
+            checkboxPlaceholderText.style.display = 'none';
+            bulkActions.style.display = 'flex';
+
+            if (!headersArray || headersArray.length === 0) {
+                checkboxPlaceholderText.style.display = 'block';
+                bulkActions.style.display = 'none';
+                return;
+            }
+
+            headersArray.forEach((h, index) => {
+                const safeId = `chk_${index}`;
+                const div = document.createElement('div');
+                div.className = 'col-12 checkbox-item';
+                div.innerHTML = `
+                        <div class="form-check d-flex align-items-center">
+                            <input class="form-check-input column-checkbox me-2" type="checkbox" value="${escapeHtml(h)}" data-index="${index}" id="${safeId}" checked>
+                            <label class="form-check-label text-truncate" for="${safeId}" title="${escapeHtml(h)}">
+                                ${escapeHtml(h)}
+                            </label>
+                        </div>
+                    `;
+                checkboxGridContainer.appendChild(div);
+            });
+
+            updateSelectionCount();
+
+            document.querySelectorAll('.column-checkbox').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    updateSelectionCount();
+                    syncPreviewColumnVisibility();
+                });
+            });
+        }
+
+        function syncPreviewColumnVisibility() {
+            if (!dataTable) return;
+            const cbs = document.querySelectorAll('.column-checkbox');
+            cbs.forEach(cb => {
+                const idx = parseInt(cb.getAttribute('data-index'));
+                const isChecked = cb.checked;
+                dataTable.column(idx).visible(isChecked);
+            });
+            dataTable.columns.adjust().draw(false);
+        }
+
+        function updateSelectionCount() {
+            const cbs = document.querySelectorAll('.column-checkbox');
+            const checked = Array.from(cbs).filter(cb => cb.checked);
+            const count = checked.length;
+            selectionCount.textContent = `${count} selected`;
+        }
+
+        function toggleAllCheckboxes(status) {
+            const cbs = document.querySelectorAll('.column-checkbox');
+            cbs.forEach(cb => cb.checked = status);
+            updateSelectionCount();
+            syncPreviewColumnVisibility();
+        }
+
+        function getSelectedColumns() {
+            const cbs = document.querySelectorAll('.column-checkbox:checked');
+            return Array.from(cbs).map(cb => cb.value);
+        }
+
+        dropdownToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            isDropdownOpen = !isDropdownOpen;
+            if (isDropdownOpen) {
+                dropdownContent.classList.add('open');
+                arrowIcon.classList.add('open');
+            } else {
+                dropdownContent.classList.remove('open');
+                arrowIcon.classList.remove('open');
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            const card = document.getElementById('dropdownCard');
+            if (isDropdownOpen && card && !card.contains(e.target)) {
+                isDropdownOpen = false;
+                dropdownContent.classList.remove('open');
+                arrowIcon.classList.remove('open');
+            }
+        });
+
+        selectAllBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleAllCheckboxes(true);
+        });
+
+        deselectAllBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleAllCheckboxes(false);
+        });
+
+        function openFullscreenPreview() {
+            if (!filteredData || filteredData.length === 0) {
+                alert('No data to preview.');
+                return;
+            }
+
+            const selectedCols = getSelectedColumns();
+            const cols = selectedCols.map(k => ({
+                title: k,
+                data: k,
+                defaultContent: "",
+                render: function(innerData) {
+                    if (innerData === undefined || innerData === null) return '';
+                    return escapeHtml(String(innerData));
+                }
+            }));
+
+            if (cols.length === 0) {
+                alert('Please select at least one column to display.');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+            modal.show();
+
+            setTimeout(() => {
+                if ($.fn.DataTable.isDataTable('#modalTable')) {
+                    $('#modalTable').DataTable().destroy();
+                }
+                
+                $('#modalTable').empty();
+
+                $('#modalTable').DataTable({
+                    data: filteredData,
+                    columns: cols,
+                    scrollX: true,
+                    scrollY: 'calc(100vh - 170px)',
+                    scrollCollapse: true,
+                    pageLength: 50,
+                    deferRender: true,
+                    dom: 'frtip'
+                });
+            }, 200);
+        }
+
+        function resetState() {
+            rawData = [];
+            headers = [];
+            filteredData = [];
+            columnSelect.innerHTML = '<option value="">— Upload file first —</option>';
+            columnSelect.disabled = true;
+            targetLengthInput.disabled = true;
+            document.querySelectorAll('input[name="compareMode"]').forEach(radio => radio.disabled = true);
+            
+            fullscreenBtn.disabled = true;
+            fileStatus.textContent = 'No file selected';
+            fileStatus.style.color = '#64748b';
+            miniDashboard.textContent = 'Rows in Preview: 0';
+            previewStatus.textContent = 'Upload an Excel file to start';
+            previewStatus.style.color = '#64748b';
+
+            if (dataTable) {
+                dataTable.destroy();
+                dataTable = null;
+            }
+            $('#resultTable').html('<thead><tr><th>No Data</th></tr></thead><tbody><tr><td class="text-center text-muted py-4">Upload an Excel file to start</td></tr></tbody>');
+
+            checkboxGridContainer.innerHTML = '';
+            checkboxPlaceholderText.style.display = 'block';
+            bulkActions.style.display = 'none';
+            selectionCount.textContent = '0 selected';
+
+            if (isDropdownOpen) {
+                isDropdownOpen = false;
+                dropdownContent.classList.remove('open');
+                arrowIcon.classList.remove('open');
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', openFullscreenPreview);
+
+        targetLengthInput.addEventListener('input', applyFilter);
+        columnSelect.addEventListener('change', applyFilter);
+        
+        document.querySelectorAll('input[name="compareMode"]').forEach(radio => {
+            radio.addEventListener('change', applyFilter);
+        });
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        uploadArea.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT') {
+                fileInput.click();
+            }
+        });
+
+        resetState();
+        $('#resultTable').html('<thead><tr><th>No Data</th></tr></thead><tbody><tr><td class="text-center text-muted py-4"><i class="fas fa-upload me-2"></i>Upload an Excel file to start</td></tr></tbody>');
+    </script>
+</body>
+
+</html>

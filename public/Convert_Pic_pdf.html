@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Images ⇄ PDF Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #10b981;
+            --success-hover: #059669;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --warning-color: #f59e0b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, var(--bg-body) 100%);
+            color: var(--text-main);
+            text-align: center;
+            padding: 20px 16px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Top Navigation Bar and Buttons */
+        .top-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto 25px auto;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 0.95rem;
+            box-shadow: var(--shadow);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Home Button Style */
+        .home-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.25s ease;
+            box-shadow: var(--shadow);
+            text-decoration: none;
+        }
+
+        .home-btn:hover {
+            background: #f1f5f9;
+            color: var(--text-main);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Modern Dashboard Card Container */
+        .editor-box {
+            background: var(--bg-card);
+            padding: 40px 30px;
+            border-radius: 24px;
+            display: inline-block;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            text-align: left;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .editor-box:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 6px;
+            color: var(--text-main);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* Drag & Drop Upload Area */
+        .upload-area {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 45px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f0fdf4;
+            border-color: var(--success-color);
+            transform: scale(1.005);
+        }
+
+        .upload-area.dragover {
+            background: #e8f5e9;
+            border-color: var(--success-color);
+        }
+
+        .upload-icon {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            display: block;
+            transition: transform 0.2s ease;
+        }
+        .upload-area:hover .upload-icon {
+            transform: translateY(-4px);
+        }
+
+        .upload-area h3 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        #pdfFileInput, #imageInput {
+            display: none;
+        }
+
+        /* Image Upload Button for Cropper */
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 28px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .custom-file-upload:hover {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        /* Control Panel Buttons */
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button, .home-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-toggle { background: #ff9f43; color: white; }
+        .btn-toggle:hover:not(:disabled) { background: #f39c12; }
+        .btn-toggle.active { background: #e67e22; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        .btn-view { background: #64748b; color: white; }
+        .btn-view:hover:not(:disabled) { background: #475569; }
+
+        .btn-pdf, .btn-success { background: var(--success-color); color: white; }
+        .btn-pdf:hover:not(:disabled), .btn-success:hover:not(:disabled) { background: var(--success-hover); }
+
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+
+        button:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        p.status {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            margin: 12px 0;
+            text-align: center;
+        }
+
+        /* File List Management UI */
+        .file-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .file-tag .remove {
+            cursor: pointer;
+            color: var(--danger-color);
+            font-weight: bold;
+            margin-left: 4px;
+            transition: color 0.2s;
+        }
+        .file-tag .remove:hover { color: var(--danger-hover); }
+
+        /* Processing Progress Bar */
+        .progress-container { margin: 15px 0; display: none; }
+        .progress-container.active { display: block; }
+        .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .progress-bar .fill { height: 100%; background: var(--primary-color); width: 0%; transition: width 0.2s ease; }
+
+        /* Grid Selection and Layout for Extracted Images */
+        .preview-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .preview-header h3 { font-size: 1.15rem; color: var(--text-main); font-weight: 600; }
+        .preview-header .badge {
+            background: #e0f2fe;
+            color: var(--primary-color);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: bold;
+        }
+
+        .selection-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 18px;
+            margin-top: 15px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: all 0.25s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-color);
+        }
+
+        .image-card img { width: 100%; height: 145px; object-fit: cover; display: block; }
+
+        .image-card .checkbox-wrapper {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .image-card .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .image-card .info { padding: 12px; text-align: left; }
+        .image-card .info .name { font-weight: 600; color: var(--text-main); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .image-card .info .details { color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; }
+        .image-card.selected { border-color: var(--primary-color); box-shadow: 0 0 0 2px var(--primary-color); }
+
+        .empty-state { text-align: center; padding: 45px 20px; color: var(--text-muted); }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.7; }
+
+        /* Canvas Workspace Area */
+        #canvas-container {
+            position: relative;
+            margin: 20px auto 0 auto;
+            border: 2px solid var(--border-color);
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        canvas { max-width: 100%; height: auto; display: block; background: #fafafa; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .top-navbar, .controls { flex-direction: column; align-items: stretch; }
+            .tabs-nav { flex-direction: column; }
+            button, .tab-btn, .home-btn { width: 100%; justify-content: center; }
+            .editor-box { text-align: center; }
+            .image-card .info { text-align: center; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="top-navbar">
+            <a href="Control_Excel.html" class="home-btn">🏠 Return Home</a>
+            <div class="tabs-nav">
+                <button id="navBtnPdf" class="tab-btn active" onclick="switchTab('tab-pdf2img')">🖼️ Convert PDF to Images</button>
+                <button id="navBtnCrop" class="tab-btn" onclick="switchTab('tab-crop')">✂️ Convert Images to PDF</button>
+            </div>
+        </div>
+
+        <div id="tab-pdf2img" class="tab-content active">
+            <div class="editor-box">
+                <h2>PDF to Image Converter</h2>
+                <p class="subtitle">Extract pages dynamically and convert them into high-quality images automatically upon upload</p>
+
+                <div class="upload-area" id="uploadArea">
+                    <span class="upload-icon">📂</span>
+                    <h3>Drag & Drop your PDF file here</h3>
+                    <p>or click to browse and select files from your device</p>
+                    <input type="file" id="pdfFileInput" accept=".pdf" multiple />
+                </div>
+
+                <div id="fileList" style="display: none;" class="file-list"></div>
+
+                <div class="controls">
+                    <button class="btn btn-success" id="downloadSelectedBtn" disabled>
+                        📥 Download Selected Images
+                    </button>
+                    <button class="btn btn-danger" id="clearBtn" disabled>
+                        🗑 Clear All Data
+                    </button>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="fill" id="progressFill"></div>
+                    </div>
+                    <p class="status" id="progressText">Initializing proactive processing...</p>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-header">
+                        <h3>🖼️ Instant Preview Board</h3>
+                        <span class="badge" id="imageCount">0 Images Extracted</span>
+                    </div>
+
+                    <div class="selection-controls" id="selectionControls" style="display: none;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem; margin-right: 10px;">Selection Actions:</span>
+                        <button class="btn-sm" onclick="selectAllImages()">Select All</button>
+                        <button class="btn-sm" onclick="deselectAllImages()">Deselect All</button>
+                        <span style="color: var(--primary-color); font-size: 0.85rem; font-weight: 600; margin-left: auto;" id="selectedCount">0 Images Selected</span>
+                    </div>
+
+                    <div id="previewContent">
+                        <div class="empty-state">
+                            <div class="icon">✨</div>
+                            <p>The platform is ready and waiting for your files</p>
+                            <p style="font-size:0.8rem; margin-top:5px;">Once you upload a PDF, the extracted pages will appear here directly.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-crop" class="tab-content">
+            <div class="editor-box" style="text-align: center;">
+                <h2>Smart Toggle Crop PDF</h2>
+                <p class="subtitle">Control the dimensions of image corners dynamically and save them as a custom PDF document</p>
+
+                <label for="imageInput" class="custom-file-upload">
+                    🖼️ Upload Image to Start Editing
+                </label>
+                <input type="file" id="imageInput" accept="image/*">
+
+                <div>
+                    <div id="canvas-container">
+                        <canvas id="mainCanvas"></canvas>
+                    </div>
+                </div>
+
+                <p id="statusMsg" class="status">Please select an image to display it on the control and cropping board</p>
+
+                <div class="controls" style="margin-top: 25px;">
+                    <button id="toggleBtn" class="btn-toggle" disabled>Enable Crop Tool</button>
+                    <button id="viewBtn" class="btn-view" disabled>👁️ Preview Document</button>
+                    <button id="downloadBtn" class="btn-pdf" disabled>📥 Download as PDF Document</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth tab switching utility
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            if(tabId === 'tab-pdf2img') document.getElementById('navBtnPdf').classList.add('active');
+            if(tabId === 'tab-crop') document.getElementById('navBtnCrop').classList.add('active');
+        }
+
+        // ================= PDF to Image Utility Engine =================
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        let convertedImages = [];
+        let currentFiles = [];
+        let isConverting = false;
+        let selectedIndices = new Set();
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('pdfFileInput');
+        const fileList = document.getElementById('fileList');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewContent = document.getElementById('previewContent');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const imageCount = document.getElementById('imageCount');
+        const selectionControls = document.getElementById('selectionControls');
+        const selectedCount = document.getElementById('selectedCount');
+
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') fileInput.click();
+        });
+
+        fileInput.addEventListener('change', handleFiles);
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFiles({ target: fileInput });
+            }
+        });
+
+        function handleFiles(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            const newFiles = Array.from(files);
+            for (const file of newFiles) {
+                if (!currentFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    currentFiles.push(file);
+                }
+            }
+
+            updateFileList();
+            clearBtn.disabled = false;
+            convertPDFsToImages();
+        }
+
+        function updateFileList() {
+            if (currentFiles.length === 0) {
+                fileList.style.display = 'none';
+                return;
+            }
+            fileList.style.display = 'flex';
+            fileList.innerHTML = currentFiles.map((file, index) => `
+                <span class="file-tag">
+                    📎 ${file.name}
+                    <span class="remove" onclick="removeFile(${index})">✕</span>
+                </span>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            currentFiles.splice(index, 1);
+            updateFileList();
+            if (currentFiles.length === 0) {
+                clearBtn.disabled = true;
+                downloadSelectedBtn.disabled = true;
+            }
+            const dt = new DataTransfer();
+            currentFiles.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+        }
+
+        async function convertPDFsToImages() {
+            if (isConverting || currentFiles.length === 0) return;
+
+            isConverting = true;
+            convertedImages = [];
+            selectedIndices = new Set();
+            let totalImages = 0;
+
+            progressContainer.classList.add('active');
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Analyzing and extracting documentation parameters...';
+            previewContent.innerHTML = '';
+            selectionControls.style.display = 'none';
+
+            try {
+                const allImages = [];
+
+                for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
+                    const file = currentFiles[fileIndex];
+                    const progressStart = (fileIndex / currentFiles.length) * 100;
+                    const progressEnd = ((fileIndex + 1) / currentFiles.length) * 100;
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const pageCount = pdf.numPages;
+
+                    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 2.0 });
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport,
+                            background: 'white'
+                        }).promise;
+
+                        const imageDataUrl = canvas.toDataURL('image/png');
+                        const blob = await dataURLToBlob(imageDataUrl);
+
+                        const imageObj = {
+                            fileName: file.name.replace('.pdf', ''),
+                            pageNumber: pageNum,
+                            totalPages: pageCount,
+                            dataUrl: imageDataUrl,
+                            blob: blob,
+                            width: viewport.width,
+                            height: viewport.height,
+                            index: allImages.length
+                        };
+
+                        allImages.push(imageObj);
+                        totalImages++;
+
+                        const pageProgress = progressStart + ((pageNum / pageCount) * (progressEnd - progressStart));
+                        progressFill.style.width = `${pageProgress}%`;
+                        progressText.textContent = `Processing page ${pageNum} of ${pageCount} - ${file.name}`;
+                    }
+
+                    convertedImages = allImages;
+                    showPreview(allImages);
+                }
+
+                imageCount.textContent = `${totalImages} Images Extracted`;
+                selectionControls.style.display = 'flex';
+                progressText.textContent = '✅ Page extraction successfully completed!';
+
+                setTimeout(() => { progressContainer.classList.remove('active'); }, 1500);
+
+            } catch (error) {
+                console.error(error);
+                progressText.textContent = '❌ An error occurred during conversion: ' + error.message;
+            }
+
+            isConverting = false;
+        }
+
+        function dataURLToBlob(dataURL) {
+            return new Promise((resolve) => {
+                const arr = dataURL.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) { u8arr[n] = bstr.charCodeAt(n); }
+                resolve(new Blob([u8arr], { type: mime }));
+            });
+        }
+
+        function showPreview(images) {
+            if (!images || images.length === 0) {
+                previewContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🖼️</div>
+                        <p>No images to display currently</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="images-grid">';
+            images.forEach((img) => {
+                const isChecked = selectedIndices.has(img.index) ? 'checked' : '';
+                html += `
+                    <div class="image-card ${isChecked ? 'selected' : ''}" data-index="${img.index}">
+                        <div class="image-wrapper">
+                            <img src="${img.dataUrl}" alt="Page ${img.pageNumber}" loading="lazy" />
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" class="image-checkbox" data-index="${img.index}" ${isChecked} onchange="toggleImageSelection(${img.index})" />
+                            </div>
+                        </div>
+                        <div class="info">
+                            <div class="name">${img.fileName}</div>
+                            <div class="details">Page ${img.pageNumber} / ${img.totalPages}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            previewContent.innerHTML = html;
+            updateSelectedCount();
+        }
+
+        function toggleImageSelection(index) {
+            if (selectedIndices.has(index)) selectedIndices.delete(index);
+            else selectedIndices.add(index);
+            
+            const card = document.querySelector(`.image-card[data-index="${index}"]`);
+            if (card) card.classList.toggle('selected', selectedIndices.has(index));
+            updateSelectedCount();
+        }
+
+        function selectAllImages() {
+            convertedImages.forEach(img => selectedIndices.add(img.index));
+            document.querySelectorAll('.image-checkbox').forEach(cb => {
+                cb.checked = true;
+                const card = cb.closest('.image-card');
+                if (card) card.classList.add('selected');
+            });
+            updateSelectedCount();
+        }
+
+        function deselectAllImages() {
+            selectedIndices.clear();
+            document.querySelectorAll('.image-checkbox').forEach(cb => {
+                cb.checked = false;
+                const card = cb.closest('.image-card');
+                if (card) card.classList.remove('selected');
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedIndices.size;
+            selectedCount.textContent = `${count} Images Selected`;
+            downloadSelectedBtn.disabled = count === 0;
+        }
+
+        function downloadSelectedDirectly() {
+            if (selectedIndices.size === 0) return;
+            const selectedImages = convertedImages.filter(img => selectedIndices.has(img.index));
+            
+            selectedImages.forEach((img, idx) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = img.dataUrl;
+                    link.download = `${img.fileName}_Page_${img.pageNumber}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, idx * 250); 
+            });
+        }
+
+        function clearAll(confirmRequired = true) {
+            if (confirmRequired && (convertedImages.length > 0 || currentFiles.length > 0)) {
+                if (!confirm('Are you sure you want to clear all current session data?')) return;
+            }
+            convertedImages = [];
+            currentFiles = [];
+            selectedIndices = new Set();
+            fileInput.value = '';
+            fileList.style.display = 'none';
+            fileList.innerHTML = '';
+            downloadSelectedBtn.disabled = true;
+            clearBtn.disabled = true;
+            selectionControls.style.display = 'none';
+            imageCount.textContent = '0 Images Extracted';
+            previewContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">✨</div>
+                    <p>The platform is ready and waiting for your files</p>
+                    <p style="font-size:0.8rem; margin-top:5px;">Once you upload a PDF, the extracted pages will appear here directly.</p>
+                </div>
+            `;
+            progressContainer.classList.remove('active');
+        }
+
+        downloadSelectedBtn.addEventListener('click', downloadSelectedDirectly);
+        clearBtn.addEventListener('click', () => clearAll(true));
+
+
+        // ================= Smart Toggle Crop Canvas Module =================
+        const { jsPDF } = window.jspdf;
+        const cropCanvas = document.getElementById('mainCanvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        let cropImg = new Image();
+        let points = [];
+        let draggingIndex = null;
+        let isCropEnabled = false;
+
+        imageInput.onchange = (e) => {
+            if(!e.target.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = (f) => { cropImg.src = f.target.result; };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        cropImg.onload = () => {
+            cropCanvas.width = cropImg.width;
+            cropCanvas.height = cropImg.height;
+            const w = cropImg.width; const h = cropImg.height;
+            points = [
+                { x: w * 0.1, y: h * 0.1 }, { x: w * 0.9, y: h * 0.1 },
+                { x: w * 0.9, y: h * 0.9 }, { x: w * 0.1, y: h * 0.9 }
+            ];
+            renderCrop();
+            toggleBtn.disabled = false;
+            document.getElementById('viewBtn').disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+            statusMsg.innerText = "Canvas initialized successfully. The crop bounds selection tool is currently inactive; full dimensions will export.";
+        };
+
+        toggleBtn.onclick = () => {
+            isCropEnabled = !isCropEnabled;
+            toggleBtn.innerText = isCropEnabled ? "Disable Crop Selection" : "Enable Crop Tool";
+            toggleBtn.classList.toggle('active', isCropEnabled);
+            statusMsg.innerText = isCropEnabled ? "Interactively move the blue boundary anchor nodes to clip frame elements explicitly." : "Crop selection tool disabled; document will save at default scale properties.";
+            renderCrop();
+        };
+
+        function renderCrop() {
+            cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+            cropCtx.drawImage(cropImg, 0, 0);
+
+            if (isCropEnabled) {
+                // Drawing frame lines
+                cropCtx.strokeStyle = "#2563eb";
+                cropCtx.lineWidth = Math.max(3, cropImg.width / 250);
+                cropCtx.beginPath();
+                cropCtx.moveTo(points[0].x, points[0].y);
+                points.forEach(p => cropCtx.lineTo(p.x, p.y));
+                cropCtx.closePath();
+                cropCtx.stroke();
+
+                // Drawing control vector points
+                points.forEach(p => {
+                    cropCtx.fillStyle = "#2563eb";
+                    cropCtx.strokeStyle = "#ffffff";
+                    cropCtx.lineWidth = 2;
+                    cropCtx.beginPath();
+                    cropCtx.arc(p.x, p.y, cropImg.width / 55, 0, Math.PI * 2);
+                    cropCtx.fill();
+                    cropCtx.stroke();
+                });
+            }
+        }
+
+        cropCanvas.onmousedown = (e) => {
+            if (!isCropEnabled) return;
+            const rect = cropCanvas.getBoundingClientRect();
+            const scale = cropCanvas.width / rect.width;
+            const mx = (e.clientX - rect.left) * scale;
+            const my = (e.clientY - rect.top) * scale;
+            points.forEach((p, i) => {
+                if (Math.hypot(p.x - mx, p.y - my) < cropImg.width / 20) draggingIndex = i;
+            });
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (draggingIndex === null) return;
+            const rect = cropCanvas.getBoundingClientRect();
+            const scale = cropCanvas.width / rect.width;
+            points[draggingIndex].x = (e.clientX - rect.left) * scale;
+            points[draggingIndex].y = (e.clientY - rect.top) * scale;
+            renderCrop();
+        });
+
+        window.addEventListener('mouseup', () => draggingIndex = null);
+
+        function generatePDF(action) {
+            let finalW, finalH, finalData;
+
+            if (isCropEnabled) {
+                const minX = Math.min(...points.map(p => p.x));
+                const minY = Math.min(...points.map(p => p.y));
+                const maxX = Math.max(...points.map(p => p.x));
+                const maxY = Math.max(...points.map(p => p.y));
+                finalW = maxX - minX;
+                finalH = maxY - minY;
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = finalW;
+                tempCanvas.height = finalH;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                tempCtx.beginPath();
+                tempCtx.moveTo(points[0].x - minX, points[0].y - minY);
+                points.forEach(p => tempCtx.lineTo(p.x - minX, p.y - minY));
+                tempCtx.closePath();
+                tempCtx.clip();
+                tempCtx.drawImage(cropImg, -minX, -minY);
+                finalData = tempCanvas.toDataURL('image/png');
+            } else {
+                finalW = cropImg.width;
+                finalH = cropImg.height;
+                finalData = cropImg.src;
+            }
+
+            const pdf = new jsPDF({
+                orientation: finalW > finalH ? 'l' : 'p',
+                unit: 'px',
+                format: [finalW, finalH]
+            });
+
+            pdf.addImage(finalData, 'PNG', 0, 0, finalW, finalH);
+
+            if (action === 'view') window.open(pdf.output('bloburl'), '_blank');
+            else pdf.save("document_cropped.pdf");
+        }
+
+        function resetCropTool() {
+            cropImg = new Image();
+            points = [];
+            isCropEnabled = false;
+            imageInput.value = '';
+            toggleBtn.innerText = "Enable Crop Tool";
+            toggleBtn.classList.remove('active');
+            toggleBtn.disabled = true;
+            document.getElementById('viewBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
+            statusMsg.innerText = "Please select an image to display it on the control and cropping board";
+            cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+        }
+
+        document.getElementById('viewBtn').onclick = () => generatePDF('view');
+        document.getElementById('downloadBtn').onclick = () => generatePDF('download');
+
+        // Global function bindings
+        window.removeFile = removeFile;
+        window.toggleImageSelection = toggleImageSelection;
+        window.selectAllImages = selectAllImages;
+        window.deselectAllImages = deselectAllImages;
+    </script>
+</body>
+</html>
