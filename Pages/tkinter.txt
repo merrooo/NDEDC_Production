@@ -1,0 +1,1054 @@
+import flet as ft
+from flet import (
+    Page, View, AppBar, Row, Column, Container, Text, 
+    Icon, icons, colors, theme, Theme, ElevatedButton,
+    TextField, ListView, ListTile, Divider, ProgressBar,
+    Tabs, Tab, Card, GridView, Image, BorderRadius,
+    Dropdown, dropdown, AlertDialog, TextButton,
+    NavigationRail, NavigationRailDestination, padding,
+    Stack, CircleAvatar, SnackBar, ProgressRing
+)
+import os
+import webbrowser
+from pathlib import Path
+import platform
+import threading
+from datetime import datetime
+import shutil
+import psutil
+import json
+import asyncio
+import subprocess
+
+class PCNavigatorFlet:
+    def __init__(self, page: Page):
+        self.page = page
+        self.page.title = "PC Navigator & Web Hub Pro"
+        self.page.theme_mode = "dark"
+        self.page.padding = 0
+        self.page.spacing = 0
+        self.page.window_width = 1400
+        self.page.window_height = 900
+        self.page.window_min_width = 1000
+        self.page.window_min_height = 600
+        
+        # Custom colors
+        self.colors = {
+            'primary': ft.colors.BLUE_700,
+            'secondary': ft.colors.BLUE_GREY_700,
+            'background': ft.colors.GREY_900,
+            'surface': ft.colors.GREY_800,
+            'success': ft.colors.GREEN_700,
+            'warning': ft.colors.AMBER_700,
+            'danger': ft.colors.RED_700,
+        }
+        
+        # State
+        self.current_path = Path.home()
+        self.history = []
+        self.history_index = -1
+        self.favorites_file = Path.home() / '.flet_navigator_favorites.json'
+        self.favorites = self.load_favorites()
+        self.selected_index = 0
+        self.files_list = []
+        self.search_platform = "google"
+        self.is_loading = False
+        
+        # UI Components
+        self.file_list_view = None
+        self.path_text = None
+        self.status_text = None
+        self.progress_bar = None
+        self.search_field = None
+        self.drives_column = None
+        self.quick_access_column = None
+        
+        # Setup UI
+        self.setup_ui()
+        
+        # Load initial directory
+        self.page.run_task(self.load_directory, self.current_path)
+        
+        # Start system monitoring
+        self.page.run_task(self.update_system_stats)
+    
+    def load_favorites(self):
+        """Load favorites from file"""
+        try:
+            if self.favorites_file.exists():
+                with open(self.favorites_file, 'r') as f:
+                    return json.load(f)
+        except:
+            pass
+        return []
+    
+    def save_favorites(self):
+        """Save favorites to file"""
+        try:
+            with open(self.favorites_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except:
+            pass
+    
+    def get_drives(self):
+        """Get all available drives"""
+        drives = []
+        for partition in psutil.disk_partitions():
+            try:
+                usage = psutil.disk_usage(partition.mountpoint)
+                drives.append({
+                    'path': partition.mountpoint,
+                    'name': f"{partition.mountpoint} ({partition.fstype})",
+                    'total': usage.total,
+                    'used': usage.used,
+                    'free': usage.free,
+                    'percent': usage.percent
+                })
+            except:
+                pass
+        return drives
+    
+    def setup_ui(self):
+        """Setup the main UI"""
+        
+        # Main layout
+        self.page.add(
+            Row(
+                [
+                    # Sidebar Navigation
+                    Container(
+                        content=self.create_sidebar(),
+                        width=320,
+                        bgcolor=self.colors['surface'],
+                        padding=10,
+                    ),
+                    
+                    # Main Content
+                    Container(
+                        content=self.create_main_content(),
+                        expand=True,
+                        bgcolor=self.colors['background'],
+                        padding=20,
+                    ),
+                ],
+                expand=True,
+            )
+        )
+        
+        # Status Bar
+        self.page.add(
+            Container(
+                content=self.create_status_bar(),
+                bgcolor=self.colors['surface'],
+                padding=ft.padding.symmetric(horizontal=20, vertical=8),
+            )
+        )
+    
+    def create_sidebar(self):
+        """Create sidebar navigation"""
+        return Column(
+            [
+                # App Title
+                Container(
+                    content=Row(
+                        [
+                            Icon(ft.icons.COMPUTER, color=self.colors['primary'], size=30),
+                            Text("PC Navigator Pro", size=20, weight="bold"),
+                        ],
+                        alignment="center",
+                    ),
+                    padding=padding.only(bottom=20),
+                ),
+                
+                # Quick Actions
+                Row(
+                    [
+                        ElevatedButton(
+                            "New Folder",
+                            icon=ft.icons.CREATE_NEW_FOLDER,
+                            on_click=self.create_new_folder,
+                            style=ft.ButtonStyle(
+                                bgcolor=self.colors['primary'],
+                                padding=15,
+                            ),
+                            expand=True,
+                        ),
+                        ElevatedButton(
+                            "Refresh",
+                            icon=ft.icons.REFRESH,
+                            on_click=lambda e: self.page.run_task(self.refresh_current),
+                            style=ft.ButtonStyle(
+                                bgcolor=self.colors['secondary'],
+                                padding=15,
+                            ),
+                            expand=True,
+                        ),
+                    ],
+                ),
+                
+                Divider(height=20),
+                
+                # Tabs for navigation sections
+                Tabs(
+                    selected_index=0,
+                    animation_duration=300,
+                    tabs=[
+                        Tab(
+                            text="Drives",
+                            icon=ft.icons.STORAGE,
+                            content=Container(
+                                content=self.create_drives_section(),
+                                padding=10,
+                            ),
+                        ),
+                        Tab(
+                            text="Quick Access",
+                            icon=ft.icons.STAR_OUTLINE,
+                            content=Container(
+                                content=self.create_quick_access_section(),
+                                padding=10,
+                            ),
+                        ),
+                        Tab(
+                            text="Favorites",
+                            icon=ft.icons.FAVORITE,
+                            content=Container(
+                                content=self.create_favorites_section(),
+                                padding=10,
+                            ),
+                        ),
+                    ],
+                    expand=True,
+                ),
+            ],
+        )
+    
+    def create_drives_section(self):
+        """Create drives section"""
+        self.drives_column = Column(scroll="auto", spacing=10)
+        return self.drives_column
+    
+    def create_quick_access_section(self):
+        """Create quick access section"""
+        self.quick_access_column = Column(scroll="auto", spacing=5)
+        return self.quick_access_column
+    
+    def create_favorites_section(self):
+        """Create favorites section"""
+        return Column(
+            [
+                Container(
+                    content=Column(
+                        [
+                            ListTile(
+                                leading=Icon(ft.icons.FOLDER),
+                                title=Text(Path(fav).name or fav),
+                                subtitle=Text(fav, size=10),
+                                on_click=lambda e, p=fav: self.page.run_task(self.load_directory, Path(p)),
+                            )
+                            for fav in self.favorites
+                        ] if self.favorites else [
+                            Text("No favorites yet", color=ft.colors.GREY_400)
+                        ]
+                    ),
+                )
+            ],
+            scroll="auto",
+        )
+    
+    def create_main_content(self):
+        """Create main content area"""
+        return Column(
+            [
+                # Navigation Bar
+                self.create_navigation_bar(),
+                
+                # Address Bar
+                self.create_address_bar(),
+                
+                # File Browser
+                Container(
+                    content=self.create_file_browser(),
+                    expand=True,
+                    bgcolor=self.colors['surface'],
+                    border_radius=10,
+                    padding=10,
+                ),
+            ],
+            spacing=10,
+            expand=True,
+        )
+    
+    def create_navigation_bar(self):
+        """Create navigation bar"""
+        return Container(
+            content=Row(
+                [
+                    # Navigation buttons
+                    Row(
+                        [
+                            IconButton(
+                                icon=ft.icons.ARROW_BACK,
+                                on_click=self.go_back,
+                                tooltip="Back",
+                            ),
+                            IconButton(
+                                icon=ft.icons.ARROW_FORWARD,
+                                on_click=self.go_forward,
+                                tooltip="Forward",
+                            ),
+                            IconButton(
+                                icon=ft.icons.ARROW_UPWARD,
+                                on_click=self.go_up,
+                                tooltip="Up",
+                            ),
+                        ],
+                    ),
+                    
+                    # Search in current folder
+                    TextField(
+                        hint_text="Search in current folder...",
+                        prefix_icon=ft.icons.SEARCH,
+                        expand=True,
+                        height=40,
+                        border_radius=20,
+                        on_submit=self.search_in_folder,
+                    ),
+                    
+                    # View options
+                    Row(
+                        [
+                            IconButton(
+                                icon=ft.icons.VIEW_LIST,
+                                on_click=lambda e: self.change_view("list"),
+                                tooltip="List View",
+                            ),
+                            IconButton(
+                                icon=ft.icons.VIEW_MODULE,
+                                on_click=lambda e: self.change_view("grid"),
+                                tooltip="Grid View",
+                            ),
+                        ],
+                    ),
+                ],
+                alignment="spaceBetween",
+            ),
+            padding=padding.only(bottom=10),
+        )
+    
+    def create_address_bar(self):
+        """Create address bar"""
+        return Container(
+            content=Row(
+                [
+                    Icon(ft.icons.FOLDER_OPEN, color=self.colors['primary']),
+                    self.path_text := Text(
+                        str(self.current_path),
+                        expand=True,
+                        overflow="ellipsis",
+                    ),
+                    IconButton(
+                        icon=ft.icons.CONTENT_COPY,
+                        on_click=self.copy_path,
+                        tooltip="Copy path",
+                    ),
+                    IconButton(
+                        icon=ft.icons.FAVORITE_BORDER,
+                        on_click=self.add_to_favorites,
+                        tooltip="Add to favorites",
+                    ),
+                ],
+            ),
+            padding=padding.only(bottom=10),
+        )
+    
+    def create_file_browser(self):
+        """Create file browser"""
+        self.file_list_view = ListView(
+            expand=True,
+            spacing=5,
+            padding=10,
+        )
+        return self.file_list_view
+    
+    def create_status_bar(self):
+        """Create status bar"""
+        return Row(
+            [
+                self.status_text := Text("Ready", expand=True),
+                Row(
+                    [
+                        Icon(ft.icons.MEMORY, size=16, color=ft.colors.GREY_400),
+                        Text("CPU: --%", size=12, color=ft.colors.GREY_400),
+                        Container(width=20),
+                        Icon(ft.icons.STORAGE, size=16, color=ft.colors.GREY_400),
+                        Text("RAM: --%", size=12, color=ft.colors.GREY_400),
+                        Container(width=20),
+                        Text(datetime.now().strftime("%H:%M:%S"), size=12, color=ft.colors.GREY_400),
+                    ],
+                ),
+            ],
+            alignment="spaceBetween",
+        )
+    
+    async def load_directory(self, path: Path):
+        """Load directory contents"""
+        try:
+            if not path.exists() or not path.is_dir():
+                return
+            
+            self.is_loading = True
+            self.current_path = path
+            self.path_text.value = str(path)
+            
+            # Add to history
+            if self.history_index < len(self.history) - 1:
+                self.history = self.history[:self.history_index + 1]
+            self.history.append(str(path))
+            self.history_index = len(self.history) - 1
+            
+            # Clear current view
+            self.file_list_view.controls.clear()
+            
+            # Show loading indicator
+            self.file_list_view.controls.append(
+                Container(
+                    content=ProgressRing(),
+                    alignment=ft.alignment.center,
+                    padding=50,
+                )
+            )
+            self.page.update()
+            
+            # Load items
+            items = list(path.iterdir())
+            
+            # Separate and sort
+            folders = sorted([i for i in items if i.is_dir()], key=lambda x: x.name.lower())
+            files = sorted([i for i in items if i.is_file()], key=lambda x: x.name.lower())
+            
+            # Clear loading
+            self.file_list_view.controls.clear()
+            
+            # Add folders
+            for folder in folders:
+                self.file_list_view.controls.append(
+                    self.create_file_item(folder, is_dir=True)
+                )
+            
+            # Add files
+            for file in files:
+                self.file_list_view.controls.append(
+                    self.create_file_item(file, is_dir=False)
+                )
+            
+            # Update drives section
+            await self.update_drives_section()
+            
+            # Update quick access
+            await self.update_quick_access_section()
+            
+            # Update status
+            self.status_text.value = f"📁 {len(folders)} folders, 📄 {len(files)} files"
+            
+        except PermissionError:
+            self.status_text.value = "🔒 Access denied"
+            self.show_snackbar("Access denied to this folder", "error")
+        except Exception as e:
+            self.status_text.value = f"❌ Error: {str(e)}"
+            self.show_snackbar(f"Error: {str(e)}", "error")
+        finally:
+            self.is_loading = False
+            self.page.update()
+    
+    def create_file_item(self, path: Path, is_dir: bool):
+        """Create a file/folder item"""
+        try:
+            # Get file info
+            stat = path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            
+            if is_dir:
+                icon = ft.icons.FOLDER
+                color = ft.colors.AMBER_400
+                size_text = ""
+                file_type = "Folder"
+            else:
+                icon = self.get_file_icon(path)
+                color = ft.colors.BLUE_400
+                size = stat.st_size
+                size_text = self.format_size(size)
+                file_type = path.suffix[1:] if path.suffix else "File"
+            
+            return Container(
+                content=ListTile(
+                    leading=Icon(icon, color=color),
+                    title=Text(path.name),
+                    subtitle=Text(
+                        f"{size_text}  •  {file_type}  •  {modified}",
+                        size=12,
+                        color=ft.colors.GREY_400,
+                    ),
+                    trailing=PopupMenuButton(
+                        icon=ft.icons.MORE_VERT,
+                        items=[
+                            PopupMenuItem(text="Open", on_click=lambda e: self.open_item(path)),
+                            PopupMenuItem(text="Rename", on_click=lambda e: self.rename_item(path)),
+                            PopupMenuItem(text="Delete", on_click=lambda e: self.delete_item(path)),
+                            PopupMenuItem(text="Properties", on_click=lambda e: self.show_properties(path)),
+                            PopupMenuItem(text="Add to Favorites", on_click=lambda e: self.add_to_favorites_path(path)),
+                        ],
+                    ),
+                    on_click=lambda e: self.open_item(path),
+                ),
+                border_radius=8,
+                bgcolor=ft.colors.GREY_800 if is_dir else None,
+                padding=5,
+            )
+        except:
+            return Container(
+                content=ListTile(
+                    leading=Icon(ft.icons.ERROR),
+                    title=Text(path.name),
+                    subtitle=Text("Error loading item", color=ft.colors.RED_400),
+                ),
+                padding=5,
+            )
+    
+    def get_file_icon(self, path: Path):
+        """Get appropriate icon for file type"""
+        ext = path.suffix.lower()
+        icons_map = {
+            '.py': ft.icons.CODE,
+            '.txt': ft.icons.DESCRIPTION,
+            '.md': ft.icons.DESCRIPTION,
+            '.jpg': ft.icons.IMAGE,
+            '.png': ft.icons.IMAGE,
+            '.gif': ft.icons.GIF,
+            '.mp3': ft.icons.AUDIOTRACK,
+            '.wav': ft.icons.AUDIOTRACK,
+            '.mp4': ft.icons.VIDEO_FILE,
+            '.avi': ft.icons.VIDEO_FILE,
+            '.pdf': ft.icons.PICTURE_AS_PDF,
+            '.zip': ft.icons.ARCHIVE,
+            '.rar': ft.icons.ARCHIVE,
+            '.7z': ft.icons.ARCHIVE,
+            '.doc': ft.icons.ARTICLE,
+            '.docx': ft.icons.ARTICLE,
+            '.xls': ft.icons.TABLE_CHART,
+            '.xlsx': ft.icons.TABLE_CHART,
+            '.ppt': ft.icons.SLIDESHOW,
+            '.pptx': ft.icons.SLIDESHOW,
+        }
+        return icons_map.get(ext, ft.icons.INSERT_DRIVE_FILE)
+    
+    def format_size(self, size: int) -> str:
+        """Format file size"""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+    
+    async def update_drives_section(self):
+        """Update drives section"""
+        if self.drives_column:
+            self.drives_column.controls.clear()
+            
+            for drive in self.get_drives():
+                total_gb = drive['total'] / (1024**3)
+                free_gb = drive['free'] / (1024**3)
+                
+                self.drives_column.controls.append(
+                    Container(
+                        content=Column(
+                            [
+                                Row(
+                                    [
+                                        Icon(ft.icons.STORAGE, color=self.colors['primary']),
+                                        Text(drive['name'], weight="bold"),
+                                    ],
+                                ),
+                                Text(f"Free: {free_gb:.1f} GB / {total_gb:.1f} GB", size=12),
+                                ProgressBar(
+                                    value=drive['percent'] / 100,
+                                    bgcolor=ft.colors.GREY_700,
+                                    color=self.get_usage_color(drive['percent']),
+                                    height=8,
+                                ),
+                                Divider(height=10),
+                            ],
+                        ),
+                        padding=10,
+                        border_radius=8,
+                        bgcolor=ft.colors.GREY_800,
+                        on_click=lambda e, p=drive['path']: self.page.run_task(self.load_directory, Path(p)),
+                    )
+                )
+            
+            self.page.update()
+    
+    def get_usage_color(self, percent: float) -> str:
+        """Get color based on usage percentage"""
+        if percent > 90:
+            return self.colors['danger']
+        elif percent > 75:
+            return self.colors['warning']
+        return self.colors['success']
+    
+    async def update_quick_access_section(self):
+        """Update quick access section"""
+        if self.quick_access_column:
+            self.quick_access_column.controls.clear()
+            
+            common_paths = [
+                ("🏠 Home", Path.home()),
+                ("📁 Desktop", Path.home() / "Desktop"),
+                ("📄 Documents", Path.home() / "Documents"),
+                ("⬇️ Downloads", Path.home() / "Downloads"),
+                ("🖼️ Pictures", Path.home() / "Pictures"),
+                ("🎵 Music", Path.home() / "Music"),
+                ("🎬 Videos", Path.home() / "Videos"),
+            ]
+            
+            for name, path in common_paths:
+                if path.exists():
+                    self.quick_access_column.controls.append(
+                        ListTile(
+                            leading=Icon(ft.icons.FOLDER),
+                            title=Text(name),
+                            on_click=lambda e, p=path: self.page.run_task(self.load_directory, p),
+                        )
+                    )
+            
+            self.page.update()
+    
+    def open_item(self, path: Path):
+        """Open a file or folder"""
+        if path.is_dir():
+            self.page.run_task(self.load_directory, path)
+        else:
+            try:
+                os.startfile(path)
+                self.show_snackbar(f"Opened: {path.name}")
+            except Exception as e:
+                self.show_snackbar(f"Error opening file: {str(e)}", "error")
+    
+    def go_back(self, e):
+        """Navigate back"""
+        if self.history_index > 0:
+            self.history_index -= 1
+            self.page.run_task(self.load_directory, Path(self.history[self.history_index]))
+    
+    def go_forward(self, e):
+        """Navigate forward"""
+        if self.history_index < len(self.history) - 1:
+            self.history_index += 1
+            self.page.run_task(self.load_directory, Path(self.history[self.history_index]))
+    
+    def go_up(self, e):
+        """Go to parent directory"""
+        parent = self.current_path.parent
+        if parent != self.current_path:
+            self.page.run_task(self.load_directory, parent)
+    
+    async def refresh_current(self):
+        """Refresh current directory"""
+        await self.load_directory(self.current_path)
+    
+    def copy_path(self, e):
+        """Copy current path to clipboard"""
+        self.page.set_clipboard(str(self.current_path))
+        self.show_snackbar("Path copied to clipboard")
+    
+    def add_to_favorites(self, e):
+        """Add current path to favorites"""
+        path_str = str(self.current_path)
+        if path_str not in self.favorites:
+            self.favorites.append(path_str)
+            self.save_favorites()
+            self.show_snackbar(f"Added to favorites: {self.current_path.name}")
+    
+    def add_to_favorites_path(self, path: Path):
+        """Add specific path to favorites"""
+        path_str = str(path)
+        if path_str not in self.favorites:
+            self.favorites.append(path_str)
+            self.save_favorites()
+            self.show_snackbar(f"Added to favorites: {path.name}")
+    
+    def create_new_folder(self, e):
+        """Create new folder"""
+        def on_submit(e):
+            if name_field.value:
+                try:
+                    new_path = self.current_path / name_field.value
+                    new_path.mkdir()
+                    self.page.run_task(self.refresh_current)
+                    dialog.open = False
+                    self.page.update()
+                    self.show_snackbar(f"Created folder: {name_field.value}")
+                except Exception as ex:
+                    self.show_snackbar(f"Error: {str(ex)}", "error")
+        
+        name_field = TextField(
+            hint_text="Folder name",
+            autofocus=True,
+            on_submit=on_submit,
+        )
+        
+        dialog = AlertDialog(
+            title=Text("Create New Folder"),
+            content=Column([name_field], tight=True, height=50),
+            actions=[
+                TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
+                TextButton("Create", on_click=on_submit),
+            ],
+        )
+        
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+    
+    def close_dialog(self, dialog):
+        """Close dialog"""
+        dialog.open = False
+        self.page.update()
+    
+    def rename_item(self, path: Path):
+        """Rename item"""
+        def on_submit(e):
+            if name_field.value and name_field.value != path.name:
+                try:
+                    new_path = path.parent / name_field.value
+                    path.rename(new_path)
+                    self.page.run_task(self.refresh_current)
+                    dialog.open = False
+                    self.page.update()
+                    self.show_snackbar(f"Renamed to: {name_field.value}")
+                except Exception as ex:
+                    self.show_snackbar(f"Error: {str(ex)}", "error")
+        
+        name_field = TextField(
+            value=path.name,
+            autofocus=True,
+            on_submit=on_submit,
+        )
+        
+        dialog = AlertDialog(
+            title=Text("Rename"),
+            content=Column([name_field], tight=True, height=50),
+            actions=[
+                TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
+                TextButton("Rename", on_click=on_submit),
+            ],
+        )
+        
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+    
+    def delete_item(self, path: Path):
+        """Delete item"""
+        def confirm_delete(e):
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                self.page.run_task(self.refresh_current)
+                dialog.open = False
+                self.page.update()
+                self.show_snackbar(f"Deleted: {path.name}")
+            except Exception as ex:
+                self.show_snackbar(f"Error: {str(ex)}", "error")
+        
+        dialog = AlertDialog(
+            title=Text("Confirm Delete"),
+            content=Text(f"Are you sure you want to delete '{path.name}'?"),
+            actions=[
+                TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
+                TextButton("Delete", on_click=confirm_delete, style=ft.ButtonStyle(color=ft.colors.RED)),
+            ],
+        )
+        
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+    
+    def show_properties(self, path: Path):
+        """Show item properties"""
+        try:
+            stat = path.stat()
+            info = f"Name: {path.name}\n"
+            info += f"Type: {'Folder' if path.is_dir() else 'File'}\n"
+            info += f"Size: {self.format_size(stat.st_size)}\n"
+            info += f"Created: {datetime.fromtimestamp(stat.st_ctime)}\n"
+            info += f"Modified: {datetime.fromtimestamp(stat.st_mtime)}\n"
+            info += f"Path: {path}"
+            
+            dialog = AlertDialog(
+                title=Text("Properties"),
+                content=Text(info),
+                actions=[TextButton("Close", on_click=lambda e: self.close_dialog(dialog))],
+            )
+            
+            self.page.dialog = dialog
+            dialog.open = True
+            self.page.update()
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", "error")
+    
+    def search_in_folder(self, e):
+        """Search in current folder"""
+        query = e.control.value.lower()
+        if not query:
+            return
+        
+        self.file_list_view.controls.clear()
+        self.page.update()
+        
+        try:
+            for item in self.current_path.iterdir():
+                if query in item.name.lower():
+                    self.file_list_view.controls.append(
+                        self.create_file_item(item, item.is_dir())
+                    )
+            
+            self.status_text.value = f"🔍 Search results for: {query}"
+            self.page.update()
+        except Exception as ex:
+            self.show_snackbar(f"Search error: {str(ex)}", "error")
+    
+    def change_view(self, view_type: str):
+        """Change view type"""
+        # Implementation for grid/list view switching
+        self.show_snackbar(f"Switched to {view_type} view")
+    
+    def show_snackbar(self, message: str, type: str = "info"):
+        """Show snackbar message"""
+        color = ft.colors.GREEN if type == "success" else ft.colors.RED if type == "error" else ft.colors.BLUE
+        
+        snackbar = SnackBar(
+            content=Text(message),
+            bgcolor=color,
+            duration=3000,
+        )
+        self.page.snack_bar = snackbar
+        self.page.snack_bar.open = True
+        self.page.update()
+    
+    async def update_system_stats(self):
+        """Update system statistics"""
+        while True:
+            try:
+                cpu_percent = psutil.cpu_percent()
+                memory_percent = psutil.virtual_memory().percent
+                
+                # Update status bar (we'll update it through the page)
+                if hasattr(self, 'status_text'):
+                    # Update CPU/RAM display in status bar
+                    pass
+                
+                await asyncio.sleep(2)
+            except:
+                await asyncio.sleep(5)
+
+
+# Web Search View
+class WebSearchView:
+    def __init__(self, page: Page, navigator: PCNavigatorFlet):
+        self.page = page
+        self.navigator = navigator
+        self.search_field = None
+        self.platform_dropdown = None
+    
+    def build(self):
+        """Build web search view"""
+        return Container(
+            content=Column(
+                [
+                    # Header
+                    Container(
+                        content=Column(
+                            [
+                                Icon(ft.icons.SEARCH, size=64, color=ft.colors.BLUE_400),
+                                Text("Web Search Hub", size=32, weight="bold"),
+                                Text("Search across multiple platforms instantly", size=16, color=ft.colors.GREY_400),
+                            ],
+                            horizontal_alignment="center",
+                        ),
+                        padding=50,
+                    ),
+                    
+                    # Search Platform Selection
+                    Container(
+                        content=Row(
+                            [
+                                self.create_platform_button("Google", "google", ft.icons.G_MOBILEDATA),
+                                self.create_platform_button("YouTube", "youtube", ft.icons.PLAY_CIRCLE),
+                                self.create_platform_button("Bing", "bing", ft.icons.SEARCH),
+                            ],
+                            alignment="center",
+                        ),
+                        padding=20,
+                    ),
+                    
+                    # Search Input
+                    Container(
+                        content=Row(
+                            [
+                                self.search_field := TextField(
+                                    hint_text="Enter your search query...",
+                                    prefix_icon=ft.icons.SEARCH,
+                                    expand=True,
+                                    height=50,
+                                    border_radius=25,
+                                    on_submit=self.perform_search,
+                                ),
+                                ElevatedButton(
+                                    "Search",
+                                    icon=ft.icons.SEARCH,
+                                    on_click=self.perform_search,
+                                    style=ft.ButtonStyle(
+                                        bgcolor=ft.colors.BLUE_700,
+                                        padding=ft.padding.symmetric(horizontal=30, vertical=15),
+                                    ),
+                                    height=50,
+                                ),
+                            ],
+                            spacing=10,
+                        ),
+                        padding=20,
+                    ),
+                    
+                    Divider(height=30),
+                    
+                    # Quick Links
+                    Text("Quick Links", size=20, weight="bold"),
+                    Container(
+                        content=self.create_quick_links_grid(),
+                        padding=20,
+                    ),
+                ],
+                scroll="auto",
+                horizontal_alignment="center",
+            ),
+            expand=True,
+            padding=20,
+        )
+    
+    def create_platform_button(self, text: str, value: str, icon):
+        """Create platform selection button"""
+        return Container(
+            content=Column(
+                [
+                    Icon(icon, size=32, color=ft.colors.BLUE_400 if self.navigator.search_platform == value else ft.colors.GREY_400),
+                    Text(text, size=14),
+                ],
+                horizontal_alignment="center",
+                spacing=5,
+            ),
+            padding=20,
+            border_radius=10,
+            bgcolor=ft.colors.GREY_800 if self.navigator.search_platform == value else ft.colors.GREY_900,
+            on_click=lambda e: self.set_platform(value),
+            width=120,
+        )
+    
+    def set_platform(self, platform: str):
+        """Set search platform"""
+        self.navigator.search_platform = platform
+        self.page.update()
+    
+    def perform_search(self, e):
+        """Perform web search"""
+        query = self.search_field.value.strip()
+        if not query:
+            self.navigator.show_snackbar("Please enter a search term", "warning")
+            return
+        
+        platform = self.navigator.search_platform
+        search_urls = {
+            "google": f"https://www.google.com/search?q={query.replace(' ', '+')}",
+            "youtube": f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}",
+            "bing": f"https://www.bing.com/search?q={query.replace(' ', '+')}",
+        }
+        
+        url = search_urls.get(platform, search_urls["google"])
+        webbrowser.open(url)
+        self.navigator.show_snackbar(f"Searching {platform.capitalize()} for: {query}")
+    
+    def create_quick_links_grid(self):
+        """Create quick links grid"""
+        websites = [
+            ("Google", "https://google.com", ft.icons.G_MOBILEDATA),
+            ("YouTube", "https://youtube.com", ft.icons.PLAY_CIRCLE),
+            ("Gmail", "https://mail.google.com", ft.icons.EMAIL),
+            ("GitHub", "https://github.com", ft.icons.CODE),
+            ("LinkedIn", "https://linkedin.com", ft.icons.BUSINESS),
+            ("Instagram", "https://instagram.com", ft.icons.CAMERA_ALT),
+            ("Twitter", "https://twitter.com", ft.icons.CHAT),
+            ("Spotify", "https://spotify.com", ft.icons.MUSIC_NOTE),
+            ("Netflix", "https://netflix.com", ft.icons.MOVIE),
+            ("Reddit", "https://reddit.com", ft.icons.FORUM),
+            ("Amazon", "https://amazon.com", ft.icons.SHOPPING_CART),
+            ("Wikipedia", "https://wikipedia.org", ft.icons.MENU_BOOK),
+        ]
+        
+        grid = GridView(
+            expand=True,
+            runs_count=4,
+            max_extent=150,
+            child_aspect_ratio=1.0,
+            spacing=10,
+            run_spacing=10,
+        )
+        
+        for name, url, icon in websites:
+            grid.controls.append(
+                Container(
+                    content=Column(
+                        [
+                            Icon(icon, size=32, color=ft.colors.BLUE_400),
+                            Text(name, size=12, text_align="center"),
+                        ],
+                        horizontal_alignment="center",
+                        alignment="center",
+                        spacing=10,
+                    ),
+                    border_radius=10,
+                    bgcolor=ft.colors.GREY_800,
+                    padding=15,
+                    on_click=lambda e, u=url: webbrowser.open(u),
+                )
+            )
+        
+        return grid
+
+
+# Helper class for missing components
+class IconButton(ft.IconButton):
+    def __init__(self, icon, on_click=None, tooltip=None, **kwargs):
+        super().__init__(icon=icon, on_click=on_click, tooltip=tooltip, **kwargs)
+
+
+class PopupMenuItem(ft.PopupMenuItem):
+    def __init__(self, text=None, on_click=None, **kwargs):
+        super().__init__(text=text, on_click=on_click, **kwargs)
+
+
+class PopupMenuButton(ft.PopupMenuButton):
+    def __init__(self, icon=None, items=None, **kwargs):
+        super().__init__(icon=icon, content=Icon(icon) if icon else None, **kwargs)
+        if items:
+            self.items = items
+
+
+def main(page: Page):
+    """Main application entry point"""
+    app = PCNavigatorFlet(page)
+
+
+if __name__ == "__main__":
+    ft.app(target=main)
