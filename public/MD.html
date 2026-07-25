@@ -10,7 +10,23 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        .btn-add-meter {
+            background-color: var(--success, #27ae60);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: 0.3s;
+        }
 
+        .btn-add-meter:hover {
+            background-color: #219150;
+        }
     </style>
 </head>
 
@@ -37,13 +53,11 @@
                     const btn = document.getElementById('dropdownBtn');
                     const menu = document.getElementById('dropdownMenu');
 
-                    // 1. فتح وإغلاق القائمة عند الضغط على الزر
                     btn.addEventListener('click', function (e) {
-                        e.stopPropagation(); // منع انتقال الضغطة للعناصر الأب
+                        e.stopPropagation();
                         menu.classList.toggle('show');
                     });
 
-                    // 2. التنقل بين الصفحات عند الضغط على أي خيار
                     const items = document.querySelectorAll('.dropdown-item');
                     items.forEach(item => {
                         item.addEventListener('click', function () {
@@ -54,7 +68,6 @@
                         });
                     });
 
-                    // 3. إغلاق القائمة تلقائياً إذا ضغطت في أي مكان خارجها
                     window.addEventListener('click', function () {
                         if (menu.classList.contains('show')) {
                             menu.classList.remove('show');
@@ -62,7 +75,6 @@
                     });
                 });
             </script>
-
 
             <h2>⚡ إدارة قاعدة البيانات</h2>
             <div id="customerModeTag" class="mode-tag customer-edit-mode">تعديل البيانات العامة للمشترك</div>
@@ -81,7 +93,7 @@
                     <div class="input-group"><label>الهندسة</label><input id="handsa"></div>
                 </div>
                 <div class="row-flex">
-                    <div class="input-group"><label>معامل القدرة (PF)</label><input id="power_factor"></div>
+                    <div class="input-group"><label>معامل القدرة (PF)</label><input id="power_factor" readonly></div>
                     <div class="input-group"><label>أقصى حمل</label><input id="max_load"></div>
                 </div>
 
@@ -114,12 +126,10 @@
 
             <div class="action-btns">
                 <button id="saveBtn" class="btn-save" onclick="quickSave()">💾 حفظ/تحديث العداد</button>
-                <button id="updateAllBtn" class="btn-update-all" onclick="updateCustomerData()">🔄 تحديث
-                    البيانات
-                    العامة</button>
+                <button id="addMeterBtn" class="btn-add-meter" onclick="addNewMeter()">➕ حفظ عداد جديد</button>
+                <button id="updateAllBtn" class="btn-update-all" onclick="updateCustomerData()">🔄 تحديث البيانات العامة</button>
                 <button class="btn-clear" onclick="clearForm()">🧹 تفريغ الحقول</button>
-                <button class="btn-delete-db" onclick="protectedAction('deleteAll')">🗑️ مسح قاعدة البيانات
-                    بالكامل</button>
+                <button class="btn-delete-db" onclick="protectedAction('deleteAll')">🗑️ مسح قاعدة البيانات بالكامل</button>
             </div>
         </div>
 
@@ -157,6 +167,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
             authDomain: "production1-ae85.firebaseapp.com",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
             projectId: "production1-ae85",
             storageBucket: "production1-ae85.firebasestorage.app",
             messagingSenderId: "490438031865",
@@ -164,19 +175,19 @@
             measurementId: "G-W3TZ1EKWWN"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const dbMD = getDatabase(app);
+        const dbPass = getDatabase(app);
+
         try {
             getAnalytics(app);
         } catch (err) {
             console.warn("Analytics disabled:", err);
         }
-        
-        let allCustomers = {};
-        const ADMIN_PASS = "1"; // كلمة مرور الأدمن
 
-        // --- نظام حماية الأزرار ---
+        let allCustomers = {};
+        const ADMIN_PASS = "1";
+
         window.protectedAction = async function (type) {
             const { value: password } = await Swal.fire({
                 title: 'كلمة المرور مطلوبة',
@@ -219,7 +230,6 @@
             return "";
         }
 
-        // معالجة ملف الإكسيل
         document.getElementById("excelFile").addEventListener("change", function (e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -268,10 +278,15 @@
                 });
 
                 try {
-                    await set(ref(db, "MD/customers"), grouped);
-                    Swal.fire("نجاح", "تم التحديث بنجاح", "success");
+                    await Promise.all([
+                        set(ref(dbPass, "MD_Pass/customers"), grouped),
+                        set(ref(dbMD, "MD/customers"), grouped)
+                    ]);
+                    Swal.fire("نجاح", "تم التحديث بنجاح في القاعدتين", "success");
                     loadDataFromFirebase();
-                } catch (err) { Swal.fire("خطأ", err.message, "error"); }
+                } catch (err) {
+                    Swal.fire("خطأ", err.message, "error");
+                }
             };
             reader.readAsArrayBuffer(file);
         });
@@ -280,9 +295,17 @@
             const grid = document.getElementById("cardsGrid");
             grid.innerHTML = "جاري جلب البيانات...";
             try {
-                const snapshot = await get(ref(db, "MD/customers"));
-                if (snapshot.exists()) {
-                    allCustomers = snapshot.val();
+                const [snapMD, snapPass] = await Promise.all([
+                    get(ref(dbMD, "MD/customers")),
+                    get(ref(dbPass, "MD_Pass/customers"))
+                ]);
+
+                const mdData = snapMD.exists() ? snapMD.val() : {};
+                const passData = snapPass.exists() ? snapPass.val() : {};
+
+                allCustomers = { ...passData, ...mdData };
+
+                if (Object.keys(allCustomers).length > 0) {
                     updateStats();
                     renderCards();
                 } else {
@@ -290,7 +313,10 @@
                     grid.innerHTML = "لا توجد بيانات";
                     updateStats(true);
                 }
-            } catch (e) { grid.innerHTML = "خطأ في الاتصال"; }
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = "خطأ في الاتصال";
+            }
         };
 
         function updateStats(isEmpty = false) {
@@ -310,30 +336,35 @@
         window.deleteAllData = async function () {
             const result = await Swal.fire({
                 title: 'حذف كلي؟',
-                text: "سيتم مسح كل شيء!",
+                text: "سيتم مسح كل شيء من القاعدتين!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e74c3c',
                 confirmButtonText: 'احذف القاعدة'
             });
             if (result.isConfirmed) {
-                await remove(ref(db, "MD/customers"));
+                await Promise.all([
+                    remove(ref(dbMD, "MD/customers")),
+                    remove(ref(dbPass, "MD_Pass/customers"))
+                ]);
                 loadDataFromFirebase();
             }
         };
 
-        // --- وظيفة حذف المشترك بالكامل ---
         window.deleteCustomer = async function (cID) {
             const result = await Swal.fire({
                 title: 'حذف مشترك؟',
-                text: `هل تريد حذف ${allCustomers[cID].metername} وجميع عداداته؟`,
+                text: `هل تريد حذف ${allCustomers[cID]?.metername || cID} وجميع عداداته؟`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'نعم، احذف الكل'
             });
             if (result.isConfirmed) {
-                await remove(ref(db, `MD/customers/${cID}`));
+                await Promise.all([
+                    remove(ref(dbMD, `MD/customers/${cID}`)),
+                    remove(ref(dbPass, `MD_Pass/customers/${cID}`))
+                ]);
                 loadDataFromFirebase();
             }
         };
@@ -347,46 +378,46 @@
                 const card = document.createElement("div");
                 card.className = "grouped-card";
                 card.innerHTML = `
-                    <div class="card-header-main" onclick="fillCustomerEdit('${id}')">
-                        <div>
-                            <span class="customer-title">👤 ${c.metername}</span>
-                            <div class="merged-info-grid">
-                                <div class="info-item">🏗️ القطاع: ${c.keta3}</div>
-                                <div class="info-item">📐 الهندسة: ${c.handsa}</div>
-                                <div class="info-item">📊 معامل القدرة: ${c.power_factor}</div>
-                                <div class="info-item">⚖️ أقصى حمل: ${c.max_load}</div>
-                                <div class="info-item">📅 تاريخ اخر مرور: ${c.passing_date}</div>
-                                <div class="info-item">🔢 عدد العدادات: ${Object.keys(meters).length}</div>
-                            </div>
-                        </div>
-                        <button class="delete-customer-btn" onclick="event.stopPropagation(); deleteCustomer('${id}')">🗑️ حذف المشترك</button>
+            <div class="card-header-main" onclick="fillCustomerEdit('${id}')">
+                <div>
+                    <span class="customer-title">👤 ${c.metername}</span>
+                    <div class="merged-info-grid">
+                        <div class="info-item">🏗️ القطاع: ${c.keta3}</div>
+                        <div class="info-item">📐 الهندسة: ${c.handsa}</div>
+                        <div class="info-item">📊 معامل القدرة: ${c.power_factor}</div>
+                        <div class="info-item">⚖️ أقصى حمل: ${c.max_load}</div>
+                        <div class="info-item">📅 تاريخ اخر مرور: ${c.passing_date}</div>
+                        <div class="info-item">🔢 عدد العدادات: ${Object.keys(meters).length}</div>
                     </div>
-                    <div class="table-wrapper">
-                        <table class="sub-records-table">
-                            <thead><tr>
-                                <th>رقم العداد</th><th>ك وات</th><th>ك فار</th><th>محول جهد</th><th>محول تيار</th><th>الثابت</th><th>المكان</th><th>النوع</th><th>الرفع</th><th>التركيب</th><th>الأطلاق</th><th>ملاحظات</th><th>حذف</th>
-                            </tr></thead>
-                            <tbody>
-                                ${Object.keys(meters).map(mKey => `
-                                    <tr onclick="fillMeterEdit('${id}', '${mKey}')">
-                                        <td><b>${meters[mKey].meternumber}</b></td>
-                                        <td>${meters[mKey].kwh_reading}</td>
-                                        <td>${meters[mKey].kvarh_reading}</td>
-                                        <td>${meters[mKey].vt_ratio}</td>
-                                        <td>${meters[mKey].ct_ratio}</td>
-                                        <td>${meters[mKey].constant}</td>
-                                        <td>${meters[mKey].location}</td>
-                                        <td>${meters[mKey].metertype}</td>
-                                        <td>${meters[mKey].inspection_date}</td>
-                                        <td>${meters[mKey].fix_date}</td>
-                                        <td>${meters[mKey].power_date}</td>
-                                        <td>${meters[mKey].meternotes}</td>
-                                        <td class="delete-btn" onclick="event.stopPropagation(); deleteMeter('${id}', '${mKey}')">🗑️</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>`;
+                </div>
+                <button class="delete-customer-btn" onclick="event.stopPropagation(); deleteCustomer('${id}')">🗑️ حذف المشترك</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="sub-records-table">
+                    <thead><tr>
+                        <th>رقم العداد</th><th>ك وات</th><th>ك فار</th><th>محول جهد</th><th>محول تيار</th><th>الثابت</th><th>المكان</th><th>النوع</th><th>الرفع</th><th>التركيب</th><th>الأطلاق</th><th>ملاحظات</th><th>حذف</th>
+                    </tr></thead>
+                    <tbody>
+                        ${Object.keys(meters).map(mKey => `
+                                <tr onclick="fillMeterEdit('${id}', '${mKey}')">
+                                    <td><b>${meters[mKey].meternumber}</b></td>
+                                    <td>${meters[mKey].kwh_reading}</td>
+                                    <td>${meters[mKey].kvarh_reading}</td>
+                                    <td>${meters[mKey].vt_ratio}</td>
+                                    <td>${meters[mKey].ct_ratio}</td>
+                                    <td>${meters[mKey].constant}</td>
+                                    <td>${meters[mKey].location}</td>
+                                    <td>${meters[mKey].metertype}</td>
+                                    <td>${meters[mKey].inspection_date}</td>
+                                    <td>${meters[mKey].fix_date}</td>
+                                    <td>${meters[mKey].power_date}</td>
+                                    <td>${meters[mKey].meternotes}</td>
+                                    <td class="delete-btn" onclick="event.stopPropagation(); deleteMeter('${id}', '${mKey}')">🗑️</td>
+                                </tr>
+                            `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
                 grid.appendChild(card);
             }
         }
@@ -407,13 +438,13 @@
             document.getElementById("power_factor").value = c.power_factor || "";
             document.getElementById("max_load").value = c.max_load || "";
             document.getElementById("passing_date").value = c.passing_date || "";
-            // show customer-only view and make fixed fields editable for update
             document.getElementById("variableSection").style.display = "none";
             document.querySelectorAll("#fixedSection input, #fixedSection textarea").forEach(i => i.disabled = false);
             document.getElementById("updateAllBtn").disabled = false;
             document.getElementById("customerModeTag").style.display = "block";
             document.getElementById("updateAllBtn").style.display = "block";
             document.getElementById("saveBtn").style.display = "none";
+            document.getElementById("addMeterBtn").style.display = "none";
         };
 
         window.fillMeterEdit = function (cID, mKey) {
@@ -424,19 +455,22 @@
                 Swal.fire("خطأ", "بيانات المشترك غير موجودة", "error");
                 return;
             }
-            const m = c.meters[mKey];
+            const m = c.meters ? c.meters[mKey] : null;
             if (!m) {
                 Swal.fire("خطأ", "بيانات العداد غير موجودة", "error");
                 return;
             }
+
+            // Fill general customer fields
             document.getElementById("mname").value = c.metername || "";
             document.getElementById("keta3").value = c.keta3 || "";
             document.getElementById("handsa").value = c.handsa || "";
             document.getElementById("power_factor").value = c.power_factor || "";
             document.getElementById("max_load").value = c.max_load || "";
             document.getElementById("passing_date").value = c.passing_date || "";
-            document.getElementById("mno").value = m.meternumber || "";
 
+            // Fill meter fields
+            document.getElementById("mno").value = m.meternumber || "";
             document.getElementById("kwh_reading").value = m.kwh_reading || "";
             document.getElementById("kvarh_reading").value = m.kvarh_reading || "";
             document.getElementById("vt_ratio").value = m.vt_ratio || "";
@@ -448,15 +482,18 @@
             document.getElementById("fix_date").value = m.fix_date || "";
             document.getElementById("power_date").value = m.power_date || "";
             document.getElementById("notes").value = m.meternotes || "";
-            // disable fixed fields only, keep variable fields editable
+
+            // Disable general customer input fields to avoid unintended edits during meter modification
             document.querySelectorAll("#fixedSection input, #fixedSection textarea").forEach(i => i.disabled = true);
             document.querySelectorAll("#variableSection input, #variableSection textarea").forEach(i => i.disabled = false);
             document.getElementById("variableSection").style.display = "block";
-            // ensure save is enabled so variable data can be updated
             document.getElementById("saveBtn").disabled = false;
             document.getElementById("meterModeTag").style.display = "block";
+            document.getElementById("saveBtn").style.display = "block";
+            document.getElementById("addMeterBtn").style.display = "block";
         };
 
+        // Quick save / Update existing meter data
         window.quickSave = async function () {
             const mNoRaw = document.getElementById("mno").value.trim();
             if (!mNoRaw || !editIDs.cID) return Swal.fire("تنبيه", "يجب اختيار مشترك وتحديد رقم العداد", "warning");
@@ -476,13 +513,63 @@
                 meternotes: document.getElementById("notes").value
             };
             try {
-                await update(ref(db, `MD/customers/${editIDs.cID}/meters/${finalMKey}`), meterData);
+                await Promise.all([
+                    update(ref(dbMD, `MD/customers/${editIDs.cID}/meters/${finalMKey}`), meterData),
+                    update(ref(dbPass, `MD_Pass/customers/${editIDs.cID}/meters/${finalMKey}`), meterData)
+                ]);
                 Swal.fire("تم", "تم الحفظ بنجاح", "success");
                 loadDataFromFirebase();
                 clearForm();
             } catch (error) {
                 console.error("خطأ في الحفظ:", error);
                 Swal.fire("خطأ", "فشل الحفظ: " + error.message, "error");
+            }
+        };
+
+        // Add brand new meter under the currently selected customer
+        window.addNewMeter = async function () {
+            if (!editIDs.cID) {
+                return Swal.fire("تنبيه", "يرجى اختيار مشترك أولاً من القائمة لإضافة عداد جديد له", "warning");
+            }
+
+            const mNoRaw = document.getElementById("mno").value.trim();
+            if (!mNoRaw) {
+                return Swal.fire("تنبيه", "يرجى إدخال رقم العداد (Key) الجديد", "warning");
+            }
+
+            const newMKey = sanitizeKey(mNoRaw);
+
+            // Check if meter already exists under customer
+            if (allCustomers[editIDs.cID]?.meters?.[newMKey]) {
+                return Swal.fire("تنبيه", "هذا العداد موجود بالفعل للمشترك المصرّح له. استخدم 'حفظ/تحديث العداد' للتعديل عليه.", "warning");
+            }
+
+            const meterData = {
+                meternumber: mNoRaw,
+                kwh_reading: document.getElementById("kwh_reading").value || 0,
+                kvarh_reading: document.getElementById("kvarh_reading").value || 0,
+                vt_ratio: document.getElementById("vt_ratio").value || "",
+                ct_ratio: document.getElementById("ct_ratio").value || "",
+                constant: document.getElementById("constant").value || 1,
+                location: document.getElementById("location").value || "",
+                metertype: document.getElementById("mtype").value || "",
+                inspection_date: document.getElementById("inspection_date").value || "",
+                fix_date: document.getElementById("fix_date").value || "",
+                power_date: document.getElementById("power_date").value || "",
+                meternotes: document.getElementById("notes").value || ""
+            };
+
+            try {
+                await Promise.all([
+                    set(ref(dbMD, `MD/customers/${editIDs.cID}/meters/${newMKey}`), meterData),
+                    set(ref(dbPass, `MD_Pass/customers/${editIDs.cID}/meters/${newMKey}`), meterData)
+                ]);
+                Swal.fire("تم", "تم إضافة العداد الجديد بنجاح", "success");
+                loadDataFromFirebase();
+                clearForm();
+            } catch (error) {
+                console.error("خطأ في إضافة العداد:", error);
+                Swal.fire("خطأ", "فشل في إضافة العداد: " + error.message, "error");
             }
         };
 
@@ -495,7 +582,10 @@
                 confirmButtonText: 'نعم، احذف'
             });
             if (result.isConfirmed) {
-                await remove(ref(db, `MD/customers/${cID}/meters/${mKey}`));
+                await Promise.all([
+                    remove(ref(dbMD, `MD/customers/${cID}/meters/${mKey}`)),
+                    remove(ref(dbPass, `MD_Pass/customers/${cID}/meters/${mKey}`))
+                ]);
                 loadDataFromFirebase();
             }
         };
@@ -505,6 +595,7 @@
                 Swal.fire("تنبيه", "لم يتم تحديد مشترك", "warning");
                 return;
             }
+
             const mname = document.getElementById("mname").value;
             const oldCID = editIDs.cID;
             const newCID = sanitizeKey(mname);
@@ -520,25 +611,48 @@
             };
 
             try {
-                // If name changed (different key), move data to new key
                 if (oldCID !== newCID) {
-                    const oldData = await get(ref(db, `MD/customers/${oldCID}`));
-                    if (oldData.exists()) {
-                        const fullData = { ...oldData.val(), ...updatedInfo };
-                        // Create new record with updated name
-                        await set(ref(db, `MD/customers/${newCID}`), fullData);
-                        // Delete old record
-                        await remove(ref(db, `MD/customers/${oldCID}`));
-                        editIDs.cID = newCID;
+                    const [oldPassData, oldMDData] = await Promise.all([
+                        get(ref(dbPass, `MD_Pass/customers/${oldCID}`)),
+                        get(ref(dbMD, `MD/customers/${oldCID}`))
+                    ]);
+
+                    if (!oldPassData.exists() && !oldMDData.exists()) {
+                        Swal.fire("خطأ", "المشترك غير موجود في قاعدة البيانات", "error");
+                        return;
                     }
+
+                    const dbPassUpdates = {};
+                    const dbMDUpdates = {};
+
+                    if (oldPassData.exists()) {
+                        dbPassUpdates[`MD_Pass/customers/${newCID}`] = { ...oldPassData.val(), ...updatedInfo };
+                        dbPassUpdates[`MD_Pass/customers/${oldCID}`] = null;
+                    }
+
+                    if (oldMDData.exists()) {
+                        dbMDUpdates[`MD/customers/${newCID}`] = { ...oldMDData.val(), ...updatedInfo };
+                        dbMDUpdates[`MD/customers/${oldCID}`] = null;
+                    }
+
+                    await Promise.all([
+                        Object.keys(dbPassUpdates).length ? update(ref(dbPass), dbPassUpdates) : null,
+                        Object.keys(dbMDUpdates).length ? update(ref(dbMD), dbMDUpdates) : null
+                    ]);
+
+                    editIDs.cID = newCID;
+
                 } else {
-                    // Name didn't change, just update existing record
-                    await update(ref(db, `MD/customers/${oldCID}`), updatedInfo);
+                    await Promise.all([
+                        update(ref(dbPass, `MD_Pass/customers/${oldCID}`), updatedInfo),
+                        update(ref(dbMD, `MD/customers/${oldCID}`), updatedInfo)
+                    ]);
                 }
 
                 Swal.fire("تم", "تم تحديث البيانات بنجاح", "success");
                 clearForm();
                 loadDataFromFirebase();
+
             } catch (error) {
                 console.error("خطأ في التحديث:", error);
                 Swal.fire("خطأ", "فشل التحديث: " + error.message, "error");
@@ -553,7 +667,7 @@
             document.getElementById("meterModeTag").style.display = "none";
             document.getElementById("updateAllBtn").style.display = "none";
             document.getElementById("saveBtn").style.display = "block";
-            // re-enable action buttons
+            document.getElementById("addMeterBtn").style.display = "block";
             document.getElementById("updateAllBtn").disabled = false;
             document.getElementById("saveBtn").disabled = false;
         };

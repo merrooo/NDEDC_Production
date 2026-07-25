@@ -115,6 +115,11 @@
             margin-bottom: 25px;
             text-align: center;
             border: 1px solid #ffeeba;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
         #passing_date {
@@ -123,6 +128,24 @@
             border-radius: 8px;
             font-family: 'Cairo';
             font-weight: bold;
+        }
+
+        .btn-unlock-date {
+            background: var(--warning);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: 'Cairo';
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+        }
+
+        .btn-unlock-date:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
         }
 
         .table-wrapper {
@@ -367,12 +390,12 @@
             background: #f8f9fa;
         }
     </style>
+</head>
 
 <body>
     <div class="container">
 
         <div class="input-group" style="margin-bottom: 0;">
-
 
             <div class="modern-dropdown">
                 <button class="dropdown-btn" id="dropdownBtn">
@@ -393,13 +416,11 @@
                     const btn = document.getElementById('dropdownBtn');
                     const menu = document.getElementById('dropdownMenu');
 
-                    // 1. فتح وإغلاق القائمة عند الضغط على الزر
                     btn.addEventListener('click', function (e) {
-                        e.stopPropagation(); // منع انتقال الضغطة للعناصر الأب
+                        e.stopPropagation();
                         menu.classList.toggle('show');
                     });
 
-                    // 2. التنقل بين الصفحات عند الضغط على أي خيار
                     const items = document.querySelectorAll('.dropdown-item');
                     items.forEach(item => {
                         item.addEventListener('click', function () {
@@ -410,7 +431,6 @@
                         });
                     });
 
-                    // 3. إغلاق القائمة تلقائياً إذا ضغطت في أي مكان خارجها
                     window.addEventListener('click', function () {
                         if (menu.classList.contains('show')) {
                             menu.classList.remove('show');
@@ -418,7 +438,6 @@
                     });
                 });
             </script>
-
 
             <h2 style="text-align: center; color: var(--primary);">🔍 تسجيل المرور على كبار المشتركين </h2>
 
@@ -430,8 +449,9 @@
 
             <div id="mainContent" class="hidden">
                 <div class="passing-header">
-                    <label>📅 تاريخ المرور الفعلي:</label>
-                    <input type="date" id="passing_date">
+                    <label style="font-weight: bold;">📅 تاريخ المرور الفعلي:</label>
+                    <input type="date" id="passing_date" readonly>
+                    <button type="button" class="btn-unlock-date" onclick="unlockDateInput()">🔒 تغيير تاريخ المرور</button>
                 </div>
 
                 <div class="section-title">
@@ -445,7 +465,7 @@
                     <div class="info-item"><label>الهندسة:</label><span id="disp_handsa"></span></div>
                     <div class="info-item">
                         <label>معامل القدرة (PF):</label>
-                        <input type="number" step="0.01" id="edit_pf">
+                        <input type="number" step="0.01" id="edit_pf" readonly>
                     </div>
                     <div class="info-item">
                         <label>أقصى حمل:</label>
@@ -504,9 +524,44 @@
                 console.warn("Analytics disabled:", err);
             }
 
-
             let allCustomers = {};
             let selectedCustomerKey = "";
+
+            // دالة إغلاق وتعديل تاريخ المرور باستخدام كلمة المرور
+            window.unlockDateInput = function () {
+                const SECRET_PASS = "123"; // يمكنك تغيير كلمة المرور هنا
+
+                Swal.fire({
+                    title: 'تغيير تاريخ المرور',
+                    input: 'password',
+                    inputLabel: 'أدخل كلمة المرور لتمكين التعديل',
+                    inputPlaceholder: 'كلمة المرور',
+                    inputAttributes: {
+                        autocapitalize: 'off',
+                        autocorrect: 'off'
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'تأكيد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (result.value === SECRET_PASS) {
+                            const dateInput = document.getElementById('passing_date');
+                            dateInput.removeAttribute('readonly');
+                            dateInput.focus();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم فتح خانة التاريخ',
+                                text: 'يمكنك الآن تعديل تاريخ المرور',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('خطأ', 'كلمة المرور غير صحيحة!', 'error');
+                        }
+                    }
+                });
+            };
 
             async function fetchAllForSearch() {
                 const snapshot = await get(ref(db, 'MD/customers'));
@@ -565,7 +620,9 @@
                 `;
                 }
 
-                document.getElementById('passing_date').value = new Date().toISOString().split('T')[0];
+                const dateInput = document.getElementById('passing_date');
+                dateInput.value = new Date().toISOString().split('T')[0];
+                dateInput.setAttribute('readonly', 'readonly'); // إعادة الخاصية عند اختيار مشترك جديد
                 document.getElementById('mainContent').classList.remove('hidden');
             };
 
@@ -581,9 +638,8 @@
                     const mKey = row.getAttribute('data-mkey');
                     const newKwh = row.querySelector('.new-kwh').value;
                     const newKvarh = row.querySelector('.new-kvarh').value;
-                    const note = row.querySelector('.visit-note').value; // جلب الملاحظة من التكست أريا
+                    const note = row.querySelector('.visit-note').value;
 
-                    // 1. بيانات الأرشيف التاريخي (MD_Pass)
                     readingsForPass[mKey] = {
                         meternumber: row.getAttribute('data-mno'),
                         kwh: newKwh || 0,
@@ -591,27 +647,21 @@
                         note: note || ""
                     };
 
-                    // 2. تحديث البيانات الأساسية (MD/customers) للعدادات التي تم إدخال قراءات لها
                     if (newKwh !== "" || newKvarh !== "") {
                         const baseRef = `MD/customers/${selectedCustomerKey}/meters/${mKey}`;
 
                         if (newKwh !== "") updates[`${baseRef}/kwh_reading`] = parseFloat(newKwh);
                         if (newKvarh !== "") updates[`${baseRef}/kvarh_reading`] = parseFloat(newKvarh);
 
-                        // تحديث الملاحظات الفنية للعداد
                         updates[`${baseRef}/meternotes`] = note || "";
-
-                        // تحديث تاريخ آخر معاينة للعداد
                         updates[`${baseRef}/inspection_date`] = passingDate;
                     }
                 });
 
-                // 3. تحديث بيانات المشترك العامة (معامل القدرة وأقصى حمل)
                 updates[`MD/customers/${selectedCustomerKey}/power_factor`] = document.getElementById('edit_pf').value;
                 updates[`MD/customers/${selectedCustomerKey}/max_load`] = document.getElementById('edit_max').value;
                 updates[`MD/customers/${selectedCustomerKey}/passing_date`] = document.getElementById('passing_date').value;
 
-                // تجهيز كائن السجل التاريخي الكامل
                 const historicalRecord = {
                     metername: document.getElementById('disp_name').innerText,
                     visit_date: passingDate,
@@ -626,10 +676,8 @@
                 try {
                     Swal.fire({ title: 'جاري تحديث البيانات ...', didOpen: () => Swal.showLoading() });
 
-                    // حفظ الأرشيف
                     await set(ref(db, `MD_Pass/${selectedCustomerKey}/${passingDate}`), historicalRecord);
 
-                    // تنفيذ كافة التحديثات في جدول المشتركين الأساسي
                     for (let path in updates) {
                         await set(ref(db, path), updates[path]);
                     }

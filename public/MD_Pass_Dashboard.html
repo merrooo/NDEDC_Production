@@ -754,7 +754,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-    import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-analytics.js";
 
     const firebaseConfig = {
@@ -776,47 +776,58 @@
         console.warn("Analytics disabled:", err);
     }
 
-
     let passingData = {};
 
     async function init() {
-        const snap = await get(ref(db, 'MD_Pass'));
-        if (snap.exists()) {
-            passingData = snap.val();
-            const kSet = new Set(), hSet = new Set();
+        try {
+            // 1. Fetch visits directly from MD_Pass/visits
+            let snap = await get(ref(db, 'MD_Pass/visits'));
 
-            // Load from MD_Pass data
-            for (let id in passingData) {
-                for (let d in passingData[id]) {
-                    const v = passingData[id][d];
-                    if (v.keta3) kSet.add(v.keta3);
-                    if (v.handsa) hSet.add(v.handsa);
-                }
+            // Fallback to MD_Pass root if visits child node isn't present
+            if (!snap.exists()) {
+                snap = await get(ref(db, 'MD_Pass'));
             }
 
-            // Also load from MD/customers to include all possible sectors and engineering divisions
-            try {
-                const customerSnap = await get(ref(db, 'MD/customers'));
-                if (customerSnap.exists()) {
-                    const customers = customerSnap.val();
-                    for (let custId in customers) {
-                        const c = customers[custId];
-                        if (c.keta3) kSet.add(c.keta3);
-                        if (c.handsa) hSet.add(c.handsa);
+            if (snap.exists()) {
+                passingData = snap.val();
+                const kSet = new Set(), hSet = new Set();
+
+                // Extract unique Sectors and Engineering divisions from MD_Pass
+                for (let id in passingData) {
+                    if (id === 'customers') continue; // Skip customers node if present in root
+                    for (let d in passingData[id]) {
+                        const v = passingData[id][d];
+                        if (v.keta3) kSet.add(v.keta3);
+                        if (v.handsa) hSet.add(v.handsa);
                     }
                 }
-            } catch (e) {
-                console.warn("فشل تحميل بيانات القطاع والهندسة من MD/customers:", e);
-            }
 
-            const kSel = document.getElementById('filter_keta3');
-            const hSel = document.getElementById('filter_handsa');
-            kSel.innerHTML = '<option value="">الكل</option>';
-            hSel.innerHTML = '<option value="">الكل</option>';
-            [...kSet].sort().forEach(k => kSel.innerHTML += `<option value="${k}">${k}</option>`);
-            [...hSet].sort().forEach(h => hSel.innerHTML += `<option value="${h}">${h}</option>`);
-        } else {
-            console.warn("لا توجد بيانات في MD_Pass");
+                // Populate missing Sectors/Engineering options from MD/customers
+                try {
+                    const customerSnap = await get(ref(db, 'MD/customers'));
+                    if (customerSnap.exists()) {
+                        const customers = customerSnap.val();
+                        for (let custId in customers) {
+                            const c = customers[custId];
+                            if (c.keta3) kSet.add(c.keta3);
+                            if (c.handsa) hSet.add(c.handsa);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("فشل تحميل بيانات القطاع والهندسة من MD/customers:", e);
+                }
+
+                const kSel = document.getElementById('filter_keta3');
+                const hSel = document.getElementById('filter_handsa');
+                kSel.innerHTML = '<option value="">الكل</option>';
+                hSel.innerHTML = '<option value="">الكل</option>';
+                [...kSet].sort().forEach(k => kSel.innerHTML += `<option value="${k}">${k}</option>`);
+                [...hSet].sort().forEach(h => hSel.innerHTML += `<option value="${h}">${h}</option>`);
+            } else {
+                console.warn("لا توجد بيانات زيارات في MD_Pass/visits");
+            }
+        } catch (err) {
+            console.error("خطأ أثناء جلب البيانات:", err);
         }
     }
 
@@ -825,17 +836,14 @@
         XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-    // Parse many common date formats robustly (ISO, DD/MM/YYYY, MM/DD/YYYY, timestamps)
     function parseDateFlexible(raw) {
         if (!raw && raw !== 0) return null;
         const s = String(raw).trim();
-        // numeric timestamp
         if (/^\d+$/.test(s)) {
             const n = Number(s);
             return n > 1e12 ? new Date(n) : new Date(n * 1000);
         }
 
-        // ISO-like (YYYY-MM-DD or YYYY/MM/DD)
         if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) {
             const parts = s.includes('-') ? s.split('-') : s.split('/');
             const y = Number(parts[0]), m = Number(parts[1]) - 1, d = Number(parts[2]);
@@ -843,18 +851,14 @@
             if (!isNaN(dt)) return dt;
         }
 
-        // Common slash formats like DD/MM/YYYY or MM/DD/YYYY
         if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
             const parts = s.split('/').map(p => Number(p));
             let d, m, y;
-            // prefer DD/MM/YYYY (common in many locales)
             if (parts[0] > 12) {
                 d = parts[0]; m = parts[1] - 1; y = parts[2];
             } else if (parts[1] > 12) {
-                // must be MM/DD/YYYY
                 d = parts[1]; m = parts[0] - 1; y = parts[2];
             } else {
-                // ambiguous — assume DD/MM/YYYY
                 d = parts[0]; m = parts[1] - 1; y = parts[2];
             }
             if (y < 100) y += 2000;
@@ -862,7 +866,6 @@
             if (!isNaN(dt)) return dt;
         }
 
-        // Fallback to Date constructor
         const dt = new Date(s);
         return isNaN(dt) ? null : dt;
     }
@@ -874,58 +877,38 @@
         const fH = document.getElementById('filter_handsa').value;
         const fG = document.getElementById('filter_general').value.trim().toLowerCase();
 
-        // allow empty dates to mean "all"
         const hasStart = !!start;
         const hasEnd = !!end;
 
-        let rows = '';            // للعرض في الجدول الرئيسي
-        let masterRows = '';       // للتصدير مع تجميع العملاء
+        let rows = '';
+        let masterRows = '';
         let stats = { keta3: {}, handsa: {} };
         let detailCount = 0;
-
-        // تجميع البيانات للتصدير بشكل منظم
         let exportGroups = [];
 
-        // Parse start/end dates ONCE outside the loop
         const startDateObj = hasStart ? parseDateFlexible(start) : null;
         const endDateObj = hasEnd ? parseDateFlexible(end) : null;
         if (endDateObj) endDateObj.setHours(23, 59, 59, 999);
 
-        let allDates = [];
         for (let subID in passingData) {
-            for (let dateKey in passingData[subID]) {
-                allDates.push(dateKey);
-            }
-        }
-        if (isDelayed) {
-            // debug: console.log('Delayed mode - All dates in DB:', allDates.sort(), 'Start date filter:', start);
-        }
+            if (subID === 'customers') continue;
 
-        for (let subID in passingData) {
             for (let dateKey in passingData[subID]) {
                 const v = passingData[subID][dateKey];
-                // determine record date (prefer explicit passing_date if present)
-                let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                let recordDateRaw = (v && (v.visit_date || v.passing_date || v.passingDate || v.date)) ? (v.visit_date || v.passing_date || v.passingDate || v.date) : dateKey;
                 let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
 
-                if (!recordDate) {
-                    // if we can't parse the date, skip this record to avoid incorrect filtering
-                    continue;
-                }
+                if (!recordDate) continue;
 
                 let match = false;
                 if (isDelayed) {
-                    // Delayed: show ONLY records BEFORE start date (within any end date if set)
                     if (startDateObj) {
                         match = recordDate < startDateObj;
-                        // If end date is also set, records must be before start AND on or before end
                         if (match && endDateObj) {
                             match = recordDate <= endDateObj;
                         }
                     }
-                    // If no start date, show nothing
                 } else {
-                    // Normal: show records within date range
                     if (!startDateObj && !endDateObj) {
                         match = true;
                     } else {
@@ -961,7 +944,6 @@
                     if (v.readings) {
                         const readingsArray = Object.values(v.readings);
 
-                        // إضافة صفوف للجدول الرئيسي (بدون تجميع)
                         readingsArray.forEach(r => {
                             detailCount++;
                             rows += `<tr>
@@ -976,7 +958,6 @@
                                 </tr>`;
                         });
 
-                        // تجميع بيانات التصدير - نضيف صف رئيسي للمشترك ثم كل العدادات تحته
                         exportGroups.push({
                             date: dateKey,
                             customerName: v.metername || subID,
@@ -992,9 +973,7 @@
             }
         }
 
-        // بناء masterRows بشكل منظم مع صف رئيسي لكل مشروع وعدادات متعددة تحته
         exportGroups.forEach(group => {
-            // صف رأس العميل (يظهر مرة واحدة لكل مشترك/تاريخ)
             masterRows += `<tr class="customer-header-export">`;
             masterRows += `<td class="customer-header-export">${group.date}</td>`;
             masterRows += `<td class="customer-header-export customer-header-export-name">${group.customerName}</td>`;
@@ -1008,7 +987,6 @@
             masterRows += `<td class="customer-header-export">قيم العدادات أدناه</td>`;
             masterRows += `</tr>`;
 
-            // صفوف العدادات (قراءات متعددة لهذا المشترك)
             group.readings.forEach(r => {
                 masterRows += `<tr>
                         <td></td>
@@ -1024,7 +1002,6 @@
                     </tr>`;
             });
 
-            // صف فاصل اختياري
             masterRows += `<tr><td colspan="10" class="separator-divider"></td></tr>`;
         });
 
@@ -1032,18 +1009,18 @@
     }
 
     function renderUI(rows, masterRows, detailCount, stats, isDelayed, startDateObj, endDateObj, fK, fH, fG) {
-        // Group data by customer - ONLY use filtered data
         const customerGroups = {};
 
         for (let subID in passingData) {
+            if (subID === 'customers') continue;
+
             for (let dateKey in passingData[subID]) {
                 const v = passingData[subID][dateKey];
-                let recordDateRaw = (v && (v.passing_date || v.passingDate || v.date)) ? (v.passing_date || v.passingDate || v.date) : dateKey;
+                let recordDateRaw = (v && (v.visit_date || v.passing_date || v.passingDate || v.date)) ? (v.visit_date || v.passing_date || v.passingDate || v.date) : dateKey;
                 let recordDate = parseDateFlexible(recordDateRaw) || parseDateFlexible(dateKey);
 
                 if (!recordDate) continue;
 
-                // Apply same date filtering as runReport
                 let match = false;
                 if (isDelayed) {
                     if (startDateObj) {
@@ -1090,7 +1067,7 @@
                         handsa: v.handsa || '-',
                         power_factor: v.power_factor || '-',
                         max_load: v.max_load || '-',
-                        passing_date: v.passing_date || '-',
+                        passing_date: v.visit_date || v.passing_date || '-',
                         records: []
                     };
                 }
@@ -1129,7 +1106,7 @@
                 const customer = customerGroups[customerId];
                 const recordsTable = customer.records.map(rec => {
                     return `<tr class="date-group-header"><td colspan="8" style="background: #f0f4fa; font-weight: bold; padding: 10px;">📅 ${rec.dateKey}</td></tr>` +
-                        rec.readings.map(r => `<tr onclick="showRecordDetail({date: '${rec.dateKey}', metername: '${customer.metername}', meternumber: '${r.meternumber || ''}', keta3: '${customer.keta3}', handsa: '${customer.handsa}', kwh: '${r.kwh || ''}', kvarh: '${r.kvarh || ''}', note: '${r.note || ''}'})">
+                        rec.readings.map(r => `<tr>
                                 <td class="date-cell">${rec.dateKey}</td>
                                 <td class="customer-cell">${customer.metername}</td>
                                 <td><span class="meter-badge">${r.meternumber || '-'}</span></td>
@@ -1151,7 +1128,7 @@
                                         <div class="info-item">📐 الهندسة: ${customer.handsa}</div>
                                         <div class="info-item">📊 معامل القدرة: ${customer.power_factor}</div>
                                         <div class="info-item">⚖️ أقصى حمل: ${customer.max_load}</div>
-                                        <div class="info-item">📅 تاريخ اخر مرور: ${customer.records.length > 0 ? customer.records[customer.records.length - 1].dateKey : '-'}</div>
+                                        <div class="info-item">📅 تاريخ آخر مرور: ${customer.records.length > 0 ? customer.records[customer.records.length - 1].dateKey : '-'}</div>
                                         <div class="info-item">📈 عدد العدادات: ${new Set(customer.records.flatMap(rec => rec.readings.map(r => r.meternumber))).size}</div>
                                     </div>
                                 </div>
@@ -1159,7 +1136,7 @@
                             <div class="table-wrapper">
                                 <table class="sub-records-table">
                                     <thead><tr>
-                                        <th>تاريخ اخر مرور:</th><th>اسم المشترك</th><th>رقم العداد</th><th>القطاع</th><th>الهندسة</th><th>القراءة كيلو وات ساعة</th><th>القراءة كيلو فار ساعة</th><th>الملاحظات</th>
+                                        <th>تاريخ آخر مرور</th><th>اسم المشترك</th><th>رقم العداد</th><th>القطاع</th><th>الهندسة</th><th>القراءة كيلو وات ساعة</th><th>القراءة كيلو فار ساعة</th><th>الملاحظات</th>
                                     </tr></thead>
                                     <tbody>${recordsTable}</tbody>
                                 </table>
