@@ -1006,7 +1006,6 @@
         opacity: 1;
       }
     }
-
   </style>
   <base target="_blank">
 </head>
@@ -2160,7 +2159,6 @@
         }
       };
     }
-
     // ----- EXCEL DATE CONVERTER -----
     function showExcelDateConverter() {
       const source = getCurrentDataSource();
@@ -2180,36 +2178,42 @@
       card.style.left = Math.max(10, rect.left - 580) + 'px';
 
       card.innerHTML = `
-        <div class="drag-handle flex justify-between items-center mb-3 border-b border-white/15 pb-3">
-          <span class="text-xs font-bold text-slate-500 uppercase tracking-wide"><i class="fas fa-grip-horizontal mr-1 opacity-50"></i> Date Converter</span>
-          <span class="close-dropdown" id="closeExcelDate"><i class="fas fa-times"></i></span>
-        </div>
-        <div class="excel-tool-content">
-          <div class="mb-3">
-            <label class="feature-label">Select Column</label>
-            <select id="dateColumnSelect" class="compact-select">
-              ${tempHeaders.map((h, i) => `<option value="${i}">${escapeHtml(h)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="feature-label">Output Format</label>
-            <select id="dateFormatSelect" class="compact-select">
-              <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
-              <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
-              <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
-              <option value="YYYY-MM-DD">YYYY-MM-DD (2024-12-31)</option>
-              <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
-              <option value="MM-DD-YYYY">MM-DD-YYYY (12-31-2024)</option>
-            </select>
-          </div>
-          <button id="applyDateBtn" class="small-btn"><i class="fas fa-calendar-alt"></i> Convert Dates</button>
-          <button id="resetDateBtn" class="small-btn-danger"><i class="fas fa-undo"></i> Reset Column</button>
-          <div id="dateLog" class="log-section mt-2">
-            <div class="log-entry log-info">> Ready. Select a column with numeric dates.</div>
-          </div>
-          <div class="progress-bar mt-2"><div class="progress-fill" id="dateProgress"></div></div>
-        </div>
-      `;
+    <div class="drag-handle flex justify-between items-center mb-3 border-b border-white/15 pb-3">
+      <span class="text-xs font-bold text-slate-500 uppercase tracking-wide"><i class="fas fa-grip-horizontal mr-1 opacity-50"></i> Date Converter</span>
+      <span class="close-dropdown" id="closeExcelDate"><i class="fas fa-times"></i></span>
+    </div>
+    <div class="excel-tool-content">
+      <div class="mb-3">
+        <label class="feature-label">Select Column</label>
+        <select id="dateColumnSelect" class="compact-select">
+          ${tempHeaders.map((h, i) => `<option value="${i}">${escapeHtml(h)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="feature-label">Output Format</label>
+        <select id="dateFormatSelect" class="compact-select">
+          <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
+          <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
+          <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
+          <option value="YYYY-MM-DD">YYYY-MM-DD (2024-12-31)</option>
+          <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
+          <option value="MM-DD-YYYY">MM-DD-YYYY (12-31-2024)</option>
+        </select>
+      </div>
+      <div class="flex gap-2 mb-2">
+        <button id="applyDateBtn" class="small-btn flex-1"><i class="fas fa-calendar-alt"></i> Convert Dates</button>
+        <button id="resetDateBtn" class="small-btn-danger flex-1"><i class="fas fa-undo"></i> Reset Column</button>
+      </div>
+      <div id="convertedColumnsList" style="display: none; margin-bottom: 10px;">
+        <small><b>Converted:</b></small>
+        <div id="convertedTags" class="converted-tags"></div>
+      </div>
+      <div id="dateLog" class="log-section mt-2">
+        <div class="log-entry log-info">> Ready. Select a column with numeric dates.</div>
+      </div>
+      <div class="progress-bar mt-2"><div class="progress-fill" id="dateProgress"></div></div>
+    </div>
+  `;
       document.body.appendChild(card);
       makeDraggable(card);
 
@@ -2219,6 +2223,7 @@
 
     function initExcelDateConverter(card, source, tempData, tempHeaders) {
       let dateLog = card.querySelector('#dateLog');
+      const convertedColumns = new Map(); // Track converted columns with their format
 
       function addDateLog(msg, type = "info") {
         const entry = document.createElement('div');
@@ -2226,6 +2231,57 @@
         entry.textContent = `> ${msg}`;
         dateLog.appendChild(entry);
         dateLog.scrollTop = dateLog.scrollHeight;
+      }
+
+      function updateConvertedTags() {
+        const tagsContainer = card.querySelector('#convertedTags');
+        const listContainer = card.querySelector('#convertedColumnsList');
+        tagsContainer.innerHTML = '';
+
+        convertedColumns.forEach((fmt, idx) => {
+          const span = document.createElement('span');
+          span.className = 'tag';
+          span.textContent = `${tempHeaders[idx]} (${fmt})`;
+          tagsContainer.appendChild(span);
+        });
+
+        listContainer.style.display = convertedColumns.size ? 'block' : 'none';
+      }
+
+      // Enhanced date parser - tries multiple formats
+      function parseDateValue(val, format) {
+        if (val === null || val === undefined || val === '') return '';
+
+        // 1) Excel serial number
+        if (typeof val === 'number' && val > 0) {
+          const d = excelSerialToDate(val);
+          if (d) return formatDate(d, format);
+        }
+
+        const s = String(val).trim();
+        if (s === '') return '';
+
+        // 2) Try YYYY-MM-DD or YYYY/MM/DD
+        let match = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+        if (match) {
+          const d = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+          if (!isNaN(d)) return formatDate(d, format);
+        }
+
+        // 3) Try DD-MM-YYYY or DD/MM/YYYY
+        match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+        if (match) {
+          const d = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+          if (!isNaN(d)) return formatDate(d, format);
+        }
+
+        // 4) Try JS Date parse
+        const parsed = new Date(s);
+        if (!isNaN(parsed.getTime())) {
+          return formatDate(parsed, format);
+        }
+
+        return s; // return as-is if nothing works
       }
 
       function excelSerialToDate(serial) {
@@ -2256,6 +2312,9 @@
       const resetBtn = card.querySelector('#resetDateBtn');
       const progressFill = card.querySelector('#dateProgress');
 
+      // Store original data for reset
+      const originalDataBackup = tempData.map(row => ({ ...row }));
+
       applyBtn.onclick = () => {
         const idx = parseInt(columnSelect.value);
         if (isNaN(idx) || idx < 0 || idx >= tempHeaders.length) {
@@ -2265,29 +2324,35 @@
         const colName = tempHeaders[idx];
         const fmt = formatSelect.value;
         let converted = 0;
+        let skipped = 0;
 
         tempData.forEach((row) => {
-          const dateObj = excelSerialToDate(row[colName]);
-          if (dateObj) {
-            const formatted = formatDate(dateObj, fmt);
-            if (formatted && String(row[colName]) !== formatted) {
-              row[colName] = formatted;
-              converted++;
-            }
+          const originalValue = row[colName];
+          const formatted = parseDateValue(originalValue, fmt);
+
+          if (formatted !== String(originalValue) && formatted !== '') {
+            row[colName] = formatted;
+            converted++;
+          } else if (originalValue !== '' && originalValue !== null && originalValue !== undefined) {
+            skipped++;
           }
         });
 
         if (converted > 0) {
-          convertedColumns.add(idx);
-          addDateLog(`Converted ${converted} dates in column "${colName}" to ${fmt}`, "success");
+          convertedColumns.set(idx, fmt);
+          addDateLog(`✅ Converted ${converted} dates in column "${colName}" to ${fmt}`, "success");
+          if (skipped > 0) {
+            addDateLog(`ℹ️ Skipped ${skipped} values that couldn't be parsed`, "warning");
+          }
           if (source.type === 'database') {
             syncBackFromExcel(source, tempData);
           }
           renderCards(false);
           progressFill.style.width = "100%";
           setTimeout(() => progressFill.style.width = "0%", 1000);
+          updateConvertedTags();
         } else {
-          addDateLog("No numeric dates found in selected column", "warning");
+          addDateLog(`⚠️ No convertible dates found in column "${colName}"`, "warning");
         }
       };
 
@@ -2297,22 +2362,30 @@
           addDateLog("Invalid column selection", "error");
           return;
         }
-        if (!convertedColumns.has(idx)) { addDateLog("Column not converted", "info"); return; }
+        if (!convertedColumns.has(idx)) {
+          addDateLog(`ℹ️ Column "${tempHeaders[idx]}" hasn't been converted`, "info");
+          return;
+        }
         const colName = tempHeaders[idx];
 
         tempData.forEach((row, i) => {
-          row[colName] = excelOriginalBackup[i]?.[colName] || row[colName];
+          row[colName] = originalDataBackup[i]?.[colName] || row[colName];
         });
         convertedColumns.delete(idx);
-        addDateLog(`Reset column "${colName}" to original`, "success");
+        addDateLog(`🔄 Reset column "${colName}" to original values`, "success");
         if (source.type === 'database') {
           syncBackFromExcel(source, tempData);
         }
         renderCards(false);
         progressFill.style.width = "100%";
         setTimeout(() => progressFill.style.width = "0%", 1000);
+        updateConvertedTags();
       };
+
+      // Update tags on init
+      updateConvertedTags();
     }
+
 
     // ----- EXCEL TEXT STRIPPER -----
     function showExcelTextStripper() {
@@ -4872,7 +4945,7 @@
     console.log('✅ No default permissions are created - all controlled by control panel');
     console.log('✅ Import button is controlled by settingsImportExcel permission');
 
-    
+
     // Simulate loading progress
     let progress = 0;
     const progressBar = document.getElementById('loadingProgressBar');
