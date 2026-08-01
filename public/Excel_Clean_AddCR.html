@@ -17,7 +17,7 @@
             --text-dark: #1e293b;
             --text-muted: #64748b;
             --success: #10b981;
-            --danger: #4338ca;
+            --danger: #e11d48;
             --warning: #f59e0b;
         }
 
@@ -152,7 +152,7 @@
         }
 
         .small-btn {
-            padding: 6px 12px;
+            padding: 8px 12px;
             font-size: 0.85rem;
             width: 100%;
         }
@@ -229,6 +229,12 @@
             white-space: nowrap;
         }
 
+        th .header-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         td {
             padding: 10px 12px;
             border-bottom: 1px solid var(--border);
@@ -255,13 +261,6 @@
             border-radius: 4px;
             font-family: inherit;
             font-size: inherit;
-        }
-
-        .compact-select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
         }
 
         /* LOGS */
@@ -305,7 +304,6 @@
             justify-content: center;
             gap: 8px;
             background: #2563eb;
-            /* Primary Blue */
             color: white;
             padding: 10px;
             border-radius: 8px;
@@ -330,7 +328,6 @@
 <body>
     <div class="master-layout">
         <div class="sidebar">
-            <!-- Navigation Back (NOW COLOURED) -->
             <nav class="back-nav">
                 <a href="Control_Excel.html" class="back-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -348,11 +345,9 @@
             <div class="feature-category">📐 COLUMN MANAGER</div>
             <div class="feature-item">
                 <div class="feature-title">Manage Columns</div>
-                <select id="manageColumnSelect" class="compact-select" disabled>
-                    <option value="">Upload file first</option>
-                </select>
-                <button id="deleteColumnBtn" class="small-btn btn-danger" disabled>🗑️ Delete Column</button>
                 <button id="addColumnBtn" class="small-btn btn-success" disabled>➕ Add Column</button>
+                <button id="deleteSelectedColsBtn" class="small-btn btn-danger" disabled>🗑️ Delete Selected Columns</button>
+                <div class="info-tip">💡 Select column checkboxes in the table header to remove them</div>
                 <div class="info-tip">💡 Double-click header to rename</div>
             </div>
 
@@ -360,8 +355,8 @@
             <div class="feature-item">
                 <div class="feature-title">Manage Rows</div>
                 <button id="addRowBtn" class="small-btn btn-success" disabled>➕ Add Row</button>
-                <button id="deleteSelectedRowsBtn" class="small-btn btn-danger" disabled>🗑️ Delete Selected</button>
-                <div class="info-tip">💡 Select checkboxes to delete</div>
+                <button id="deleteSelectedRowsBtn" class="small-btn btn-danger" disabled>🗑️ Delete Selected Rows</button>
+                <div class="info-tip">💡 Select row checkboxes to delete</div>
             </div>
         </div>
 
@@ -396,7 +391,7 @@
                 </div>
                 <div class="grid-toolbar" style="border-top: 1px solid var(--border); border-bottom: none;">
                     <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="selectAllCheckbox"> Select All
+                        <input type="checkbox" id="selectAllCheckbox"> Select All Rows
                     </label>
                 </div>
             </div>
@@ -412,8 +407,7 @@
 
         const fileInput = document.getElementById("excelFile");
         const fileNameSpan = document.getElementById("fileNameCompact");
-        const manageColumnSelect = document.getElementById("manageColumnSelect");
-        const deleteColumnBtn = document.getElementById("deleteColumnBtn");
+        const deleteSelectedColsBtn = document.getElementById("deleteSelectedColsBtn");
         const addColumnBtn = document.getElementById("addColumnBtn");
         const addRowBtn = document.getElementById("addRowBtn");
         const deleteSelectedRowsBtn = document.getElementById("deleteSelectedRowsBtn");
@@ -457,16 +451,32 @@
             updateControls(true);
 
             // Header
-            let hHtml = `<tr><th class="checkbox-col">✓</th>`;
+            let hHtml = `<tr>
+                <th class="checkbox-col" title="Select/Deselect All Columns">
+                    <input type="checkbox" id="selectAllColsCheckbox" title="Select All Columns">
+                </th>`;
             currentHeaders.forEach((h, i) => {
-                hHtml += `<th data-col="${i}" title="Double click to rename">${h}</th>`;
+                hHtml += `
+                <th data-col="${i}">
+                    <div class="header-content">
+                        <input type="checkbox" class="col-checkbox" data-col="${i}">
+                        <span class="header-title" title="Double click to rename">${h}</span>
+                    </div>
+                </th>`;
             });
             hHtml += `</tr>`;
             tableHeader.innerHTML = hHtml;
 
-            // Header events
-            tableHeader.querySelectorAll('th[data-col]').forEach(th => {
-                th.addEventListener('dblclick', () => editHeader(parseInt(th.dataset.col)));
+            // Select All Columns Checkbox handler
+            const selectAllColsCheckbox = document.getElementById("selectAllColsCheckbox");
+            selectAllColsCheckbox.onchange = (e) => {
+                document.querySelectorAll(".col-checkbox").forEach(cb => cb.checked = e.target.checked);
+            };
+
+            // Header rename events
+            tableHeader.querySelectorAll('th .header-title').forEach(span => {
+                const th = span.closest('th');
+                span.addEventListener('dblclick', () => editHeader(parseInt(th.dataset.col)));
             });
 
             // Body
@@ -480,7 +490,8 @@
                     bHtml += `<td data-row="${rIdx}" data-col="${cIdx}">${val}</td>`;
                 });
                 tr.innerHTML = bHtml;
-                // Cell events
+                
+                // Cell double click event
                 tr.querySelectorAll('td[data-row]').forEach(td => {
                     if (!td.classList.contains('checkbox-col')) {
                         td.addEventListener('dblclick', () => editCell(rIdx, parseInt(td.dataset.col)));
@@ -490,7 +501,6 @@
             });
             tableBody.appendChild(fragment);
             gridStatsSpan.innerText = `${currentGridData.length} rows × ${currentHeaders.length} cols`;
-            updateColumnDropdown();
         }
 
         function editCell(rIdx, cIdx) {
@@ -514,19 +524,21 @@
 
         function editHeader(cIdx) {
             const th = tableHeader.rows[0].cells[cIdx + 1];
+            const headerTitle = th.querySelector('.header-title');
             const oldName = currentHeaders[cIdx];
             const input = document.createElement("input");
             input.className = "editable-header-input";
             input.value = oldName;
-            th.innerHTML = "";
-            th.appendChild(input);
+            
+            headerTitle.replaceWith(input);
             input.focus();
 
             const save = () => {
                 let newName = cleanTextValue(input.value);
-                if (!newName || currentHeaders.includes(newName)) newName = oldName;
+                if (!newName || (newName !== oldName && currentHeaders.includes(newName))) {
+                    newName = oldName;
+                }
                 if (newName !== oldName) {
-                    // Update data keys
                     currentGridData.forEach(row => {
                         row[newName] = row[oldName];
                         delete row[oldName];
@@ -541,16 +553,9 @@
         }
 
         function updateControls(enabled) {
-            [manageColumnSelect, deleteColumnBtn, addColumnBtn, addRowBtn, deleteSelectedRowsBtn, exportBtn].forEach(btn => {
+            [deleteSelectedColsBtn, addColumnBtn, addRowBtn, deleteSelectedRowsBtn, exportBtn].forEach(btn => {
                 btn.disabled = !enabled;
             });
-        }
-
-        function updateColumnDropdown() {
-            const val = manageColumnSelect.value;
-            manageColumnSelect.innerHTML = '<option value="">-- Select Column --</option>' +
-                currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
-            manageColumnSelect.value = val;
         }
 
         // Feature Actions
@@ -562,12 +567,23 @@
             scheduleRender();
         };
 
-        deleteColumnBtn.onclick = () => {
-            const col = manageColumnSelect.value;
-            if (!col) return addLog("Select a column first", "warning");
-            currentHeaders = currentHeaders.filter(h => h !== col);
-            currentGridData.forEach(r => delete r[col]);
-            addLog(`Deleted column "${col}"`, "danger");
+        deleteSelectedColsBtn.onclick = () => {
+            const checked = Array.from(document.querySelectorAll(".col-checkbox:checked"))
+                                 .map(cb => parseInt(cb.dataset.col));
+
+            if (!checked.length) return addLog("No columns selected", "warning");
+
+            const deletedNames = checked.map(idx => currentHeaders[idx]);
+
+            // Filter out deleted headers
+            currentHeaders = currentHeaders.filter((_, idx) => !checked.includes(idx));
+
+            // Clean data objects
+            currentGridData.forEach(row => {
+                deletedNames.forEach(colName => delete row[colName]);
+            });
+
+            addLog(`Deleted ${checked.length} column(s)`, "danger");
             scheduleRender();
         };
 

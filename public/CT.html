@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>حاسبة المحولات ومحولات التيار - التطبيق</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #004a99;
+      --secondary-color: #0099ff;
+      --bg-color: #f0f4f8;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-light: #64748b;
+      --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      --border-radius: 16px;
+      --border: #e2e8f0;
+      --input-bg: #fffde7;
+      --input-border: #fbc02d;
+      --danger: #ef4444;
+      --safe-area-top: env(safe-area-inset-top, 0px);
+      --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Cairo", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-top: var(--safe-area-top);
+      padding-bottom: calc(var(--safe-area-bottom) + 80px);
+      user-select: none;
+    }
+
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 74, 153, 0.2);
+    }
+
+    .nav-brand {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .home-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: background 0.2s ease;
+    }
+
+    .home-btn:active {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .main-content {
+      padding: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .section-container {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--bg-color);
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subsection {
+      margin-bottom: 20px;
+    }
+
+    .subsection:last-child {
+      margin-bottom: 0;
+    }
+
+    .subsection h4 {
+      color: var(--text-main);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 380px) {
+      .input-dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-group.full-width {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 380px) {
+      .input-group.full-width {
+        grid-column: span 1;
+      }
+    }
+
+    .input-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .input-group input,
+    .input-group select {
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+      width: 100%;
+      height: 44px;
+    }
+
+    .input-group input.input-field {
+      background-color: var(--input-bg);
+      border-color: var(--input-border);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .input-group input.input-field::placeholder {
+      color: #9ea5b1;
+      font-weight: 400;
+    }
+
+    .input-group input.input-field:focus {
+      border-color: #f57f17;
+      background-color: #fff;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(251, 192, 45, 0.25);
+    }
+
+    .input-group select:focus,
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--secondary-color);
+      background-color: #fff;
+      box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
+    }
+
+    .results-dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .result-item {
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .res-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .red-box {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+    }
+
+    .red-box .res-val {
+      color: #dc2626;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 20px;
+      margin-bottom: 4px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-color);
+    }
+
+    .checkbox-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .fab-container {
+      position: fixed;
+      bottom: calc(var(--safe-area-bottom) + 16px);
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .fab-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .fab-btn:active {
+      transform: scale(0.92);
+    }
+
+    .btn-reset {
+      background: var(--danger);
+      color: white;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-reset:active {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <ion-icon name="hardware-chip-outline"></ion-icon>
+      <span>حاسبة المحولات و CT</span>
+    </div>
+    <button class="home-btn" onclick="window.location.href='Control_Calc.html'">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+      <span>الرئيسية</span>
+    </button>
+  </nav>
+
+  <div class="main-content">
+    <div class="section-container">
+      <div class="section-header">
+        <h3 class="section-title">
+          <ion-icon name="flash-outline"></ion-icon> الحسابات الكهربائية
+        </h3>
+        <button class="btn-reset" onclick="resetAll()">
+          <ion-icon name="refresh-outline"></ion-icon> إعادة ضبط
+        </button>
+      </div>
+
+      <!-- Section 1: Transformer -->
+      <div class="subsection">
+        <h4>⚡ 1. المحول (Transformer)</h4>
+        <div class="input-dashboard">
+          <div class="input-group">
+            <label>معامل القدرة (P.F)</label>
+            <input type="number" id="pf" class="input-field" placeholder="0.92" step="0.01" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>القدرة (K.V.A)</label>
+            <input type="number" id="kva" class="input-field" placeholder="1000" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>جهد الابتدائي (V-pr)</label>
+            <input type="number" id="v_pr" class="input-field" placeholder="11000" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>جهد الثانوي (V-sc)</label>
+            <input type="number" id="v_sc" class="input-field" placeholder="400" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+        </div>
+
+        <div class="results-dashboard">
+          <div class="result-item red-box">
+            <span class="result-label">القدرة (H.P)</span>
+            <span id="hp" class="res-val">0.00</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أقصد متوسط</span>
+            <span id="i_mv" class="res-val">0.00</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أمبير منخفض</span>
+            <span id="i_lv" class="res-val">0.00</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">CT متوسط</span>
+            <span id="ct_mv" class="res-val">0</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">CT منخفض</span>
+            <span id="ct_lv" class="res-val">0</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أمبير بدون برمجة</span>
+            <span id="i_meter_tf" class="res-val">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Panel Board -->
+      <div class="subsection">
+        <h4>🎛️ 2. اللوحة (Panel Board)</h4>
+        <div class="input-dashboard">
+          <div class="input-group">
+            <label>أمبير الأميتر</label>
+            <input type="number" id="i_ammeter" class="input-field" placeholder="57" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <div class="checkbox-group">
+              <input type="checkbox" id="manual_ct_check" onchange="toggleManualCT()" />
+              <label for="manual_ct_check">CT يدوي</label>
+            </div>
+            <input type="number" id="ct_panel" class="input-field" placeholder="50" disabled inputmode="decimal" oninput="calculateAll()" />
+          </div>
+        </div>
+        <div class="results-dashboard">
+          <div class="result-item red-box" style="grid-column: span 2;">
+            <span class="result-label">الأمبير على العداد بدون برمجة</span>
+            <span id="i_meter_panel" class="res-val">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Constant & Multiplier -->
+      <div class="subsection">
+        <h4>🔢 3. الثابت والمقيد</h4>
+        <div class="input-dashboard">
+          <div class="input-group">
+            <label>محولات اللوحة</label>
+            <input type="number" id="ct_board" class="input-field" placeholder="100" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>محولات العداد</label>
+            <input type="number" id="ct_prog" class="input-field" placeholder="200" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>XS (ثابت ميكانيكي)</label>
+            <input type="number" id="xs" class="input-field" placeholder="1" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group">
+            <label>CT-sc (تيار الثانوي)</label>
+            <input type="number" id="ct_sc" class="input-field" placeholder="5" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+          <div class="input-group full-width">
+            <label>الاستهلاك بالعداد</label>
+            <input type="number" id="meter_cons" class="input-field" placeholder="15487" inputmode="decimal" oninput="calculateAll()" />
+          </div>
+        </div>
+        <div class="results-dashboard">
+          <div class="result-item red-box" style="grid-column: span 2;">
+            <span class="result-label">الاستهلاك الكلي</span>
+            <span id="total_cons" class="res-val">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: CT Selection & Limits -->
+      <div class="subsection">
+        <h4>🎯 4. اختيار CT وحدود الدقة</h4>
+        <div class="input-dashboard">
+          <div class="input-group">
+            <label>تيار الحمل (I_load)</label>
+            <input type="number" id="iLoad" class="input-field" placeholder="17" step="any" min="0.1" inputmode="decimal" oninput="calculateCTLimits()" />
+          </div>
+          <div class="input-group">
+            <label>فئة الدقة (Class)</label>
+            <select id="accuracyClass" onchange="calculateCTLimits()">
+              <option value="0.01">Class 0.2S (1%)</option>
+              <option value="0.01">Class 0.5S (1%)</option>
+              <option value="0.05" selected>Class 0.5 (5%)</option>
+              <option value="0.05">Class 1.0 (5%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="results-dashboard">
+          <div class="result-item red-box">
+            <span class="result-label">نسبة CT</span>
+            <span id="ctRatio" class="res-val">-</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أقصى تيار مستمر</span>
+            <span id="ipMax" class="res-val">-</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أقل تيار ابتدائي</span>
+            <span id="ipMin" class="res-val">-</span>
+          </div>
+          <div class="result-item red-box">
+            <span class="result-label">أقل تيار ثانوي</span>
+            <span id="isMin" class="res-val">-</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="fab-container">
+    <button class="fab-btn" onclick="scrollToTop()">
+      <ion-icon name="chevron-up-outline"></ion-icon>
+    </button>
+    <button class="fab-btn" onclick="scrollToBottom()">
+      <ion-icon name="chevron-down-outline"></ion-icon>
+    </button>
+  </div>
+
+  <script>
+    const CT_RATINGS = [50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000, 2500, 3000];
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function scrollToBottom() {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    function getVal(id, defaultVal) {
+      const el = document.getElementById(id);
+      if (!el) return defaultVal;
+      const val = parseFloat(el.value);
+      return !isNaN(val) ? val : defaultVal;
+    }
+
+    function getCTRating(current) {
+      if (current <= 0 || isNaN(current)) return "Out of Range";
+      const val = current * 1.25;
+      for (let rating of CT_RATINGS) {
+        if (val <= rating) return rating;
+      }
+      return "Out of Range";
+    }
+
+    function toggleManualCT() {
+      const isManual = document.getElementById("manual_ct_check").checked;
+      const ctInput = document.getElementById("ct_panel");
+
+      if (isManual) {
+        ctInput.removeAttribute("disabled");
+      } else {
+        ctInput.setAttribute("disabled", true);
+      }
+      calculateAll();
+    }
+
+    function calculateAll() {
+      const pf = getVal("pf", 0.92);
+      const kva = getVal("kva", 1000);
+      const v_pr = getVal("v_pr", 11000);
+      const v_sc = getVal("v_sc", 400);
+
+      const hp = (kva * pf) / 0.746;
+      const i_mv = (kva && v_pr && pf) ? (kva / (1.732 * v_pr * pf)) * 1000 : 0;
+      const i_lv = (v_pr && i_mv && v_sc) ? (v_pr * i_mv) / v_sc : 0;
+
+      const ct_mv = getCTRating(i_mv);
+      const ct_lv = getCTRating(i_lv);
+
+      const i_meter_tf = (typeof ct_mv === "number" && ct_mv > 0) ? (i_mv * 5) / ct_mv : 0;
+
+      document.getElementById("hp").innerText = hp.toFixed(2);
+      document.getElementById("i_mv").innerText = i_mv.toFixed(2);
+      document.getElementById("i_lv").innerText = i_lv.toFixed(2);
+      document.getElementById("ct_mv").innerText = ct_mv;
+      document.getElementById("ct_lv").innerText = ct_lv;
+      document.getElementById("i_meter_tf").innerText = i_meter_tf.toFixed(2);
+
+      const i_ammeter = getVal("i_ammeter", 57);
+      const isManual = document.getElementById("manual_ct_check").checked;
+      const ctInput = document.getElementById("ct_panel");
+
+      let ct_panel_val;
+      if (isManual) {
+        ct_panel_val = getVal("ct_panel", 50);
+      } else {
+        ct_panel_val = getCTRating(i_ammeter);
+        ctInput.placeholder = ct_panel_val;
+      }
+
+      const i_meter_panel = (typeof ct_panel_val === "number" && ct_panel_val > 0) ? (i_ammeter * 5) / ct_panel_val : 0;
+      document.getElementById("i_meter_panel").innerText = i_meter_panel.toFixed(2);
+
+      const ct_board = getVal("ct_board", 100);
+      const ct_prog = getVal("ct_prog", 200);
+      const xs = getVal("xs", 1);
+      const ct_sc = getVal("ct_sc", 5);
+      const meter_cons = getVal("meter_cons", 15487);
+
+      let total_cons = 0;
+      if (ct_prog > 0 && ct_sc > 0) {
+        total_cons = (((ct_board / ct_sc) / (ct_prog / ct_sc)) * xs) * meter_cons;
+      }
+
+      document.getElementById("total_cons").innerText = total_cons.toFixed(2);
+    }
+
+    function calculateCTLimits() {
+      const iLoad = getVal("iLoad", 17);
+      const kClass = parseFloat(document.getElementById("accuracyClass").value);
+
+      if (isNaN(iLoad) || iLoad <= 0) {
+        document.getElementById("ctRatio").innerText = "-";
+        document.getElementById("ipMax").innerText = "-";
+        document.getElementById("ipMin").innerText = "-";
+        document.getElementById("isMin").innerText = "-";
+        return;
+      }
+
+      const selectedIn = getCTRating(iLoad);
+      if (typeof selectedIn !== "number") {
+        document.getElementById("ctRatio").innerText = "Out of Range";
+        document.getElementById("ipMax").innerText = "-";
+        document.getElementById("ipMin").innerText = "-";
+        document.getElementById("isMin").innerText = "-";
+        return;
+      }
+
+      const ipMax = 1.25 * selectedIn;
+      const ipMin = kClass * selectedIn;
+      const isMin = kClass * 5;
+
+      document.getElementById("ctRatio").innerText = `${selectedIn}/5A`;
+      document.getElementById("ipMax").innerText = `${ipMax.toFixed(2)}A`;
+      document.getElementById("ipMin").innerText = `${ipMin.toFixed(2)}A`;
+      document.getElementById("isMin").innerText = `${(isMin * 1000).toFixed(0)}mA`;
+    }
+
+    function resetAll() {
+      const inputs = document.querySelectorAll('.input-field');
+      inputs.forEach(input => input.value = '');
+
+      document.getElementById("manual_ct_check").checked = false;
+      toggleManualCT();
+      document.getElementById("accuracyClass").value = "0.05";
+
+      calculateAll();
+      calculateCTLimits();
+    }
+
+    window.onload = function () {
+      calculateAll();
+      calculateCTLimits();
+    };
+  </script>
+</body>
+
+</html>
