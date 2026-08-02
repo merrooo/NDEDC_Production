@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>حسابات تعرفة الطاقة والشرائح الذكية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: #eef2f5;
+            padding: 12px;
+            color: #1e2a3e;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 14px 18px;
+            margin-bottom: 14px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border-right: 4px solid #004a99;
+            padding-right: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-header-left ion-icon {
+            font-size: 22px;
+            color: #004a99;
+        }
+
+        .card-header-left h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f2b3d;
+        }
+
+        .download-btn-small {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .preview-grid {
+            margin-top: 8px;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 400px;
+            border-radius: 12px;
+            border: 1px solid #e2edf2;
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        th {
+            background: #004a99;
+            color: white;
+            padding: 8px 8px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 7px 8px;
+            text-align: center;
+            background: white;
+        }
+
+        tr:hover td {
+            background: #fefce8;
+        }
+
+        button {
+            background: #2c3e50;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #004a99, #0088dd);
+        }
+
+        button.outline {
+            background: transparent;
+            border: 2px solid #004a99;
+            color: #004a99;
+            padding: 5px 14px;
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #27ae60, #219653);
+        }
+
+        .total-row {
+            background: #fef9e3;
+            font-weight: 800;
+            border-top: 2px solid #f59e0b;
+        }
+
+        select, input[type="number"] {
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 2px solid #cbd5e1;
+            background: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        select {
+            min-width: 200px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- كارت إدخال البيانات والخيارات -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <ion-icon name="calculator-outline"></ion-icon>
+                    <h2>⚡ إدخال بيانات الاستهلاك والتعريفة</h2>
+                </div>
+                <button onclick="window.location.href='Control_Calc.html'"
+                    style="background-color: #0077cc; height: 30px; padding: 0 10px;">
+                    <ion-icon name="arrow-up-outline"></ion-icon><span>الرئيسية</span>
+                </button>
+            </div>
+
+            <div class="flex-row" style="justify-content: space-between; gap: 12px;">
+                <div class="input-group">
+                    <input type="number" id="inptarrif" placeholder="ادخل كمية الاستهلاك (ك و س)" style="width: 250px;">
+                    <button id="processSingleBtn" class="success">
+                        <i class="fas fa-calculator"></i> احسب وتشريح الاستهلاك
+                    </button>
+                </div>
+
+                <div class="input-group">
+                    <select id="tariffTypeSelector">
+                        <option value="residential">🏠 منزلي</option>
+                        <option value="commercial" selected>🏢 تجاري</option>
+                        <option value="factory">⚙️ قوى محركة</option>
+                        <option value="farmer">🌾 الري</option>
+                        <option value="lighting">💡 انارة عامة</option>
+                        <option value="balance_cst">🧾 باقى المشتركين</option>
+                    </select>
+                    
+                    <select id="periodSelector" style="min-width: 300px;">
+                        <option value="01/04/2026" selected>التعريفة الجديدة من تاريخ (1/4/2026)</option>
+                        <option value="1/8/2024-31/3/2026">التعريفة 2024/8-2026/3 بداية من (1/8/2024)</option>
+                        <option value="1/1/2024-31/7/2024">التعريفة 2024/1-2024/7 بداية من (1/1/2024)</option>
+                        <option value="1/1/2021-31/1/2023">التعريفة 2021-2024 بداية من (1/1/2021)</option>
+                        <option value="1/1/2020-31/12/2020">التعريفة 2020 بداية من (1/1/2020)</option>
+                        <option value="1/1/2019-31/12/2019">التعريفة 2019 بداية من (1/1/2019)</option>
+                    </select>
+
+                    <button id="recalcBtn" class="outline"><i class="fas fa-sync-alt"></i> تحديث الحسابات</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- كارت عرض النتائج -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <ion-icon name="tablet-landscape-outline"></ion-icon>
+                    <h2>📊 تفاصيل حسابات الشرائح التشريحية</h2>
+                </div>
+                <button id="downloadTariffTableBtn" class="download-btn-small" style="display: none;">
+                    <i class="fas fa-download"></i> تصدير لملف (Excel)
+                </button>
+            </div>
+            <div class="preview-grid">
+                <table id="unifiedTariffTable">
+                    <thead>
+                        <tr>
+                            <th>التعريفة المطبقة</th>
+                            <th>الشريحة</th>
+                            <th>الاستهلاك المستهلك</th>
+                            <th>سعر الكيلو</th>
+                            <th>مقابل الخدمة</th>
+                            <th>فرق تشريح</th>
+                            <th>القيمة الإجمالية للسطر</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unifiedTariffBody">
+                        <tr>
+                            <td colspan="7" style="padding: 15px; color:#64748b;">يرجى إدخال قيمة في حقل الاستهلاك والضغط على زر "احسب وتشريح الاستهلاك"...</td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="unifiedTariffFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TARIFF_CONFIGS = {
+            "01/04/2026": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1.65, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 2.10, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 2.23, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 1.62, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 2.16, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 2.64, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 2.74, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 2.79, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 2.15, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 2.74, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.34, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }]
+            },
+            "1/8/2024-31/3/2026": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1.95, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 2.1, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 2.23, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 0.85, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 1.68, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 2.2, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 2.27, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 2.33, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 2.0, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.34, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }]
+            },
+            "1/1/2024-31/7/2024": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.58, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.68, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.83, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 1.25, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1.40, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 1.5, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 1.65, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 1.36, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 1.5, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 1.56, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 1.8, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 1.1, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.5, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.5, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.5, s: 15, extraDiff: 0 }]
+            },
+            "1/1/2021-31/1/2023": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.48, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.58, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.77, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 1.06, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1.28, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 1.28, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 1.20, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 0.95, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
+            },
+            "1/1/2020-31/12/2020": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.38, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.65, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.65, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 0.96, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1.18, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 1.18, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 1.2, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 0.85, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
+            },
+            "1/1/2019-31/12/2019": {
+                residential: [
+                    { label: "ش1 (0-50)", limit: 50, p: 0.3, s: 1, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.4, s: 2, extraDiff: 0 },
+                    { label: "ش3 (0-200)", limit: 200, p: 0.5, s: 6, extraDiff: 24 },
+                    { label: "ش4 (201-350)", limit: 150, p: 0.82, s: 11, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 1, s: 15, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 1.4, s: 25, extraDiff: 135 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
+                ],
+                commercial: [
+                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
+                    { label: "ش2 (0-250)", limit: 150, p: 1.15, s: 15, extraDiff: 70 },
+                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
+                ],
+                farmer: [{ label: "الري", limit: Infinity, p: 0.75, s: 4, extraDiff: 0 }],
+                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
+            }
+        };
+
+        function getTariffRows(kwh, tariffType, periodKey) {
+            const cfg = TARIFF_CONFIGS[periodKey]; 
+            if (!cfg) return { rows: [], totalCost: 0 };
+            const rates = cfg[tariffType]; 
+            if (!rates) return { rows: [], totalCost: 0 };
+
+            const rows = []; 
+            let remaining = kwh; 
+            let totalCost = 0;
+
+            for (let i = 0; i < rates.length && remaining > 0; i++) {
+                const slab = rates[i]; 
+                const qty = Math.min(remaining, slab.limit);
+                if (qty > 0) {
+                    const rowTotal = (qty * slab.p + slab.s) + (slab.extraDiff || 0);
+                    rows.push({ 
+                        slab: slab.label, 
+                        qty, 
+                        price: slab.p, 
+                        service: slab.s, 
+                        diff: slab.extraDiff || 0, 
+                        total: rowTotal 
+                    });
+                    totalCost += rowTotal;
+                } 
+                remaining -= qty;
+            } 
+            return { rows, totalCost };
+        }
+
+        function calculateAndDisplay() {
+            const inputVal = document.getElementById('inptarrif').value;
+            const kwh = parseFloat(inputVal);
+
+            if (isNaN(kwh) || kwh < 0) {
+                alert("يرجى إدخال قيمة استهلاك صحيحة أولاً.");
+                return;
+            }
+
+            const tariffType = document.getElementById('tariffTypeSelector').value;
+            const periodKey = document.getElementById('periodSelector').value;
+            const tbody = document.getElementById('unifiedTariffBody');
+            
+            const { rows, totalCost } = getTariffRows(kwh, tariffType, periodKey);
+            
+            let html = '';
+            rows.forEach((row, i) => {
+                if (i === 0) {
+                    html += `<tr>
+                        <td rowspan="${rows.length}" style="vertical-align:middle; font-size:11px; background:#f8fafc; font-weight: 600; color: #004a99; border-left: 3px solid #004a99;">${periodKey}</td>
+                        <td style="text-align:right;">${row.slab}</td>
+                        <td>${row.qty.toFixed(2)}</td>
+                        <td>${row.price}</td>
+                        <td>${row.service}</td>
+                        <td>${row.diff}</td>
+                        <td style="font-weight:700;">${row.total.toFixed(2)}</td>
+                    </tr>`;
+                } else {
+                    html += `<tr>
+                        <td style="text-align:right;">${row.slab}</td>
+                        <td>${row.qty.toFixed(2)}</td>
+                        <td>${row.price}</td>
+                        <td>${row.service}</td>
+                        <td>${row.diff}</td>
+                        <td style="font-weight:700;">${row.total.toFixed(2)}</td>
+                    </tr>`;
+                }
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('unifiedTariffFoot').innerHTML = `<tr class="total-row">
+                <td colspan="2" style="text-align:left;">الإجمالي العام:</td>
+                <td>${kwh.toFixed(2)} ك و س</td>
+                <td colspan="3"></td>
+                <td>${totalCost.toFixed(2)} ج</td>
+            </tr>`;
+
+            document.getElementById('downloadTariffTableBtn').style.display = 'inline-flex';
+        }
+
+        function downloadTable(tableId, fileName) {
+            const table = document.getElementById(tableId);
+            const wb = XLSX.utils.table_to_book(table, { sheet: "تقرير الشرائح" });
+            XLSX.writeFile(wb, `${fileName}.xlsx`);
+        }
+
+        // Event Listeners
+        document.getElementById('processSingleBtn').addEventListener('click', calculateAndDisplay);
+        document.getElementById('recalcBtn').addEventListener('click', calculateAndDisplay);
+        document.getElementById('downloadTariffTableBtn').addEventListener('click', () => { 
+            downloadTable('unifiedTariffTable', 'تقرير_حساب_الشرائح'); 
+        });
+
+        // السماح بالضغط على Enter في حقل الإدخال للحساب المباشر
+        document.getElementById('inptarrif').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                calculateAndDisplay();
+            }
+        });
+    </script>
+</body>
+
+</html>
