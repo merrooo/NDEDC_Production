@@ -207,13 +207,16 @@
             border-top: 2px solid #f59e0b;
         }
 
-        select {
+        select, input[type="number"] {
             padding: 6px 14px;
             border-radius: 30px;
             border: 2px solid #cbd5e1;
             background: white;
             font-size: 0.8rem;
             cursor: pointer;
+        }
+
+        select {
             min-width: 220px;
         }
     </style>
@@ -265,9 +268,14 @@
                 </div>
             </div>
 
-            <div style="width: 100%; text-align: left; margin-top: 6px;">
-                <button id="processBtn" class="success" disabled style="padding: 5px 14px;"><i
-                        class="fas fa-calculator"></i> تشريح الاستهلاك وعرض الجدول</button>
+            <div style="width: 100%; text-align: left; margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                <button id="processSingleBtn" class="success" style="padding: 5px 14px;">
+                    <i class="fas fa-calculator"></i> تشريح الاستهلاك الحالي
+                </button>
+                <input type="number" id="inptarrif" placeholder="ادخل القيمة المراد تشريحها (ك و س)" style="width: 240px;">
+                <button id="processBtn" class="primary" disabled style="padding: 5px 14px;">
+                    <i class="fas fa-list-alt"></i> تشريح الاستهلاك وعرض الجدول (من الملف)
+                </button>
             </div>
         </div>
 
@@ -323,8 +331,7 @@
                     </thead>
                     <tbody id="unifiedTariffBody">
                         <tr>
-                            <td colspan="8" style="padding: 10px; color:#64748b;">يرجى رفع ملف الاستهلاك أولاً واضغط على
-                                زر التشريح...</td>
+                            <td colspan="8" style="padding: 10px; color:#64748b;">يرجى رفع ملف الاستهلاك أولاً أو إدخال قيمة في حقل المدخلات والضغط على زر التشريح...</td>
                         </tr>
                     </tbody>
                     <tfoot id="unifiedTariffFoot"></tfoot>
@@ -527,7 +534,7 @@
             const tbody = document.getElementById('previewConsumptionBody');
             tbody.innerHTML = "";
             if (consumptionData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="color: #64748b; padding:15px;">في انتظار الملف...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="color: #64748b; padding:15px;">في انتظار رفع الملف...</td></tr>';
                 return;
             }
             consumptionData.forEach((rec, idx) => {
@@ -591,14 +598,11 @@
                     if (cell) month = String(cell.v).trim();
                 }
 
-                // ========================== التعديل الذكي المطلوب هنا ==========================
-                // إذا كانت خانة العام أو الشهر فارغة، أو السطر يحتوي على نصوص الإجماليات، يتم تخطيه بالكامل ولن يدخل ضمن العد
                 if (year === "" || month === "" || year === "---" || month === "---" ||
                     year.includes("إجمالي") || year.includes("الاجمالي") || year.toLowerCase().includes("total") ||
                     month.includes("إجمالي") || month.includes("الاجمالي") || month.toLowerCase().includes("total")) {
                     continue;
                 }
-                // ============================================================================
 
                 if (consumption >= 0) {
                     records.push({ consumption, year, month });
@@ -607,8 +611,33 @@
             return records;
         }
 
+        function processSingleInputValue() {
+            const inputVal = document.getElementById('inptarrif').value;
+            const consumptionVal = parseFloat(inputVal);
+
+            if (isNaN(consumptionVal) || consumptionVal < 0) {
+                alert("يرجى إدخال قيمة استهلاك صحيحة في الحقل أولاً.");
+                return;
+            }
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+            consumptionData = [{
+                consumption: consumptionVal,
+                year: currentYear.toString(),
+                month: currentMonth
+            }];
+
+            renderConsumptionPreview();
+            displayUnifiedTariffTable();
+        }
+
         function displayUnifiedTariffTable() {
             if (consumptionData.length === 0) return;
+
+            // استخدام نوع التعريفة المحددة يدوياً من القائمة المنسدلة مباشرة
             const tariffType = document.getElementById('tariffTypeSelector').value;
             const tbody = document.getElementById('unifiedTariffBody');
             let html = ''; let grandTotal = 0; let totalKwh = 0;
@@ -632,6 +661,7 @@
                     }
                 });
             });
+
             tbody.innerHTML = html;
             document.getElementById('unifiedTariffFoot').innerHTML = `<tr class="total-row">
                 <td colspan="3" style="text-align:left;">الإجمالي العام الكلي:</td>
@@ -648,13 +678,18 @@
             XLSX.writeFile(wb, `${fileName}.xlsx`);
         }
 
+        // Event Listeners
         document.getElementById('consumptionFileInput').addEventListener('change', (e) => { handleFileUpload(e.target.files[0]); });
         document.getElementById('processBtn').addEventListener('click', displayUnifiedTariffTable);
+        document.getElementById('processSingleBtn').addEventListener('click', processSingleInputValue);
         document.getElementById('downloadTariffTableBtn').addEventListener('click', () => { downloadTable('unifiedTariffTable', 'تقرير_حسابات_الشرائح_الشهري'); });
+        
         document.getElementById('recalcBtn').addEventListener('click', () => {
             if (consumptionData.length > 0) {
                 displayUnifiedTariffTable();
-            } else { alert("يرجى رفع ملف استهلاك أولاً"); }
+            } else { 
+                alert("يرجى إدخال قيمة أو رفع ملف استهلاك أولاً"); 
+            }
         });
     </script>
 </body>
