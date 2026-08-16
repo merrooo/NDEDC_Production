@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Exact Pattern & Mismatch Checker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --bg-light: #f8fafc;
+            --card-white: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --danger-red: #dc2626;
+            --success-green: #16a34a;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            padding: 2rem 0;
+        }
+
+        .card {
+            background: var(--card-white);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-home:hover {
+            background-color: var(--primary-blue);
+            color: #ffffff;
+            border-color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        .btn-analyze {
+            background-color: var(--primary-blue);
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.75rem 2.5rem;
+            border-radius: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-analyze:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
+        }
+
+        .badge-match {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-mismatch {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        table.dataTable tbody tr.table-mismatch-row {
+            background-color: #fef2f2 !important;
+        }
+
+        .checkbox-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid px-5">
+        <!-- HEADER WITH HOME BUTTON -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-800 mb-0"><i class="fas fa-search me-2 text-primary"></i> Excel Column Mismatch Detector</h2>
+            <a href="Control_Excel.html" class="btn-home">
+                <i class="fas fa-home me-2"></i> Return to Home Page
+            </a>
+        </div>
+
+        <!-- CONFIGURATION CARD -->
+        <div class="card">
+            <h5 class="fw-bold mb-3"><i class="fas fa-sliders-h me-2"></i> File Upload & Detection Options</h5>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Load Excel / CSV File</label>
+                    <input type="file" id="excelInput" class="form-control" accept=".xlsx, .xls, .csv">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Select Target Column</label>
+                    <select id="columnScope" class="form-select" disabled>
+                        <option value="ALL">-- All Columns --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Prefix Match (Optional)</label>
+                    <input type="text" id="prefixTemplate" class="form-control" placeholder="e.g. 830- or NDC-">
+                    <small class="text-muted">Must start with these exact characters</small>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Exact Pattern Template (Optional)</label>
+                    <input type="text" id="patternTemplate" class="form-control" placeholder="e.g. 000-000-00-000000">
+                    <small class="text-muted">Type template structure</small>
+                </div>
+
+                <!-- LETTER CASE CHECKBOXES -->
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Letter Case Filtering</label>
+                    <div class="checkbox-card d-flex justify-content-around align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="checkLowercase" onchange="toggleCaseCheckboxes('lower')">
+                            <label class="form-check-label fw-semibold" for="checkLowercase">
+                                Find Lowercase (a-z)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="checkUppercase" onchange="toggleCaseCheckboxes('upper')">
+                            <label class="form-check-label fw-semibold" for="checkUppercase">
+                                Find Uppercase (A-Z)
+                            </label>
+                        </div>
+                    </div>
+                    <small class="text-muted">Previews only rows containing selected case</small>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <button class="btn btn-analyze" id="analyzeBtn" onclick="analyzeData()" disabled>
+                    <i class="fas fa-search me-2"></i> Find & Preview Lowercase Rows
+                </button>
+            </div>
+        </div>
+
+        <!-- DATA PREVIEW CARD -->
+        <div class="card">
+            <h5 class="fw-bold mb-3"><i class="fas fa-table me-2"></i> Data Preview</h5>
+            <div class="table-responsive">
+                <table id="previewTable" class="table table-hover w-100"></table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        let rawExcelData = [];
+
+        function cleanValue(val) {
+            if (val === undefined || val === null) return "";
+            return String(val).replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+        }
+
+        function toggleCaseCheckboxes(type) {
+            const lowerBox = document.getElementById('checkLowercase');
+            const upperBox = document.getElementById('checkUppercase');
+
+            if (type === 'lower' && lowerBox.checked) {
+                upperBox.checked = false;
+            } else if (type === 'upper' && upperBox.checked) {
+                lowerBox.checked = false;
+            }
+        }
+
+        function buildStructuralRegexFromTemplate(template) {
+            let regexStr = "^";
+            for (let i = 0; i < template.length; i++) {
+                let char = template[i];
+                if (/[a-zA-Z0-9]/.test(char)) {
+                    regexStr += "[a-zA-Z0-9]";
+                } else {
+                    regexStr += "\\" + char;
+                }
+            }
+            regexStr += "$";
+            return new RegExp(regexStr);
+        }
+
+        document.getElementById('excelInput').onchange = function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                if (json.length > 0) {
+                    rawExcelData = json.map(row => {
+                        const cleanRow = {};
+                        Object.keys(row).forEach(key => {
+                            cleanRow[key] = cleanValue(row[key]);
+                        });
+                        return cleanRow;
+                    });
+
+                    populateColumnDropdown();
+                    renderTable(rawExcelData);
+                    document.getElementById('analyzeBtn').disabled = false;
+                } else {
+                    alert("The uploaded file is empty.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        function populateColumnDropdown() {
+            const select = document.getElementById('columnScope');
+            select.innerHTML = '<option value="ALL">-- All Columns --</option>';
+
+            if (rawExcelData.length > 0) {
+                const headers = Object.keys(rawExcelData[0]);
+                headers.forEach(h => {
+                    select.innerHTML += `<option value="${h.replace(/"/g, '&quot;')}">${h}</option>`;
+                });
+                select.disabled = false;
+            }
+        }
+
+        function analyzeData() {
+            if (!rawExcelData.length) return;
+
+            const targetCol = document.getElementById('columnScope').value;
+            const prefixInput = document.getElementById('prefixTemplate').value.trim();
+            const patternInput = document.getElementById('patternTemplate').value.trim();
+            
+            const flagLower = document.getElementById('checkLowercase').checked;
+            const flagUpper = document.getElementById('checkUppercase').checked;
+
+            const patternRegex = patternInput ? buildStructuralRegexFromTemplate(patternInput) : null;
+            const headers = Object.keys(rawExcelData[0]);
+            const columnsToProcess = targetCol === "ALL" ? headers : [targetCol];
+
+            const processedData = [];
+
+            rawExcelData.forEach(row => {
+                const updatedRow = { ...row };
+                let isRowMatch = false;
+
+                columnsToProcess.forEach(col => {
+                    const cellValue = cleanValue(row[col]);
+                    let cellMatched = true;
+
+                    // 1. Check for presence of Lowercase or Uppercase letters
+                    if (flagLower && !/[a-z]/.test(cellValue)) {
+                        cellMatched = false;
+                    }
+                    if (flagUpper && !/[A-Z]/.test(cellValue)) {
+                        cellMatched = false;
+                    }
+
+                    // 2. Prefix Check (if provided)
+                    if (cellMatched && prefixInput && !cellValue.toLowerCase().startsWith(prefixInput.toLowerCase())) {
+                        cellMatched = false;
+                    }
+
+                    // 3. Structural Pattern Check (if provided)
+                    if (cellMatched && patternRegex && !patternRegex.test(cellValue)) {
+                        cellMatched = false;
+                    }
+
+                    if (cellMatched) {
+                        isRowMatch = true;
+                    }
+
+                    // Insert status column
+                    updatedRow[`${col} _Status`] = cellMatched 
+                        ? `<span class="badge-mismatch"><i class="fas fa-exclamation-triangle me-1"></i>LOWERCASE DETECTED</span>` 
+                        : `<span class="badge-match"><i class="fas fa-check me-1"></i>NO LOWERCASE</span>`;
+                });
+
+                updatedRow['_isMatchRow'] = isRowMatch;
+                processedData.push(updatedRow);
+            });
+
+            // Filter to preview ONLY rows that contain lowercase characters if Find Lowercase is checked
+            let displayRows = processedData;
+            if (flagLower || flagUpper || prefixInput || patternInput) {
+                displayRows = processedData.filter(r => r._isMatchRow === true);
+            }
+
+            if (displayRows.length === 0) {
+                alert("No matching rows with lowercase letters found for the selected column.");
+            }
+
+            renderTable(displayRows);
+        }
+
+        function renderTable(data) {
+            if ($.fn.DataTable.isDataTable('#previewTable')) {
+                $('#previewTable').DataTable().clear().destroy();
+            }
+            $('#previewTable').empty();
+
+            if (!data || data.length === 0) return;
+
+            const keys = Object.keys(data[0]).filter(k => k !== '_isMatchRow');
+            
+            const columnsDef = keys.map(k => ({ 
+                title: k, 
+                data: k
+            }));
+
+            $('#previewTable').DataTable({
+                data: data,
+                columns: columnsDef,
+                scrollX: true,
+                pageLength: 10,
+                autoWidth: false,
+                createdRow: function (row, rowData) {
+                    if (rowData._isMatchRow) {
+                        $(row).addClass('table-mismatch-row');
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
