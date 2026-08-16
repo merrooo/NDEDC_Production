@@ -293,7 +293,6 @@
             border-bottom: 1.5px solid #e2e8f0;
         }
 
-        /* HIDE THE NATIVE DATA TABLES QUICK FILTER GENERATED BOX */
         .dataTables_filter {
             display: none !important;
         }
@@ -340,7 +339,7 @@
                 <h4 style="font-weight: 800;"><i class="fas fa-magic text-primary"></i> Data Editor Pro</h4>
             </div>
 
-            <!-- SECTION: UNIQUE VALUE EDITOR (with click-to-fill) -->
+            <!-- SECTION: FIND & REPLACE WITH TWO INPUTS -->
             <div class="feature-category"><i class="fas fa-tags"></i> FIND & REPLACE</div>
             <div class="feature-card">
                 <div class="feature-title"><i class="fas fa-columns"></i> 1. Select Column</div>
@@ -348,10 +347,16 @@
                     <option value="">— Load file first —</option>
                 </select>
                 <div id="editPanel" style="display: none;">
-                    <div class="feature-title"><i class="fas fa-search"></i> 2. Find Value <span style="font-size:10px; color:#2563eb;">(click unique value below)</span></div>
-                    <input type="text" id="findOldInput" class="compact-input" placeholder="Value to replace...">
-                    <div class="feature-title"><i class="fas fa-pen"></i> 3. Replace With</div>
-                    <input type="text" id="replaceNewInput" class="compact-input" placeholder="New value...">
+                    <div class="feature-title">
+                        <i class="fas fa-search"></i> 2. Word / Text to Find <span style="font-size:10px; color:#2563eb;">(click unique value below)</span>
+                    </div>
+                    <input type="text" id="findOldInput" class="compact-input" placeholder="Word or text to replace...">
+                    
+                    <div class="feature-title">
+                        <i class="fas fa-pen"></i> 3. Replace With
+                    </div>
+                    <input type="text" id="replaceNewInput" class="compact-input" placeholder="New replacement word...">
+                    
                     <button id="applyReplaceBtn" class="small-btn"><i class="fas fa-exchange-alt"></i> Apply Replacement</button>
                 </div>
                 <div class="feature-title" style="margin-top: 8px;"><i class="fas fa-list-ul"></i> Unique Values (click to filter & fill)</div>
@@ -368,15 +373,14 @@
                     <option value="">Select column</option>
                 </select>
                 <input type="text" id="textToStrip" class="compact-input" placeholder="e.g., 'Inc.', 'LLC', 'لوحة'">
-                <button id="applyCleanerBtn" class="small-btn danger-outline" style="background-color:  #2563eb; color: white;"><i class="fas fa-eraser"></i> Remove & Clean</button>
+                <button id="applyCleanerBtn" class="small-btn danger-outline" style="background-color: #2563eb; color: white;"><i class="fas fa-eraser"></i> Remove & Clean</button>
             </div>
         </div>
 
         <!-- MAIN RIGHT PANEL: UNIFIED FILTER + DATA GRID -->
         <div class="main-workspace">
             <div class="toolbar-header">
-                <div>
-                </div>
+                <div></div>
                 <div class="upload-zone">
                     <label for="globalFileUpload" class="upload-btn-modern"><i class="fas fa-upload"></i> Upload Excel/CSV</label>
                     <input type="file" id="globalFileUpload" accept=".xlsx, .xls, .csv" style="display:none;">
@@ -385,7 +389,7 @@
                 </div>
             </div>
 
-            <!-- GRID with UNIFIED FILTER (single search + optional column filter) -->
+            <!-- GRID with UNIFIED FILTER -->
             <div class="grid-card">
                 <div class="grid-toolbar">
                     <div><i class="fas fa-search"></i> <strong>Unified Filter</strong></div>
@@ -413,10 +417,10 @@
 
     <script>
         // -------------------- GLOBAL STATE --------------------
-        let masterData = [];          // array of objects
+        let masterData = [];          
         let masterHeaders = [];
-        let activeUnifiedFilter = "";   // single text filter applied across all columns
-        let dataTableInstance = null;     // DataTables instance
+        let activeUnifiedFilter = "";   
+        let dataTableInstance = null;     
 
         // DOM elements
         const fileUpload = document.getElementById('globalFileUpload');
@@ -453,13 +457,11 @@
             return (str.toLowerCase() === "nan" || str === "") ? "" : str;
         }
 
-        // Refresh DataTable with UNIFIED FILTER (single filter across all columns)
         function refreshDataTable() {
             if (!dataTableInstance) return;
             
             let filteredData = [...masterData];
             
-            // Apply unified filter (single text search across ALL columns)
             if (activeUnifiedFilter.trim() !== "") {
                 const query = activeUnifiedFilter.trim().toLowerCase();
                 filteredData = filteredData.filter(row => {
@@ -470,7 +472,6 @@
                 });
             }
             
-            // Update UI filter status
             if (activeUnifiedFilter.trim() !== "") {
                 filterStatusDiv.style.display = "flex";
                 filterMessageSpan.innerHTML = `<i class="fas fa-filter"></i> Showing ${filteredData.length} of ${masterData.length} rows matching "${activeUnifiedFilter}"`;
@@ -479,13 +480,11 @@
             }
             rowStatsSpan.innerText = `${filteredData.length} rows shown`;
             
-            // Clear and redraw DataTable with filtered subset
             dataTableInstance.clear();
             dataTableInstance.rows.add(filteredData);
             dataTableInstance.draw();
         }
         
-        // Update dropdowns and unique preview
         function updateSidebarComponents() {
             if (!masterHeaders.length) {
                 editorColumn.disabled = true;
@@ -508,7 +507,6 @@
             if (currentCleaner && masterHeaders.includes(currentCleaner)) cleanerColumn.value = currentCleaner;
         }
         
-        // Refresh unique values preview based on selected column
         function refreshUniquePreview() {
             const col = editorColumn.value;
             if (!col || masterData.length === 0) {
@@ -533,7 +531,6 @@
             `).join('');
         }
         
-        // Helper to escape HTML
         function escapeHtml(str) {
             if (!str) return "";
             return str.replace(/[&<>]/g, function(m) {
@@ -544,56 +541,62 @@
             });
         }
         
-        // ADJUSTED FEATURE: Click on unique value now auto-fills the input AND updates the unified data filter view
         window.fillAndFilter = (rawVal) => {
             let displayVal = rawVal === "(empty)" ? "" : rawVal;
-            
-            // 1. Fill input fields
             findOldInput.value = displayVal;
-            
-            // 2. Set search filter and update input box UI
             activeUnifiedFilter = displayVal;
             globalSearchInput.value = displayVal;
-            
-            // 3. Process the table refresh layout
             addLog(`📋 Filtering table and readying replacement for target: "${displayVal}"`, "info");
             refreshDataTable();
             replaceNewInput.focus();
         };
         
-        // Apply find & replace (exact match)
+        // UPDATED LOGIC: Replaces target text/word within selected column values
         function applyFindReplace() {
             const col = editorColumn.value;
-            if (!col) { addLog("Please select a column first", "error"); return; }
+            if (!col) { 
+                addLog("Please select a column first", "error"); 
+                return; 
+            }
+
             const oldVal = findOldInput.value;
             const newVal = replaceNewInput.value;
-            if (oldVal === "" && newVal === "") { addLog("Enter a value to find or provide a replacement", "error"); return; }
+
+            if (!oldVal) { 
+                addLog("Enter the text or word you want to replace", "error"); 
+                return; 
+            }
+
             let replaceCount = 0;
+
             masterData.forEach(row => {
-                let cell = row[col];
-                let stringCell = cell !== undefined && cell !== null ? String(cell) : "";
-                if (stringCell === oldVal) {
-                    row[col] = newVal;
-                    replaceCount++;
+                if (row[col] !== undefined && row[col] !== null) {
+                    let original = String(row[col]);
+
+                    // Check if the cell text includes the requested target string
+                    if (original.includes(oldVal)) {
+                        const updated = original.split(oldVal).join(newVal);
+                        row[col] = updated;
+                        replaceCount++;
+                    }
                 }
             });
+
             if (replaceCount > 0) {
-                addLog(`✅ Replaced ${replaceCount} occurrences of "${oldVal || '(empty)'}" → "${newVal || '(empty)'}"`, "success");
+                addLog(`✅ Replaced "${oldVal}" with "${newVal}" across ${replaceCount} row(s) in column "${col}"`, "success");
                 findOldInput.value = "";
                 replaceNewInput.value = "";
                 
-                // Clear active unique selection filter safely on execution
                 activeUnifiedFilter = "";
                 globalSearchInput.value = "";
 
-                refreshDataTable();      // update table view
-                refreshUniquePreview();  // update unique values list after modification
+                refreshDataTable();
+                refreshUniquePreview();
             } else {
-                addLog(`No exact match for "${oldVal}" in column ${col}`, "info");
+                addLog(`No occurrences of "${oldVal}" found in column "${col}"`, "info");
             }
         }
         
-        // Apply text cleaner (remove substring)
         function applyTextCleaner() {
             const col = cleanerColumn.value;
             if (!col) { addLog("Select target column for cleaning", "error"); return; }
@@ -622,7 +625,6 @@
             }
         }
         
-        // Clear unified filter
         function clearUnifiedFilter() {
             activeUnifiedFilter = "";
             globalSearchInput.value = "";
@@ -630,7 +632,6 @@
             refreshDataTable();
         }
         
-        // Load Excel file
         async function loadExcelFile(file) {
             if (!file) return;
             fileNameSpan.innerText = file.name;
@@ -651,23 +652,22 @@
                     });
                     return obj;
                 });
-                // Reset unified filter
+
                 activeUnifiedFilter = "";
                 globalSearchInput.value = "";
-                // Destroy existing DataTable if any
+
                 if (dataTableInstance) {
                     dataTableInstance.destroy();
                     $('#unifiedDataTable').empty();
                 }
                 
-                // Initialize DataTable layout (with internal search container explicitly stripped out)
                 $('#unifiedDataTable').DataTable({
                     data: masterData,
                     columns: masterHeaders.map(h => ({ title: h, data: h })),
                     scrollX: true,
                     pageLength: 15,
                     language: { info: "_TOTAL_ entries" },
-                    dom: 'Brtip', // Removed 'f' parameter to drop "Quick Filter:" container natively
+                    dom: 'Brtip',
                     buttons: [
                         {
                             extend: 'excelHtml5',
@@ -701,7 +701,6 @@
             }
         }
         
-        // Event listeners
         fileUpload.addEventListener('change', (e) => {
             if (e.target.files[0]) loadExcelFile(e.target.files[0]);
         });
@@ -722,7 +721,6 @@
             refreshUniquePreview(); 
         });
         
-        // UNIFIED FILTER: single input that filters across ALL columns
         globalSearchInput.addEventListener('input', (e) => {
             activeUnifiedFilter = e.target.value;
             refreshDataTable();
@@ -730,8 +728,7 @@
         
         clearFiltersBtn.addEventListener('click', clearUnifiedFilter);
         
-        // Initial log
-        addLog("⚡ Excel Master Toolkit ready. Upload file → Click any unique value to auto-fill Find field → Replace or Clean.", "info");
+        addLog("⚡ Excel Master Toolkit ready. Upload file → Select column → Enter text/word to replace and replacement word.", "info");
     </script>
 </body>
 
