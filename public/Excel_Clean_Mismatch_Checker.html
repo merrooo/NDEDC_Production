@@ -56,18 +56,30 @@
             transform: translateY(-2px);
         }
 
-        .btn-analyze {
-            background-color: var(--primary-blue);
-            border: none;
-            color: white;
+        .action-btn {
             font-weight: 700;
-            padding: 0.75rem 2.5rem;
+            padding: 0.6rem 1rem;
             border-radius: 10px;
             transition: 0.2s;
         }
 
-        .btn-analyze:hover {
-            background-color: #1d4ed8;
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-export {
+            background-color: #16a34a;
+            color: white;
+            font-weight: 700;
+            padding: 0.5rem 1.25rem;
+            border-radius: 10px;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .btn-export:hover {
+            background-color: #15803d;
+            color: white;
             transform: translateY(-2px);
         }
 
@@ -116,7 +128,8 @@
         <!-- CONFIGURATION CARD -->
         <div class="card">
             <h5 class="fw-bold mb-3"><i class="fas fa-sliders-h me-2"></i> File Upload & Detection Options</h5>
-            <div class="row g-3 align-items-end mb-3">
+            
+            <div class="row g-3 align-items-end mb-4">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Load Excel / CSV File</label>
                     <input type="file" id="excelInput" class="form-control" accept=".xlsx, .xls, .csv">
@@ -124,29 +137,37 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Select Target Column</label>
-                    <select id="columnScope" class="form-select" disabled>
+                    <select id="columnScope" class="form-select" disabled onchange="handleColumnChange()">
                         <option value="ALL">-- All Columns --</option>
                     </select>
                 </div>
             </div>
 
-            <div class="row g-3 align-items-end">
+            <div class="row g-3 align-items-start">
+                <!-- PREFIX MATCH FIELD & BUTTON -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Prefix Match (Optional)</label>
-                    <input type="text" id="prefixTemplate" class="form-control" placeholder="e.g. 830- or NDC-">
-                    <small class="text-muted">Must start with these exact characters</small>
+                    <input type="text" id="prefixTemplate" class="form-control mb-1" placeholder="e.g. 830- or NDC-">
+                    <small class="text-muted d-block mb-2">Must start with these exact characters</small>
+                    <button class="btn btn-warning action-btn text-dark w-100" id="prefixBtn" onclick="analyzePrefixMismatch()" disabled>
+                        <i class="fas fa-asterisk me-2"></i> Check Prefix Mismatches
+                    </button>
                 </div>
 
+                <!-- EXACT PATTERN FIELD & BUTTON -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Exact Pattern Template (Optional)</label>
-                    <input type="text" id="patternTemplate" class="form-control" placeholder="e.g. 000-000-00-000000">
-                    <small class="text-muted">Type template structure</small>
+                    <input type="text" id="patternTemplate" class="form-control mb-1" placeholder="e.g. 000-000-00-000000">
+                    <small class="text-muted d-block mb-2">Type template structure</small>
+                    <button class="btn btn-danger action-btn w-100" id="patternBtn" onclick="analyzePatternMismatch()" disabled>
+                        <i class="fas fa-project-diagram me-2"></i> Check Pattern Mismatches
+                    </button>
                 </div>
 
                 <!-- LETTER CASE CHECKBOXES -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Letter Case Filtering</label>
-                    <div class="checkbox-card d-flex justify-content-around align-items-center">
+                    <div class="checkbox-card d-flex justify-content-around align-items-center py-2 mb-1">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="checkLowercase" onchange="toggleCaseCheckboxes('lower')">
                             <label class="form-check-label fw-semibold" for="checkLowercase">
@@ -160,20 +181,19 @@
                             </label>
                         </div>
                     </div>
-                    <small class="text-muted">Previews only rows containing selected case</small>
+                    <small class="text-muted d-block">Filter rows immediately upon checking</small>
                 </div>
-            </div>
-
-            <div class="mt-4 text-center">
-                <button class="btn btn-analyze" id="analyzeBtn" onclick="analyzeData()" disabled>
-                    <i class="fas fa-search me-2"></i> Find & Preview Lowercase Rows
-                </button>
             </div>
         </div>
 
         <!-- DATA PREVIEW CARD -->
         <div class="card">
-            <h5 class="fw-bold mb-3"><i class="fas fa-table me-2"></i> Data Preview</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-table me-2"></i> Data Preview</h5>
+                <button class="btn btn-export" id="exportBtn" onclick="exportTableToExcel()" disabled>
+                    <i class="fas fa-file-excel me-2"></i> Export Current Table
+                </button>
+            </div>
             <div class="table-responsive">
                 <table id="previewTable" class="table table-hover w-100"></table>
             </div>
@@ -186,6 +206,7 @@
 
     <script>
         let rawExcelData = [];
+        let currentDisplayedData = [];
 
         function cleanValue(val) {
             if (val === undefined || val === null) return "";
@@ -200,6 +221,18 @@
                 upperBox.checked = false;
             } else if (type === 'upper' && upperBox.checked) {
                 lowerBox.checked = false;
+            }
+
+            analyzeCase();
+        }
+
+        function handleColumnChange() {
+            if (!rawExcelData.length) return;
+            const lowerBox = document.getElementById('checkLowercase');
+            const upperBox = document.getElementById('checkUppercase');
+
+            if (lowerBox.checked || upperBox.checked) {
+                analyzeCase();
             }
         }
 
@@ -238,7 +271,9 @@
 
                     populateColumnDropdown();
                     renderTable(rawExcelData);
-                    document.getElementById('analyzeBtn').disabled = false;
+                    
+                    document.getElementById('prefixBtn').disabled = false;
+                    document.getElementById('patternBtn').disabled = false;
                 } else {
                     alert("The uploaded file is empty.");
                 }
@@ -259,20 +294,21 @@
             }
         }
 
-        function analyzeData() {
+        // 1. AUTOMATIC LETTER CASE FILTERING
+        function analyzeCase() {
             if (!rawExcelData.length) return;
 
-            const targetCol = document.getElementById('columnScope').value;
-            const prefixInput = document.getElementById('prefixTemplate').value.trim();
-            const patternInput = document.getElementById('patternTemplate').value.trim();
-            
             const flagLower = document.getElementById('checkLowercase').checked;
             const flagUpper = document.getElementById('checkUppercase').checked;
 
-            const patternRegex = patternInput ? buildStructuralRegexFromTemplate(patternInput) : null;
+            if (!flagLower && !flagUpper) {
+                renderTable(rawExcelData);
+                return;
+            }
+
+            const targetCol = document.getElementById('columnScope').value;
             const headers = Object.keys(rawExcelData[0]);
             const columnsToProcess = targetCol === "ALL" ? headers : [targetCol];
-
             const processedData = [];
 
             rawExcelData.forEach(row => {
@@ -281,61 +317,144 @@
 
                 columnsToProcess.forEach(col => {
                     const cellValue = cleanValue(row[col]);
-                    let cellMatched = true;
+                    let hasCase = false;
 
-                    // 1. Check for presence of Lowercase or Uppercase letters
-                    if (flagLower && !/[a-z]/.test(cellValue)) {
-                        cellMatched = false;
+                    if (flagLower && /[a-z]/.test(cellValue)) {
+                        hasCase = true;
                     }
-                    if (flagUpper && !/[A-Z]/.test(cellValue)) {
-                        cellMatched = false;
-                    }
-
-                    // 2. Prefix Check (if provided)
-                    if (cellMatched && prefixInput && !cellValue.toLowerCase().startsWith(prefixInput.toLowerCase())) {
-                        cellMatched = false;
+                    if (flagUpper && /[A-Z]/.test(cellValue)) {
+                        hasCase = true;
                     }
 
-                    // 3. Structural Pattern Check (if provided)
-                    if (cellMatched && patternRegex && !patternRegex.test(cellValue)) {
-                        cellMatched = false;
-                    }
-
-                    if (cellMatched) {
+                    if (hasCase) {
                         isRowMatch = true;
                     }
 
-                    // Insert status column
-                    updatedRow[`${col} _Status`] = cellMatched 
-                        ? `<span class="badge-mismatch"><i class="fas fa-exclamation-triangle me-1"></i>LOWERCASE DETECTED</span>` 
-                        : `<span class="badge-match"><i class="fas fa-check me-1"></i>NO LOWERCASE</span>`;
+                    const caseLabel = flagLower ? "LOWERCASE" : "UPPERCASE";
+                    updatedRow[`${col} _Status`] = hasCase 
+                        ? `<span class="badge-mismatch"><i class="fas fa-exclamation-triangle me-1"></i>${caseLabel} DETECTED</span>` 
+                        : `<span class="badge-match"><i class="fas fa-check me-1"></i>NO ${caseLabel}</span>`;
                 });
 
                 updatedRow['_isMatchRow'] = isRowMatch;
                 processedData.push(updatedRow);
             });
 
-            // Filter to preview ONLY rows that contain lowercase characters if Find Lowercase is checked
-            let displayRows = processedData;
-            if (flagLower || flagUpper || prefixInput || patternInput) {
-                displayRows = processedData.filter(r => r._isMatchRow === true);
-            }
+            const displayRows = processedData.filter(r => r._isMatchRow === true);
 
             if (displayRows.length === 0) {
-                alert("No matching rows with lowercase letters found for the selected column.");
+                alert("No matching rows with selected case filtering found.");
+            }
+
+            renderTable(displayRows);
+        }
+
+        // 2. PREFIX MATCH BUTTON (PREVIEWS NON-MATCHING ROWS)
+        function analyzePrefixMismatch() {
+            if (!rawExcelData.length) return;
+
+            const prefixInput = document.getElementById('prefixTemplate').value.trim();
+            if (!prefixInput) {
+                alert("Please enter a Prefix Template first.");
+                return;
+            }
+
+            const targetCol = document.getElementById('columnScope').value;
+            const headers = Object.keys(rawExcelData[0]);
+            const columnsToProcess = targetCol === "ALL" ? headers : [targetCol];
+            const processedData = [];
+
+            rawExcelData.forEach(row => {
+                const updatedRow = { ...row };
+                let isMismatchRow = false;
+
+                columnsToProcess.forEach(col => {
+                    const cellValue = cleanValue(row[col]);
+                    const startsWithPrefix = cellValue.toLowerCase().startsWith(prefixInput.toLowerCase());
+
+                    if (!startsWithPrefix) {
+                        isMismatchRow = true;
+                    }
+
+                    updatedRow[`${col} _Status`] = !startsWithPrefix 
+                        ? `<span class="badge-mismatch"><i class="fas fa-exclamation-triangle me-1"></i>PREFIX MISMATCH</span>` 
+                        : `<span class="badge-match"><i class="fas fa-check me-1"></i>PREFIX MATCH</span>`;
+                });
+
+                updatedRow['_isMatchRow'] = isMismatchRow;
+                processedData.push(updatedRow);
+            });
+
+            const displayRows = processedData.filter(r => r._isMatchRow === true);
+
+            if (displayRows.length === 0) {
+                alert("No prefix mismatches found. All rows start with the prefix!");
+            }
+
+            renderTable(displayRows);
+        }
+
+        // 3. EXACT PATTERN TEMPLATE BUTTON (PREVIEWS NON-MATCHING ROWS)
+        function analyzePatternMismatch() {
+            if (!rawExcelData.length) return;
+
+            const patternInput = document.getElementById('patternTemplate').value.trim();
+            if (!patternInput) {
+                alert("Please enter an Exact Pattern Template first.");
+                return;
+            }
+
+            const patternRegex = buildStructuralRegexFromTemplate(patternInput);
+            const targetCol = document.getElementById('columnScope').value;
+            const headers = Object.keys(rawExcelData[0]);
+            const columnsToProcess = targetCol === "ALL" ? headers : [targetCol];
+            const processedData = [];
+
+            rawExcelData.forEach(row => {
+                const updatedRow = { ...row };
+                let isMismatchRow = false;
+
+                columnsToProcess.forEach(col => {
+                    const cellValue = cleanValue(row[col]);
+                    const matchesPattern = patternRegex.test(cellValue);
+
+                    if (!matchesPattern) {
+                        isMismatchRow = true;
+                    }
+
+                    updatedRow[`${col} _Status`] = !matchesPattern 
+                        ? `<span class="badge-mismatch"><i class="fas fa-exclamation-triangle me-1"></i>PATTERN MISMATCH</span>` 
+                        : `<span class="badge-match"><i class="fas fa-check me-1"></i>PATTERN MATCH</span>`;
+                });
+
+                updatedRow['_isMatchRow'] = isMismatchRow;
+                processedData.push(updatedRow);
+            });
+
+            const displayRows = processedData.filter(r => r._isMatchRow === true);
+
+            if (displayRows.length === 0) {
+                alert("No pattern mismatches found. All rows match the structural pattern!");
             }
 
             renderTable(displayRows);
         }
 
         function renderTable(data) {
+            currentDisplayedData = data || [];
+            const exportBtn = document.getElementById('exportBtn');
+
             if ($.fn.DataTable.isDataTable('#previewTable')) {
                 $('#previewTable').DataTable().clear().destroy();
             }
             $('#previewTable').empty();
 
-            if (!data || data.length === 0) return;
+            if (!data || data.length === 0) {
+                exportBtn.disabled = true;
+                return;
+            }
 
+            exportBtn.disabled = false;
             const keys = Object.keys(data[0]).filter(k => k !== '_isMatchRow');
             
             const columnsDef = keys.map(k => ({ 
@@ -355,6 +474,32 @@
                     }
                 }
             });
+        }
+
+        // 4. EXPORT FUNCTION (CLEANS HTML BADGES BEFORE EXPORT)
+        function exportTableToExcel() {
+            if (!currentDisplayedData || currentDisplayedData.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            const exportData = currentDisplayedData.map(row => {
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                    if (key !== '_isMatchRow') {
+                        // Strip HTML tags from status badges for clean Excel output
+                        const val = String(row[key]);
+                        cleanRow[key] = val.replace(/<[^>]*>?/gm, '');
+                    }
+                });
+                return cleanRow;
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Mismatch Results");
+
+            XLSX.writeFile(workbook, "Excel_Mismatch_Results.xlsx");
         }
     </script>
 </body>
