@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض واستعلام البيانات - شركة شمال الدلتا</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; min-height: 100vh; padding: 20px; margin: 0; display: flex; justify-content: center; }
+        .container { background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); width: 100%; max-width: 1200px; }
+        h2 { text-align: center; color: #1e293b; margin-top: 0; margin-bottom: 20px; }
+        .info-box { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; text-align: center; }
+        
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search-box { flex: 1; min-width: 280px; position: relative; }
+        .search-box input { width: 100%; padding: 10px 35px 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .search-box input:focus { border-color: #2563eb; }
+        .search-box i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 16px; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-excel { background-color: #059669; }
+        .btn-excel:hover { background-color: #047857; }
+        .btn-upload { background-color: #2563eb; }
+        .btn-upload:hover { background-color: #1d4ed8; }
+        .btn-refresh { background-color: #475569; }
+        .btn-refresh:hover { background-color: #334155; }
+
+        .stats-bar { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #334155; }
+        .stat-card span { color: #2563eb; font-weight: bold; }
+
+        .table-wrapper { overflow-x: auto; max-height: 600px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; white-space: nowrap; }
+        th { background-color: #f1f5f9; color: #1e293b; padding: 12px 10px; position: sticky; top: 0; border-bottom: 2px solid #cbd5e1; z-index: 10; }
+        td { padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        tr:hover { background-color: #f8fafc; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; font-size: 15px; }
+        .empty-state i { font-size: 40px; margin-bottom: 10px; color: #94a3b8; display: block; }
+        
+        #loadingSpinner { text-align: center; padding: 30px; font-weight: bold; color: #2563eb; }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2><i class="fas fa-search-location"></i> استعلام وعرض بيانات المحولات والعدادات</h2>
+
+        <div class="info-box" id="userLocation">
+            مسار البيانات الحالي: <b>جاري التحميل...</b>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="بحث برقم العداد، اسم المحول، كود المحول، أو الفئة..." />
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-refresh" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> تحديث
+                </button>
+                <button type="button" class="btn btn-excel" id="exportBtn">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+                <a id="uploadPageLink" href="#" class="btn btn-upload">
+                    <i class="fas fa-plus"></i> إضافة بيانات
+                </a>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card">إجمالي السجلات: <span id="totalCount">0</span></div>
+            <div class="stat-card">السجلات المعروضة: <span id="visibleCount">0</span></div>
+        </div>
+
+        <div id="loadingSpinner">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>جاري جلب البيانات من Firebase...</p>
+        </div>
+
+        <div class="table-wrapper" id="tableContainer" style="display: none;">
+            <table id="dataTable">
+                <thead>
+                    <tr id="tableHeader">
+                        <th>#</th>
+                        <th>رقم العداد</th>
+                        <th>رقم الشريحة</th>
+                        <th>اسم المحول</th>
+                        <th>كود المحول</th>
+                        <th>قدرة المحول</th>
+                        <th>اسم المغذي</th>
+                        <th>اسم اللوحة</th>
+                        <th>الفئة (TYPE)</th>
+                        <th>تاريخ التركيب</th>
+                        <th>العنوان</th>
+                        <th>الموقع (Lat, Lng)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="emptyMessage" class="empty-state" style="display: none;">
+            <i class="fas fa-folder-open"></i>
+            <p>لا توجد بيانات مسجلة في هذا المسار حالياً.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+            authDomain: "trial-85.firebaseapp.com",
+            projectId: "trial-85",
+            storageBucket: "trial-85.firebasestorage.app",
+            messagingSenderId: "660343156279",
+            appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+            measurementId: "G-RLMVPCLZW3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // قراءة المتغيرات من URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const keta3Id = urlParams.get('keta3') || urlParams.get('keta3_id');
+        const handsaId = urlParams.get('handsa') || urlParams.get('handsa_id');
+
+        let allRecords = [];
+
+        // التحقق من إدخال البيانات
+        if (!keta3Id || !handsaId) {
+            alert("يرجى اختيار القطاع والهندسة أولاً من صفحة تسجيل الدخول.");
+            window.location.href = "login.html";
+        } else {
+            document.getElementById('userLocation').innerHTML =
+                `<i class="fas fa-folder-open"></i> مسار الاستعلام الحالي: <b>sectors / ${keta3Id} / districts / ${handsaId}</b>`;
+            document.getElementById('uploadPageLink').href = `upload.html?keta3=${encodeURIComponent(keta3Id)}&handsa=${encodeURIComponent(handsaId)}`;
+            
+            fetchDistrictData();
+        }
+
+        // جلب البيانات من Firebase
+        function fetchDistrictData() {
+            const spinner = document.getElementById('loadingSpinner');
+            const tableContainer = document.getElementById('tableContainer');
+            const emptyMsg = document.getElementById('emptyMessage');
+
+            spinner.style.display = 'block';
+            tableContainer.style.display = 'none';
+            emptyMsg.style.display = 'none';
+
+            const districtRef = ref(db, `sectors/${keta3Id}/districts/${handsaId}`);
+
+            onValue(districtRef, (snapshot) => {
+                spinner.style.display = 'none';
+                const data = snapshot.val();
+                allRecords = [];
+
+                if (!data) {
+                    emptyMsg.style.display = 'block';
+                    updateCounts(0, 0);
+                    return;
+                }
+
+                // تجميع البيانات من جميع العقد الداخلية (manual_entries أو شيتات Excel)
+                Object.keys(data).forEach(nodeKey => {
+                    const nodeValue = data[nodeKey];
+                    if (typeof nodeValue === 'object' && nodeValue !== null) {
+                        if (Array.isArray(nodeValue)) {
+                            nodeValue.forEach(item => { if (item) allRecords.push(item); });
+                        } else {
+                            Object.keys(nodeValue).forEach(childKey => {
+                                const item = nodeValue[childKey];
+                                if (typeof item === 'object' && item !== null) {
+                                    allRecords.push(item);
+                                }
+                            });
+                        }
+                    }
+                });
+
+                if (allRecords.length === 0) {
+                    emptyMsg.style.display = 'block';
+                } else {
+                    tableContainer.style.display = 'block';
+                    renderTable(allRecords);
+                }
+
+                updateCounts(allRecords.length, allRecords.length);
+            }, (error) => {
+                spinner.style.display = 'none';
+                alert("حدث خطأ أثناء تحميل البيانات: " + error.message);
+            });
+        }
+
+        // عرض البيانات داخل الجدول
+        function renderTable(records) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            records.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                
+                const meter = row["رقم العداد"] || row["meterNum"] || row["رقم_العداد"] || "-";
+                const sim = row["رقم الشريحة"] || row["simNum"] || row["رقم_الشريحة"] || "-";
+                const trans = row["اسم المحول"] || row["transName"] || row["اسم_المحول"] || "-";
+                const transCode = row["كود المحول"] || row["transCode"] || row["كود_المحول"] || "-";
+                const transCap = row["قدرة المحول"] || row["transCap"] || row["قدرة_المحول"] || "-";
+                const feeder = row["اسم المغذي الموصل بيه المحول"] || row["feederName"] || row["اسم_المغذي"] || "-";
+                const panel = row["اسم لوحة التوزيع"] || row["panelName"] || row["اسم_لوحة_التوزيع"] || "-";
+                const type = row["TYPE"] || row["meterType"] || "-";
+                const date = row["تاريخ التركيب"] || row["installDate"] || "-";
+                const address = row["عنوان المحول بالتفصيل"] || row["transAddress"] || "-";
+                
+                const lat = row["Latitude(y)"] || row["lat"] || "";
+                const lng = row["Longitude(x)"] || row["lng"] || "";
+                const coords = (lat && lng) ? `${lat}, ${lng}` : "-";
+
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><b>${meter}</b></td>
+                    <td>${sim}</td>
+                    <td>${trans}</td>
+                    <td>${transCode}</td>
+                    <td>${transCap}</td>
+                    <td>${feeder}</td>
+                    <td>${panel}</td>
+                    <td>${type}</td>
+                    <td>${date}</td>
+                    <td>${address}</td>
+                    <td>${coords}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('visibleCount').textContent = records.length;
+        }
+
+        // تحديث عدادات الإحصاء
+        function updateCounts(total, visible) {
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('visibleCount').textContent = visible;
+        }
+
+        // البحث الفوري
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            if (!query) {
+                renderTable(allRecords);
+                return;
+            }
+
+            const filtered = allRecords.filter(item => {
+                return Object.values(item).some(val => 
+                    String(val).toLowerCase().includes(query)
+                );
+            });
+
+            renderTable(filtered);
+        });
+
+        // زر إعادة التحديث
+        document.getElementById('refreshBtn').addEventListener('click', fetchDistrictData);
+
+        // تصدير البيانات المعروضة إلى Excel
+        document.getElementById('exportBtn').addEventListener('click', function () {
+            if (allRecords.length === 0) {
+                alert("لا توجد بيانات لتصديرها.");
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(allRecords);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "البيانات المسجلة");
+            
+            XLSX.writeFile(workbook, `District_${keta3Id}_${handsaId}_Data.xlsx`);
+        });
+    </script>
+
+</body>
+
+</html>
