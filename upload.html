@@ -4,254 +4,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة وإدخال البيانات - Firebase</title>
+    <title>نظام تسجيل وحصر العدادات والمحولات</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #0f172a;
+        }
+
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background-color: #f0f2f5;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
             padding: 20px;
-            margin: 0;
+            direction: rtl;
         }
 
         .container {
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            width: 100%;
-            max-width: 100%;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        h2 {
-            text-align: center;
-            color: #1e293b;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 28px;
+        header {
+            background: var(--card-bg);
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-right: 6px solid var(--primary);
         }
 
-        .section-title {
-            font-size: 18px;
+        .header-title h1 {
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+
+        .header-title p {
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .sync-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+        }
+
+        .sync-status.loading {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+
+        .btn-logout {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background-color: #fca5a5;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
             font-weight: bold;
-            color: #0f172a;
-            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border-color);
             padding-bottom: 10px;
-            margin: 25px 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .grid-2 {
+        .form-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
         }
 
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
-        @media (max-width: 1200px) {
-            .grid-4 {
-                grid-template-columns: 1fr 1fr 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .grid-2,
-            .grid-3,
-            .grid-4 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .form-field {
-            margin-bottom: 12px;
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             position: relative;
         }
 
-        .form-field label {
-            display: block;
-            margin-bottom: 6px;
+        .form-group label {
+            font-size: 0.88rem;
             font-weight: 600;
-            font-size: 13px;
             color: #334155;
         }
 
-        .input-control {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 14px;
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
             outline: none;
             transition: border-color 0.2s;
         }
 
-        .input-control:focus {
-            border-color: #2563eb;
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
         }
 
-        .input-control.duplicate {
-            border-color: #dc2626;
+        .form-group input.duplicate {
+            border-color: var(--danger);
             background-color: #fef2f2;
         }
 
-        .input-control.valid {
-            border-color: #059669;
-            background-color: #f0fdf4;
+        .form-group input.valid {
+            border-color: var(--success);
         }
 
-        .input-control[readonly] {
-            background-color: #f1f5f9;
-            color: #475569;
-            cursor: not-allowed;
+        .warning-msg {
+            color: var(--danger);
+            font-size: 0.75rem;
+            display: none;
+            margin-top: 2px;
         }
 
-        .info-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            color: #1e40af;
-            padding: 15px 20px;
-            border-radius: 6px;
-            font-size: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+        .warning-msg.show {
+            display: block;
         }
 
-        .info-box .district-name {
-            color: #d97706;
-            font-weight: bold;
+        .full-width {
+            grid-column: 1 / -1;
         }
 
-        .button-group {
+        .form-actions {
+            margin-top: 25px;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 20px;
+            gap: 15px;
         }
 
         .btn {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px 20px;
-            color: white;
+            padding: 10px 24px;
             border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
-            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
         }
 
-        .btn-add {
-            background-color: #2563eb;
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
         }
 
-        .btn-add:hover {
-            background-color: #1d4ed8;
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
         }
 
-        .btn-add:disabled {
+        .btn-primary:disabled {
             background-color: #94a3b8;
             cursor: not-allowed;
         }
 
-        .btn-cancel {
-            background-color: #64748b;
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #475569;
         }
 
-        .btn-cancel:hover {
-            background-color: #475569;
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
         }
 
         #statusMessage {
-            margin-top: 15px;
-            text-align: center;
-            font-weight: bold;
-            word-break: break-word;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        #statusMessage.success {
-            color: #059669;
-            background-color: #f0fdf4;
-        }
-
-        #statusMessage.error {
-            color: #dc2626;
-            background-color: #fef2f2;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 600;
         }
 
         #statusMessage.info {
-            color: #2563eb;
-            background-color: #eff6ff;
-        }
-
-        .duplicate-warning {
-            color: #dc2626;
-            font-size: 12px;
-            margin-top: 4px;
-            display: none;
-        }
-
-        .duplicate-warning.show {
             display: block;
+            background-color: #e0f2fe;
+            color: #0369a1;
         }
 
-        /* Table Styles */
+        #statusMessage.success {
+            display: block;
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        #statusMessage.error {
+            display: block;
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 38px 10px 12px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary);
+        }
+
         .table-container {
             overflow-x: auto;
-            margin-top: 20px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            max-height: 550px;
-            overflow-y: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            min-width: 1400px;
-        }
-
-        thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            background-color: #1e293b;
-            color: white;
-            padding: 12px 10px;
+            font-size: 0.88rem;
             text-align: right;
             white-space: nowrap;
         }
 
+        th {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 12px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+        }
+
         td {
-            padding: 10px;
-            border-bottom: 1px solid #e2e8f0;
-            white-space: nowrap;
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
         }
 
         tr:hover {
@@ -264,209 +312,210 @@
 
         .actions-cell {
             display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .btn-sm {
-            padding: 5px 12px;
-            font-size: 12px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 6px;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            color: white;
-            font-weight: 600;
-            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .btn-edit-sm {
-            background-color: #f59e0b;
+            background-color: #fef3c7;
+            color: #b45309;
         }
 
         .btn-edit-sm:hover {
-            background-color: #d97706;
+            background-color: #fde68a;
         }
 
         .btn-delete-sm {
-            background-color: #dc2626;
+            background-color: #fee2e2;
+            color: #dc2626;
         }
 
         .btn-delete-sm:hover {
-            background-color: #b91c1c;
+            background-color: #fca5a5;
         }
 
         .btn-save-sm {
-            background-color: #059669;
-        }
-
-        .btn-save-sm:hover {
-            background-color: #047857;
+            background-color: #d1fae5;
+            color: #065f46;
         }
 
         .btn-cancel-sm {
-            background-color: #64748b;
-        }
-
-        .btn-cancel-sm:hover {
-            background-color: #475569;
+            background-color: #e2e8f0;
+            color: #475569;
         }
 
         .no-data {
             text-align: center;
             padding: 40px;
-            color: #94a3b8;
-            font-size: 16px;
+            color: var(--secondary);
+            font-size: 1rem;
         }
 
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            align-items: center;
+        .filter-hint {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            margin-top: 4px;
         }
 
-        .search-box input {
-            flex: 1;
-            min-width: 200px;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .search-box input:focus {
-            border-color: #2563eb;
-            outline: none;
-        }
-
-        .count-badge {
-            background-color: #e2e8f0;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            color: #475569;
+        .debug-info {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 2px;
+            direction: ltr;
+            text-align: left;
         }
     </style>
+    <base target="_blank">
 </head>
 
 <body>
-
     <div class="container">
-        <h2><i class="fas fa-database"></i> لوحة إضافة وإدارة البيانات</h2>
-
-        <input type="hidden" id="keta3Id" value="" />
-        <input type="hidden" id="handsaId" value="" />
-        <input type="hidden" id="editingKey" value="" />
-
-        <div class="info-box" id="userLocation">
-            <i class="fas fa-folder-open"></i> الهندسة الحالية: 
-            <span class="district-name" id="districtNameDisplay">جاري التحميل...</span>
-        </div>
-
-        <form id="dataForm">
-            <div class="section-title"><i class="fas fa-edit"></i> إضافة / تعديل سجل البيانات</div>
-
-            <div class="grid-3">
-                <div class="form-field">
-                    <label>رقم العداد *</label>
-                    <input type="text" id="meterNum" class="input-control" required placeholder="مثال: 83007059" />
-                    <div class="duplicate-warning" id="meterNumWarning">⚠️ رقم العداد موجود مسبقاً</div>
-                </div>
-                <div class="form-field">
-                    <label>رقم الشريحة (SIM/IMSI)</label>
-                    <input type="text" id="simNum" class="input-control" list="simList" placeholder="أدخل رقم الشريحة..." autocomplete="off" />
-                    <datalist id="simList"></datalist>
-                    <div class="duplicate-warning" id="simNumWarning">⚠️ رقم الشريحة موجود مسبقاً</div>
-                </div>
-                <div class="form-field">
-                    <label>نوع العداد / الفئة (TYPE)</label>
-                    <input type="text" id="meterType" class="input-control" placeholder="مثال: A4 أو HES" />
-                </div>
+        <header>
+            <div class="header-title">
+                <h1>لوحة تسجيل وحصر البيانات الميدانية</h1>
+                <p>نظام متابعة العدادات والمحولات - <span id="districtNameDisplay">جاري التحميل...</span></p>
             </div>
-
-            <div class="grid-3">
-                <div class="form-field">
-                    <label>اسم المحول</label>
-                    <input type="text" id="transName" class="input-control" list="transformersList" placeholder="اختر أو اكتب اسم المحول..." autocomplete="off" />
-                    <datalist id="transformersList"></datalist>
-                    <div class="duplicate-warning" id="transNameWarning">⚠️ اسم المحول موجود مسبقاً</div>
-                </div>
-                <div class="form-field">
-                    <label>كود المحول</label>
-                    <input type="text" id="transCode" class="input-control" placeholder="سيتم التعبئة تلقائياً..." readonly />
-                    <div class="duplicate-warning" id="transCodeWarning">⚠️ كود المحول موجود مسبقاً</div>
-                </div>
-                <div class="form-field">
-                    <label>قدرة المحول (KVA)</label>
-                    <input type="number" id="transCap" class="input-control" placeholder="مثال: 300" />
-                </div>
+            <div class="header-actions">
+                <span id="syncStatus" class="sync-status loading">⏳ جاري الاتصال بالقاعدة...</span>
+                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
             </div>
-
-            <div class="grid-4">
-                <div class="form-field">
-                    <label>اسم المغذي</label>
-                    <input type="text" id="feederName" class="input-control" list="feedersList" placeholder="اختر أو اكتب اسم المغذي..." autocomplete="off" />
-                    <datalist id="feedersList"></datalist>
-                </div>
-                <div class="form-field">
-                    <label>كود المغذي</label>
-                    <input type="text" id="feederCode" class="input-control" list="feederCodesList" placeholder="كود المغذي..." autocomplete="off" />
-                    <datalist id="feederCodesList"></datalist>
-                </div>
-                <div class="form-field">
-                    <label>اسم لوحة التوزيع</label>
-                    <input type="text" id="panelName" class="input-control" list="panelsList" placeholder="اختر أو اكتب اسم لوحة التوزيع..." autocomplete="off" />
-                    <datalist id="panelsList"></datalist>
-                </div>
-                <div class="form-field">
-                    <label>تاريخ التركيب</label>
-                    <input type="date" id="installDate" class="input-control" readonly />
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="form-field">
-                    <label>خط العرض Latitude (y)</label>
-                    <input type="text" id="lat" class="input-control" placeholder="30.373987" />
-                </div>
-                <div class="form-field">
-                    <label>خط الطول Longitude (x)</label>
-                    <input type="text" id="lng" class="input-control" placeholder="31.163257" />
-                </div>
-            </div>
-
-            <div class="form-field">
-                <label>عنوان المحول بالتفصيل</label>
-                <input type="text" id="transAddress" class="input-control" placeholder="أدخل العنوان التفصيلي..." />
-            </div>
-
-            <div class="button-group">
-                <button type="button" class="btn btn-add" id="addSingleBtn" disabled>
-                    <i class="fas fa-plus-circle"></i> حفظ السجل
-                </button>
-                <button type="button" class="btn btn-cancel" id="cancelEditBtn" style="display:none;">
-                    <i class="fas fa-times-circle"></i> إلغاء التعديل
-                </button>
-            </div>
-        </form>
+        </header>
 
         <div id="statusMessage"></div>
+        <input type="hidden" id="keta3Id">
+        <input type="hidden" id="handsaCode">
+        <input type="hidden" id="editingKey">
 
-        <div class="section-title" style="margin-top:30px;">
-            <i class="fas fa-table"></i> البيانات المسجلة
-            <span class="count-badge" id="recordsCount">0 سجل</span>
+        <div class="card" id="dataForm">
+            <div class="card-title"><i class="fas fa-edit"></i> إدخال / تعديل بيانات العداد والمحول</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>رقم العداد الرئيسي <span style="color:red">*</span></label>
+                    <input type="text" id="meterNum" placeholder="أدخل رقم العداد">
+                    <span class="warning-msg" id="meterNumWarning">⚠️ رقم العداد مسجل مسبقاً!</span>
+                </div>
+                <div class="form-group">
+                    <label>رقم الشريحة (SIM)</label>
+                    <input type="text" id="simNum" list="simList" placeholder="أدخل أو اختر رقم الشريحة">
+                    <datalist id="simList"></datalist>
+                    <span class="warning-msg" id="simNumWarning">⚠️ رقم الشريحة مسجل مسبقاً!</span>
+                </div>
+                <div class="form-group">
+                    <label>نوع العداد</label>
+                    <input type="text" id="meterType" placeholder="مثال: ذكي / مسبق الدفع">
+                </div>
+                <div class="form-group">
+                    <label>اسم المحول</label>
+                    <input type="text" id="transName" list="transformersList" placeholder="اختر أو أدخل اسم المحول">
+                    <datalist id="transformersList"></datalist>
+                    <span class="warning-msg" id="transNameWarning">⚠️ اسم المحول مسجل مسبقاً!</span>
+                </div>
+                <div class="form-group">
+                    <label>كود المحول</label>
+                    <input type="text" id="transCode" list="transCodeList" placeholder="اختر كود المحول">
+                    <datalist id="transCodeList"></datalist>
+                    <span class="warning-msg" id="transCodeWarning">⚠️ كود المحول مسجل مسبقاً!</span>
+                </div>
+                <div class="form-group">
+                    <label>قدرة المحول (ك.ف.أ)</label>
+                    <input type="text" id="transCap" placeholder="مثال: 500">
+                </div>
+                <div class="form-group">
+                    <label>اسم المغذي</label>
+                    <input type="text" id="feederName" list="feedersList" placeholder="اختر اسم المغذي">
+                    <datalist id="feedersList"></datalist>
+                    <span class="warning-msg" id="feederNameWarning">⚠️ اسم المغذي مسجل مسبقاً!</span>
+                </div>
+                <div class="form-group">
+                    <label>كود المغذي</label>
+                    <input type="text" id="feederCode" list="feederCodeList" placeholder="اختر كود المغذي">
+                    <datalist id="feederCodeList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>اسم لوحة التوزيع</label>
+                    <input type="text" id="panelName" list="panelsList" placeholder="اختر لوحة التوزيع">
+                    <datalist id="panelsList"></datalist>
+                    <span class="warning-msg" id="panelNameWarning">⚠️ اسم اللوحة مسجل مسبقاً!</span>
+                    <div id="panelDebug" class="debug-info"></div>
+                </div>
+                <div class="form-group">
+                    <label>كود لوحة التوزيع</label>
+                    <input type="text" id="panelCode" list="panelCodeList" placeholder="كود اللوحة">
+                    <datalist id="panelCodeList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>اسم المحطة</label>
+                    <input type="text" id="stationName" list="stationsList" placeholder="اختر اسم المحطة">
+                    <datalist id="stationsList"></datalist>
+                    <div id="stationDebug" class="debug-info"></div>
+                </div>
+                <div class="form-group">
+                    <label>كود المحطة</label>
+                    <input type="text" id="stationCode" list="stationCodeList" placeholder="كود المحطة">
+                    <datalist id="stationCodeList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>المغذي الخارج</label>
+                    <input type="text" id="feederOutgoing" placeholder="اسم المغذي الخارج">
+                </div>
+                <div class="form-group">
+                    <label>رقم العداد (محطة)</label>
+                    <input type="text" id="meterNumberStation" placeholder="رقم العداد بالمحطة">
+                </div>
+                <div class="form-group">
+                    <label>القوة</label>
+                    <input type="text" id="power" placeholder="القوة">
+                </div>
+                <div class="form-group">
+                    <label>تاريخ التركيب</label>
+                    <input type="date" id="installDate">
+                </div>
+                <div class="form-group">
+                    <label>خط العرض (Latitude)</label>
+                    <input type="text" id="lat" placeholder="31.xxxx">
+                </div>
+                <div class="form-group">
+                    <label>خط الطول (Longitude)</label>
+                    <input type="text" id="lng" placeholder="31.xxxx">
+                </div>
+                <div class="form-group full-width">
+                    <label>عنوان المحول بالتفصيل</label>
+                    <input type="text" id="transAddress" placeholder="أدخل العنوان التفصيلي للمحول">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" id="addSingleBtn"><i class="fas fa-plus-circle"></i> حفظ السجل</button>
+                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i>
+                    إلغاء التعديل</button>
+            </div>
         </div>
 
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 بحث في جميع الحقول..." />
-            <button class="btn btn-sm" style="background-color:#2563eb;color:white;padding:10px 20px;" onclick="clearSearch()">
-                <i class="fas fa-undo"></i> عرض الكل
-            </button>
-        </div>
-
-        <div class="table-container" id="tableContainer">
-            <div class="no-data">جاري تحميل البيانات...</div>
+        <div class="card">
+            <div class="table-controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="بحث في السجلات..."
+                        oninput="renderTable(allRecords)">
+                </div>
+                <div>
+                    <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل</span>
+                    <button class="btn btn-secondary" style="margin-right: 10px;" onclick="refreshData()"><i
+                            class="fas fa-sync-alt"></i> تحديث</button>
+                </div>
+            </div>
+            <div class="table-container" id="tableContainer">
+                <div class="no-data">جاري تحميل البيانات...</div>
+            </div>
         </div>
     </div>
 
@@ -477,6 +526,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
             authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
             projectId: "trial-85",
             storageBucket: "trial-85.firebasestorage.app",
             messagingSenderId: "660343156279",
@@ -489,95 +539,128 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const keta3Id = urlParams.get('keta3') || urlParams.get('keta3_id');
-        const handsaId = urlParams.get('handsa') || urlParams.get('handsa_id');
+        const handsaCode = urlParams.get('handsa-code') || urlParams.get('handsa_code') || urlParams.get('handsa');
 
-        // Sector and District names mapping
+        const norm = v => String(v ?? '').trim();
+        function matchesHandsa(item) {
+            if (!item || typeof item !== 'object') return false;
+
+            const itemCode = norm(
+                item["handsa-code"] ??
+                item["handsa_code"] ??
+                item["handsaCode"] ??
+                item["كود الهندسة"] ??
+                item["handsa"] ??
+                item["code"] ?? ""
+            );
+
+            const targetCode = norm(currentHandsaCode);
+
+            if (itemCode === '201' || targetCode === '201') {
+                console.log(`🔍 فحص العنصر: Code Found="${itemCode}", Target="${targetCode}", Match=${itemCode === targetCode}`, item);
+            }
+
+            return itemCode !== '' && itemCode === targetCode;
+        }
+
         const sectorNames = {
-            '1': 'القطاع الأول',
-            '2': 'القطاع الثاني',
-            '3': 'القطاع الثالث',
-            '4': 'القطاع الرابع',
-            '5': 'القطاع الخامس'
+            '1': 'قطاع دمياط',
+            '2': 'قطاع شمال الدقهلية',
+            '3': 'قطاع جنوب الدقهلية',
+            '4': 'قطاع كفر الشيخ'
         };
 
         const districtNames = {
-            '101': 'هندسة المنصورة',
-            '102': 'هندسة طلخا',
-            '103': 'هندسة المطرية',
-            '104': 'هندسة دكرنس',
-            '105': 'هندسة شربين',
-            '106': 'هندسة بلقاس',
-            '107': 'هندسة الستامونى',
-            '108': 'هندسة بنى عبيد',
-            '109': 'هندسة منية النصر',
-            '110': 'هندسة ميت سلسيل',
-            '111': 'هندسة الجمالية',
-            '112': 'هندسة المنزلة',
-            '201': 'هندسة شرق المنصورة',
-            '202': 'هندسة غرب المنصورة',
-            '203': 'هندسة نبروة',
-            '204': 'هندسة تمي الامديد',
-            '205': 'هندسة اجا',
-            '206': 'هندسة ميت غمر',
-            '207': 'هندسة السنبلاوين',
-            '208': 'هندسة كوم النور',
-            '209': 'هندسة جمصه',
-            '210': 'هندسة دقادوس',
-            '211': 'هندسة كفر الشيخ',
-            '212': 'هندسة دسوق',
-            '213': 'هندسة فوه',
-            '214': 'هندسة مطوبس',
-            '215': 'هندسة سيدي سالم',
-            '216': 'هندسة بيلا',
-            '217': 'هندسة قلين',
-            '218': 'هندسة الحامول',
-            '219': 'هندسة الرياض',
-            '220': 'هندسة برج البرلس',
-            '221': 'هندسة بلطيم',
-            '301': 'هندسة السنبلاوين',
-            '302': 'هندسة طلخا',
-            '303': 'هندسة اجا',
-            '304': 'هندسة تمي الامديد',
-            '305': 'هندسة كوم النور',
-            '306': 'هندسة ميت غمر',
-            '307': 'هندسة المنصورة',
-            '308': 'هندسة نبروة'
+            '101': 'هندسة شمال دمياط',
+            '102': 'هندسة جنوب دمياط',
+            '103': 'هندسة عزبة البرج',
+            '104': 'هندسة كفر سعد',
+            '105': 'هندسة كفر البطيخ',
+            '106': 'هندسة راس البر',
+            '107': 'هندسة دمياط الجديدة',
+            '108': 'هندسة الزرقا',
+            '109': 'هندسة فارسكور',
+            '110': 'هندسة الروضة',
+            '111': 'هندسة الشعراء',
+            '201': 'هندسة مدينة شربين',
+            '202': 'هندسة قري شربين',
+            '203': 'هندسة دكرنس',
+            '204': 'هندسة جمصة',
+            '205': 'هندسة قري بلقاس',
+            '206': 'هندسة مدينة بلقاس',
+            '207': 'هندسة الستاموني',
+            '208': 'هندسة بني عبيد',
+            '209': 'هندسة منية النصر',
+            '210': 'هندسة ميت سلسيل',
+            '211': 'هندسة الجمالية',
+            '212': 'هندسة قري المنزلة',
+            '213': 'هندسة مدينة المنزلة',
+            '214': 'هندسة المطرية',
+            '301': 'هندسة شرق المنصورة',
+            '302': 'هندسة غرب المنصورة',
+            '303': 'هندسة طلخا',
+            '304': 'هندسة نبروه',
+            '305': 'هندسة قري المنصورة 1',
+            '306': 'هندسة قري المنصورة 2',
+            '307': 'هندسة اجا',
+            '308': 'هندسة مدينة السنبلاوين',
+            '309': 'هندسة قري السنبلاوين',
+            '310': 'هندسة تمي الامديد',
+            '311': 'هندسة مدينة ميت غمر',
+            '312': 'هندسة قري ميت غمر',
+            '313': 'هندسة كوم النور',
+            '401': 'هندسة مدينة كفر الشيخ',
+            '402': 'هندسة غرب كفر الشيخ',
+            '403': 'هندسة شرق كفر الشيخ',
+            '404': 'هندسة قلين',
+            '405': 'هندسة قرى سيدي سالم',
+            '406': 'هندسة مدينة سيدي سالم',
+            '407': 'هندسة الرياض',
+            '408': 'هندسة مدينة دسوق',
+            '409': 'هندسة قرى شمال دسوق',
+            '410': 'هندسة قرى جنوب دسوق',
+            '411': 'هندسة فوه',
+            '412': 'هندسة مطوبس',
+            '413': 'هندسة مدينة الحامول',
+            '414': 'هندسة قرى الحامول',
+            '415': 'هندسة بيلا',
+            '416': 'هندسة بلطيم',
+            '417': 'هندسة برج البرلس'
         };
 
         let transformersMap = {};
-        let feedersNameToCodeMap = {};
-        let feedersCodeToNameMap = {};
+        let transformersReverseMap = {};
+        let feedersMap = {};
+        let feedersReverseMap = {};
         let panelsMap = {};
-        let simRecordsList = [];
+        let panelsReverseMap = {};
+        let stationsMap = {};
+        let stationsReverseMap = {};
         let allRecords = {};
-        let isEditing = false;
         let editingKey = null;
 
         let existingMeters = new Set();
         let existingSims = new Set();
         let existingTransNames = new Set();
         let existingTransCodes = new Set();
+        let existingFeederNames = new Set();
+        let existingPanelNames = new Set();
 
-        // Get sector and district names
-        const sectorName = sectorNames[keta3Id] || keta3Id;
-        const districtName = districtNames[handsaId] || handsaId;
+        let sectorName = '';
+        let districtName = '';
+        let currentHandsaCode = '';
 
-        if (!keta3Id || !handsaId) {
-            alert("يرجى اختيار القطاع والهندسة أولاً من صفحة تسجيل الدخول.");
+        window.logout = function () { window.location.href = "login.html"; };
+
+        if (!keta3Id || !handsaCode) {
+            alert("بيانات الاعتماد غير مكتملة. يرجى تسجيل الدخول أولاً.");
             window.location.href = "login.html";
         } else {
             document.getElementById('keta3Id').value = keta3Id;
-            document.getElementById('handsaId').value = handsaId;
-            
-            // Display district name only
-            document.getElementById('districtNameDisplay').textContent = districtName;
-            
-            // Set default date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('installDate').value = today;
-
-            loadAutofillData(handsaId);
-            loadRecords(keta3Id, handsaId);
+            document.getElementById('handsaCode').value = handsaCode;
+            currentHandsaCode = norm(handsaCode);
+            document.getElementById('installDate').value = new Date().toISOString().split('T')[0];
+            authenticateAndInit();
         }
 
         function showStatus(message, type = 'info') {
@@ -586,111 +669,392 @@
             div.className = type;
         }
 
-        async function loadAutofillData(handsaCode) {
+        function updateSyncStatus(isLoading = false) {
+            const status = document.getElementById('syncStatus');
+            status.textContent = isLoading ? '⏳ جاري الاتصال بالقاعدة...' : '✅ متزامن مع القاعدة';
+            status.className = `sync-status ${isLoading ? 'loading' : ''}`;
+        }
+
+        async function authenticateAndInit() {
+            updateSyncStatus(true);
             try {
-                // 1. Load transformers
-                const trfSnap = await get(ref(db, 'trf_codes'));
-                if (trfSnap.exists()) {
-                    const trfData = trfSnap.val();
-                    const datalist = document.getElementById('transformersList');
-                    datalist.innerHTML = '';
-                    transformersMap = {};
-
-                    const list = Array.isArray(trfData) ? trfData : Object.values(trfData);
-                    list.forEach(item => {
-                        if (String(item.engineering_code) === String(handsaCode)) {
-                            const name = item.transformer_name;
-                            const code = item.transformer_code;
-                            if (name) {
-                                transformersMap[name] = code;
-                                const option = document.createElement('option');
-                                option.value = name;
-                                datalist.appendChild(option);
-                            }
-                        }
-                    });
+                const authRef = ref(db, `auth_sectors/${keta3Id}/districts/${handsaCode}`);
+                const snapshot = await get(authRef);
+                if (!snapshot.exists()) {
+                    alert("الهندسة المحددة غير موجودة أو غير مصرح بها.");
+                    window.location.href = "login.html";
+                    return;
                 }
-
-                // 2. Load feeders (name <-> code mapping)
-                const cellsSnap = await get(ref(db, 'cells_codes'));
-                if (cellsSnap.exists()) {
-                    const cellsData = cellsSnap.val();
-                    const nameDatalist = document.getElementById('feedersList');
-                    const codeDatalist = document.getElementById('feederCodesList');
-                    nameDatalist.innerHTML = '';
-                    codeDatalist.innerHTML = '';
-                    feedersNameToCodeMap = {};
-                    feedersCodeToNameMap = {};
-
-                    const list = Array.isArray(cellsData) ? cellsData : Object.values(cellsData);
-                    list.forEach(item => {
-                        if (String(item.engineering_code) === String(handsaCode)) {
-                            const feederName = item.feeder_name;
-                            const feederCode = item.feeder_code;
-
-                            if (feederName) {
-                                feedersNameToCodeMap[feederName] = feederCode;
-                                const option = document.createElement('option');
-                                option.value = feederName;
-                                nameDatalist.appendChild(option);
-                            }
-
-                            if (feederCode) {
-                                feedersCodeToNameMap[feederCode] = feederName;
-                                const optionCode = document.createElement('option');
-                                optionCode.value = feederCode;
-                                codeDatalist.appendChild(optionCode);
-                            }
-                        }
-                    });
-                }
-
-                // 3. Load panels (just for suggestions)
-                const dpSnap = await get(ref(db, 'dp_codes'));
-                if (dpSnap.exists()) {
-                    const dpData = dpSnap.val();
-                    const datalist = document.getElementById('panelsList');
-                    datalist.innerHTML = '';
-                    panelsMap = {};
-
-                    const list = Array.isArray(dpData) ? dpData : Object.values(dpData);
-                    list.forEach(item => {
-                        if (String(item.engineering_code) === String(handsaCode)) {
-                            const panelName = item.panel_name;
-                            if (panelName) {
-                                panelsMap[panelName] = true;
-                                const option = document.createElement('option');
-                                option.value = panelName;
-                                datalist.appendChild(option);
-                            }
-                        }
-                    });
-                }
-
-                // 4. Load SIM records
-                const simSnap = await get(ref(db, 'sim_records'));
-                if (simSnap.exists()) {
-                    const simData = simSnap.val();
-                    simRecordsList = Array.isArray(simData) ? simData : Object.values(simData);
-                    const datalist = document.getElementById('simList');
-                    datalist.innerHTML = '';
-
-                    simRecordsList.slice(0, 100).forEach(item => {
-                        if (item.sim_number) {
-                            const option = document.createElement('option');
-                            option.value = item.sim_number;
-                            datalist.appendChild(option);
-                        }
-                    });
-                }
+                sectorName = sectorNames[keta3Id] || `القطاع ${keta3Id}`;
+                districtName = districtNames[handsaCode] || `هندسة ${handsaCode}`;
+                document.getElementById('districtNameDisplay').textContent = districtName;
+                await loadDropdownsFromDatabase();
             } catch (err) {
-                console.error("خطأ أثناء تحميل بيانات التعبئة التلقائية:", err);
+                console.error("خطأ في التحقق من القاعدة:", err);
+                showStatus("فشل التحقق من صلاحيات الوصول: " + err.message, "error");
+                updateSyncStatus(false);
             }
         }
 
-        function loadRecords(keta3Id, handsaId) {
-            const recordsRef = ref(db, `sectors/${keta3Id}/districts/${handsaId}/manual_entries`);
-            
+        async function loadDropdownsFromDatabase() {
+            updateSyncStatus(true);
+            try {
+                await Promise.all([
+                    fetchTransformersDropdown(),
+                    fetchFeedersDropdown(),
+                    fetchPanelsDropdown(),
+                    fetchStationsDropdown(),
+                    fetchSimsDropdown()
+                ]);
+                loadRecords();
+            } catch (err) {
+                console.error("خطأ أثناء تحميل قوائم البيانات:", err);
+                showStatus("خطأ في تحميل قوائم البيانات: " + err.message, "error");
+                updateSyncStatus(false);
+            }
+        }
+
+        // =============== TRANSFORMER DROPDOWN ===============
+        async function fetchTransformersDropdown() {
+            const trfSnap = await get(ref(db, 'reference_data/trf_codes'));
+            const nameDatalist = document.getElementById('transformersList');
+            const codeDatalist = document.getElementById('transCodeList');
+            nameDatalist.innerHTML = '';
+            codeDatalist.innerHTML = '';
+            transformersMap = {};
+            transformersReverseMap = {};
+
+            if (trfSnap.exists()) {
+                const data = trfSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+
+                list.forEach(item => {
+                    if (!item) return;
+                    const shouldInclude = matchesHandsa(item);
+
+                    if (shouldInclude) {
+                        const name = item.trf || item["اسم المحول"] || '';
+                        const code = item.trf_code || item["كود المحول"] || '';
+
+                        if (name) {
+                            const trimmedName = norm(name);
+                            const trimmedCode = norm(code);
+                            transformersMap[trimmedName] = trimmedCode;
+                            if (trimmedCode) {
+                                transformersReverseMap[trimmedCode] = trimmedName;
+                            }
+
+                            const nameOption = document.createElement('option');
+                            nameOption.value = trimmedName;
+                            nameDatalist.appendChild(nameOption);
+
+                            if (trimmedCode) {
+                                const codeOption = document.createElement('option');
+                                codeOption.value = trimmedCode;
+                                codeDatalist.appendChild(codeOption);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // =============== FEEDER DROPDOWN ===============
+        async function fetchFeedersDropdown() {
+            const cellsSnap = await get(ref(db, 'reference_data/cells_codes'));
+            const nameDatalist = document.getElementById('feedersList');
+            const codeDatalist = document.getElementById('feederCodeList');
+            nameDatalist.innerHTML = '';
+            codeDatalist.innerHTML = '';
+            feedersMap = {};
+            feedersReverseMap = {};
+
+            if (cellsSnap.exists()) {
+                const data = cellsSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+
+                list.forEach(item => {
+                    if (!item) return;
+                    const shouldInclude = matchesHandsa(item);
+
+                    if (shouldInclude) {
+                        const name = item.cell || item["اسم المغذي"] || '';
+                        const code = item.cell_code || item["كود المغذي"] || '';
+
+                        if (name) {
+                            const trimmedName = norm(name);
+                            const trimmedCode = norm(code);
+                            feedersMap[trimmedName] = trimmedCode;
+                            if (trimmedCode) {
+                                feedersReverseMap[trimmedCode] = trimmedName;
+                            }
+
+                            const nameOption = document.createElement('option');
+                            nameOption.value = trimmedName;
+                            nameDatalist.appendChild(nameOption);
+
+                            if (trimmedCode) {
+                                const codeOption = document.createElement('option');
+                                codeOption.value = trimmedCode;
+                                codeDatalist.appendChild(codeOption);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // =============== PANEL DROPDOWN ===============
+        async function fetchPanelsDropdown() {
+            const dpSnap = await get(ref(db, 'reference_data/dp_codes'));
+            const nameDatalist = document.getElementById('panelsList');
+            const codeDatalist = document.getElementById('panelCodeList');
+            nameDatalist.innerHTML = '';
+            codeDatalist.innerHTML = '';
+            panelsMap = {};
+            panelsReverseMap = {};
+            let panelCount = 0;
+
+            if (dpSnap.exists()) {
+                const data = dpSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+
+                list.forEach((item, index) => {
+                    if (!item) return;
+                    const shouldInclude = matchesHandsa(item);
+
+                    if (shouldInclude) {
+                        const name = item.dp || item["اسم لوحة التوزيع"] || '';
+                        const code = item.dp_code || item["كود لوحة التوزيع"] || '';
+
+                        if (name) {
+                            const trimmedName = norm(name);
+                            const trimmedCode = norm(code);
+                            panelsMap[trimmedName] = trimmedCode;
+                            if (trimmedCode) {
+                                panelsReverseMap[trimmedCode] = trimmedName;
+                            }
+
+                            const nameOption = document.createElement('option');
+                            nameOption.value = trimmedName;
+                            nameDatalist.appendChild(nameOption);
+
+                            if (trimmedCode) {
+                                const codeOption = document.createElement('option');
+                                codeOption.value = trimmedCode;
+                                codeDatalist.appendChild(codeOption);
+                            }
+                            panelCount++;
+                        }
+                    }
+                });
+                document.getElementById('panelDebug').textContent = `تم تحميل ${panelCount} لوحة توزيع (كود الهندسة: ${norm(currentHandsaCode)})`;
+            } else {
+                document.getElementById('panelDebug').textContent = 'لا توجد بيانات لوحات توزيع';
+            }
+        }
+
+        // =============== STATION DROPDOWN ===============
+        async function fetchStationsDropdown() {
+            const subSnap = await get(ref(db, 'reference_data/sub_codes'));
+            const nameDatalist = document.getElementById('stationsList');
+            const codeDatalist = document.getElementById('stationCodeList');
+            nameDatalist.innerHTML = '';
+            codeDatalist.innerHTML = '';
+            stationsMap = {};
+            stationsReverseMap = {};
+            let stationCount = 0;
+
+            if (subSnap.exists()) {
+                const data = subSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+
+                list.forEach((item, index) => {
+                    if (!item) return;
+                    const shouldInclude = matchesHandsa(item);
+
+                    if (shouldInclude) {
+                        // البحث في عدة احتمالات لأسماء حقول المحطة لضمان التقاط البيانات
+                        let name = item.sub || item.station || item["اسم المحطة"] || item.dp || '';
+                        let code = item.sub_code || item.station_code || item["كود المحطة"] || item["الكود"] || '';
+
+                        if (name) {
+                            const trimmedName = norm(name);
+                            const trimmedCode = norm(code);
+                            stationsMap[trimmedName] = trimmedCode;
+                            if (trimmedCode) {
+                                stationsReverseMap[trimmedCode] = trimmedName;
+                            }
+
+                            const nameOption = document.createElement('option');
+                            nameOption.value = trimmedName;
+                            nameDatalist.appendChild(nameOption);
+
+                            if (trimmedCode) {
+                                const codeOption = document.createElement('option');
+                                codeOption.value = trimmedCode;
+                                codeDatalist.appendChild(codeOption);
+                            }
+                            stationCount++;
+                        }
+                    }
+                });
+                document.getElementById('stationDebug').textContent = `تم تحميل ${stationCount} محطة بنجاح`;
+            } else {
+                document.getElementById('stationDebug').textContent = 'لا توجد بيانات محطات (مسار sub_codes فارغ)';
+            }
+        }
+
+        // =============== SIM DROPDOWN - LOAD ALL ===============
+        async function fetchSimsDropdown() {
+            const simSnap = await get(ref(db, 'reference_data/sim_records'));
+            const datalist = document.getElementById('simList');
+            datalist.innerHTML = '';
+            let simCount = 0;
+
+            if (simSnap.exists()) {
+                const data = simSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+
+                list.forEach(item => {
+                    if (!item) return;
+                    let simNumber = '';
+                    if (typeof item === 'string' || typeof item === 'number') {
+                        simNumber = item;
+                    } else {
+                        simNumber = item.Sim || item["رقم الشريحة"] || item.sim_number || item.sim || '';
+                    }
+                    if (simNumber) {
+                        const option = document.createElement('option');
+                        option.value = simNumber.toString().trim();
+                        datalist.appendChild(option);
+                        simCount++;
+                    }
+                });
+            }
+        }
+
+        // Auto-fill Transformer Code when selecting from name dropdown
+        document.getElementById('transName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (transformersMap[val]) {
+                document.getElementById('transCode').value = transformersMap[val];
+            } else {
+                if (!document.getElementById('transCode').dataset.userEdited) {
+                    document.getElementById('transCode').value = '';
+                }
+            }
+            checkDuplicates();
+        });
+
+        // Auto-fill Transformer Name when selecting from code dropdown
+        document.getElementById('transCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (transformersReverseMap[val]) {
+                document.getElementById('transName').value = transformersReverseMap[val];
+            }
+            checkDuplicates();
+        });
+
+        // Auto-fill Feeder Code when selecting from name dropdown
+        document.getElementById('feederName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (feedersMap[val]) {
+                document.getElementById('feederCode').value = feedersMap[val];
+            } else {
+                if (!document.getElementById('feederCode').dataset.userEdited) {
+                    document.getElementById('feederCode').value = '';
+                }
+            }
+        });
+
+        // Auto-fill Feeder Name when selecting from code dropdown
+        document.getElementById('feederCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (feedersReverseMap[val]) {
+                document.getElementById('feederName').value = feedersReverseMap[val];
+            }
+        });
+
+        // Auto-fill Panel Code, Panel Name syncing with Station Name/Code
+        document.getElementById('panelName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+
+            // تعيين كود لوحة التوزيع
+            if (panelsMap[val]) {
+                document.getElementById('panelCode').value = panelsMap[val];
+            } else {
+                if (!document.getElementById('panelCode').dataset.userEdited) {
+                    document.getElementById('panelCode').value = '';
+                }
+            }
+
+            // جعل اسم المحطة وكودها يتبعان اسم لوحة التوزيع (dp) بناءً على بيانات sub_codes
+            if (stationsMap[val]) {
+                document.getElementById('stationName').value = val;
+                document.getElementById('stationCode').value = stationsMap[val];
+            }
+        });
+
+        // Auto-fill Panel Name when selecting from code dropdown
+        document.getElementById('panelCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (panelsReverseMap[val]) {
+                document.getElementById('panelName').value = panelsReverseMap[val];
+            }
+        });
+
+        // Auto-fill Station Code when selecting from name dropdown
+        document.getElementById('stationName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (stationsMap[val]) {
+                document.getElementById('stationCode').value = stationsMap[val];
+            } else {
+                if (!document.getElementById('stationCode').dataset.userEdited) {
+                    document.getElementById('stationCode').value = '';
+                }
+            }
+        });
+
+        // Auto-fill Station Name when selecting from code dropdown
+        document.getElementById('stationCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (stationsReverseMap[val]) {
+                document.getElementById('stationName').value = stationsReverseMap[val];
+            }
+        });
+
+        // Allow manual edit without auto-overwrite
+        document.getElementById('transCode').addEventListener('focus', function () {
+            this.dataset.userEdited = 'true';
+        });
+        document.getElementById('transCode').addEventListener('blur', function () {
+            setTimeout(() => { delete this.dataset.userEdited; }, 300);
+        });
+
+        document.getElementById('feederCode').addEventListener('focus', function () {
+            this.dataset.userEdited = 'true';
+        });
+        document.getElementById('feederCode').addEventListener('blur', function () {
+            setTimeout(() => { delete this.dataset.userEdited; }, 300);
+        });
+
+        document.getElementById('panelCode').addEventListener('focus', function () {
+            this.dataset.userEdited = 'true';
+        });
+        document.getElementById('panelCode').addEventListener('blur', function () {
+            setTimeout(() => { delete this.dataset.userEdited; }, 300);
+        });
+
+        document.getElementById('stationCode').addEventListener('focus', function () {
+            this.dataset.userEdited = 'true';
+        });
+        document.getElementById('stationCode').addEventListener('blur', function () {
+            setTimeout(() => { delete this.dataset.userEdited; }, 300);
+        });
+
+        function loadRecords() {
+            const recordsRef = ref(db, `sectors/${keta3Id}/districts/${handsaCode}/manual_entries`);
             onValue(recordsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     allRecords = snapshot.val();
@@ -698,14 +1062,17 @@
                     existingSims.clear();
                     existingTransNames.clear();
                     existingTransCodes.clear();
-                    
+                    existingFeederNames.clear();
+                    existingPanelNames.clear();
+
                     Object.values(allRecords).forEach(record => {
                         if (record["رقم العداد"]) existingMeters.add(record["رقم العداد"]);
                         if (record["رقم الشريحة"]) existingSims.add(record["رقم الشريحة"]);
                         if (record["اسم المحول"]) existingTransNames.add(record["اسم المحول"]);
                         if (record["كود المحول"]) existingTransCodes.add(record["كود المحول"]);
+                        if (record["اسم المغذي"]) existingFeederNames.add(record["اسم المغذي"]);
+                        if (record["اسم لوحة التوزيع"]) existingPanelNames.add(record["اسم لوحة التوزيع"]);
                     });
-                    
                     renderTable(allRecords);
                     document.getElementById('recordsCount').textContent = `${Object.keys(allRecords).length} سجل`;
                 } else {
@@ -714,16 +1081,13 @@
                     document.getElementById('recordsCount').textContent = '0 سجل';
                 }
                 checkDuplicates();
-            }, (error) => {
-                console.error("خطأ في تحميل البيانات:", error);
-                showStatus("خطأ في تحميل البيانات: " + error.message, "error");
+                updateSyncStatus(false);
             });
         }
 
-        function renderTable(records) {
+        window.renderTable = function (records) {
             const container = document.getElementById('tableContainer');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            
             let filteredRecords = records;
             if (searchTerm) {
                 filteredRecords = {};
@@ -735,123 +1099,98 @@
                     }
                 });
             }
-
             if (Object.keys(filteredRecords).length === 0) {
-                container.innerHTML = `<div class="no-data">${searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات مسجلة'}</div>`;
+                container.innerHTML =
+                    `<div class="no-data">${searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات مسجلة'}</div>`;
                 return;
             }
-
-            let html = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>القطاع</th>
-                            <th>الهندسة</th>
-                            <th>رقم العداد</th>
-                            <th>رقم الشريحة</th>
-                            <th>نوع العداد</th>
-                            <th>اسم المحول</th>
-                            <th>كود المحول</th>
-                            <th>قدرة المحول</th>
-                            <th>اسم المغذي</th>
-                            <th>كود المغذي</th>
-                            <th>لوحة التوزيع</th>
-                            <th>تاريخ التركيب</th>
-                            <th>Latitude</th>
-                            <th>Longitude</th>
-                            <th>العنوان</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
+            let html = `<table><thead><tr>
+            <th>#</th><th>القطاع</th><th>الهندسة</th><th>رقم العداد</th>
+            <th>رقم الشريحة</th><th>نوع العداد</th><th>اسم المحول</th>
+            <th>كود المحول</th><th>قدرة المحول</th><th>اسم المغذي</th>
+            <th>كود المغذي</th><th>لوحة التوزيع</th><th>كود اللوحة</th>
+            <th>اسم المحطة</th><th>كود المحطة</th><th>المغذي الخارج</th>
+            <th>رقم العداد (محطة)</th><th>القوة</th><th>تاريخ التركيب</th>
+            <th>Latitude</th><th>Longitude</th><th>العنوان</th><th>الإجراءات</th>
+        </tr></thead><tbody>`;
             let index = 0;
             Object.keys(filteredRecords).forEach(key => {
                 const record = filteredRecords[key];
                 index++;
                 const isEditingRow = (editingKey === key);
-                
-                html += `
-                    <tr class="${isEditingRow ? 'editing' : ''}">
-                        <td>${index}</td>
-                        <td>${record["القطاع"] || sectorName}</td>
-                        <td>${record["الهندسة"] || districtName}</td>
-                        <td>${record["رقم العداد"] || ''}</td>
-                        <td>${record["رقم الشريحة"] || ''}</td>
-                        <td>${record["TYPE"] || record["نوع العداد"] || ''}</td>
-                        <td>${record["اسم المحول"] || ''}</td>
-                        <td>${record["كود المحول"] || ''}</td>
-                        <td>${record["قدرة المحول"] || ''}</td>
-                        <td>${record["اسم المغذي الموصل بيه المحول"] || record["اسم المغذي"] || ''}</td>
-                        <td>${record["كود المغذي"] || ''}</td>
-                        <td>${record["اسم لوحة التوزيع"] || ''}</td>
-                        <td>${record["تاريخ التركيب"] || ''}</td>
-                        <td>${record["Latitude(y)"] || record["Latitude"] || ''}</td>
-                        <td>${record["Longitude(x)"] || record["Longitude"] || ''}</td>
-                        <td style="max-width:150px;white-space:normal;word-break:break-word;">${record["عنوان المحول بالتفصيل"] || ''}</td>
-                        <td>
-                            <div class="actions-cell">
-                                ${!isEditingRow ? `
-                                    <button class="btn-sm btn-edit-sm" onclick="editRecord('${key}')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-sm btn-delete-sm" onclick="deleteRecord('${key}')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : `
-                                    <button class="btn-sm btn-save-sm" onclick="saveEdit('${key}')">
-                                        <i class="fas fa-save"></i>
-                                    </button>
-                                    <button class="btn-sm btn-cancel-sm" onclick="cancelEdit()">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                `}
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                html += `<tr class="${isEditingRow ? 'editing' : ''}">
+                <td>${index}</td>
+                <td>${record["القطاع"] || sectorName}</td>
+                <td>${record["الهندسة"] || districtName}</td>
+                <td>${record["رقم العداد"] || ''}</td>
+                <td>${record["رقم الشريحة"] || ''}</td>
+                <td>${record["TYPE"] || record["نوع العداد"] || ''}</td>
+                <td>${record["اسم المحول"] || ''}</td>
+                <td>${record["كود المحول"] || ''}</td>
+                <td>${record["قدرة المحول"] || ''}</td>
+                <td>${record["اسم المغذي"] || ''}</td>
+                <td>${record["كود المغذي"] || ''}</td>
+                <td>${record["اسم لوحة التوزيع"] || ''}</td>
+                <td>${record["كود لوحة التوزيع"] || ''}</td>
+                <td>${record["اسم المحطة"] || ''}</td>
+                <td>${record["كود المحطة"] || ''}</td>
+                <td>${record["اسم المغذي الخارج"] || ''}</td>
+                <td>${record["رقم العداد محطة"] || ''}</td>
+                <td>${record["القوة"] || ''}</td>
+                <td>${record["تاريخ التركيب"] || ''}</td>
+                <td>${record["Latitude(y)"] || record["Latitude"] || ''}</td>
+                <td>${record["Longitude(x)"] || record["Longitude"] || ''}</td>
+                <td style="max-width:150px;white-space:normal;word-break:break-word;">${record["عنوان المحول بالتفصيل"] || ''}</td>
+                <td><div class="actions-cell">
+                    ${!isEditingRow ? `
+                        <button class="btn-sm btn-edit-sm" onclick="window.editRecord('${key}')"><i class="fas fa-edit"></i> تعديل</button>
+                        <button class="btn-sm btn-delete-sm" onclick="window.deleteRecord('${key}')"><i class="fas fa-trash"></i></button>
+                    ` : `
+                        <button class="btn-sm btn-save-sm" onclick="window.saveEdit('${key}')"><i class="fas fa-save"></i> حفظ</button>
+                        <button class="btn-sm btn-cancel-sm" onclick="window.cancelEdit()"><i class="fas fa-times"></i> إلغاء</button>
+                    `}
+                </div></td>
+            </tr>`;
             });
-
             html += `</tbody></table>`;
             container.innerHTML = html;
-        }
+        };
 
-        window.editRecord = function(key) {
+        window.editRecord = function (key) {
             const record = allRecords[key];
             if (!record) return;
-            
-            isEditing = true;
             editingKey = key;
             document.getElementById('editingKey').value = key;
-            
             document.getElementById('meterNum').value = record["رقم العداد"] || '';
             document.getElementById('simNum').value = record["رقم الشريحة"] || '';
             document.getElementById('meterType').value = record["TYPE"] || record["نوع العداد"] || '';
             document.getElementById('transName').value = record["اسم المحول"] || '';
             document.getElementById('transCode').value = record["كود المحول"] || '';
             document.getElementById('transCap').value = record["قدرة المحول"] || '';
-            document.getElementById('feederName').value = record["اسم المغذي الموصل بيه المحول"] || record["اسم المغذي"] || '';
+            document.getElementById('feederName').value = record["اسم المغذي"] || '';
             document.getElementById('feederCode').value = record["كود المغذي"] || '';
             document.getElementById('panelName').value = record["اسم لوحة التوزيع"] || '';
+            document.getElementById('panelCode').value = record["كود لوحة التوزيع"] || '';
+            document.getElementById('stationName').value = record["اسم المحطة"] || '';
+            document.getElementById('stationCode').value = record["كود المحطة"] || '';
+            document.getElementById('feederOutgoing').value = record["اسم المغذي الخارج"] || '';
+            document.getElementById('meterNumberStation').value = record["رقم العداد محطة"] || '';
+            document.getElementById('power').value = record["القوة"] || '';
             document.getElementById('installDate').value = record["تاريخ التركيب"] || new Date().toISOString().split('T')[0];
             document.getElementById('lat').value = record["Latitude(y)"] || record["Latitude"] || '';
             document.getElementById('lng').value = record["Longitude(x)"] || record["Longitude"] || '';
             document.getElementById('transAddress').value = record["عنوان المحول بالتفصيل"] || '';
-            
+
             document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-save"></i> تحديث السجل';
             document.getElementById('cancelEditBtn').style.display = 'inline-block';
             document.getElementById('addSingleBtn').style.backgroundColor = '#f59e0b';
-            
+
             document.getElementById('dataForm').scrollIntoView({ behavior: 'smooth' });
-            
             checkDuplicates();
             renderTable(allRecords);
         };
 
-        window.cancelEdit = function() {
-            isEditing = false;
+        window.cancelEdit = function () {
             editingKey = null;
             document.getElementById('editingKey').value = '';
             document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-plus-circle"></i> حفظ السجل';
@@ -862,31 +1201,31 @@
             checkDuplicates();
         };
 
-        window.saveEdit = function(key) {
+        window.saveEdit = function (key) {
             document.getElementById('addSingleBtn').click();
         };
 
-        window.deleteRecord = function(key) {
+        window.deleteRecord = function (key) {
             if (!confirm(`هل أنت متأكد من حذف السجل رقم ${key}؟`)) return;
-            
             const kId = document.getElementById('keta3Id').value.trim();
-            const hId = document.getElementById('handsaId').value.trim();
-            
-            showStatus("جاري حذف السجل...", "info");
-            
-            const recordRef = ref(db, `sectors/${kId}/districts/${hId}/manual_entries/${key}`);
+            const hCode = document.getElementById('handsaCode').value.trim();
+            showStatus("جاري حذف السجل من القاعدة...", "info");
+            updateSyncStatus(true);
+            const recordRef = ref(db, `sectors/${kId}/districts/${hCode}/manual_entries/${key}`);
             remove(recordRef)
                 .then(() => {
                     showStatus("تم حذف السجل بنجاح!", "success");
+                    updateSyncStatus(false);
                 })
                 .catch(err => {
                     showStatus("خطأ أثناء الحذف: " + err.message, "error");
+                    updateSyncStatus(false);
                 });
         };
 
-        window.clearSearch = function() {
-            document.getElementById('searchInput').value = '';
-            renderTable(allRecords);
+        window.refreshData = function () {
+            authenticateAndInit();
+            showStatus("جاري مزامنة البيانات...", "info");
         };
 
         function clearForm() {
@@ -899,6 +1238,12 @@
             document.getElementById('feederName').value = '';
             document.getElementById('feederCode').value = '';
             document.getElementById('panelName').value = '';
+            document.getElementById('panelCode').value = '';
+            document.getElementById('stationName').value = '';
+            document.getElementById('stationCode').value = '';
+            document.getElementById('feederOutgoing').value = '';
+            document.getElementById('meterNumberStation').value = '';
+            document.getElementById('power').value = '';
             document.getElementById('installDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('lat').value = '';
             document.getElementById('lng').value = '';
@@ -910,14 +1255,17 @@
             const simNum = document.getElementById('simNum').value.trim();
             const transName = document.getElementById('transName').value.trim();
             const transCode = document.getElementById('transCode').value.trim();
+            const feederName = document.getElementById('feederName').value.trim();
+            const panelName = document.getElementById('panelName').value.trim();
 
             let hasDuplicate = false;
-            const editingKey = document.getElementById('editingKey').value;
+            const editingKeyVal = document.getElementById('editingKey').value;
 
+            // Meter duplicate check
             const meterField = document.getElementById('meterNum');
             const meterWarning = document.getElementById('meterNumWarning');
             if (meterNum && existingMeters.has(meterNum)) {
-                if (editingKey && allRecords[editingKey] && allRecords[editingKey]["رقم العداد"] === meterNum) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["رقم العداد"] === meterNum) {
                     meterField.classList.remove('duplicate');
                     meterField.classList.add('valid');
                     meterWarning.classList.remove('show');
@@ -928,16 +1276,16 @@
                     hasDuplicate = true;
                 }
             } else {
-                meterField.classList.remove('duplicate');
-                meterField.classList.remove('valid');
+                meterField.classList.remove('duplicate', 'valid');
                 if (meterNum) meterField.classList.add('valid');
                 meterWarning.classList.remove('show');
             }
 
+            // SIM duplicate check
             const simField = document.getElementById('simNum');
             const simWarning = document.getElementById('simNumWarning');
             if (simNum && existingSims.has(simNum)) {
-                if (editingKey && allRecords[editingKey] && allRecords[editingKey]["رقم الشريحة"] === simNum) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["رقم الشريحة"] === simNum) {
                     simField.classList.remove('duplicate');
                     simField.classList.add('valid');
                     simWarning.classList.remove('show');
@@ -948,16 +1296,16 @@
                     hasDuplicate = true;
                 }
             } else {
-                simField.classList.remove('duplicate');
-                simField.classList.remove('valid');
+                simField.classList.remove('duplicate', 'valid');
                 if (simNum) simField.classList.add('valid');
                 simWarning.classList.remove('show');
             }
 
+            // Transformer name duplicate check
             const transNameField = document.getElementById('transName');
             const transNameWarning = document.getElementById('transNameWarning');
             if (transName && existingTransNames.has(transName)) {
-                if (editingKey && allRecords[editingKey] && allRecords[editingKey]["اسم المحول"] === transName) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["اسم المحول"] === transName) {
                     transNameField.classList.remove('duplicate');
                     transNameField.classList.add('valid');
                     transNameWarning.classList.remove('show');
@@ -968,16 +1316,16 @@
                     hasDuplicate = true;
                 }
             } else {
-                transNameField.classList.remove('duplicate');
-                transNameField.classList.remove('valid');
+                transNameField.classList.remove('duplicate', 'valid');
                 if (transName) transNameField.classList.add('valid');
                 transNameWarning.classList.remove('show');
             }
 
+            // Transformer code duplicate check
             const transCodeField = document.getElementById('transCode');
             const transCodeWarning = document.getElementById('transCodeWarning');
             if (transCode && existingTransCodes.has(transCode)) {
-                if (editingKey && allRecords[editingKey] && allRecords[editingKey]["كود المحول"] === transCode) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["كود المحول"] === transCode) {
                     transCodeField.classList.remove('duplicate');
                     transCodeField.classList.add('valid');
                     transCodeWarning.classList.remove('show');
@@ -988,101 +1336,83 @@
                     hasDuplicate = true;
                 }
             } else {
-                transCodeField.classList.remove('duplicate');
-                transCodeField.classList.remove('valid');
+                transCodeField.classList.remove('duplicate', 'valid');
                 if (transCode) transCodeField.classList.add('valid');
                 transCodeWarning.classList.remove('show');
+            }
+
+            // Feeder name duplicate check
+            const feederNameField = document.getElementById('feederName');
+            const feederNameWarning = document.getElementById('feederNameWarning');
+            if (feederName && existingFeederNames.has(feederName)) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["اسم المغذي"] === feederName) {
+                    feederNameField.classList.remove('duplicate');
+                    feederNameField.classList.add('valid');
+                    feederNameWarning.classList.remove('show');
+                } else {
+                    feederNameField.classList.add('duplicate');
+                    feederNameField.classList.remove('valid');
+                    feederNameWarning.classList.add('show');
+                    hasDuplicate = true;
+                }
+            } else {
+                feederNameField.classList.remove('duplicate', 'valid');
+                if (feederName) feederNameField.classList.add('valid');
+                feederNameWarning.classList.remove('show');
+            }
+
+            // Panel name duplicate check
+            const panelNameField = document.getElementById('panelName');
+            const panelNameWarning = document.getElementById('panelNameWarning');
+            if (panelName && existingPanelNames.has(panelName)) {
+                if (editingKeyVal && allRecords[editingKeyVal] && allRecords[editingKeyVal]["اسم لوحة التوزيع"] === panelName) {
+                    panelNameField.classList.remove('duplicate');
+                    panelNameField.classList.add('valid');
+                    panelNameWarning.classList.remove('show');
+                } else {
+                    panelNameField.classList.add('duplicate');
+                    panelNameField.classList.remove('valid');
+                    panelNameWarning.classList.add('show');
+                    hasDuplicate = true;
+                }
+            } else {
+                panelNameField.classList.remove('duplicate', 'valid');
+                if (panelName) panelNameField.classList.add('valid');
+                panelNameWarning.classList.remove('show');
             }
 
             document.getElementById('addSingleBtn').disabled = hasDuplicate || !meterNum;
         }
 
-        // Event listeners
         document.getElementById('meterNum').addEventListener('input', checkDuplicates);
         document.getElementById('simNum').addEventListener('input', checkDuplicates);
-        document.getElementById('transName').addEventListener('input', checkDuplicates);
         document.getElementById('transCode').addEventListener('input', checkDuplicates);
+        document.getElementById('transName').addEventListener('input', checkDuplicates);
+        document.getElementById('feederName').addEventListener('input', checkDuplicates);
+        document.getElementById('panelName').addEventListener('input', checkDuplicates);
 
-        // Auto-fill transformer code from transformer name
-        document.getElementById('transName').addEventListener('input', function(e) {
-            const val = e.target.value.trim();
-            if (transformersMap[val]) {
-                document.getElementById('transCode').value = transformersMap[val];
-            } else if (val) {
-                document.getElementById('transCode').value = '';
-            } else {
-                document.getElementById('transCode').value = '';
-            }
-            checkDuplicates();
-        });
-
-        // Auto-fill feeder code from feeder name
-        document.getElementById('feederName').addEventListener('input', function(e) {
-            const val = e.target.value.trim();
-            if (feedersNameToCodeMap[val]) {
-                document.getElementById('feederCode').value = feedersNameToCodeMap[val];
-            } else if (val) {
-                document.getElementById('feederCode').value = '';
-            } else {
-                document.getElementById('feederCode').value = '';
-            }
-        });
-
-        // Auto-fill feeder name from feeder code
-        document.getElementById('feederCode').addEventListener('input', function(e) {
-            const val = e.target.value.trim();
-            if (feedersCodeToNameMap[val]) {
-                document.getElementById('feederName').value = feedersCodeToNameMap[val];
-            }
-        });
-
-        document.getElementById('searchInput').addEventListener('input', function() {
+        document.getElementById('searchInput').addEventListener('input', function () {
             renderTable(allRecords);
         });
 
-        // Save record (Add or Update)
-        document.getElementById('addSingleBtn').addEventListener('click', function() {
+        document.getElementById('addSingleBtn').addEventListener('click', function () {
             const kId = document.getElementById('keta3Id').value.trim();
-            const hId = document.getElementById('handsaId').value.trim();
+            const hCode = document.getElementById('handsaCode').value.trim();
             const meterNum = document.getElementById('meterNum').value.trim();
             const simNum = document.getElementById('simNum').value.trim();
             const transName = document.getElementById('transName').value.trim();
             const transCode = document.getElementById('transCode').value.trim();
-            const editingKey = document.getElementById('editingKey').value;
-            
-            // Get sector and district names
-            const sectorName = sectorNames[kId] || kId;
-            const districtName = districtNames[hId] || hId;
+            const feederName = document.getElementById('feederName').value.trim();
+            const feederCode = document.getElementById('feederCode').value.trim();
+            const panelName = document.getElementById('panelName').value.trim();
+            const panelCode = document.getElementById('panelCode').value.trim();
+            const stationName = document.getElementById('stationName').value.trim();
+            const stationCode = document.getElementById('stationCode').value.trim();
+            const editingKeyVal = document.getElementById('editingKey').value;
 
             if (!meterNum) {
                 showStatus("يرجى إدخال رقم العداد الرئيسي.", "error");
                 return;
-            }
-
-            // Check duplicates (with edit exception)
-            if (!editingKey || (editingKey && allRecords[editingKey] && allRecords[editingKey]["رقم العداد"] !== meterNum)) {
-                if (existingMeters.has(meterNum)) {
-                    showStatus("⚠️ رقم العداد موجود مسبقاً!", "error");
-                    return;
-                }
-            }
-            if (simNum && (!editingKey || (editingKey && allRecords[editingKey] && allRecords[editingKey]["رقم الشريحة"] !== simNum))) {
-                if (existingSims.has(simNum)) {
-                    showStatus("⚠️ رقم الشريحة موجود مسبقاً!", "error");
-                    return;
-                }
-            }
-            if (transName && (!editingKey || (editingKey && allRecords[editingKey] && allRecords[editingKey]["اسم المحول"] !== transName))) {
-                if (existingTransNames.has(transName)) {
-                    showStatus("⚠️ اسم المحول موجود مسبقاً!", "error");
-                    return;
-                }
-            }
-            if (transCode && (!editingKey || (editingKey && allRecords[editingKey] && allRecords[editingKey]["كود المحول"] !== transCode))) {
-                if (existingTransCodes.has(transCode)) {
-                    showStatus("⚠️ كود المحول موجود مسبقاً!", "error");
-                    return;
-                }
             }
 
             const recordData = {
@@ -1091,29 +1421,36 @@
                 "اسم المحول": transName,
                 "قدرة المحول": document.getElementById('transCap').value.trim(),
                 "كود المحول": transCode,
-                "عنوان المحول بالتفصيل": document.getElementById('transAddress').value.trim(),
-                "اسم المغذي الموصل بيه المحول": document.getElementById('feederName').value.trim(),
-                "كود المغذي": document.getElementById('feederCode').value.trim(),
-                "اسم لوحة التوزيع": document.getElementById('panelName').value.trim(),
+                "اسم المغذي": feederName,
+                "كود المغذي": feederCode,
+                "اسم لوحة التوزيع": panelName,
+                "كود لوحة التوزيع": panelCode,
+                "اسم المحطة": stationName,
+                "كود المحطة": stationCode,
+                "اسم المغذي الخارج": document.getElementById('feederOutgoing').value.trim(),
+                "رقم العداد محطة": document.getElementById('meterNumberStation').value.trim(),
+                "القوة": document.getElementById('power').value.trim(),
                 "تاريخ التركيب": document.getElementById('installDate').value,
                 "Latitude(y)": document.getElementById('lat').value.trim(),
                 "Longitude(x)": document.getElementById('lng').value.trim(),
                 "TYPE": document.getElementById('meterType').value.trim(),
                 "القطاع": sectorName,
-                "الهندسة": districtName
+                "الهندسة": districtName,
+                "عنوان المحول بالتفصيل": document.getElementById('transAddress').value.trim()
             };
 
-            const targetKey = editingKey || meterNum;
-            const targetRef = ref(db, `sectors/${kId}/districts/${hId}/manual_entries/${targetKey}`);
-            
-            const action = editingKey ? 'تحديث' : 'حفظ';
+            const targetKey = editingKeyVal || meterNum;
+            const targetRef = ref(db, `sectors/${kId}/districts/${hCode}/manual_entries/${targetKey}`);
+
+            const action = editingKeyVal ? 'تحديث' : 'حفظ';
             showStatus(`جاري ${action} السجل...`, "info");
+            updateSyncStatus(true);
 
             set(targetRef, recordData)
                 .then(() => {
                     showStatus(`تم ${action} السجل بنجاح!`, "success");
-                    
-                    if (!editingKey) {
+                    updateSyncStatus(false);
+                    if (!editingKeyVal) {
                         clearForm();
                     } else {
                         cancelEdit();
@@ -1122,6 +1459,7 @@
                 })
                 .catch(err => {
                     showStatus(`خطأ أثناء ${action}: ` + err.message, "error");
+                    updateSyncStatus(false);
                 });
         });
 
