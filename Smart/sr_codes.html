@@ -361,12 +361,6 @@
             font-size: 1rem;
         }
 
-        .filter-hint {
-            font-size: 0.8rem;
-            color: var(--secondary);
-            margin-top: 4px;
-        }
-
         .debug-info {
             font-size: 0.7rem;
             color: #666;
@@ -430,17 +424,21 @@
                     <label>قدرة المحول (ك.ف.أ)</label>
                     <input type="text" id="transCap" placeholder="مثال: 500">
                 </div>
+
+                <!-- 1. Station Dropdown -->
                 <div class="form-group">
-                    <label>اسم المغذي</label>
-                    <input type="text" id="feederName" list="feedersList" placeholder="اختر اسم المغذي">
-                    <datalist id="feedersList"></datalist>
-                    <span class="warning-msg" id="feederNameWarning">⚠️ اسم المغذي مسجل مسبقاً!</span>
+                    <label>اسم المحطة</label>
+                    <input type="text" id="stationName" list="stationsList" placeholder="اختر اسم المحطة">
+                    <datalist id="stationsList"></datalist>
+                    <div id="stationDebug" class="debug-info"></div>
                 </div>
                 <div class="form-group">
-                    <label>كود المغذي</label>
-                    <input type="text" id="feederCode" list="feederCodeList" placeholder="اختر كود المغذي">
-                    <datalist id="feederCodeList"></datalist>
+                    <label>كود المحطة</label>
+                    <input type="text" id="stationCode" list="stationCodeList" placeholder="كود المحطة">
+                    <datalist id="stationCodeList"></datalist>
                 </div>
+
+                <!-- 2. Panel / DP Dropdown -->
                 <div class="form-group">
                     <label>اسم لوحة التوزيع</label>
                     <input type="text" id="panelName" list="panelsList" placeholder="اختر لوحة التوزيع">
@@ -453,17 +451,20 @@
                     <input type="text" id="panelCode" list="panelCodeList" placeholder="كود اللوحة">
                     <datalist id="panelCodeList"></datalist>
                 </div>
+
+                <!-- 3. Feeder Dropdown -->
                 <div class="form-group">
-                    <label>اسم المحطة</label>
-                    <input type="text" id="stationName" list="stationsList" placeholder="اختر اسم المحطة">
-                    <datalist id="stationsList"></datalist>
-                    <div id="stationDebug" class="debug-info"></div>
+                    <label>اسم المغذي</label>
+                    <input type="text" id="feederName" list="feedersList" placeholder="اختر اسم المغذي">
+                    <datalist id="feedersList"></datalist>
+                    <span class="warning-msg" id="feederNameWarning">⚠️ اسم المغذي مسجل مسبقاً!</span>
                 </div>
                 <div class="form-group">
-                    <label>كود المحطة</label>
-                    <input type="text" id="stationCode" list="stationCodeList" placeholder="كود المحطة">
-                    <datalist id="stationCodeList"></datalist>
+                    <label>كود المغذي</label>
+                    <input type="text" id="feederCode" list="feederCodeList" placeholder="اختر كود المغذي">
+                    <datalist id="feederCodeList"></datalist>
                 </div>
+
                 <div class="form-group">
                     <label>المغذي الخارج</label>
                     <input type="text" id="feederOutgoing" placeholder="اسم المغذي الخارج">
@@ -495,8 +496,7 @@
             </div>
             <div class="form-actions">
                 <button class="btn btn-primary" id="addSingleBtn"><i class="fas fa-plus-circle"></i> حفظ السجل</button>
-                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i>
-                    إلغاء التعديل</button>
+                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i> إلغاء التعديل</button>
             </div>
         </div>
 
@@ -504,13 +504,11 @@
             <div class="table-controls">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="بحث في السجلات..."
-                        oninput="renderTable(allRecords)">
+                    <input type="text" id="searchInput" placeholder="بحث في السجلات..." oninput="renderTable(allRecords)">
                 </div>
                 <div>
                     <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل</span>
-                    <button class="btn btn-secondary" style="margin-right: 10px;" onclick="refreshData()"><i
-                            class="fas fa-sync-alt"></i> تحديث</button>
+                    <button class="btn btn-secondary" style="margin-right: 10px;" onclick="refreshData()"><i class="fas fa-sync-alt"></i> تحديث</button>
                 </div>
             </div>
             <div class="table-container" id="tableContainer">
@@ -542,6 +540,7 @@
         const handsaCode = urlParams.get('handsa-code') || urlParams.get('handsa_code') || urlParams.get('handsa');
 
         const norm = v => String(v ?? '').trim();
+
         function matchesHandsa(item) {
             if (!item || typeof item !== 'object') return false;
 
@@ -555,11 +554,6 @@
             );
 
             const targetCode = norm(currentHandsaCode);
-
-            if (itemCode === '201' || targetCode === '201') {
-                console.log(`🔍 فحص العنصر: Code Found="${itemCode}", Target="${targetCode}", Match=${itemCode === targetCode}`, item);
-            }
-
             return itemCode !== '' && itemCode === targetCode;
         }
 
@@ -571,71 +565,24 @@
         };
 
         const districtNames = {
-            '101': 'هندسة شمال دمياط',
-            '102': 'هندسة جنوب دمياط',
-            '103': 'هندسة عزبة البرج',
-            '104': 'هندسة كفر سعد',
-            '105': 'هندسة كفر البطيخ',
-            '106': 'هندسة راس البر',
-            '107': 'هندسة دمياط الجديدة',
-            '108': 'هندسة الزرقا',
-            '109': 'هندسة فارسكور',
-            '110': 'هندسة الروضة',
-            '111': 'هندسة الشعراء',
-            '201': 'هندسة مدينة شربين',
-            '202': 'هندسة قري شربين',
-            '203': 'هندسة دكرنس',
-            '204': 'هندسة جمصة',
-            '205': 'هندسة قري بلقاس',
-            '206': 'هندسة مدينة بلقاس',
-            '207': 'هندسة الستاموني',
-            '208': 'هندسة بني عبيد',
-            '209': 'هندسة منية النصر',
-            '210': 'هندسة ميت سلسيل',
-            '211': 'هندسة الجمالية',
-            '212': 'هندسة قري المنزلة',
-            '213': 'هندسة مدينة المنزلة',
-            '214': 'هندسة المطرية',
-            '301': 'هندسة شرق المنصورة',
-            '302': 'هندسة غرب المنصورة',
-            '303': 'هندسة طلخا',
-            '304': 'هندسة نبروه',
-            '305': 'هندسة قري المنصورة 1',
-            '306': 'هندسة قري المنصورة 2',
-            '307': 'هندسة اجا',
-            '308': 'هندسة مدينة السنبلاوين',
-            '309': 'هندسة قري السنبلاوين',
-            '310': 'هندسة تمي الامديد',
-            '311': 'هندسة مدينة ميت غمر',
-            '312': 'هندسة قري ميت غمر',
-            '313': 'هندسة كوم النور',
-            '401': 'هندسة مدينة كفر الشيخ',
-            '402': 'هندسة غرب كفر الشيخ',
-            '403': 'هندسة شرق كفر الشيخ',
-            '404': 'هندسة قلين',
-            '405': 'هندسة قرى سيدي سالم',
-            '406': 'هندسة مدينة سيدي سالم',
-            '407': 'هندسة الرياض',
-            '408': 'هندسة مدينة دسوق',
-            '409': 'هندسة قرى شمال دسوق',
-            '410': 'هندسة قرى جنوب دسوق',
-            '411': 'هندسة فوه',
-            '412': 'هندسة مطوبس',
-            '413': 'هندسة مدينة الحامول',
-            '414': 'هندسة قرى الحامول',
-            '415': 'هندسة بيلا',
-            '416': 'هندسة بلطيم',
-            '417': 'هندسة برج البرلس'
+            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج', '104': 'هندسة كفر سعد', '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر', '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا', '109': 'هندسة فارسكور', '110': 'هندسة الروضة', '111': 'هندسة الشعراء',
+            '201': 'هندسة مدينة شربين', '202': 'هندسة قري شربين', '203': 'هندسة دكرنس', '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس', '206': 'هندسة مدينة بلقاس', '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر', '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة', '213': 'هندسة مدينة المنزلة', '214': 'هندسة المطرية',
+            '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا', '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2', '307': 'هندسة اجا', '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين', '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر', '312': 'هندسة قري ميت غمر', '313': 'هندسة كوم النور',
+            '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ', '403': 'هندسة شرق كفر الشيخ', '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم', '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق', '410': 'هندسة قرى جنوب دسوق', '411': 'هندسة فوه', '412': 'هندسة مطوبس', '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول', '415': 'هندسة بيلا', '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
         };
 
-        let transformersMap = {};
-        let transformersReverseMap = {};
-        let feedersMap = {};
-        let feedersReverseMap = {};
-        let panelsMap = {};
-        let panelsReverseMap = {};
-        let stationsMap = {};
-        let stationsReverseMap = {};
+        // Master Data Storage
+        let rawTransformers = [];
+        let rawFeeders = [];
+        let rawPanels = [];
+        let rawStations = [];
+
+        // Maps for quick key-value conversion
+        let transformersMap = {}, transformersReverseMap = {};
+        let feedersMap = {}, feedersReverseMap = {};
+        let panelsMap = {}, panelsReverseMap = {};
+        let stationsMap = {}, stationsReverseMap = {};
+
         let allRecords = {};
         let editingKey = null;
 
@@ -700,12 +647,18 @@
             updateSyncStatus(true);
             try {
                 await Promise.all([
-                    fetchTransformersDropdown(),
-                    fetchFeedersDropdown(),
-                    fetchPanelsDropdown(),
                     fetchStationsDropdown(),
+                    fetchPanelsDropdown(),
+                    fetchFeedersDropdown(),
+                    fetchTransformersDropdown(),
                     fetchSimsDropdown()
                 ]);
+                
+                // Initialize cascading bindings
+                renderStationsList();
+                renderPanelsList();
+                renderFeedersList();
+
                 loadRecords();
             } catch (err) {
                 console.error("خطأ أثناء تحميل قوائم البيانات:", err);
@@ -714,240 +667,308 @@
             }
         }
 
-        // =============== TRANSFORMER DROPDOWN ===============
-        async function fetchTransformersDropdown() {
-            const trfSnap = await get(ref(db, 'reference_data/trf_codes'));
-            const nameDatalist = document.getElementById('transformersList');
-            const codeDatalist = document.getElementById('transCodeList');
-            nameDatalist.innerHTML = '';
-            codeDatalist.innerHTML = '';
-            transformersMap = {};
-            transformersReverseMap = {};
-
-            if (trfSnap.exists()) {
-                const data = trfSnap.val();
-                const list = Array.isArray(data) ? data : Object.values(data);
-
-                list.forEach(item => {
-                    if (!item) return;
-                    const shouldInclude = matchesHandsa(item);
-
-                    if (shouldInclude) {
-                        const name = item.trf || item["اسم المحول"] || '';
-                        const code = item.trf_code || item["كود المحول"] || '';
-
-                        if (name) {
-                            const trimmedName = norm(name);
-                            const trimmedCode = norm(code);
-                            transformersMap[trimmedName] = trimmedCode;
-                            if (trimmedCode) {
-                                transformersReverseMap[trimmedCode] = trimmedName;
-                            }
-
-                            const nameOption = document.createElement('option');
-                            nameOption.value = trimmedName;
-                            nameDatalist.appendChild(nameOption);
-
-                            if (trimmedCode) {
-                                const codeOption = document.createElement('option');
-                                codeOption.value = trimmedCode;
-                                codeDatalist.appendChild(codeOption);
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // =============== FEEDER DROPDOWN ===============
-        async function fetchFeedersDropdown() {
-            const cellsSnap = await get(ref(db, 'reference_data/cells_codes'));
-            const nameDatalist = document.getElementById('feedersList');
-            const codeDatalist = document.getElementById('feederCodeList');
-            nameDatalist.innerHTML = '';
-            codeDatalist.innerHTML = '';
-            feedersMap = {};
-            feedersReverseMap = {};
-
-            if (cellsSnap.exists()) {
-                const data = cellsSnap.val();
-                const list = Array.isArray(data) ? data : Object.values(data);
-
-                list.forEach(item => {
-                    if (!item) return;
-                    const shouldInclude = matchesHandsa(item);
-
-                    if (shouldInclude) {
-                        const name = item.cell || item["اسم المغذي"] || '';
-                        const code = item.cell_code || item["كود المغذي"] || '';
-
-                        if (name) {
-                            const trimmedName = norm(name);
-                            const trimmedCode = norm(code);
-                            feedersMap[trimmedName] = trimmedCode;
-                            if (trimmedCode) {
-                                feedersReverseMap[trimmedCode] = trimmedName;
-                            }
-
-                            const nameOption = document.createElement('option');
-                            nameOption.value = trimmedName;
-                            nameDatalist.appendChild(nameOption);
-
-                            if (trimmedCode) {
-                                const codeOption = document.createElement('option');
-                                codeOption.value = trimmedCode;
-                                codeDatalist.appendChild(codeOption);
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // =============== PANEL DROPDOWN ===============
-        async function fetchPanelsDropdown() {
-            const dpSnap = await get(ref(db, 'reference_data/dp_codes'));
-            const nameDatalist = document.getElementById('panelsList');
-            const codeDatalist = document.getElementById('panelCodeList');
-            nameDatalist.innerHTML = '';
-            codeDatalist.innerHTML = '';
-            panelsMap = {};
-            panelsReverseMap = {};
-            let panelCount = 0;
-
-            if (dpSnap.exists()) {
-                const data = dpSnap.val();
-                const list = Array.isArray(data) ? data : Object.values(data);
-
-                list.forEach((item, index) => {
-                    if (!item) return;
-                    const shouldInclude = matchesHandsa(item);
-
-                    if (shouldInclude) {
-                        const name = item.dp || item["اسم لوحة التوزيع"] || '';
-                        const code = item.dp_code || item["كود لوحة التوزيع"] || '';
-
-                        if (name) {
-                            const trimmedName = norm(name);
-                            const trimmedCode = norm(code);
-                            panelsMap[trimmedName] = trimmedCode;
-                            if (trimmedCode) {
-                                panelsReverseMap[trimmedCode] = trimmedName;
-                            }
-
-                            const nameOption = document.createElement('option');
-                            nameOption.value = trimmedName;
-                            nameDatalist.appendChild(nameOption);
-
-                            if (trimmedCode) {
-                                const codeOption = document.createElement('option');
-                                codeOption.value = trimmedCode;
-                                codeDatalist.appendChild(codeOption);
-                            }
-                            panelCount++;
-                        }
-                    }
-                });
-                document.getElementById('panelDebug').textContent = `تم تحميل ${panelCount} لوحة توزيع (كود الهندسة: ${norm(currentHandsaCode)})`;
-            } else {
-                document.getElementById('panelDebug').textContent = 'لا توجد بيانات لوحات توزيع';
-            }
-        }
-
-        // =============== STATION DROPDOWN ===============
+        // =============== 1. STATIONS ===============
         async function fetchStationsDropdown() {
             const subSnap = await get(ref(db, 'reference_data/sub_codes'));
-            const nameDatalist = document.getElementById('stationsList');
-            const codeDatalist = document.getElementById('stationCodeList');
-            nameDatalist.innerHTML = '';
-            codeDatalist.innerHTML = '';
-            stationsMap = {};
-            stationsReverseMap = {};
-            let stationCount = 0;
+            rawStations = [];
+            stationsMap = {}; stationsReverseMap = {};
 
             if (subSnap.exists()) {
                 const data = subSnap.val();
                 const list = Array.isArray(data) ? data : Object.values(data);
-
-                list.forEach((item, index) => {
-                    if (!item) return;
-                    const shouldInclude = matchesHandsa(item);
-
-                    if (shouldInclude) {
-                        // البحث في عدة احتمالات لأسماء حقول المحطة لضمان التقاط البيانات
-                        let name = item.sub || item.station || item["اسم المحطة"] || item.dp || '';
-                        let code = item.sub_code || item.station_code || item["كود المحطة"] || item["الكود"] || '';
-
+                list.forEach(item => {
+                    if (item && matchesHandsa(item)) {
+                        const name = norm(item.sub || item.station || item["اسم المحطة"] || item.dp || '');
+                        const code = norm(item.sub_code || item.station_code || item["كود المحطة"] || item["mahata_code"] || item["الكود"] || '');
                         if (name) {
-                            const trimmedName = norm(name);
-                            const trimmedCode = norm(code);
-                            stationsMap[trimmedName] = trimmedCode;
-                            if (trimmedCode) {
-                                stationsReverseMap[trimmedCode] = trimmedName;
-                            }
-
-                            const nameOption = document.createElement('option');
-                            nameOption.value = trimmedName;
-                            nameDatalist.appendChild(nameOption);
-
-                            if (trimmedCode) {
-                                const codeOption = document.createElement('option');
-                                codeOption.value = trimmedCode;
-                                codeDatalist.appendChild(codeOption);
-                            }
-                            stationCount++;
+                            rawStations.push({ name, code, raw: item });
+                            stationsMap[name] = code;
+                            if (code) stationsReverseMap[code] = name;
                         }
                     }
                 });
-                document.getElementById('stationDebug').textContent = `تم تحميل ${stationCount} محطة بنجاح`;
-            } else {
-                document.getElementById('stationDebug').textContent = 'لا توجد بيانات محطات (مسار sub_codes فارغ)';
+            }
+            document.getElementById('stationDebug').textContent = `تم تحميل ${rawStations.length} محطة`;
+        }
+
+        function renderStationsList() {
+            const nameDatalist = document.getElementById('stationsList');
+            const codeDatalist = document.getElementById('stationCodeList');
+            nameDatalist.innerHTML = ''; codeDatalist.innerHTML = '';
+
+            rawStations.forEach(st => {
+                const opt1 = document.createElement('option');
+                opt1.value = st.name;
+                nameDatalist.appendChild(opt1);
+
+                if (st.code) {
+                    const opt2 = document.createElement('option');
+                    opt2.value = st.code;
+                    codeDatalist.appendChild(opt2);
+                }
+            });
+        }
+
+        // =============== 2. PANELS / DP ===============
+        async function fetchPanelsDropdown() {
+            const dpSnap = await get(ref(db, 'reference_data/dp_codes'));
+            rawPanels = [];
+            panelsMap = {}; panelsReverseMap = {};
+
+            if (dpSnap.exists()) {
+                const data = dpSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+                list.forEach(item => {
+                    if (item && matchesHandsa(item)) {
+                        const name = norm(item.dp || item["اسم لوحة التوزيع"] || '');
+                        const code = norm(item["الكود المقترح"] || item.dp_code || item["كود لوحة التوزيع"] || '');
+                        const mahataCode = norm(item.mahata_code || item.sub_code || item["كود المحطة"] || '');
+                        const mahataName = norm(item.mahata_name || item.station || item["اسم المحطة"] || '');
+
+                        if (name) {
+                            rawPanels.push({ name, code, mahataCode, mahataName, raw: item });
+                            panelsMap[name] = code;
+                            if (code) panelsReverseMap[code] = name;
+                        }
+                    }
+                });
+            }
+            document.getElementById('panelDebug').textContent = `تم تحميل ${rawPanels.length} لوحة توزيع`;
+        }
+
+        function renderPanelsList(filterMahataCode = '', filterMahataName = '') {
+            const nameDatalist = document.getElementById('panelsList');
+            const codeDatalist = document.getElementById('panelCodeList');
+            nameDatalist.innerHTML = ''; codeDatalist.innerHTML = '';
+
+            const filtered = rawPanels.filter(p => {
+                if (!filterMahataCode && !filterMahataName) return true;
+                const matchCode = filterMahataCode && p.mahataCode === filterMahataCode;
+                const matchName = filterMahataName && p.mahataName === filterMahataName;
+                return matchCode || matchName;
+            });
+
+            filtered.forEach(p => {
+                const opt1 = document.createElement('option');
+                opt1.value = p.name;
+                nameDatalist.appendChild(opt1);
+
+                if (p.code) {
+                    const opt2 = document.createElement('option');
+                    opt2.value = p.code;
+                    codeDatalist.appendChild(opt2);
+                }
+            });
+        }
+
+        // =============== 3. FEEDERS ===============
+        async function fetchFeedersDropdown() {
+            const cellsSnap = await get(ref(db, 'reference_data/cells_codes'));
+            rawFeeders = [];
+            feedersMap = {}; feedersReverseMap = {};
+
+            if (cellsSnap.exists()) {
+                const data = cellsSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+                list.forEach(item => {
+                    if (item && matchesHandsa(item)) {
+                        const name = norm(item.cell || item["اسم المغذي"] || '');
+                        const code = norm(item.cell_code || item["كود المغذي"] || '');
+                        const mahataCode = norm(item.mahata_code || item.sub_code || '');
+
+                        if (name) {
+                            rawFeeders.push({ name, code, mahataCode, raw: item });
+                            feedersMap[name] = code;
+                            if (code) feedersReverseMap[code] = name;
+                        }
+                    }
+                });
             }
         }
 
-        // =============== SIM DROPDOWN - LOAD ALL ===============
+        function renderFeedersList(filterDpCode = '', filterMahataCode = '') {
+            const nameDatalist = document.getElementById('feedersList');
+            const codeDatalist = document.getElementById('feederCodeList');
+            nameDatalist.innerHTML = ''; codeDatalist.innerHTML = '';
+
+            const filtered = rawFeeders.filter(f => {
+                let matchDp = true;
+                let matchMahata = true;
+
+                if (filterDpCode) {
+                    matchDp = f.code.startsWith(filterDpCode);
+                }
+                if (filterMahataCode) {
+                    matchMahata = f.mahataCode === filterMahataCode;
+                }
+                return matchDp && matchMahata;
+            });
+
+            filtered.forEach(f => {
+                const opt1 = document.createElement('option');
+                opt1.value = f.name;
+                nameDatalist.appendChild(opt1);
+
+                if (f.code) {
+                    const opt2 = document.createElement('option');
+                    opt2.value = f.code;
+                    codeDatalist.appendChild(opt2);
+                }
+            });
+        }
+
+        // =============== 4. TRANSFORMERS ===============
+        async function fetchTransformersDropdown() {
+            const trfSnap = await get(ref(db, 'reference_data/trf_codes'));
+            const nameDatalist = document.getElementById('transformersList');
+            const codeDatalist = document.getElementById('transCodeList');
+            nameDatalist.innerHTML = ''; codeDatalist.innerHTML = '';
+            transformersMap = {}; transformersReverseMap = {}; rawTransformers = [];
+
+            if (trfSnap.exists()) {
+                const data = trfSnap.val();
+                const list = Array.isArray(data) ? data : Object.values(data);
+                list.forEach(item => {
+                    if (item && matchesHandsa(item)) {
+                        const name = norm(item.trf || item["اسم المحول"] || '');
+                        const code = norm(item.trf_code || item["كود المحول"] || '');
+                        if (name) {
+                            transformersMap[name] = code;
+                            if (code) transformersReverseMap[code] = name;
+
+                            const nameOption = document.createElement('option');
+                            nameOption.value = name;
+                            nameDatalist.appendChild(nameOption);
+
+                            if (code) {
+                                const codeOption = document.createElement('option');
+                                codeOption.value = code;
+                                codeDatalist.appendChild(codeOption);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // =============== 5. SIM CARDS ===============
         async function fetchSimsDropdown() {
             const simSnap = await get(ref(db, 'reference_data/sim_records'));
             const datalist = document.getElementById('simList');
             datalist.innerHTML = '';
-            let simCount = 0;
 
             if (simSnap.exists()) {
                 const data = simSnap.val();
                 const list = Array.isArray(data) ? data : Object.values(data);
-
                 list.forEach(item => {
                     if (!item) return;
-                    let simNumber = '';
-                    if (typeof item === 'string' || typeof item === 'number') {
-                        simNumber = item;
-                    } else {
-                        simNumber = item.Sim || item["رقم الشريحة"] || item.sim_number || item.sim || '';
-                    }
+                    let simNumber = (typeof item === 'string' || typeof item === 'number')
+                        ? item
+                        : (item.Sim || item["رقم الشريحة"] || item.sim_number || item.sim || '');
+
                     if (simNumber) {
                         const option = document.createElement('option');
-                        option.value = simNumber.toString().trim();
+                        option.value = String(simNumber).trim();
                         datalist.appendChild(option);
-                        simCount++;
                     }
                 });
             }
         }
 
-        // Auto-fill Transformer Code when selecting from name dropdown
-        document.getElementById('transName').addEventListener('input', function (e) {
+        // ================= CASCADING EVENT LISTENERS =================
+
+        // A. Station Selection -> Filters Panels & Feeders
+        document.getElementById('stationName').addEventListener('input', function (e) {
             const val = e.target.value.trim();
-            if (transformersMap[val]) {
-                document.getElementById('transCode').value = transformersMap[val];
-            } else {
-                if (!document.getElementById('transCode').dataset.userEdited) {
-                    document.getElementById('transCode').value = '';
-                }
+            if (stationsMap[val]) {
+                document.getElementById('stationCode').value = stationsMap[val];
+            } else if (!document.getElementById('stationCode').dataset.userEdited) {
+                document.getElementById('stationCode').value = '';
+            }
+
+            const stCode = document.getElementById('stationCode').value.trim();
+            renderPanelsList(stCode, val);
+            renderFeedersList(document.getElementById('panelCode').value.trim(), stCode);
+        });
+
+        document.getElementById('stationCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (stationsReverseMap[val]) {
+                document.getElementById('stationName').value = stationsReverseMap[val];
+            }
+            const stName = document.getElementById('stationName').value.trim();
+            renderPanelsList(val, stName);
+            renderFeedersList(document.getElementById('panelCode').value.trim(), val);
+        });
+
+        // B. Panel Selection -> Auto-fills Station & Filters Feeders
+        document.getElementById('panelName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (panelsMap[val]) {
+                document.getElementById('panelCode').value = panelsMap[val];
+            } else if (!document.getElementById('panelCode').dataset.userEdited) {
+                document.getElementById('panelCode').value = '';
+            }
+
+            const panelCodeVal = document.getElementById('panelCode').value.trim();
+
+            // Auto Link Station if present in panel item
+            const foundPanel = rawPanels.find(p => p.name === val || (panelCodeVal && p.code === panelCodeVal));
+            if (foundPanel) {
+                if (foundPanel.mahataName) document.getElementById('stationName').value = foundPanel.mahataName;
+                if (foundPanel.mahataCode) document.getElementById('stationCode').value = foundPanel.mahataCode;
+            }
+
+            renderFeedersList(panelCodeVal, document.getElementById('stationCode').value.trim());
+            checkDuplicates();
+        });
+
+        document.getElementById('panelCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (panelsReverseMap[val]) {
+                document.getElementById('panelName').value = panelsReverseMap[val];
+            }
+
+            const foundPanel = rawPanels.find(p => p.code === val);
+            if (foundPanel) {
+                if (foundPanel.mahataName) document.getElementById('stationName').value = foundPanel.mahataName;
+                if (foundPanel.mahataCode) document.getElementById('stationCode').value = foundPanel.mahataCode;
+            }
+
+            renderFeedersList(val, document.getElementById('stationCode').value.trim());
+            checkDuplicates();
+        });
+
+        // C. Feeder Selection
+        document.getElementById('feederName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (feedersMap[val]) {
+                document.getElementById('feederCode').value = feedersMap[val];
+            } else if (!document.getElementById('feederCode').dataset.userEdited) {
+                document.getElementById('feederCode').value = '';
             }
             checkDuplicates();
         });
 
-        // Auto-fill Transformer Name when selecting from code dropdown
+        document.getElementById('feederCode').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (feedersReverseMap[val]) {
+                document.getElementById('feederName').value = feedersReverseMap[val];
+            }
+            checkDuplicates();
+        });
+
+        // D. Transformer Listeners
+        document.getElementById('transName').addEventListener('input', function (e) {
+            const val = e.target.value.trim();
+            if (transformersMap[val]) {
+                document.getElementById('transCode').value = transformersMap[val];
+            } else if (!document.getElementById('transCode').dataset.userEdited) {
+                document.getElementById('transCode').value = '';
+            }
+            checkDuplicates();
+        });
+
         document.getElementById('transCode').addEventListener('input', function (e) {
             const val = e.target.value.trim();
             if (transformersReverseMap[val]) {
@@ -956,101 +977,11 @@
             checkDuplicates();
         });
 
-        // Auto-fill Feeder Code when selecting from name dropdown
-        document.getElementById('feederName').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-            if (feedersMap[val]) {
-                document.getElementById('feederCode').value = feedersMap[val];
-            } else {
-                if (!document.getElementById('feederCode').dataset.userEdited) {
-                    document.getElementById('feederCode').value = '';
-                }
-            }
-        });
-
-        // Auto-fill Feeder Name when selecting from code dropdown
-        document.getElementById('feederCode').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-            if (feedersReverseMap[val]) {
-                document.getElementById('feederName').value = feedersReverseMap[val];
-            }
-        });
-
-        // Auto-fill Panel Code, Panel Name syncing with Station Name/Code
-        document.getElementById('panelName').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-
-            // تعيين كود لوحة التوزيع
-            if (panelsMap[val]) {
-                document.getElementById('panelCode').value = panelsMap[val];
-            } else {
-                if (!document.getElementById('panelCode').dataset.userEdited) {
-                    document.getElementById('panelCode').value = '';
-                }
-            }
-
-            // جعل اسم المحطة وكودها يتبعان اسم لوحة التوزيع (dp) بناءً على بيانات sub_codes
-            if (stationsMap[val]) {
-                document.getElementById('stationName').value = val;
-                document.getElementById('stationCode').value = stationsMap[val];
-            }
-        });
-
-        // Auto-fill Panel Name when selecting from code dropdown
-        document.getElementById('panelCode').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-            if (panelsReverseMap[val]) {
-                document.getElementById('panelName').value = panelsReverseMap[val];
-            }
-        });
-
-        // Auto-fill Station Code when selecting from name dropdown
-        document.getElementById('stationName').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-            if (stationsMap[val]) {
-                document.getElementById('stationCode').value = stationsMap[val];
-            } else {
-                if (!document.getElementById('stationCode').dataset.userEdited) {
-                    document.getElementById('stationCode').value = '';
-                }
-            }
-        });
-
-        // Auto-fill Station Name when selecting from code dropdown
-        document.getElementById('stationCode').addEventListener('input', function (e) {
-            const val = e.target.value.trim();
-            if (stationsReverseMap[val]) {
-                document.getElementById('stationName').value = stationsReverseMap[val];
-            }
-        });
-
-        // Allow manual edit without auto-overwrite
-        document.getElementById('transCode').addEventListener('focus', function () {
-            this.dataset.userEdited = 'true';
-        });
-        document.getElementById('transCode').addEventListener('blur', function () {
-            setTimeout(() => { delete this.dataset.userEdited; }, 300);
-        });
-
-        document.getElementById('feederCode').addEventListener('focus', function () {
-            this.dataset.userEdited = 'true';
-        });
-        document.getElementById('feederCode').addEventListener('blur', function () {
-            setTimeout(() => { delete this.dataset.userEdited; }, 300);
-        });
-
-        document.getElementById('panelCode').addEventListener('focus', function () {
-            this.dataset.userEdited = 'true';
-        });
-        document.getElementById('panelCode').addEventListener('blur', function () {
-            setTimeout(() => { delete this.dataset.userEdited; }, 300);
-        });
-
-        document.getElementById('stationCode').addEventListener('focus', function () {
-            this.dataset.userEdited = 'true';
-        });
-        document.getElementById('stationCode').addEventListener('blur', function () {
-            setTimeout(() => { delete this.dataset.userEdited; }, 300);
+        // User edit flags
+        ['transCode', 'feederCode', 'panelCode', 'stationCode'].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('focus', function () { this.dataset.userEdited = 'true'; });
+            el.addEventListener('blur', function () { setTimeout(() => { delete this.dataset.userEdited; }, 300); });
         });
 
         function loadRecords() {
@@ -1058,12 +989,9 @@
             onValue(recordsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     allRecords = snapshot.val();
-                    existingMeters.clear();
-                    existingSims.clear();
-                    existingTransNames.clear();
-                    existingTransCodes.clear();
-                    existingFeederNames.clear();
-                    existingPanelNames.clear();
+                    existingMeters.clear(); existingSims.clear();
+                    existingTransNames.clear(); existingTransCodes.clear();
+                    existingFeederNames.clear(); existingPanelNames.clear();
 
                     Object.values(allRecords).forEach(record => {
                         if (record["رقم العداد"]) existingMeters.add(record["رقم العداد"]);
@@ -1167,12 +1095,14 @@
             document.getElementById('transName').value = record["اسم المحول"] || '';
             document.getElementById('transCode').value = record["كود المحول"] || '';
             document.getElementById('transCap').value = record["قدرة المحول"] || '';
-            document.getElementById('feederName').value = record["اسم المغذي"] || '';
-            document.getElementById('feederCode').value = record["كود المغذي"] || '';
-            document.getElementById('panelName').value = record["اسم لوحة التوزيع"] || '';
-            document.getElementById('panelCode').value = record["كود لوحة التوزيع"] || '';
+
             document.getElementById('stationName').value = record["اسم المحطة"] || '';
             document.getElementById('stationCode').value = record["كود المحطة"] || '';
+            document.getElementById('panelName').value = record["اسم لوحة التوزيع"] || '';
+            document.getElementById('panelCode').value = record["كود لوحة التوزيع"] || '';
+            document.getElementById('feederName').value = record["اسم المغذي"] || '';
+            document.getElementById('feederCode').value = record["كود المغذي"] || '';
+
             document.getElementById('feederOutgoing').value = record["اسم المغذي الخارج"] || '';
             document.getElementById('meterNumberStation').value = record["رقم العداد محطة"] || '';
             document.getElementById('power').value = record["القوة"] || '';
@@ -1180,6 +1110,10 @@
             document.getElementById('lat').value = record["Latitude(y)"] || record["Latitude"] || '';
             document.getElementById('lng').value = record["Longitude(x)"] || record["Longitude"] || '';
             document.getElementById('transAddress').value = record["عنوان المحول بالتفصيل"] || '';
+
+            // Refresh dynamic cascading lists
+            renderPanelsList(record["كود المحطة"], record["اسم المحطة"]);
+            renderFeedersList(record["كود لوحة التوزيع"], record["كود المحطة"]);
 
             document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-save"></i> تحديث السجل';
             document.getElementById('cancelEditBtn').style.display = 'inline-block';
@@ -1197,6 +1131,9 @@
             document.getElementById('cancelEditBtn').style.display = 'none';
             document.getElementById('addSingleBtn').style.backgroundColor = '#2563eb';
             clearForm();
+            renderStationsList();
+            renderPanelsList();
+            renderFeedersList();
             renderTable(allRecords);
             checkDuplicates();
         };
@@ -1261,7 +1198,7 @@
             let hasDuplicate = false;
             const editingKeyVal = document.getElementById('editingKey').value;
 
-            // Meter duplicate check
+            // Meter check
             const meterField = document.getElementById('meterNum');
             const meterWarning = document.getElementById('meterNumWarning');
             if (meterNum && existingMeters.has(meterNum)) {
@@ -1281,7 +1218,7 @@
                 meterWarning.classList.remove('show');
             }
 
-            // SIM duplicate check
+            // SIM check
             const simField = document.getElementById('simNum');
             const simWarning = document.getElementById('simNumWarning');
             if (simNum && existingSims.has(simNum)) {
@@ -1301,7 +1238,7 @@
                 simWarning.classList.remove('show');
             }
 
-            // Transformer name duplicate check
+            // Transformer Name
             const transNameField = document.getElementById('transName');
             const transNameWarning = document.getElementById('transNameWarning');
             if (transName && existingTransNames.has(transName)) {
@@ -1321,7 +1258,7 @@
                 transNameWarning.classList.remove('show');
             }
 
-            // Transformer code duplicate check
+            // Transformer Code
             const transCodeField = document.getElementById('transCode');
             const transCodeWarning = document.getElementById('transCodeWarning');
             if (transCode && existingTransCodes.has(transCode)) {
@@ -1341,7 +1278,7 @@
                 transCodeWarning.classList.remove('show');
             }
 
-            // Feeder name duplicate check
+            // Feeder Name
             const feederNameField = document.getElementById('feederName');
             const feederNameWarning = document.getElementById('feederNameWarning');
             if (feederName && existingFeederNames.has(feederName)) {
@@ -1361,7 +1298,7 @@
                 feederNameWarning.classList.remove('show');
             }
 
-            // Panel name duplicate check
+            // Panel Name
             const panelNameField = document.getElementById('panelName');
             const panelNameWarning = document.getElementById('panelNameWarning');
             if (panelName && existingPanelNames.has(panelName)) {
@@ -1386,10 +1323,6 @@
 
         document.getElementById('meterNum').addEventListener('input', checkDuplicates);
         document.getElementById('simNum').addEventListener('input', checkDuplicates);
-        document.getElementById('transCode').addEventListener('input', checkDuplicates);
-        document.getElementById('transName').addEventListener('input', checkDuplicates);
-        document.getElementById('feederName').addEventListener('input', checkDuplicates);
-        document.getElementById('panelName').addEventListener('input', checkDuplicates);
 
         document.getElementById('searchInput').addEventListener('input', function () {
             renderTable(allRecords);
@@ -1452,6 +1385,9 @@
                     updateSyncStatus(false);
                     if (!editingKeyVal) {
                         clearForm();
+                        renderStationsList();
+                        renderPanelsList();
+                        renderFeedersList();
                     } else {
                         cancelEdit();
                     }
