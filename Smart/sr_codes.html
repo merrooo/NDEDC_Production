@@ -123,6 +123,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .collection-tabs {
@@ -565,6 +566,35 @@
             flex-wrap: wrap;
         }
 
+        .path-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .path-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            min-width: 200px;
+            direction: ltr;
+        }
+
+        .path-input input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .path-input .path-label {
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.85rem;
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -682,6 +712,12 @@
                 width: 95%;
                 padding: 15px;
             }
+            .path-input {
+                flex-direction: column;
+            }
+            .path-input input {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -722,6 +758,9 @@
                 </button>
                 <button class="collection-tab" data-collection="trf_codes">
                     <i class="fas fa-transform"></i> المحولات
+                </button>
+                <button class="collection-tab" data-collection="upload_any">
+                    <i class="fas fa-cloud-upload-alt"></i> رفع أي بيانات
                 </button>
             </div>
         </div>
@@ -1051,6 +1090,35 @@
             </div>
         </div>
 
+        <!-- Upload Any Data -->
+        <div id="upload_any" class="tab-content">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-cloud-upload-alt"></i> رفع أي بيانات إلى أي مسار</div>
+                <div class="path-input">
+                    <span class="path-label">📂 المسار المستهدف:</span>
+                    <input type="text" id="uploadAnyPath" value="reference_data/cells_codes" dir="ltr">
+                </div>
+                <div class="upload-row">
+                    <div class="upload-area-compact" id="uploadAnyArea" onclick="document.getElementById('uploadAnyFile').click()">
+                        <i class="fas fa-file-excel"></i>
+                        <span>اسحب ملف Excel/CSV أو اضغط للتحميل</span>
+                    </div>
+                    <input type="file" id="uploadAnyFile" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleAnyFileUpload(this)">
+                    <div id="progressAny" class="progress-bar"><div class="progress-fill" id="progressFillAny"></div></div>
+                    <button class="btn btn-success" id="saveAnyBtn" onclick="saveAnyData()" disabled>
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAnyUpload()">
+                        <i class="fas fa-undo"></i> مسح
+                    </button>
+                    <span id="uploadAnyStatus" class="upload-status"></span>
+                </div>
+                <div class="table-container" id="uploadAnyPreview">
+                    <div class="no-data">قم بتحميل ملف لعرض البيانات</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal for Add/Edit -->
@@ -1129,9 +1197,10 @@
         let uploadFileData = {};
         let displayLimit = {};
         let totalRecords = {};
-        let modalMode = 'add'; // 'add' or 'edit'
+        let modalMode = 'add';
         let modalCollection = '';
         let modalEditKey = '';
+        let anyUploadData = [];
 
         // Initialize display limits
         const collections_list = ['cells_codes', 'dp_codes', 'sim_records', 'sub_codes', 'trf_codes'];
@@ -1148,7 +1217,9 @@
                 document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
                 const collection = this.dataset.collection;
                 document.getElementById(collection).classList.add('active');
-                renderDatabaseTable(collection);
+                if (collection !== 'upload_any') {
+                    renderDatabaseTable(collection);
+                }
             });
         });
 
@@ -1258,7 +1329,6 @@
                 }
             });
             
-            // Check required fields
             const requiredFields = collections[collection].requiredFields;
             requiredFields.forEach(field => {
                 if (!data[field] || data[field] === '') {
@@ -1273,7 +1343,6 @@
             const collectionRef = ref(db, `reference_data/${collection}`);
             
             if (modalMode === 'add') {
-                // Add new record
                 const newRef = push(collectionRef);
                 set(newRef, data)
                     .then(() => {
@@ -1287,7 +1356,6 @@
                         showStatus(`❌ خطأ: ${err.message}`, 'error');
                     });
             } else {
-                // Edit existing record
                 const recordRef = ref(db, `reference_data/${collection}/${modalEditKey}`);
                 set(recordRef, data)
                     .then(() => {
@@ -1303,7 +1371,6 @@
             }
         };
 
-        // Close modal on overlay click
         document.getElementById('dataModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
@@ -1328,7 +1395,7 @@
                 });
         };
 
-        // ==================== DRAG AND DROP ====================
+        // ==================== DRAG AND DROP FOR COLLECTIONS ====================
         document.querySelectorAll('.upload-area-compact').forEach(area => {
             area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
             area.addEventListener('dragleave', () => area.classList.remove('dragover'));
@@ -1347,7 +1414,7 @@
             });
         });
 
-        // ==================== FILE UPLOAD ====================
+        // ==================== FILE UPLOAD FOR COLLECTIONS ====================
         window.handleFileUpload = function(collection, input) {
             const file = input.files[0];
             if (!file) return;
@@ -1377,8 +1444,6 @@
                     const processed = processData(collection, jsonData);
                     previewData[collection] = processed;
                     uploadFileData[collection] = jsonData;
-                    
-                    renderUploadPreview(collection, processed);
                     
                     progressFill.style.width = '100%';
                     setTimeout(() => {
@@ -1437,15 +1502,7 @@
             return result;
         }
 
-        window.renderUploadPreview = function(collection, data) {
-            const statusEl = document.getElementById(`upload_status_${collection}`);
-            if (!data || data.length === 0) {
-                statusEl.textContent = '';
-                return;
-            }
-        };
-
-        // ==================== SAVE TO DATABASE ====================
+        // ==================== SAVE TO DATABASE (COLLECTIONS) ====================
         window.saveToDatabase = function(collection) {
             const data = previewData[collection];
             if (!data || data.length === 0) {
@@ -1565,7 +1622,6 @@
                 return;
             }
 
-            // Two-level filtering
             let filteredKeys = keys;
             
             if (searchTerm) {
@@ -1587,8 +1643,6 @@
             }
 
             const filteredTotal = filteredKeys.length;
-
-            // Apply limit
             const limit = searchTerm || subSearchTerm ? Math.min(filteredTotal, 20) : (displayLimit[collection] || 20);
             const displayKeys = filteredKeys.slice(0, limit);
 
@@ -1598,7 +1652,6 @@
                 return;
             }
 
-            // Show/hide load more button
             if (loadMoreContainer) {
                 const hasMore = !searchTerm && !subSearchTerm && displayKeys.length < filteredTotal;
                 loadMoreContainer.style.display = hasMore ? 'block' : 'none';
@@ -1714,17 +1767,169 @@
             loadDatabaseData(collection);
         };
 
+        // ==================== UPLOAD ANY DATA ====================
+        // Drag and drop
+        document.getElementById('uploadAnyArea').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.getElementById('uploadAnyArea').classList.add('dragover');
+        });
+        document.getElementById('uploadAnyArea').addEventListener('dragleave', () => {
+            document.getElementById('uploadAnyArea').classList.remove('dragover');
+        });
+        document.getElementById('uploadAnyArea').addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.getElementById('uploadAnyArea').classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const input = document.getElementById('uploadAnyFile');
+                const dt = new DataTransfer();
+                dt.items.add(files[0]);
+                input.files = dt.files;
+                handleAnyFileUpload(input);
+            }
+        });
+
+        window.handleAnyFileUpload = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (typeof XLSX === 'undefined') {
+                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
+                return;
+            }
+
+            const reader = new FileReader();
+            const progressBar = document.getElementById('progressAny');
+            const progressFill = document.getElementById('progressFillAny');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = '30%';
+
+            reader.onload = function(e) {
+                try {
+                    progressFill.style.width = '60%';
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    progressFill.style.width = '90%';
+                    
+                    anyUploadData = jsonData;
+                    renderAnyUploadPreview(jsonData);
+                    
+                    progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 500);
+
+                    document.getElementById('uploadAnyStatus').textContent = 
+                        `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
+                    document.getElementById('saveAnyBtn').disabled = false;
+                    
+                } catch (err) {
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.renderAnyUploadPreview = function(data) {
+            const container = document.getElementById('uploadAnyPreview');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
+                return;
+            }
+
+            const fields = Object.keys(data[0]);
+
+            let html = `<table><thead><tr><th>#</th>`;
+            fields.forEach(field => {
+                html += `<th>${field}</th>`;
+            });
+            html += `</tr></thead><tbody>`;
+
+            data.forEach((record, index) => {
+                html += `<tr>`;
+                html += `<td>${index + 1}</td>`;
+                fields.forEach(field => {
+                    let value = record[field] !== undefined ? record[field] : '';
+                    if (typeof value === 'object') {
+                        value = JSON.stringify(value);
+                    }
+                    html += `<td style="max-width:150px;white-space:normal;word-break:break-word;">${value}</td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        };
+
+        window.saveAnyData = function() {
+            if (!anyUploadData || anyUploadData.length === 0) {
+                showStatus('❌ لا توجد بيانات للحفظ', 'error');
+                return;
+            }
+
+            const path = document.getElementById('uploadAnyPath').value.trim();
+            if (!path) {
+                showStatus('⚠️ يرجى إدخال المسار المستهدف', 'error');
+                return;
+            }
+
+            if (!confirm(`حفظ ${anyUploadData.length} سجل في "${path}"؟`)) return;
+
+            updateSyncStatus(true);
+            const dbRef = ref(db, path);
+            let saved = 0, errors = 0;
+
+            const promises = anyUploadData.map((record) => {
+                const newRef = push(dbRef);
+                return set(newRef, record)
+                    .then(() => saved++)
+                    .catch((err) => { errors++; console.error(err); });
+            });
+
+            Promise.all(promises).then(() => {
+                updateSyncStatus(false);
+                showStatus(`✅ تم حفظ ${saved} سجل${errors > 0 ? `, ${errors} فشل` : ''}`, 'success');
+                document.getElementById('saveAnyBtn').disabled = true;
+                document.getElementById('uploadAnyStatus').textContent = '';
+                anyUploadData = [];
+                document.getElementById('uploadAnyFile').value = '';
+                document.getElementById('uploadAnyPreview').innerHTML = 
+                    `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
+            }).catch((err) => {
+                updateSyncStatus(false);
+                showStatus(`❌ خطأ: ${err.message}`, 'error');
+            });
+        };
+
+        window.clearAnyUpload = function() {
+            anyUploadData = [];
+            document.getElementById('uploadAnyFile').value = '';
+            document.getElementById('uploadAnyPreview').innerHTML = 
+                `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
+            document.getElementById('uploadAnyStatus').textContent = '';
+            document.getElementById('saveAnyBtn').disabled = true;
+        };
+
         // ==================== INITIALIZE ====================
         collections_list.forEach(collection => loadDatabaseData(collection));
 
         updateSyncStatus(false);
-        console.log('✅ Data Management Page loaded! (20 rows per page, with Add/Edit/Delete)');
+        console.log('✅ Data Management Page loaded! (With Upload Any Data feature)');
 
         // Make functions globally accessible
         window.handleFileUpload = handleFileUpload;
         window.saveToDatabase = saveToDatabase;
         window.clearPreview = clearPreview;
-        window.renderUploadPreview = renderUploadPreview;
         window.renderDatabaseTable = renderDatabaseTable;
         window.exportToExcel = exportToExcel;
         window.refreshData = refreshData;
@@ -1737,6 +1942,10 @@
         window.saveModalData = saveModalData;
         window.closeModal = closeModal;
         window.deleteRecord = deleteRecord;
+        window.handleAnyFileUpload = handleAnyFileUpload;
+        window.renderAnyUploadPreview = renderAnyUploadPreview;
+        window.saveAnyData = saveAnyData;
+        window.clearAnyUpload = clearAnyUpload;
     </script>
 </body>
 
