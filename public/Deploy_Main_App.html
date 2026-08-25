@@ -2094,95 +2094,213 @@
       XLSX.writeFile(wb, `${currentLoadedDbName || 'table'}_export.xlsx`);
       showToast("Excel exported", "success");
     }
-    async function importExcel(file, isLast = true) {
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const wb = XLSX.read(data, { type: 'array' });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.json_to_sheet(sheet, { defval: "", raw: false });
-          if (!json.length) throw new Error("Empty");
-          const headers = Object.keys(json[0]).filter(h => !['Row #', 'Starred', 'Comment'].includes(h));
-          const cols = headers.map(h => ({ id: genColId(), name: h, type: "text", options: [] }));
-          const rows = [];
-          for (let row of json) {
-            const newRow = {};
-            cols.forEach(c => {
-              let v = row[c.name];
-              if (typeof v === 'string' && v.startsWith('data:image')) {
-                const imgCol = cols.find(x => x.name === c.name);
-                if (imgCol) imgCol.type = 'image';
-                newRow[c.id] = [v];
-                imageFileNames.set(v, v.substring(0, 40) + '...');
-              } else if (typeof v === 'string' && v.startsWith('data:application/pdf')) {
-                const fileCol = cols.find(x => x.name === c.name);
-                if (fileCol) fileCol.type = 'file';
-                newRow[c.id] = [v];
-                fileNames.set(v, 'document.pdf');
-              } else newRow[c.id] = v !== undefined ? v : "";
-            });
-            rows.push(newRow);
+
+
+
+   async function importExcel(file, isLast = true) {
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      
+      // FIX: Use sheet_to_json correctly
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      
+      if (!json || json.length === 0) {
+        throw new Error("Empty or invalid Excel file");
+      }
+      
+      // Get headers from the JSON data
+      const headers = Object.keys(json[0]).filter(h => !['Row #', 'Starred', 'Comment'].includes(h));
+      
+      if (headers.length === 0) {
+        throw new Error("No valid columns found in Excel file");
+      }
+      
+      // Create columns from headers
+      const cols = headers.map(h => ({ 
+        id: genColId(), 
+        name: h, 
+        type: "text", 
+        options: [],
+        dateFormat: null
+      }));
+      
+      // Process rows
+      const rows = [];
+      for (let row of json) {
+        const newRow = {};
+        cols.forEach(c => {
+          let v = row[c.name];
+          
+          // Handle undefined/null values
+          if (v === undefined || v === null) {
+            newRow[c.id] = "";
+            return;
           }
-          if (isLast) {
-            showModal(`Import ${file.name}`, `<p class="text-sm text-slate-500 mb-6">Found ${rows.length} rows and ${cols.length} columns from "${file.name}".</p><div class="flex gap-3"><button id="importNewBtn" class="btn-modern flex-1 py-3 text-sm">Replace Existing</button><button id="importAppendBtn" class="pill-btn flex-1 py-3 bg-white/25 text-sm">Append Data</button></div>`, (modal) => {
-              modal.querySelector('#importNewBtn').onclick = () => {
-                modal.remove();
+          
+          // Handle image data
+          if (typeof v === 'string' && v.startsWith('data:image')) {
+            const imgCol = cols.find(x => x.name === c.name);
+            if (imgCol) imgCol.type = 'image';
+            newRow[c.id] = [v];
+            imageFileNames.set(v, 'imported_image');
+          } 
+          // Handle PDF data
+          else if (typeof v === 'string' && v.startsWith('data:application/pdf')) {
+            const fileCol = cols.find(x => x.name === c.name);
+            if (fileCol) fileCol.type = 'file';
+            newRow[c.id] = [v];
+            fileNames.set(v, 'imported_document.pdf');
+          } 
+          // Handle numbers
+          else if (typeof v === 'number' && !isNaN(v)) {
+            // Check if it should be a number column
+            const numCol = cols.find(x => x.name === c.name);
+            if (numCol && typeof v === 'number') {
+              numCol.type = 'number';
+            }
+            newRow[c.id] = v;
+          }
+          // Handle boolean (checkbox)
+          else if (typeof v === 'boolean') {
+            const boolCol = cols.find(x => x.name === c.name);
+            if (boolCol) boolCol.type = 'checkbox';
+            newRow[c.id] = v;
+          }
+          // Handle dates
+          else if (typeof v === 'string' && !isNaN(Date.parse(v))) {
+            const dateCol = cols.find(x => x.name === c.name);
+            if (dateCol) {
+              dateCol.type = 'date';
+              dateCol.dateFormat = 'YYYY-MM-DD';
+            }
+            // Try to parse as date
+            const dateObj = new Date(v);
+            if (!isNaN(dateObj.getTime())) {
+              newRow[c.id] = dateObj.toISOString().split('T')[0];
+            } else {
+              newRow[c.id] = v;
+            }
+          }
+          // Regular text
+          else {
+            newRow[c.id] = String(v);
+          }
+        });
+        rows.push(newRow);
+      }
+      
+      // Now handle the import based on isLast flag
+      if (isLast) {
+        showModal(`Import ${file.name}`, 
+          `<p class="text-sm text-slate-500 mb-6">Found ${rows.length} rows and ${cols.length} columns from "${file.name}".</p>
+          <div class="flex gap-3">
+            <button id="importNewBtn" class="btn-modern flex-1 py-3 text-sm">Replace Existing</button>
+            <button id="importAppendBtn" class="pill-btn flex-1 py-3 bg-white/25 text-sm">Append Data</button>
+          </div>`, 
+          (modal) => {
+            modal.querySelector('#importNewBtn').onclick = () => {
+              modal.remove();
+              workingTableColumns = cols;
+              workingTableRows = rows;
+              rowPriorities.clear();
+              rowComments.clear();
+              starredRows.clear();
+              selectedRows.clear();
+              workingTableRows.forEach((_, i) => rowPriorities.set(i, Date.now() - i));
+              currentLoadedDbName = null;
+              renderCards();
+              updateBulkDeleteButton();
+              document.getElementById("activeDbLabel").innerHTML = `📝 Imported (${rows.length} rows)`;
+              showToast(`Loaded ${rows.length} rows from ${file.name}`, 'success');
+            };
+            
+            modal.querySelector('#importAppendBtn').onclick = () => {
+              modal.remove();
+              if (workingTableColumns.length === 0) {
                 workingTableColumns = cols;
                 workingTableRows = rows;
-                rowPriorities.clear();
-                workingTableRows.forEach((_, i) => rowPriorities.set(i, Date.now() - i));
-                currentLoadedDbName = null;
-                renderCards();
-                updateBulkDeleteButton();
-                document.getElementById("activeDbLabel").innerHTML = `📝 Imported (${rows.length} rows)`;
-                showToast(`Loaded ${rows.length} rows from ${file.name}`, 'success');
-              };
-              modal.querySelector('#importAppendBtn').onclick = () => {
-                modal.remove();
-                if (workingTableColumns.length === 0) { workingTableColumns = cols; workingTableRows = rows; }
-                else {
-                  for (let c of cols) if (!workingTableColumns.find(x => x.name === c.name)) workingTableColumns.push(c);
-                  for (let nr of rows) {
-                    const appRow = {};
-                    workingTableColumns.forEach(c => {
-                      const match = cols.find(x => x.name === c.name);
-                      appRow[c.id] = match ? nr[match.id] : "";
-                    });
-                    workingTableRows.unshift(appRow);
-                    rowPriorities.set(0, Date.now());
+              } else {
+                // Add new columns if they don't exist
+                for (let c of cols) {
+                  if (!workingTableColumns.find(x => x.name === c.name)) {
+                    workingTableColumns.push(c);
                   }
                 }
-                reorderRowsByPriority();
-                renderCards();
-                updateBulkDeleteButton();
-                document.getElementById("activeDbLabel").innerHTML = `📝 Appended (${rows.length} rows)`;
-                showToast(`Appended ${rows.length} rows from ${file.name}`, 'success');
-              };
-            });
-          } else {
-            if (workingTableColumns.length === 0) { workingTableColumns = cols; workingTableRows = rows; }
-            else {
-              for (let c of cols) if (!workingTableColumns.find(x => x.name === c.name)) workingTableColumns.push(c);
-              for (let nr of rows) {
-                const appRow = {};
-                workingTableColumns.forEach(c => {
-                  const match = cols.find(x => x.name === c.name);
-                  appRow[c.id] = match ? nr[match.id] : "";
-                });
-                workingTableRows.unshift(appRow);
-                rowPriorities.set(0, Date.now());
+                // Append rows
+                for (let nr of rows) {
+                  const appRow = {};
+                  workingTableColumns.forEach(c => {
+                    const match = cols.find(x => x.name === c.name);
+                    if (match && nr[match.id] !== undefined) {
+                      appRow[c.id] = nr[match.id];
+                    } else {
+                      // Set default values for new columns
+                      if (c.type === "number") appRow[c.id] = 0;
+                      else if (c.type === "checkbox") appRow[c.id] = false;
+                      else if (c.type === "image") appRow[c.id] = [];
+                      else if (c.type === "file") appRow[c.id] = [];
+                      else appRow[c.id] = "";
+                    }
+                  });
+                  workingTableRows.unshift(appRow);
+                  rowPriorities.set(0, Date.now());
+                }
               }
-            }
-            reorderRowsByPriority();
-            renderCards();
-            updateBulkDeleteButton();
-            document.getElementById("activeDbLabel").innerHTML = `📝 Auto-appended (${rows.length} rows)`;
+              reorderRowsByPriority();
+              renderCards();
+              updateBulkDeleteButton();
+              document.getElementById("activeDbLabel").innerHTML = `📝 Appended (${rows.length} rows)`;
+              showToast(`Appended ${rows.length} rows from ${file.name}`, 'success');
+            };
           }
-        } catch (err) { showToast(`Import error on ${file.name}: ${err.message}`, "error"); }
-      };
-      reader.readAsArrayBuffer(file);
+        );
+      } else {
+        // For multiple file imports (not the last one)
+        if (workingTableColumns.length === 0) {
+          workingTableColumns = cols;
+          workingTableRows = rows;
+        } else {
+          for (let c of cols) {
+            if (!workingTableColumns.find(x => x.name === c.name)) {
+              workingTableColumns.push(c);
+            }
+          }
+          for (let nr of rows) {
+            const appRow = {};
+            workingTableColumns.forEach(c => {
+              const match = cols.find(x => x.name === c.name);
+              if (match && nr[match.id] !== undefined) {
+                appRow[c.id] = nr[match.id];
+              } else {
+                if (c.type === "number") appRow[c.id] = 0;
+                else if (c.type === "checkbox") appRow[c.id] = false;
+                else if (c.type === "image") appRow[c.id] = [];
+                else if (c.type === "file") appRow[c.id] = [];
+                else appRow[c.id] = "";
+              }
+            });
+            workingTableRows.unshift(appRow);
+            rowPriorities.set(0, Date.now());
+          }
+        }
+        reorderRowsByPriority();
+        renderCards();
+        updateBulkDeleteButton();
+      }
+      
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast(`Import error on ${file.name}: ${err.message}`, "error");
     }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
 
     // ============================================================
     // 13. THEME, LOGOUT, SLEEP, DRAGGABLE, SEARCH DROPDOWN

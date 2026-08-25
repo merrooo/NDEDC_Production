@@ -1289,57 +1289,55 @@
     }
 
     // ===== GET CURRENT DATA SOURCE =====
-    function getCurrentDataSource() {
-      const hasExcelData = excelData.length > 0 && excelHeaders.length > 0;
-      const hasDbData = workingTableRows.length > 0 && workingTableColumns.length > 0;
+   function getCurrentDataSource() {
+  const hasExcelData = excelData && excelData.length > 0 && excelHeaders && excelHeaders.length > 0;
+  const hasDbData = workingTableRows.length > 0 && workingTableColumns.length > 0;
 
-      if (hasExcelData) {
-        return {
-          data: excelData,
-          headers: excelHeaders,
-          type: 'excel',
-          getValue: function (row, col) { return row[col]; },
-          setValue: function (row, col, val) { row[col] = val; },
-          getData: function () { return this.data; },
-          setData: function (newData) {
-            this.data.length = 0;
-            this.data.push(...newData);
-          }
-        };
-      } else if (hasDbData) {
-        const columnMap = {};
-        workingTableColumns.forEach(c => { columnMap[c.name] = c.id; });
-        return {
-          data: workingTableRows,
-          headers: workingTableColumns.map(c => c.name),
-          type: 'database',
-          columnMap: columnMap,
-          columns: workingTableColumns,
-          getValue: function (row, col) {
-            const id = this.columnMap[col];
-            return id !== undefined ? row[id] : undefined;
-          },
-          setValue: function (row, col, val) {
-            const id = this.columnMap[col];
-            if (id !== undefined) row[id] = val;
-          },
-          getData: function () { return this.data; },
-          setData: function (newData) {
-            this.data.length = 0;
-            newData.forEach((row) => {
-              const dbRow = {};
-              this.columns.forEach(col => {
-                dbRow[col.id] = row[col.name] !== undefined ? row[col.name] : (col.type ===
-                  "number" ? 0 : "");
-              });
-              this.data.push(dbRow);
-            });
-          }
-        };
+  if (hasExcelData) {
+    return {
+      data: excelData,
+      headers: excelHeaders,
+      type: 'excel',
+      getValue: function (row, col) { return row[col]; },
+      setValue: function (row, col, val) { row[col] = val; },
+      getData: function () { return this.data; },
+      setData: function (newData) {
+        this.data.length = 0;
+        this.data.push(...newData);
       }
-      return null;
-    }
-
+    };
+  } else if (hasDbData) {
+    const columnMap = {};
+    workingTableColumns.forEach(c => { columnMap[c.name] = c.id; });
+    return {
+      data: workingTableRows,
+      headers: workingTableColumns.map(c => c.name),
+      type: 'database',
+      columnMap: columnMap,
+      columns: workingTableColumns,
+      getValue: function (row, col) {
+        const id = this.columnMap[col];
+        return id !== undefined ? row[id] : undefined;
+      },
+      setValue: function (row, col, val) {
+        const id = this.columnMap[col];
+        if (id !== undefined) row[id] = val;
+      },
+      getData: function () { return this.data; },
+      setData: function (newData) {
+        this.data.length = 0;
+        newData.forEach((row) => {
+          const dbRow = {};
+          this.columns.forEach(col => {
+            dbRow[col.id] = row[col.name] !== undefined ? row[col.name] : (col.type === "number" ? 0 : "");
+          });
+          this.data.push(dbRow);
+        });
+      }
+    };
+  }
+  return null;
+}
     function convertToExcelFormat(source) {
       if (source.type === 'excel') return source.data;
       return source.data.map(row => {
@@ -4660,72 +4658,98 @@
       return result;
     }
 
-    async function saveToFirebase(dbName, overwrite = false) {
-      if (!firebaseDB) {
-        showToast("Firebase not connected", "error");
-        return false;
-      }
-      const source = getCurrentDataSource();
-      if (!source) {
-        showToast("Add data first", "error");
-        return false;
-      }
-      if (!dbName) {
-        showToast("Database name required", "error");
-        return false;
-      }
 
-      try {
-        let cols, rows;
-        if (source.type === 'excel') {
-          cols = source.headers.map(h => ({
-            id: genColId(),
-            name: h,
-            type: "text",
-            options: [],
-            dateFormat: null
-          }));
-          rows = source.data;
-        } else {
-          cols = workingTableColumns;
-          rows = workingTableRows;
-        }
+    
+   async function saveToFirebase(dbName, overwrite = false) {
+  if (!firebaseDB) {
+    showToast("Firebase not connected", "error");
+    return false;
+  }
+  const source = getCurrentDataSource();
+  if (!source) {
+    showToast("Add data first", "error");
+    return false;
+  }
+  if (!dbName) {
+    showToast("Database name required", "error");
+    return false;
+  }
 
-        const newStructure = buildDatabaseStructure(dbName, cols, rows);
-        const newData = {};
-        newData[dbName] = newStructure;
-
-        let existingData = {};
-        if (!overwrite && savedDatabases[dbName]) {
-          existingData = savedDatabases[dbName];
-        }
-
-        if (!overwrite && existingData && Object.keys(existingData).length > 0) {
-          for (let key in existingData) {
-            if (!newData[dbName][key] && key.startsWith('row_')) {
-              newData[dbName][key] = existingData[key];
-            }
+  try {
+    let cols, rows;
+    if (source.type === 'excel') {
+      // For Excel data, convert to the expected format for Firebase
+      cols = source.headers.map(h => ({
+        id: genColId(),
+        name: h,
+        type: "text",
+        options: [],
+        dateFormat: null
+      }));
+      
+      // IMPORTANT: Convert Excel data rows to Firebase structure
+      rows = source.data.map(row => {
+        const dbRow = {};
+        cols.forEach(col => {
+          // Get the value from the Excel row using the header name
+          const value = row[col.name];
+          // Handle different data types
+          if (typeof value === 'number') {
+            dbRow[col.id] = value;
+          } else if (typeof value === 'boolean') {
+            dbRow[col.id] = value;
+          } else if (value && typeof value === 'object') {
+            // For arrays or objects, store as is
+            dbRow[col.id] = value;
+          } else {
+            // Default to string, handle null/undefined
+            dbRow[col.id] = value !== undefined && value !== null ? String(value) : "";
           }
-        }
+        });
+        return dbRow;
+      });
+    } else {
+      cols = workingTableColumns;
+      rows = workingTableRows;
+    }
 
-        const otherDbs = {};
-        for (let k in savedDatabases) {
-          if (k !== dbName) otherDbs[k] = savedDatabases[k];
-        }
-        const merged = { ...otherDbs, ...newData };
+    // Build the Firebase structure
+    const newStructure = buildDatabaseStructure(dbName, cols, rows);
+    const newData = {};
+    newData[dbName] = newStructure;
 
-        await firebaseDB.ref('Project_1').set(merged);
-        savedDatabases = merged;
-        currentLoadedDbName = dbName;
-        document.getElementById("activeDbLabel").innerHTML = `📁 ${escapeHtml(dbName)}`;
-        showToast(`Saved "${dbName}"`, 'success');
-        return true;
-      } catch (e) {
-        console.error('Save error:', e);
-        showToast('Save error: ' + e.message, 'error');
-        return false;
+    let existingData = {};
+    if (!overwrite && savedDatabases[dbName]) {
+      existingData = savedDatabases[dbName];
+    }
+
+    if (!overwrite && existingData && Object.keys(existingData).length > 0) {
+      for (let key in existingData) {
+        if (!newData[dbName][key] && key.startsWith('row_')) {
+          newData[dbName][key] = existingData[key];
+        }
       }
     }
+
+    const otherDbs = {};
+    for (let k in savedDatabases) {
+      if (k !== dbName) otherDbs[k] = savedDatabases[k];
+    }
+    const merged = { ...otherDbs, ...newData };
+
+    await firebaseDB.ref('Project_1').set(merged);
+    savedDatabases = merged;
+    currentLoadedDbName = dbName;
+    document.getElementById("activeDbLabel").innerHTML = `📁 ${escapeHtml(dbName)}`;
+    showToast(`Saved "${dbName}" with ${rows.length} rows`, 'success');
+    return true;
+  } catch (e) {
+    console.error('Save error:', e);
+    showToast('Save error: ' + e.message, 'error');
+    return false;
+  }
+}
+  
 
     function formatDate(v, f) {
       if (!v) return '';
