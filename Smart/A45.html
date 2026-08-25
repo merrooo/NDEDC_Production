@@ -617,7 +617,7 @@
                 </div>
                 <div class="header-title">
                     <h1>تسجيل التركيبات</h1>
-                    <div class="subtitle">العدادات الذكية</div>
+                    <div class="subtitle">العدادات الذكية (A4 / A5)</div>
                 </div>
             </div>
 
@@ -670,7 +670,7 @@
                 <div class="form-group">
                     <label>نوع العداد</label>
                     <select id="meterType">
-                        <option value="A4" selected >A4</option>
+                        <option value="A4" selected>A4</option>
                         <option value="A5">A5</option>
                     </select>
                 </div>
@@ -701,7 +701,7 @@
                     </select>
                 </div>
 
-                <!-- 7. مصدر تغذية المحول (DEFAULT SELECTION) -->
+                <!-- 7. مصدر تغذية المحول -->
                 <div class="form-group full-width">
                     <label>مصدر تغذية المحول <span style="color:red">*</span></label>
                     <select id="feedSource">
@@ -714,8 +714,7 @@
                 <!-- 8. اسم المحول -->
                 <div class="form-group">
                     <label>اسم المحول</label>
-                    <input type="text" id="transName" list="transformersList" placeholder="اختر أو أدخل اسم المحول"
-                        disabled>
+                    <input type="text" id="transName" list="transformersList" placeholder="اختر أو أدخل اسم المحول" disabled>
                     <datalist id="transformersList"></datalist>
                 </div>
 
@@ -766,7 +765,7 @@
                     <div id="stationDebug" class="debug-info"></div>
                 </div>
 
-                <!-- 15. كود المحطة  -->
+                <!-- 15. كود المحطة -->
                 <div class="form-group">
                     <label>كود المحطة </label>
                     <input type="text" id="stationCode" list="stationCodeList" placeholder="كود المحطة" disabled>
@@ -774,7 +773,7 @@
                     <span class="warning-msg" id="stationCodeWarning"></span>
                 </div>
 
-                <!-- 16. مغذي الخروج  -->
+                <!-- 16. مغذي الخروج -->
                 <div class="form-group">
                     <label>مغذي الخروج </label>
                     <input type="text" id="feederOutgoing" list="outgoingList" placeholder="اختر مغذي الخروج" disabled>
@@ -801,10 +800,8 @@
 
             </div>
             <div class="form-actions">
-                <button class="btn btn-primary" id="addSingleBtn" disabled><i class="fas fa-plus-circle"></i> حفظ
-                    السجل</button>
-                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i>
-                    إلغاء التعديل</button>
+                <button class="btn btn-primary" id="addSingleBtn" disabled><i class="fas fa-plus-circle"></i> حفظ السجل</button>
+                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i> إلغاء التعديل</button>
             </div>
         </div>
 
@@ -812,13 +809,11 @@
             <div class="table-controls">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="بحث في السجلات..."
-                        oninput="renderTable(allRecords)">
+                    <input type="text" id="searchInput" placeholder="بحث في السجلات..." oninput="renderTable(allRecords)">
                 </div>
                 <div>
                     <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل</span>
-                    <button class="btn btn-secondary" style="margin-right: 10px;" onclick="refreshData()"><i
-                            class="fas fa-sync-alt"></i> تحديث</button>
+                    <button class="btn btn-secondary" style="margin-right: 10px;" onclick="refreshData()"><i class="fas fa-sync-alt"></i> تحديث</button>
                 </div>
             </div>
             <div class="table-container" id="tableContainer">
@@ -850,6 +845,9 @@
         const handsaCode = urlParams.get('handsa-code') || urlParams.get('handsa_code') || urlParams.get('handsa');
 
         const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+        // Strict allowed types for this specific page (A45.html)
+        const ALLOWED_TYPES = ['A4', 'A5'];
 
         // ===== SESSION TIMEOUT =====
         let sessionTimeout;
@@ -941,8 +939,6 @@
             }
         }
 
-        // ===== END DATE FUNCTIONS =====
-
         function matchesHandsa(item) {
             if (!item || typeof item !== 'object') return false;
 
@@ -1030,17 +1026,11 @@
         let rawStations = [];
         let rawOutgoing = [];
 
-        let transformersMap = {},
-            transformersReverseMap = {};
-        let feedersMap = {},
-            feedersReverseMap = {};
-        let panelsMap = {},
-            panelsReverseMap = {};
-        let stationsMap = {},
-            stationsReverseMap = {};
-        let outgoingMap = {},
-            outgoingReverseMap = {};
-
+        let transformersMap = {}, transformersReverseMap = {};
+        let feedersMap = {}, feedersReverseMap = {};
+        let panelsMap = {}, panelsReverseMap = {};
+        let stationsMap = {}, stationsReverseMap = {};
+        let outgoingMap = {}, outgoingReverseMap = {};
         let stationCodesByName = {};
 
         let allRecords = {};
@@ -1074,7 +1064,6 @@
             document.getElementById('keta3Id').value = keta3Id;
             document.getElementById('handsaCode').value = handsaCode;
             currentHandsaCode = norm(handsaCode);
-            // Set default date to today
             const today = new Date();
             document.getElementById('installDatePicker').value = today.toISOString().split('T')[0];
             document.getElementById('installDate').value = formatDate(today);
@@ -1084,7 +1073,6 @@
             startCountdown();
         }
 
-        // Date picker -> hidden field conversion
         document.getElementById('installDatePicker').addEventListener('change', function () {
             const val = this.value;
             if (val) {
@@ -1663,12 +1651,16 @@
                     existingMeters.clear();
                     existingSims.clear();
 
+                    // Track uniqueness ONLY for records that belong to A4 or A5
                     Object.values(allRecords).forEach(record => {
-                        if (record["رقم العداد"]) existingMeters.add(norm(record["رقم العداد"]));
-                        if (record["رقم الشريحة"]) existingSims.add(norm(record["رقم الشريحة"]));
+                        const rType = norm(record["TYPE"] || record["نوع العداد"] || '');
+                        if (ALLOWED_TYPES.includes(rType)) {
+                            if (record["رقم العداد"]) existingMeters.add(norm(record["رقم العداد"]));
+                            if (record["رقم الشريحة"]) existingSims.add(norm(record["رقم الشريحة"]));
+                        }
                     });
+
                     renderTable(allRecords);
-                    document.getElementById('recordsCount').textContent = `${Object.keys(allRecords).length} سجل`;
                 } else {
                     allRecords = {};
                     renderTable({});
@@ -1689,8 +1681,16 @@
             const container = document.getElementById('tableContainer');
             const searchTerm = norm(document.getElementById('searchInput').value.toLowerCase());
 
-            const keys = Object.keys(records);
-            const sortedKeys = keys.sort((a, b) => {
+            // Strict Filter: Only allow records whose TYPE is A4 or A5
+            const validKeys = Object.keys(records).filter(key => {
+                const type = norm(records[key]["TYPE"] || records[key]["نوع العداد"] || '');
+                return ALLOWED_TYPES.includes(type);
+            });
+
+            // Update visible total count based on A4/A5 records only
+            document.getElementById('recordsCount').textContent = `${validKeys.length} سجل`;
+
+            const sortedKeys = validKeys.sort((a, b) => {
                 const recordA = records[a];
                 const recordB = records[b];
                 const timestampA = recordA['_timestamp'] || 0;
@@ -1704,7 +1704,7 @@
             let hasSearchTerm = false;
 
             if (searchTerm) {
-                const matchingKeys = keys.filter(key => {
+                const matchingKeys = validKeys.filter(key => {
                     const record = records[key];
                     const searchable = Object.values(record).join(' ').toLowerCase();
                     return searchable.includes(searchTerm);
@@ -1731,7 +1731,7 @@
 
             if (Object.keys(filteredRecords).length === 0) {
                 container.innerHTML =
-                    `<div class="no-data">${searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات مسجلة'}</div>`;
+                    `<div class="no-data">${searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات مسجلة (A4 / A5)'}</div>`;
                 return;
             }
 
@@ -1765,12 +1765,7 @@
                 const lat = record["Latitude(y)"] || record["Latitude"] || '';
                 const lng = record["Longitude(x)"] || record["Longitude"] || '';
                 const installDate = formatDateForDisplay(record["تاريخ التركيب"] || '');
-
-                // Ensure TYPE is always A4 or A5 for this page
-                let typeValue = record["TYPE"] || record["نوع العداد"] || 'A5';
-                if (typeValue === 'A1' || typeValue === 'A2' || typeValue === 'A3') {
-                    typeValue = 'A5';
-                }
+                const typeValue = record["TYPE"] || record["نوع العداد"] || '';
 
                 html += `<tr class="${isEditingRow ? 'editing' : ''}">
                     <td>${index}</td>
@@ -1796,8 +1791,8 @@
                 </tr>`;
             });
 
-            if (!hasSearchTerm && Object.keys(records).length > 5) {
-                html += `<tr><td colspan="16" style="text-align:center;color:#64748b;font-style:italic;padding:10px;">
+            if (!hasSearchTerm && validKeys.length > 5) {
+                html += `<tr><td colspan="17" style="text-align:center;color:#64748b;font-style:italic;padding:10px;">
                     عرض أحدث 5 سجلات فقط. استخدم البحث للعثور على سجلات أقدم.
                 </td></tr>`;
             }
@@ -1806,199 +1801,162 @@
             container.innerHTML = html;
         };
 
+        window.editRecord = function (key) {
+            const record = allRecords[key];
+            if (!record) return;
 
+            const recordData = {
+                meterNum: record["رقم العداد"] || '',
+                simNum: record["رقم الشريحة"] || '',
+                meterType: record["TYPE"] || record["نوع العداد"] || 'A5',
+                meterVoltage: record["جهد العداد"] || '380',
+                installDate: record["تاريخ التركيب"] || formatDate(new Date()),
+                transType: record["trans_type"] || record["نوع المحول"] || 'TRANSFORMER',
+                feedSource: record["feed_source"] || '',
+                transName: record["اسم المحول"] || '',
+                transCode: record["كود المحول"] || '',
+                feederName: record["اسم المغذي"] || '',
+                feederCode: record["كود المغذي"] || '',
+                panelName: record["اسم لوحة التوزيع"] || '',
+                panelCode: record["كود لوحة التوزيع"] || '',
+                stationName: record["sub_name"] || record["اسم المحطة"] || '',
+                stationCode: record["sub_code"] || record["كود المحطة"] || '',
+                feederOutgoing: record["cell_out"] || record["اسم مغذي الخروج"] || '',
+                transCap: record["قدرة المحول"] || '',
+                lat: record["Latitude(y)"] || record["Latitude"] || '',
+                lng: record["Longitude(x)"] || record["Longitude"] || '',
+                transAddress: record["عنوان المحول بالتفصيل"] || ''
+            };
 
-window.editRecord = function(key) {
-    const record = allRecords[key];
-    if (!record) return;
-    
-    // Store the record values BEFORE any changes
-    const recordData = {
-        meterNum: record["رقم العداد"] || '',
-        simNum: record["رقم الشريحة"] || '',
-        meterType: record["TYPE"] || record["نوع العداد"] || 'A5',
-        meterVoltage: record["جهد العداد"] || '380',
-        installDate: record["تاريخ التركيب"] || formatDate(new Date()),
-        transType: record["trans_type"] || record["نوع المحول"] || 'TRANSFORMER',
-        feedSource: record["feed_source"] || '',
-        transName: record["اسم المحول"] || '',
-        transCode: record["كود المحول"] || '',
-        feederName: record["اسم المغذي"] || '',
-        feederCode: record["كود المغذي"] || '',
-        panelName: record["اسم لوحة التوزيع"] || '',
-        panelCode: record["كود لوحة التوزيع"] || '',
-        stationName: record["sub_name"] || record["اسم المحطة"] || '',
-        stationCode: record["sub_code"] || record["كود المحطة"] || '',
-        feederOutgoing: record["cell_out"] || record["اسم مغذي الخروج"] || '',
-        transCap: record["قدرة المحول"] || '',
-        lat: record["Latitude(y)"] || record["Latitude"] || '',
-        lng: record["Longitude(x)"] || record["Longitude"] || '',
-        transAddress: record["عنوان المحول بالتفصيل"] || ''
-    };
+            editingKey = key;
+            document.getElementById('editingKey').value = key;
 
-    // Set editing state
-    editingKey = key;
-    document.getElementById('editingKey').value = key;
+            document.getElementById('meterNum').value = recordData.meterNum;
+            document.getElementById('simNum').value = recordData.simNum;
 
-    // Set basic fields
-    document.getElementById('meterNum').value = recordData.meterNum;
-    document.getElementById('simNum').value = recordData.simNum;
-    
-    // Ensure TYPE is A4 or A5 only
-    let typeVal = recordData.meterType;
-    if (typeVal === 'A1' || typeVal === 'A2' || typeVal === 'A3') {
-        typeVal = 'A5';
-    }
-    document.getElementById('meterType').value = typeVal;
-    document.getElementById('meterVoltage').value = recordData.meterVoltage;
+            let typeVal = recordData.meterType;
+            if (!ALLOWED_TYPES.includes(typeVal)) {
+                typeVal = 'A5';
+            }
+            document.getElementById('meterType').value = typeVal;
+            document.getElementById('meterVoltage').value = recordData.meterVoltage;
 
-    // Set date
-    document.getElementById('installDate').value = recordData.installDate;
-    const dateObj = parseDate(recordData.installDate);
-    if (dateObj && !isNaN(dateObj)) {
-        document.getElementById('installDatePicker').value = dateToPicker(recordData.installDate);
-        updateDateDisplay(dateObj);
-    }
+            document.getElementById('installDate').value = recordData.installDate;
+            const dateObj = parseDate(recordData.installDate);
+            if (dateObj && !isNaN(dateObj)) {
+                document.getElementById('installDatePicker').value = dateToPicker(recordData.installDate);
+                updateDateDisplay(dateObj);
+            }
 
-    // Set trans type and feed source
-    document.getElementById('transType').value = recordData.transType;
-    document.getElementById('feedSource').value = recordData.feedSource;
-    handleFeedSourceChange();
+            document.getElementById('transType').value = recordData.transType;
+            document.getElementById('feedSource').value = recordData.feedSource;
+            handleFeedSourceChange();
 
-    // Set transformer
-    document.getElementById('transName').value = recordData.transName;
-    document.getElementById('transCode').value = recordData.transCode;
+            document.getElementById('transName').value = recordData.transName;
+            document.getElementById('transCode').value = recordData.transCode;
 
-    // Set station values FIRST - this is critical
-    document.getElementById('stationName').value = recordData.stationName;
-    document.getElementById('stationCode').value = recordData.stationCode;
+            document.getElementById('stationName').value = recordData.stationName;
+            document.getElementById('stationCode').value = recordData.stationCode;
 
-    // Update station code datalist
-    const codeDatalist = document.getElementById('stationCodeList');
-    codeDatalist.innerHTML = '';
-    if (recordData.stationName && stationCodesByName[recordData.stationName]) {
-        stationCodesByName[recordData.stationName].forEach(code => {
-            const opt = document.createElement('option');
-            opt.value = code;
-            codeDatalist.appendChild(opt);
-        });
-    }
+            const codeDatalist = document.getElementById('stationCodeList');
+            codeDatalist.innerHTML = '';
+            if (recordData.stationName && stationCodesByName[recordData.stationName]) {
+                stationCodesByName[recordData.stationName].forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    codeDatalist.appendChild(opt);
+                });
+            }
 
-    // --- FIX: Manually populate panel datalist with filtered data ---
-    const panelNameDatalist = document.getElementById('panelsList');
-    const panelCodeDatalist = document.getElementById('panelCodeList');
-    panelNameDatalist.innerHTML = '';
-    panelCodeDatalist.innerHTML = '';
+            const panelNameDatalist = document.getElementById('panelsList');
+            const panelCodeDatalist = document.getElementById('panelCodeList');
+            panelNameDatalist.innerHTML = '';
+            panelCodeDatalist.innerHTML = '';
 
-    // Filter panels by station code
-    const filteredPanels = rawPanels.filter(p => {
-        // Match by station code OR station name
-        const matchCode = recordData.stationCode && p.mahataCode === recordData.stationCode;
-        const matchName = recordData.stationName && p.mahataName === recordData.stationName;
-        return matchCode || matchName;
-    });
+            const filteredPanels = rawPanels.filter(p => {
+                const matchCode = recordData.stationCode && p.mahataCode === recordData.stationCode;
+                const matchName = recordData.stationName && p.mahataName === recordData.stationName;
+                return matchCode || matchName;
+            });
 
-    // If no panels found with station filter, show all panels
-    const panelsToShow = filteredPanels.length > 0 ? filteredPanels : rawPanels;
+            const panelsToShow = filteredPanels.length > 0 ? filteredPanels : rawPanels;
 
-    // Add panel options to datalists
-    const seenPanelNames = new Set();
-    const seenPanelCodes = new Set();
-    panelsToShow.forEach(p => {
-        if (p.name && !seenPanelNames.has(p.name)) {
-            seenPanelNames.add(p.name);
-            const opt1 = document.createElement('option');
-            opt1.value = p.name;
-            panelNameDatalist.appendChild(opt1);
-        }
-        if (p.code && !seenPanelCodes.has(p.code)) {
-            seenPanelCodes.add(p.code);
-            const opt2 = document.createElement('option');
-            opt2.value = p.code;
-            panelCodeDatalist.appendChild(opt2);
-        }
-    });
+            const seenPanelNames = new Set();
+            const seenPanelCodes = new Set();
+            panelsToShow.forEach(p => {
+                if (p.name && !seenPanelNames.has(p.name)) {
+                    seenPanelNames.add(p.name);
+                    const opt1 = document.createElement('option');
+                    opt1.value = p.name;
+                    panelNameDatalist.appendChild(opt1);
+                }
+                if (p.code && !seenPanelCodes.has(p.code)) {
+                    seenPanelCodes.add(p.code);
+                    const opt2 = document.createElement('option');
+                    opt2.value = p.code;
+                    panelCodeDatalist.appendChild(opt2);
+                }
+            });
 
-    // Set panel values AFTER populating datalist
-    document.getElementById('panelName').value = recordData.panelName;
-    document.getElementById('panelCode').value = recordData.panelCode;
+            document.getElementById('panelName').value = recordData.panelName;
+            document.getElementById('panelCode').value = recordData.panelCode;
 
-    // --- FIX: Manually populate feeder datalist with filtered data ---
-    const feederNameDatalist = document.getElementById('feedersList');
-    const feederCodeDatalist = document.getElementById('feederCodeList');
-    feederNameDatalist.innerHTML = '';
-    feederCodeDatalist.innerHTML = '';
+            const feederNameDatalist = document.getElementById('feedersList');
+            const feederCodeDatalist = document.getElementById('feederCodeList');
+            feederNameDatalist.innerHTML = '';
+            feederCodeDatalist.innerHTML = '';
 
-    // Filter feeders by panel code and station code
-    const filteredFeeders = rawFeeders.filter(f => {
-        let matchPanel = true;
-        let matchStation = true;
-        
-        if (recordData.panelCode) {
-            // Check if feeder code starts with panel code
-            matchPanel = f.code && f.code.startsWith(recordData.panelCode);
-        }
-        if (recordData.stationCode) {
-            matchStation = f.mahataCode === recordData.stationCode;
-        }
-        return matchPanel && matchStation;
-    });
+            const filteredFeeders = rawFeeders.filter(f => {
+                let matchPanel = true;
+                let matchStation = true;
 
-    // If no feeders found with filter, show all feeders
-    const feedersToShow = filteredFeeders.length > 0 ? filteredFeeders : rawFeeders;
+                if (recordData.panelCode) {
+                    matchPanel = f.code && f.code.startsWith(recordData.panelCode);
+                }
+                if (recordData.stationCode) {
+                    matchStation = f.mahataCode === recordData.stationCode;
+                }
+                return matchPanel && matchStation;
+            });
 
-    // Add feeder options to datalists
-    const seenFeederNames = new Set();
-    const seenFeederCodes = new Set();
-    feedersToShow.forEach(f => {
-        if (f.name && !seenFeederNames.has(f.name)) {
-            seenFeederNames.add(f.name);
-            const opt1 = document.createElement('option');
-            opt1.value = f.name;
-            feederNameDatalist.appendChild(opt1);
-        }
-        if (f.code && !seenFeederCodes.has(f.code)) {
-            seenFeederCodes.add(f.code);
-            const opt2 = document.createElement('option');
-            opt2.value = f.code;
-            feederCodeDatalist.appendChild(opt2);
-        }
-    });
+            const feedersToShow = filteredFeeders.length > 0 ? filteredFeeders : rawFeeders;
 
-    // Set feeder values AFTER populating datalist
-    document.getElementById('feederName').value = recordData.feederName;
-    document.getElementById('feederCode').value = recordData.feederCode;
+            const seenFeederNames = new Set();
+            const seenFeederCodes = new Set();
+            feedersToShow.forEach(f => {
+                if (f.name && !seenFeederNames.has(f.name)) {
+                    seenFeederNames.add(f.name);
+                    const opt1 = document.createElement('option');
+                    opt1.value = f.name;
+                    feederNameDatalist.appendChild(opt1);
+                }
+                if (f.code && !seenFeederCodes.has(f.code)) {
+                    seenFeederCodes.add(f.code);
+                    const opt2 = document.createElement('option');
+                    opt2.value = f.code;
+                    feederCodeDatalist.appendChild(opt2);
+                }
+            });
 
-    // Set outgoing
-    document.getElementById('feederOutgoing').value = recordData.feederOutgoing;
+            document.getElementById('feederName').value = recordData.feederName;
+            document.getElementById('feederCode').value = recordData.feederCode;
 
-    // Set extra fields
-    document.getElementById('transCap').value = recordData.transCap;
-    document.getElementById('lat').value = recordData.lat;
-    document.getElementById('lng').value = recordData.lng;
-    document.getElementById('transAddress').value = recordData.transAddress;
+            document.getElementById('feederOutgoing').value = recordData.feederOutgoing;
 
-    // Update UI buttons
-    document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-save"></i> تحديث السجل';
-    document.getElementById('cancelEditBtn').style.display = 'inline-block';
-    document.getElementById('addSingleBtn').style.backgroundColor = '#f59e0b';
+            document.getElementById('transCap').value = recordData.transCap;
+            document.getElementById('lat').value = recordData.lat;
+            document.getElementById('lng').value = recordData.lng;
+            document.getElementById('transAddress').value = recordData.transAddress;
 
-    // Scroll to form
-    document.getElementById('dataForm').scrollIntoView({ behavior: 'smooth' });
-    
-    // Validate and render
-    checkValidation();
-    renderTable(allRecords);
-    
-    // Debug info
-    console.log('Panels loaded:', rawPanels.length);
-    console.log('Feeders loaded:', rawFeeders.length);
-    console.log('Filtered panels:', filteredPanels.length);
-    console.log('Filtered feeders:', filteredFeeders.length);
-};
+            document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-save"></i> تحديث السجل';
+            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+            document.getElementById('addSingleBtn').style.backgroundColor = '#f59e0b';
 
+            document.getElementById('dataForm').scrollIntoView({ behavior: 'smooth' });
 
-
+            checkValidation();
+            renderTable(allRecords);
+        };
 
         window.cancelEdit = function () {
             editingKey = null;

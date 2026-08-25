@@ -620,9 +620,9 @@
                 <div class="form-group">
                     <label>نوع المغذي</label>
                     <select id="transType">
-                        <option value="SUBESTATION">SUBESTATION</option>
+                        <option value="SUBESTATION" selected>SUBESTATION</option>
                         <option value="FEEDERINCOMING">FEEDERINCOMING</option>
-                        <option value="FEEDEROUTGOING" selected>FEEDEROUTGOING</option>
+                        <option value="FEEDEROUTGOING">FEEDEROUTGOING</option>
                         <option value="COMPACT">COMPACT</option>
                     </select>
                 </div>
@@ -735,6 +735,9 @@
         const keta3Id = urlParams.get('keta3') || urlParams.get('keta3_id');
         const handsaCode = urlParams.get('handsa-code') || urlParams.get('handsa_code') || urlParams.get('handsa');
         const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+        // --- Define allowed meter types for this page (A1, A2, A3 only) ---
+        const ALLOWED_TYPES = ['A1', 'A2', 'A3'];
 
         // --- session timer ---
         let sessionTimeout, remainingSeconds = 300, countdownInterval;
@@ -1141,16 +1144,25 @@
         function loadRecords() {
             const recordsRef = ref(db, `sectors/${keta3Id}/districts/${handsaCode}/manual_entries`);
             onValue(recordsRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    allRecords = snapshot.val();
-                    existingMeters.clear(); existingSims.clear();
-                    Object.values(allRecords).forEach(rec => {
-                        if (rec["رقم العداد"]) existingMeters.add(norm(rec["رقم العداد"]));
-                        if (rec["رقم الشريحة"]) existingSims.add(norm(rec["رقم الشريحة"]));
-                    });
-                    renderTable(allRecords);
-                    document.getElementById('recordsCount').textContent = `${Object.keys(allRecords).length} سجل`;
-                } else { allRecords = {}; renderTable({}); document.getElementById('recordsCount').textContent = '0 سجل'; }
+                const rawData = snapshot.val() || {};
+                // Filter: Only keep A1, A2, A3 records
+                const filtered = {};
+                Object.keys(rawData).forEach(key => {
+                    const rec = rawData[key];
+                    const meterType = norm(rec["TYPE"] || rec["نوع العداد"] || '');
+                    // Check if meter type is A1, A2, or A3 (case insensitive)
+                    if (ALLOWED_TYPES.some(type => meterType.toUpperCase() === type.toUpperCase())) {
+                        filtered[key] = rec;
+                    }
+                });
+                allRecords = filtered;
+                existingMeters.clear(); existingSims.clear();
+                Object.values(allRecords).forEach(rec => {
+                    if (rec["رقم العداد"]) existingMeters.add(norm(rec["رقم العداد"]));
+                    if (rec["رقم الشريحة"]) existingSims.add(norm(rec["رقم الشريحة"]));
+                });
+                renderTable(allRecords);
+                document.getElementById('recordsCount').textContent = `${Object.keys(allRecords).length} سجل`;
                 checkValidation();
                 updateSyncStatus(false);
             });
