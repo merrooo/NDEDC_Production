@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة البيانات المرجعية</title>
+    <title>نظام إدارة البيانات المرجعية - محسن</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -530,7 +530,7 @@
 
         .progress-bar {
             width: 100%;
-            height: 3px;
+            height: 4px;
             background-color: var(--border-color);
             border-radius: 2px;
             overflow: hidden;
@@ -752,6 +752,52 @@
             white-space: nowrap;
         }
 
+        .upload-speed {
+            font-size: 0.7rem;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Quick Upload Presets */
+        .quick-upload-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .preset-btn {
+            padding: 4px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            background: var(--bg-main);
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--primary);
+            background: #f0f4ff;
+            color: var(--primary);
+        }
+
+        .preset-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .preset-btn .icon {
+            font-size: 0.8rem;
+        }
+
         @media (max-width: 768px) {
             header {
                 flex-direction: column;
@@ -791,6 +837,9 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+            .quick-upload-presets {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -803,7 +852,7 @@
                     <i class="fas fa-database"></i>
                 </div>
                 <div class="header-title">
-                    <h1>إدارة البيانات المرجعية</h1>
+                    <h1>إدارة البيانات المرجعية - محسن</h1>
                     <div class="subtitle">استعراض وإدارة جميع قواعد البيانات</div>
                 </div>
             </div>
@@ -829,6 +878,26 @@
                 <span id="selectedBadge" class="badge-count" style="display:none;"></span>
                 <button class="refresh-btn" onclick="loadReferenceDatabases()" title="تحديث">
                     <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <!-- Quick Upload Presets -->
+            <div class="quick-upload-presets">
+                <span style="font-size:0.7rem;color:var(--secondary);font-weight:600;">⬆️ رفع سريع:</span>
+                <button class="preset-btn" onclick="quickSelectDb('dp_codes_completed')" title="رفع بيانات لوحات التوزيع">
+                    <span class="icon">🖥️</span> DP Codes
+                </button>
+                <button class="preset-btn" onclick="quickSelectDb('cells_codes_completed_v2')" title="رفع بيانات المغذيات">
+                    <span class="icon">🔌</span> Cells Codes
+                </button>
+                <button class="preset-btn" onclick="quickSelectDb('sim_codes')" title="رفع بيانات شرائح SIM">
+                    <span class="icon">📱</span> SIM Codes
+                </button>
+                <button class="preset-btn" onclick="quickSelectDb('sub_codes')" title="رفع بيانات المحطات">
+                    <span class="icon">🏛️</span> Sub Codes
+                </button>
+                <button class="preset-btn" onclick="quickSelectDb('trf_codes_completed')" title="رفع بيانات المحولات">
+                    <span class="icon">⚡</span> TRF Codes
                 </button>
             </div>
             
@@ -864,7 +933,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, get, set, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     // Load SheetJS for Excel parsing
     const script = document.createElement('script');
@@ -888,24 +957,71 @@
 
     const norm = v => String(v ?? '').trim();
 
-    // State
-    let referenceDatabases = {};
-    let dbNames = [];
-    let currentDbName = '';
-    let currentDbData = {};
-    let currentDbKeys = [];
-    let displayLimit = 20;
-    let totalRecords = 0;
-    let modalMode = 'add';
-    let modalEditKey = '';
-    let anyUploadData = [];
-    let currentFields = [];
-    let currentDbPath = '';
-    let isUploadAnyMode = false;
-    
-    // Filter state
-    let filteredKeys = [];
-    let searchDebounceTimer = null;
+    // ==================== PRESET COLLECTIONS ====================
+    const PRESET_COLLECTIONS = {
+        'dp_codes_completed': {
+            label: 'DP Codes (لوحات التوزيع)',
+            icon: '🖥️',
+            file: 'DP_Codes_Completed.xlsx',
+            expectedColumns: ['handsa_code', 'dp', 'dp_code', 'x_coord', 'y_coord', 'own']
+        },
+        'cells_codes_completed_v2': {
+            label: 'Cells Codes (المغذيات)',
+            icon: '🔌',
+            file: 'Cells_Codes_Completed_v2.xlsx',
+            expectedColumns: ['handsa', 'handsa_code', 'cell_out_code', 'cell_out']
+        },
+        'sim_codes': {
+            label: 'SIM Codes (شرائح)',
+            icon: '📱',
+            file: 'sr.xlsx',
+            expectedColumns: ['sim', 'mobile_service']
+        },
+        'sub_codes': {
+            label: 'Sub Codes (المحطات)',
+            icon: '🏛️',
+            file: 'Sub_Codes.xlsx',
+            expectedColumns: ['sub', 'y', 'x', 'sub_code', 'dp', 'cell_incom', 'cell_out', 'keta3', 'keta3_code', 'handsa', 'handsa_code']
+        },
+        'trf_codes_completed': {
+            label: 'TRF Codes (المحولات)',
+            icon: '⚡',
+            file: 'TRF_Codes_Completed_v2.xlsx',
+            expectedColumns: ['handsa', 'handsa_code', 'trf_code', 'trf']
+        }
+    };
+
+    // ==================== QUICK SELECT ====================
+    window.quickSelectDb = function(dbName) {
+        const selector = document.getElementById('dbSelector');
+        // Check if the option exists
+        let optionExists = false;
+        for (let i = 0; i < selector.options.length; i++) {
+            if (selector.options[i].value === dbName) {
+                optionExists = true;
+                break;
+            }
+        }
+        
+        if (!optionExists) {
+            showStatus(`⚠️ قاعدة البيانات "${dbName}" غير موجودة. قم بإنشائها باستخدام "رفع أي بيانات" أولاً.`, 'error');
+            return;
+        }
+        
+        selector.value = dbName;
+        loadSelectedDatabase();
+        
+        // Highlight the preset button
+        document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            if (btn.textContent.includes(dbName.replace('_codes_completed', '').replace('_codes', '')) ||
+                btn.textContent.includes(dbName)) {
+                btn.classList.add('active');
+            }
+        });
+        
+        showStatus(`✅ تم التبديل إلى "${PRESET_COLLECTIONS[dbName]?.label || dbName}"`, 'success');
+    };
 
     // ==================== LOAD REFERENCE DATABASES ====================
     window.loadReferenceDatabases = function() {
@@ -1098,13 +1214,14 @@
                     </div>
                     <input type="file" id="uploadFile" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(this)">
                     <div id="progressBar" class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                    <button class="btn btn-success" id="saveBtn" onclick="saveToDatabase()" disabled>
+                    <button class="btn btn-success" id="saveBtn" onclick="saveToDatabaseOptimized()" disabled>
                         <i class="fas fa-save"></i> حفظ
                     </button>
                     <button class="btn btn-secondary" onclick="clearPreview()">
                         <i class="fas fa-undo"></i> مسح
                     </button>
                     <span id="uploadStatus" class="upload-status"></span>
+                    <span id="uploadSpeed" class="upload-speed"></span>
                 </div>
             </div>
 
@@ -1227,7 +1344,7 @@
     window.onSearch = function() {
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
-            displayLimit = 20; // reset limit on new search query
+            displayLimit = 20;
             applyFilterAndRenderTable();
         }, 150);
     };
@@ -1329,13 +1446,14 @@
                     </div>
                     <input type="file" id="uploadAnyFile" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleAnyFileUpload(this)">
                     <div id="progressAny" class="progress-bar"><div class="progress-fill" id="progressFillAny"></div></div>
-                    <button class="btn btn-success" id="saveAnyBtn" onclick="saveAnyData()" disabled>
+                    <button class="btn btn-success" id="saveAnyBtn" onclick="saveAnyDataOptimized()" disabled>
                         <i class="fas fa-save"></i> حفظ
                     </button>
                     <button class="btn btn-secondary" onclick="clearAnyUpload()">
                         <i class="fas fa-undo"></i> مسح
                     </button>
                     <span id="uploadAnyStatus" class="upload-status"></span>
+                    <span id="uploadAnySpeed" class="upload-speed"></span>
                 </div>
                 <div class="table-container" id="uploadAnyPreview">
                     <div class="no-data">قم بتحميل ملف لعرض البيانات</div>
@@ -1444,7 +1562,87 @@
         container.innerHTML = html;
     };
 
-    window.saveAnyData = function() {
+    // ==================== OPTIMIZED SAVE FUNCTIONS ====================
+    
+    // Optimized save for regular database
+    window.saveToDatabaseOptimized = function() {
+        if (isUploading) return;
+        if (!anyUploadData || anyUploadData.length === 0) {
+            showStatus('❌ لا توجد بيانات للحفظ', 'error');
+            return;
+        }
+
+        if (!currentDbName) {
+            showStatus('⚠️ يرجى اختيار قاعدة بيانات', 'error');
+            return;
+        }
+
+        // Compress data before upload
+        const compressedData = compressData(anyUploadData);
+        const totalRecords = compressedData.length;
+
+        if (!confirm(`حفظ ${totalRecords} سجل في "${currentDbName}"؟`)) return;
+
+        isUploading = true;
+        updateSyncStatus(true);
+        document.getElementById('saveBtn').disabled = true;
+        document.getElementById('uploadStatus').textContent = '⏳ جاري الحفظ...';
+        
+        const progressFill = document.getElementById('progressFill');
+        progressFill.style.display = 'block';
+        progressFill.style.width = '0%';
+
+        const collectionRef = ref(db, `reference_data/${currentDbName}`);
+        
+        // Create batch data
+        const batchData = {};
+        compressedData.forEach((record, index) => {
+            const newKey = push(collectionRef).key;
+            batchData[newKey] = record;
+        });
+
+        const startTime = Date.now();
+
+        // Single write operation for ALL records
+        set(collectionRef, {
+            ...currentDbData,
+            ...batchData
+        })
+        .then(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = (totalRecords / elapsed).toFixed(1);
+            
+            updateSyncStatus(false);
+            showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
+            
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
+            document.getElementById('uploadSpeed').textContent = `⚡ ${speed} سجل/ثانية`;
+            
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressFill.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 1000);
+            
+            anyUploadData = [];
+            document.getElementById('uploadFile').value = '';
+            isUploading = false;
+            refreshData();
+        })
+        .catch((err) => {
+            updateSyncStatus(false);
+            document.getElementById('saveBtn').disabled = false;
+            document.getElementById('uploadStatus').textContent = '❌ فشل الحفظ';
+            showStatus(`❌ خطأ: ${err.message}`, 'error');
+            isUploading = false;
+            progressFill.style.display = 'none';
+        });
+    };
+
+    // Optimized save for "Upload Any" mode
+    window.saveAnyDataOptimized = function() {
+        if (isUploading) return;
         if (!anyUploadData || anyUploadData.length === 0) {
             showStatus('❌ لا توجد بيانات للحفظ', 'error');
             return;
@@ -1456,42 +1654,96 @@
             return;
         }
 
-        if (!confirm(`حفظ ${anyUploadData.length} سجل في "${path}"؟`)) return;
+        // Compress data
+        const compressedData = compressData(anyUploadData);
+        const totalRecords = compressedData.length;
 
+        if (!confirm(`حفظ ${totalRecords} سجل في "${path}"؟`)) return;
+
+        isUploading = true;
         updateSyncStatus(true);
+        document.getElementById('saveAnyBtn').disabled = true;
+        document.getElementById('uploadAnyStatus').textContent = '⏳ جاري الحفظ...';
+        
+        const progressFill = document.getElementById('progressFillAny');
+        progressFill.style.display = 'block';
+        progressFill.style.width = '0%';
+
         const dbRef = ref(db, path);
-        let saved = 0, errors = 0;
+        
+        // Get existing data first
+        const startTime = Date.now();
+        
+        get(dbRef).then((snapshot) => {
+            const existingData = snapshot.exists() ? snapshot.val() : {};
+            
+            // Create batch data
+            const batchData = {};
+            compressedData.forEach((record, index) => {
+                const newKey = push(dbRef).key;
+                batchData[newKey] = record;
+            });
 
-        const promises = anyUploadData.map((record) => {
-            const newRef = push(dbRef);
-            return set(newRef, record)
-                .then(() => saved++)
-                .catch((err) => { errors++; console.error(err); });
-        });
-
-        Promise.all(promises).then(() => {
+            // Single write
+            return set(dbRef, { ...existingData, ...batchData });
+        })
+        .then(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = (totalRecords / elapsed).toFixed(1);
+            
             updateSyncStatus(false);
-            showStatus(`✅ تم حفظ ${saved} سجل${errors > 0 ? `, ${errors} فشل` : ''}`, 'success');
+            showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
+            
             document.getElementById('saveAnyBtn').disabled = true;
-            document.getElementById('uploadAnyStatus').textContent = '';
+            document.getElementById('uploadAnyStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
+            document.getElementById('uploadAnySpeed').textContent = `⚡ ${speed} سجل/ثانية`;
+            
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressFill.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 1000);
+            
             anyUploadData = [];
             document.getElementById('uploadAnyFile').value = '';
             document.getElementById('uploadAnyPreview').innerHTML = 
                 `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-        }).catch((err) => {
+            isUploading = false;
+        })
+        .catch((err) => {
             updateSyncStatus(false);
+            document.getElementById('saveAnyBtn').disabled = false;
+            document.getElementById('uploadAnyStatus').textContent = '❌ فشل الحفظ';
             showStatus(`❌ خطأ: ${err.message}`, 'error');
+            isUploading = false;
+            progressFill.style.display = 'none';
         });
     };
 
-    window.clearAnyUpload = function() {
-        anyUploadData = [];
-        document.getElementById('uploadAnyFile').value = '';
-        document.getElementById('uploadAnyPreview').innerHTML = 
-            `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-        document.getElementById('uploadAnyStatus').textContent = '';
-        document.getElementById('saveAnyBtn').disabled = true;
-    };
+    // Helper function to compress data and clean coordinates
+    function compressData(data) {
+        return data.map(record => {
+            const compressed = {};
+            for (const [key, value] of Object.entries(record)) {
+                // Remove empty or null values to reduce payload
+                if (value !== '' && value !== null && value !== undefined) {
+                    let cleanedValue = typeof value === 'string' ? value.trim() : value;
+                    if (typeof cleanedValue === 'string') {
+                        // Remove trailing commas from coordinates
+                        cleanedValue = cleanedValue.replace(/,$/, '');
+                        // Remove double commas
+                        cleanedValue = cleanedValue.replace(/,{2,}/g, ',');
+                    }
+                    compressed[key] = cleanedValue;
+                }
+            }
+            return compressed;
+        });
+    }
+
+    // Legacy save functions (kept for compatibility)
+    window.saveToDatabase = window.saveToDatabaseOptimized;
+    window.saveAnyData = window.saveAnyDataOptimized;
 
     function setupUploadListeners() {
         const area = document.getElementById('uploadArea');
@@ -1551,6 +1803,7 @@
                 document.getElementById('uploadStatus').textContent = 
                     `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
                 document.getElementById('saveBtn').disabled = false;
+                document.getElementById('uploadSpeed').textContent = '';
                 
             } catch (err) {
                 showStatus(`❌ خطأ: ${err.message}`, 'error');
@@ -1589,50 +1842,23 @@
         container.innerHTML = html;
     };
 
-    window.saveToDatabase = function() {
-        if (!anyUploadData || anyUploadData.length === 0) {
-            showStatus('❌ لا توجد بيانات للحفظ', 'error');
-            return;
-        }
-
-        if (!currentDbName) {
-            showStatus('⚠️ يرجى اختيار قاعدة بيانات', 'error');
-            return;
-        }
-
-        if (!confirm(`حفظ ${anyUploadData.length} سجل في "${currentDbName}"؟`)) return;
-
-        updateSyncStatus(true);
-        const collectionRef = ref(db, `reference_data/${currentDbName}`);
-        let saved = 0, errors = 0;
-
-        const promises = anyUploadData.map((record) => {
-            const newRef = push(collectionRef);
-            return set(newRef, record)
-                .then(() => saved++)
-                .catch((err) => { errors++; console.error(err); });
-        });
-
-        Promise.all(promises).then(() => {
-            updateSyncStatus(false);
-            showStatus(`✅ تم حفظ ${saved} سجل${errors > 0 ? `, ${errors} فشل` : ''}`, 'success');
-            document.getElementById('saveBtn').disabled = true;
-            document.getElementById('uploadStatus').textContent = '';
-            anyUploadData = [];
-            document.getElementById('uploadFile').value = '';
-            refreshData();
-        }).catch((err) => {
-            updateSyncStatus(false);
-            showStatus(`❌ خطأ: ${err.message}`, 'error');
-        });
-    };
-
     window.clearPreview = function() {
         anyUploadData = [];
         document.getElementById('uploadFile').value = '';
         document.getElementById('uploadStatus').textContent = '';
+        document.getElementById('uploadSpeed').textContent = '';
         document.getElementById('saveBtn').disabled = true;
         refreshData();
+    };
+
+    window.clearAnyUpload = function() {
+        anyUploadData = [];
+        document.getElementById('uploadAnyFile').value = '';
+        document.getElementById('uploadAnyPreview').innerHTML = 
+            `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
+        document.getElementById('uploadAnyStatus').textContent = '';
+        document.getElementById('uploadAnySpeed').textContent = '';
+        document.getElementById('saveAnyBtn').disabled = true;
     };
 
     window.refreshData = function() {
@@ -1868,6 +2094,25 @@
             });
     };
 
+    // ==================== STATE VARIABLES (for modal) ====================
+    let referenceDatabases = {};
+    let dbNames = [];
+    let currentDbName = '';
+    let currentDbData = {};
+    let currentDbKeys = [];
+    let displayLimit = 20;
+    let totalRecords = 0;
+    let modalMode = 'add';
+    let modalEditKey = '';
+    let anyUploadData = [];
+    let currentFields = [];
+    let currentDbPath = '';
+    let isUploadAnyMode = false;
+    let isUploading = false;
+    let filteredKeys = [];
+    let searchDebounceTimer = null;
+
+    // ==================== STATUS FUNCTIONS ====================
     function showStatus(message, type = 'info') {
         const div = document.getElementById('statusMessage');
         div.textContent = message;
@@ -1889,7 +2134,8 @@
     window.loadReferenceDatabases = loadReferenceDatabases;
     window.loadSelectedDatabase = loadSelectedDatabase;
     window.handleFileUpload = handleFileUpload;
-    window.saveToDatabase = saveToDatabase;
+    window.saveToDatabaseOptimized = saveToDatabaseOptimized;
+    window.saveToDatabase = saveToDatabaseOptimized;
     window.clearPreview = clearPreview;
     window.loadMore = loadMore;
     window.onSearch = onSearch;
@@ -1905,8 +2151,10 @@
     window.showUploadAnyContent = showUploadAnyContent;
     window.handleAnyFileUpload = handleAnyFileUpload;
     window.renderAnyUploadPreview = renderAnyUploadPreview;
-    window.saveAnyData = saveAnyData;
+    window.saveAnyDataOptimized = saveAnyDataOptimized;
+    window.saveAnyData = saveAnyDataOptimized;
     window.clearAnyUpload = clearAnyUpload;
+    window.quickSelectDb = quickSelectDb;
 </script>
 </body>
 

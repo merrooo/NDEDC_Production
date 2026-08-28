@@ -4,121 +4,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>عرض واستعلام البيانات - شركة شمال الدلتا</title>
+    <title>استعراض وحصر السجلات - العدادات والمحولات</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Export to Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f2f5; min-height: 100vh; padding: 20px; margin: 0; display: flex; justify-content: center; }
-        .container { background: #ffffff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); width: 100%; max-width: 1200px; }
-        h2 { text-align: center; color: #1e293b; margin-top: 0; margin-bottom: 20px; }
-        .info-box { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; text-align: center; }
-        
-        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .search-box { flex: 1; min-width: 280px; position: relative; }
-        .search-box input { width: 100%; padding: 10px 35px 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
-        .search-box input:focus { border-color: #2563eb; }
-        .search-box i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-        
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { padding: 10px 16px; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-excel { background-color: #059669; }
-        .btn-excel:hover { background-color: #047857; }
-        .btn-upload { background-color: #2563eb; }
-        .btn-upload:hover { background-color: #1d4ed8; }
-        .btn-refresh { background-color: #475569; }
-        .btn-refresh:hover { background-color: #334155; }
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #0f172a;
+        }
 
-        .stats-bar { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
-        .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #334155; }
-        .stat-card span { color: #2563eb; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-dark); padding: 20px; direction: rtl; }
+        .container { max-width: 1400px; margin: 0 auto; }
 
-        .table-wrapper { overflow-x: auto; max-height: 600px; border: 1px solid #e2e8f0; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; white-space: nowrap; }
-        th { background-color: #f1f5f9; color: #1e293b; padding: 12px 10px; position: sticky; top: 0; border-bottom: 2px solid #cbd5e1; z-index: 10; }
-        td { padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 25px 30px; border-radius: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; border-right: 6px solid var(--primary);
+            flex-wrap: wrap; gap: 15px;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .header-icon { width: 52px; height: 52px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; }
+        .header-title h1 { font-size: 1.6rem; color: #ffffff; margin-bottom: 4px; }
+        .header-title .subtitle { color: #94a3b8; font-size: 0.85rem; }
+
+        .location-badge { display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.06); padding: 8px 20px; border-radius: 50px; }
+        .location-item { display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-size: 0.9rem; }
+        .location-item .value { font-weight: 600; padding: 2px 12px; border-radius: 20px; font-size: 0.85rem; }
+        .location-item .value.sector { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+        .location-item .value.district { background: rgba(37, 99, 235, 0.25); color: #93c5fd; }
+        .location-divider { width: 1px; height: 28px; background: rgba(255, 255, 255, 0.1); }
+
+        .header-actions { display: flex; align-items: center; gap: 15px; }
+        .sync-status { padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; font-weight: 600; }
+        .sync-status.loading { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+        .btn-back { background: rgba(37, 99, 235, 0.2); color: #93c5fd; border: 1px solid rgba(37, 99, 235, 0.3); padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; }
+
+        .card { background: var(--card-bg); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 25px; }
+
+        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; flex-wrap: wrap; }
+        .action-btns { display: flex; gap: 10px; align-items: center; }
+
+        .table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; position: relative; min-height: 250px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: right; white-space: nowrap; }
+        th { background-color: #f1f5f9; color: #334155; padding: 12px; font-weight: 700; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); color: #334155; }
         tr:hover { background-color: #f8fafc; }
 
-        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; font-size: 15px; }
-        .empty-state i { font-size: 40px; margin-bottom: 10px; color: #94a3b8; display: block; }
+        .th-content { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .filter-btn { background: none; border: none; cursor: pointer; color: var(--secondary); font-size: 0.8rem; padding: 2px 5px; border-radius: 4px; }
+        .filter-btn:hover, .filter-btn.active { color: var(--primary); background: #dbeafe; }
+
+        .filter-popover {
+            display: none; position: absolute; background: white; border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 8px; padding: 12px; z-index: 100;
+            width: 250px; max-height: 320px; overflow-y: auto; text-align: right;
+        }
+        .filter-popover.show { display: block; }
+        .filter-option { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem; font-weight: normal; cursor: pointer; }
+        .filter-actions { display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px; }
         
-        #loadingSpinner { text-align: center; padding: 30px; font-weight: bold; color: #2563eb; }
+        .date-picker-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+        .date-picker-group label { font-size: 0.8rem; color: var(--secondary); font-weight: 600; }
+        .date-picker-group input[type="date"] { padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; width: 100%; text-align: center; }
+
+        .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color); }
+        .pagination-btns { display: flex; gap: 8px; align-items: center; }
+
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-excel { background-color: #10b981; color: white; }
+        .btn-excel:hover { background-color: #059669; }
+        .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.75rem; font-weight: bold; }
+
+        .badge-type { padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 0.78rem; }
+        .badge-a123 { background-color: #e0e7ff; color: #4338ca; }
+        .badge-a45 { background-color: #dcfce7; color: #15803d; }
+        .na { color: #94a3b8; font-style: italic; }
+        .no-data { text-align: center; padding: 40px; color: var(--secondary); }
     </style>
 </head>
 
 <body>
-
     <div class="container">
-        <h2><i class="fas fa-search-location"></i> استعلام وعرض بيانات المحولات والعدادات</h2>
+        <header>
+            <div class="header-left">
+                <div class="header-icon"><i class="fas fa-table"></i></div>
+                <div class="header-title">
+                    <h1>استعراض البيانات المسجلة</h1>
+                    <div class="subtitle">تصفية وبحث في جميع الأعمدة عبر القوائم المنسدلة للترويسات</div>
+                </div>
+            </div>
+            <div class="location-badge">
+                <div class="location-item"><span class="value sector" id="sectorNameDisplay">جاري التحميل...</span></div>
+                <div class="location-divider"></div>
+                <div class="location-item"><span class="value district" id="districtNameDisplay">جاري التحميل...</span></div>
+            </div>
+            <div class="header-actions">
+                <span id="sessionTimer" style="color: #94a3b8; font-size: 0.8rem;">⏱ 05:00</span>
+                <span id="syncStatus" class="sync-status loading">⏳ جاري الاتصال...</span>
+                <button class="btn-back" onclick="goBack()"><i class="fas fa-arrow-right"></i> رجوع</button>
+            </div>
+        </header>
 
-        <div class="info-box" id="userLocation">
-            مسار البيانات الحالي: <b>جاري التحميل...</b>
-        </div>
-
-        <div class="toolbar">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="بحث برقم العداد، اسم المحول، كود المحول، أو الفئة..." />
+        <div class="card">
+            <div class="table-controls">
+                <div>
+                    <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل</span>
+                </div>
+                <div class="action-btns">
+                    <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير Excel</button>
+                    <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط الفلاتر</button>
+                    <button class="btn btn-secondary" onclick="loadRecords()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                </div>
             </div>
 
-            <div class="btn-group">
-                <button type="button" class="btn btn-refresh" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> تحديث
-                </button>
-                <button type="button" class="btn btn-excel" id="exportBtn">
-                    <i class="fas fa-file-excel"></i> تصدير Excel
-                </button>
-                <a id="uploadPageLink" href="#" class="btn btn-upload">
-                    <i class="fas fa-plus"></i> إضافة بيانات
-                </a>
+            <div class="table-container" id="tableContainer">
+                <div class="no-data">جاري تحميل البيانات...</div>
             </div>
-        </div>
 
-        <div class="stats-bar">
-            <div class="stat-card">إجمالي السجلات: <span id="totalCount">0</span></div>
-            <div class="stat-card">السجلات المعروضة: <span id="visibleCount">0</span></div>
-        </div>
-
-        <div id="loadingSpinner">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p>جاري جلب البيانات من Firebase...</p>
-        </div>
-
-        <div class="table-wrapper" id="tableContainer" style="display: none;">
-            <table id="dataTable">
-                <thead>
-                    <tr id="tableHeader">
-                        <th>#</th>
-                        <th>رقم العداد</th>
-                        <th>رقم الشريحة</th>
-                        <th>اسم المحول</th>
-                        <th>كود المحول</th>
-                        <th>قدرة المحول</th>
-                        <th>اسم المغذي</th>
-                        <th>اسم اللوحة</th>
-                        <th>الفئة (TYPE)</th>
-                        <th>تاريخ التركيب</th>
-                        <th>العنوان</th>
-                        <th>الموقع (Lat, Lng)</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-
-        <div id="emptyMessage" class="empty-state" style="display: none;">
-            <i class="fas fa-folder-open"></i>
-            <p>لا توجد بيانات مسجلة في هذا المسار حالياً.</p>
+            <div class="pagination" id="paginationControls">
+                <span id="pageIndicator" style="font-size: 0.85rem; color: var(--secondary);">الصفحة 1 من 1</span>
+                <div class="pagination-btns">
+                    <button class="btn btn-secondary" id="btnPrev" onclick="changePage(-1)">السابق</button>
+                    <button class="btn btn-secondary" id="btnNext" onclick="changePage(1)">التالي</button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <div id="filterPopover" class="filter-popover"></div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
             authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
             projectId: "trial-85",
             storageBucket: "trial-85.firebasestorage.app",
             messagingSenderId: "660343156279",
@@ -129,163 +162,423 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // قراءة المتغيرات من URL
         const urlParams = new URLSearchParams(window.location.search);
         const keta3Id = urlParams.get('keta3') || urlParams.get('keta3_id');
-        const handsaId = urlParams.get('handsa') || urlParams.get('handsa_id');
+        const handsaCode = urlParams.get('handsa') || urlParams.get('handsa_id') || urlParams.get('handsa-code');
+        const userType = urlParams.get('userType') || '';
 
-        let allRecords = [];
+        const sectorNames = {
+            '1': 'قطاع دمياط', '2': 'قطاع شمال الدقهلية', '3': 'قطاع جنوب الدقهلية', '4': 'قطاع كفر الشيخ'
+        };
 
-        // التحقق من إدخال البيانات
-        if (!keta3Id || !handsaId) {
-            alert("يرجى اختيار القطاع والهندسة أولاً من صفحة تسجيل الدخول.");
-            window.location.href = "login.html";
-        } else {
-            document.getElementById('userLocation').innerHTML =
-                `<i class="fas fa-folder-open"></i> مسار الاستعلام الحالي: <b>sectors / ${keta3Id} / districts / ${handsaId}</b>`;
-            document.getElementById('uploadPageLink').href = `upload.html?keta3=${encodeURIComponent(keta3Id)}&handsa=${encodeURIComponent(handsaId)}`;
-            
-            fetchDistrictData();
+        const districtNames = {
+            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج', '104': 'هندسة كفر سعد',
+            '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر', '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا',
+            '109': 'هندسة فارسكور', '110': 'هندسة الروضة', '111': 'هندسة الشعراء', '201': 'هندسة مدينة شربين',
+            '202': 'هندسة قري شربين', '203': 'هندسة دكرنس', '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس',
+            '206': 'هندسة مدينة بلقاس', '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر',
+            '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة', '213': 'هندسة مدينة المنزلة',
+            '214': 'هندسة المطرية', '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا',
+            '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2', '307': 'هندسة اجا',
+            '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين', '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر',
+            '312': 'هندسة قري ميت غمر', '313': 'هندسة كوم النور', '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ',
+            '403': 'هندسة شرق كفر الشيخ', '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم',
+            '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق', '410': 'هندسة قرى جنوب دسوق',
+            '411': 'هندسة فوه', '412': 'هندسة مطوبس', '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول',
+            '415': 'هندسة بيلا', '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+        };
+
+        let allRecords = {};
+        let activeColumnFilters = {};
+        let filteredKeysList = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+
+        // 5-minute session timeout setup
+        let sessionTimeLeft = 300;
+        const sessionTimerElem = document.getElementById('sessionTimer');
+
+        function startSessionTimer() {
+            const timerInterval = setInterval(() => {
+                sessionTimeLeft--;
+                const mins = String(Math.floor(sessionTimeLeft / 60)).padStart(2, '0');
+                const secs = String(sessionTimeLeft % 60).padStart(2, '0');
+                sessionTimerElem.textContent = `⏱ ${mins}:${secs}`;
+
+                if (sessionTimeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    alert("انتهت مدة الجلسة (5 دقائق). سيتم توجيهك لصفحة تسجيل الدخول.");
+                    window.location.href = "login.html";
+                }
+            }, 1000);
+
+            const resetTimer = () => { sessionTimeLeft = 300; };
+            window.addEventListener('mousemove', resetTimer);
+            window.addEventListener('keydown', resetTimer);
+            window.addEventListener('click', resetTimer);
         }
 
-        // جلب البيانات من Firebase
-        function fetchDistrictData() {
-            const spinner = document.getElementById('loadingSpinner');
-            const tableContainer = document.getElementById('tableContainer');
-            const emptyMsg = document.getElementById('emptyMessage');
+        const COLUMNS = [
+            { key: 'رقم العداد', label: 'رقم العداد' },
+            { key: 'رقم الشريحة', label: 'رقم الشريحة' },
+            { key: 'اسم المحول', label: 'اسم المحول' },
+            { key: 'قدرة المحول', label: 'قدرة المحول' },
+            { key: 'كود المحول', label: 'كود المحول' },
+            { key: 'عنوان المحول بالتفصيل', label: 'عنوان المحول بالتفصيل' },
+            { key: 'تاريخ التركيب', label: 'تاريخ التركيب', isDate: true },
+            { key: 'اسم المغذي', label: 'اسم المغذي الموصل بيه المحول', altKey: 'اسم المغذي الموصل بيه المحول' },
+            { key: 'كود المغذي', label: 'كود المغذي الموصل بالمحول', altKey: 'كود المغذي الموصل بالمحول' },
+            { key: 'اسم لوحة التوزيع', label: 'اسم لوحة التوزيع' },
+            { key: 'القطاع', label: 'القطاع' },
+            { key: 'الهندسة', label: 'الهندسة' },
+            { key: 'Latitude(y)', label: 'Latitude(y)', altKey: 'Latitude' },
+            { key: 'Longitude(x)', label: 'Longitude(x)', altKey: 'Longitude' },
+            { key: 'TYPE', label: 'TYPE', altKey: 'نوع العداد' }
+        ];
 
-            spinner.style.display = 'block';
-            tableContainer.style.display = 'none';
-            emptyMsg.style.display = 'none';
+        function getRecordValue(record, col) {
+            let val = record[col.key] || (col.altKey && record[col.altKey]);
+            if (col.key === 'القطاع' && val && sectorNames[val]) val = sectorNames[val];
+            if (col.key === 'الهندسة' && val && districtNames[val]) val = districtNames[val];
+            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : 'N/A';
+        }
 
-            const districtRef = ref(db, `sectors/${keta3Id}/districts/${handsaId}`);
+        // Converts raw string dates into standardized DD/MM/YYYY format
+        function formatToDDMMYYYY(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return 'N/A';
+            let parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[0].length === 4) { // YYYY-MM-DD -> DD/MM/YYYY
+                    return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+                } else if (parts[2].length === 4) { // DD/MM/YYYY
+                    return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                }
+            }
+            return dateStr;
+        }
 
-            onValue(districtRef, (snapshot) => {
-                spinner.style.display = 'none';
-                const data = snapshot.val();
-                allRecords = [];
+        // Converts DD/MM/YYYY or YYYY-MM-DD into a comparable numeric timestamp
+        function parseToTimestamp(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return null;
+            let day, month, year;
 
-                if (!data) {
-                    emptyMsg.style.display = 'block';
-                    updateCounts(0, 0);
-                    return;
+            let parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[2].length === 4) { // DD/MM/YYYY
+                    day = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    year = parseInt(parts[2], 10);
+                } else if (parts[0].length === 4) { // YYYY-MM-DD
+                    year = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[2], 10);
+                }
+                const parsedDate = new Date(year, month, day);
+                return isNaN(parsedDate.getTime()) ? null : parsedDate.getTime();
+            }
+            return null;
+        }
+
+        window.filterAndRenderTable = function () {
+            filteredKeysList = Object.keys(allRecords).filter(key => {
+                const record = allRecords[key];
+                const typeVal = getRecordValue(record, COLUMNS[14]);
+
+                if (userType === 'الهندسات' && !['A4', 'A5'].includes(typeVal)) {
+                    return false;
                 }
 
-                // تجميع البيانات من جميع العقد الداخلية (manual_entries أو شيتات Excel)
-                Object.keys(data).forEach(nodeKey => {
-                    const nodeValue = data[nodeKey];
-                    if (typeof nodeValue === 'object' && nodeValue !== null) {
-                        if (Array.isArray(nodeValue)) {
-                            nodeValue.forEach(item => { if (item) allRecords.push(item); });
-                        } else {
-                            Object.keys(nodeValue).forEach(childKey => {
-                                const item = nodeValue[childKey];
-                                if (typeof item === 'object' && item !== null) {
-                                    allRecords.push(item);
-                                }
-                            });
+                for (const col of COLUMNS) {
+                    if (col.isDate) {
+                        const dateFilter = activeColumnFilters[col.key];
+                        if (dateFilter) {
+                            const recTimestamp = parseToTimestamp(getRecordValue(record, col));
+                            if (!recTimestamp) return false;
+
+                            if (dateFilter.from) {
+                                const fromTs = parseToTimestamp(dateFilter.from);
+                                if (fromTs && recTimestamp < fromTs) return false;
+                            }
+                            if (dateFilter.to) {
+                                const toTs = parseToTimestamp(dateFilter.to);
+                                if (toTs && recTimestamp > toTs) return false;
+                            }
+                        }
+                    } else {
+                        const selectedValues = activeColumnFilters[col.key];
+                        if (selectedValues && selectedValues.length > 0) {
+                            const val = getRecordValue(record, col);
+                            if (!selectedValues.includes(val)) return false;
                         }
                     }
-                });
-
-                if (allRecords.length === 0) {
-                    emptyMsg.style.display = 'block';
-                } else {
-                    tableContainer.style.display = 'block';
-                    renderTable(allRecords);
                 }
-
-                updateCounts(allRecords.length, allRecords.length);
-            }, (error) => {
-                spinner.style.display = 'none';
-                alert("حدث خطأ أثناء تحميل البيانات: " + error.message);
-            });
-        }
-
-        // عرض البيانات داخل الجدول
-        function renderTable(records) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            records.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                
-                const meter = row["رقم العداد"] || row["meterNum"] || row["رقم_العداد"] || "-";
-                const sim = row["رقم الشريحة"] || row["simNum"] || row["رقم_الشريحة"] || "-";
-                const trans = row["اسم المحول"] || row["transName"] || row["اسم_المحول"] || "-";
-                const transCode = row["كود المحول"] || row["transCode"] || row["كود_المحول"] || "-";
-                const transCap = row["قدرة المحول"] || row["transCap"] || row["قدرة_المحول"] || "-";
-                const feeder = row["اسم المغذي الموصل بيه المحول"] || row["feederName"] || row["اسم_المغذي"] || "-";
-                const panel = row["اسم لوحة التوزيع"] || row["panelName"] || row["اسم_لوحة_التوزيع"] || "-";
-                const type = row["TYPE"] || row["meterType"] || "-";
-                const date = row["تاريخ التركيب"] || row["installDate"] || "-";
-                const address = row["عنوان المحول بالتفصيل"] || row["transAddress"] || "-";
-                
-                const lat = row["Latitude(y)"] || row["lat"] || "";
-                const lng = row["Longitude(x)"] || row["lng"] || "";
-                const coords = (lat && lng) ? `${lat}, ${lng}` : "-";
-
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><b>${meter}</b></td>
-                    <td>${sim}</td>
-                    <td>${trans}</td>
-                    <td>${transCode}</td>
-                    <td>${transCap}</td>
-                    <td>${feeder}</td>
-                    <td>${panel}</td>
-                    <td>${type}</td>
-                    <td>${date}</td>
-                    <td>${address}</td>
-                    <td>${coords}</td>
-                `;
-                tbody.appendChild(tr);
+                return true;
             });
 
-            document.getElementById('visibleCount').textContent = records.length;
-        }
+            document.getElementById('recordsCount').textContent = `${filteredKeysList.length} سجل`;
+            currentPage = 1;
+            renderTablePage();
+        };
 
-        // تحديث عدادات الإحصاء
-        function updateCounts(total, visible) {
-            document.getElementById('totalCount').textContent = total;
-            document.getElementById('visibleCount').textContent = visible;
-        }
-
-        // البحث الفوري
-        document.getElementById('searchInput').addEventListener('input', function () {
-            const query = this.value.toLowerCase().trim();
-            if (!query) {
-                renderTable(allRecords);
+        function renderTablePage() {
+            const container = document.getElementById('tableContainer');
+            if (filteredKeysList.length === 0) {
+                container.innerHTML = `<div class="no-data">لا توجد سجلات مطابقة للفلاتر المحددة</div>`;
+                updatePaginationControls();
                 return;
             }
 
-            const filtered = allRecords.filter(item => {
-                return Object.values(item).some(val => 
-                    String(val).toLowerCase().includes(query)
+            const totalPages = Math.ceil(filteredKeysList.length / PAGE_SIZE);
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const pageKeys = filteredKeysList.slice(startIndex, startIndex + PAGE_SIZE);
+
+            let html = `<table><thead><tr><th>#</th>`;
+            COLUMNS.forEach(col => {
+                const isActive = activeColumnFilters[col.key] && (
+                    col.isDate ? (activeColumnFilters[col.key].from || activeColumnFilters[col.key].to) : activeColumnFilters[col.key].length > 0
                 );
+                html += `
+                    <th>
+                        <div class="th-content">
+                            <span>${col.label}</span>
+                            <button class="filter-btn ${isActive ? 'active' : ''}" onclick="toggleFilterPopover(event, '${col.key}')">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </th>`;
+            });
+            html += `</tr></thead><tbody>`;
+
+            let index = startIndex;
+            pageKeys.forEach(key => {
+                index++;
+                const record = allRecords[key];
+                html += `<tr><td>${index}</td>`;
+
+                COLUMNS.forEach(col => {
+                    let val = getRecordValue(record, col);
+                    if (col.isDate) val = formatToDDMMYYYY(val);
+
+                    if (col.key === 'TYPE') {
+                        const badgeClass = ['A4', 'A5'].includes(val) ? 'badge-a45' : 'badge-a123';
+                        html += `<td><span class="badge-type ${badgeClass}">${val}</span></td>`;
+                    } else if (col.key === 'عنوان المحول بالتفصيل') {
+                        html += `<td style="max-width:150px;white-space:normal;word-break:break-word;">${val === 'N/A' ? '<span class="na">N/A</span>' : val}</td>`;
+                    } else {
+                        html += `<td>${val === 'N/A' ? '<span class="na">N/A</span>' : val}</td>`;
+                    }
+                });
+
+                html += `</tr>`;
             });
 
-            renderTable(filtered);
-        });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+            updatePaginationControls();
+        }
 
-        // زر إعادة التحديث
-        document.getElementById('refreshBtn').addEventListener('click', fetchDistrictData);
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredKeysList.length / PAGE_SIZE) || 1;
+            document.getElementById('pageIndicator').textContent = `الصفحة ${currentPage} من ${totalPages}`;
+            document.getElementById('btnPrev').disabled = (currentPage === 1);
+            document.getElementById('btnNext').disabled = (currentPage >= totalPages);
+        }
 
-        // تصدير البيانات المعروضة إلى Excel
-        document.getElementById('exportBtn').addEventListener('click', function () {
-            if (allRecords.length === 0) {
+        window.changePage = function (delta) {
+            const totalPages = Math.ceil(filteredKeysList.length / PAGE_SIZE) || 1;
+            if (currentPage + delta >= 1 && currentPage + delta <= totalPages) {
+                currentPage += delta;
+                renderTablePage();
+            }
+        };
+
+        window.toggleFilterPopover = function (event, colKey) {
+            event.stopPropagation();
+            const popover = document.getElementById('filterPopover');
+            const button = event.currentTarget;
+            const rect = button.getBoundingClientRect();
+
+            if (popover.classList.contains('show') && popover.dataset.colKey === colKey) {
+                popover.classList.remove('show');
+                return;
+            }
+
+            const col = COLUMNS.find(c => c.key === colKey);
+            let popHtml = `<strong style="display:block; margin-bottom:8px; font-size:0.85rem;">تصفية حسب ${col.label}</strong>`;
+
+            if (col.isDate) {
+                const currentFilter = activeColumnFilters[colKey] || { fromISO: '', toISO: '' };
+                popHtml += `
+                    <div class="date-picker-group">
+                        <label>من تاريخ (DD/MM/YYYY):</label>
+                        <input type="date" id="dateFromPicker" value="${currentFilter.fromRGB || ''}">
+                        <label>إلى تاريخ (DD/MM/YYYY):</label>
+                        <input type="date" id="dateToPicker" value="${currentFilter.toRGB || ''}">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary btn-sm" onclick="applyDateFilter('${colKey}')">تطبيق</button>
+                        <button class="btn-link" onclick="clearDateFilter('${colKey}')">إلغاء</button>
+                    </div>`;
+            } else {
+                const uniqueValues = new Set();
+                Object.values(allRecords).forEach(rec => {
+                    const typeVal = getRecordValue(rec, COLUMNS[14]);
+                    if (userType !== 'الهندسات' || ['A4', 'A5'].includes(typeVal)) {
+                        uniqueValues.add(getRecordValue(rec, col));
+                    }
+                });
+
+                const sortedValues = Array.from(uniqueValues).sort();
+                const currentSelected = activeColumnFilters[colKey] || [];
+
+                sortedValues.forEach(val => {
+                    const checked = currentSelected.includes(val) ? 'checked' : '';
+                    popHtml += `
+                        <label class="filter-option">
+                            <input type="checkbox" value="${val}" ${checked} onchange="onCheckboxChange('${colKey}')">
+                            <span>${val}</span>
+                        </label>`;
+                });
+
+                popHtml += `
+                    <div class="filter-actions">
+                        <button class="btn-link" onclick="selectAllColumn('${colKey}', true)">تحديد الكل</button>
+                        <button class="btn-link" onclick="selectAllColumn('${colKey}', false)">إلغاء الكل</button>
+                    </div>`;
+            }
+
+            popover.innerHTML = popHtml;
+            popover.dataset.colKey = colKey;
+            popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            popover.style.left = `${rect.left + window.scrollX - 150}px`;
+            popover.classList.add('show');
+        };
+
+        window.applyDateFilter = function (colKey) {
+            const fromRGB = document.getElementById('dateFromPicker').value; // Output format: YYYY-MM-DD
+            const toRGB = document.getElementById('dateToPicker').value;     // Output format: YYYY-MM-DD
+
+            let from = '', to = '';
+            if (fromRGB) {
+                const parts = fromRGB.split('-');
+                from = `${parts[2]}/${parts[1]}/${parts[0]}`; // Formats to DD/MM/YYYY
+            }
+            if (toRGB) {
+                const parts = toRGB.split('-');
+                to = `${parts[2]}/${parts[1]}/${parts[0]}`;   // Formats to DD/MM/YYYY
+            }
+
+            if (fromRGB || toRGB) {
+                activeColumnFilters[colKey] = { from, to, fromRGB, toRGB };
+            } else {
+                delete activeColumnFilters[colKey];
+            }
+            document.getElementById('filterPopover').classList.remove('show');
+            filterAndRenderTable();
+        };
+
+        window.clearDateFilter = function (colKey) {
+            delete activeColumnFilters[colKey];
+            document.getElementById('filterPopover').classList.remove('show');
+            filterAndRenderTable();
+        };
+
+        window.onCheckboxChange = function (colKey) {
+            const popover = document.getElementById('filterPopover');
+            const checkboxes = popover.querySelectorAll('input[type="checkbox"]:checked');
+            const selected = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selected.length > 0) {
+                activeColumnFilters[colKey] = selected;
+            } else {
+                delete activeColumnFilters[colKey];
+            }
+            filterAndRenderTable();
+        };
+
+        window.selectAllColumn = function (colKey, selectAll) {
+            const popover = document.getElementById('filterPopover');
+            const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = selectAll);
+            window.onCheckboxChange(colKey);
+        };
+
+        window.resetAllFilters = function () {
+            activeColumnFilters = {};
+            filterAndRenderTable();
+        };
+
+        window.exportToExcel = function () {
+            if (filteredKeysList.length === 0) {
                 alert("لا توجد بيانات لتصديرها.");
                 return;
             }
 
-            const worksheet = XLSX.utils.json_to_sheet(allRecords);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "البيانات المسجلة");
-            
-            XLSX.writeFile(workbook, `District_${keta3Id}_${handsaId}_Data.xlsx`);
-        });
-    </script>
+            const exportData = filteredKeysList.map((key, index) => {
+                const record = allRecords[key];
+                const rowObj = { '#': index + 1 };
+                COLUMNS.forEach(col => {
+                    let val = getRecordValue(record, col);
+                    if (col.isDate) val = formatToDDMMYYYY(val);
+                    rowObj[col.label] = val;
+                });
+                return rowObj;
+            });
 
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "العدادات والمحولات");
+            XLSX.writeFile(workbook, `سجلات_العدادات_${handsaCode}.xlsx`);
+        };
+
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('filterPopover');
+            if (popover && !popover.contains(e.target)) {
+                popover.classList.remove('show');
+            }
+        });
+
+        async function authenticateAndInit() {
+            try {
+                const authRef = ref(db, `auth_sectors/${keta3Id}/districts/${handsaCode}`);
+                const snapshot = await get(authRef);
+                if (!snapshot.exists()) {
+                    alert("الهندسة المحددة غير موجودة أو غير مصرح بها.");
+                    window.location.href = "login.html";
+                    return;
+                }
+                const sectorName = sectorNames[keta3Id] || `القطاع ${keta3Id}`;
+                const districtName = districtNames[handsaCode] || `هندسة ${handsaCode}`;
+
+                document.getElementById('sectorNameDisplay').textContent = sectorName;
+                document.getElementById('districtNameDisplay').textContent = districtName;
+                startSessionTimer();
+                loadRecords();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.loadRecords = function () {
+            const recordsRef = ref(db, `sectors/${keta3Id}/districts/${handsaCode}/manual_entries`);
+            onValue(recordsRef, (snapshot) => {
+                allRecords = snapshot.exists() ? snapshot.val() : {};
+                filterAndRenderTable();
+                document.getElementById('syncStatus').textContent = '✅ متصل';
+                document.getElementById('syncStatus').className = 'sync-status';
+            });
+        };
+
+        window.goBack = function () {
+            window.location.href = `dashboard.html?keta3=${keta3Id}&handsa=${handsaCode}&userType=${encodeURIComponent(userType)}`;
+        };
+
+        if (!keta3Id || !handsaCode) {
+            window.location.href = "login.html";
+        } else {
+            authenticateAndInit();
+        }
+    </script>
 </body>
 
 </html>

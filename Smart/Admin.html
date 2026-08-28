@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة التحكم - رفع بيانات الإكسيل إلى الفايربيز</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-dark: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: var(--bg-main); color: var(--text-dark); padding: 30px 20px; direction: rtl; }
+    
+    .card { 
+      background: var(--card-bg); 
+      padding: 30px; 
+      border-radius: 12px; 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+      border-top: 5px solid var(--primary);
+      margin-bottom: 20px;
+    }
+    
+    h2 { margin-bottom: 20px; font-size: 1.4rem; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: #334155; }
+    
+    input[type="file"], select { 
+      width: 100%; 
+      padding: 10px 12px; 
+      border: 1.5px solid var(--border-color); 
+      border-radius: 8px; 
+      font-size: 0.95rem; 
+      outline: none;
+      background-color: #fff;
+    }
+
+    input[type="file"]:focus, select:focus { border-color: var(--primary); }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    #status { 
+      margin-top: 20px; 
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 600; 
+      font-size: 0.9rem;
+      text-align: center; 
+      display: none;
+    }
+
+    #status.info { display: block; background: #e0f2fe; color: #0369a1; }
+    #status.success { display: block; background: #d1fae5; color: #065f46; }
+    #status.error { display: block; background: #fee2e2; color: #991b1b; }
+    #status.warning { display: block; background: #fef3c7; color: #92400e; }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #334155;
+      padding: 8px 10px;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-color);
+      color: #334155;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    tr:hover { background-color: #f8fafc; }
+
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .stat-item {
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-item .number { font-size: 1.5rem; font-weight: 700; display: block; }
+    .stat-item .label { font-size: 0.75rem; color: #64748b; }
+
+    .action-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-secondary { background: #e2e8f0; color: #475569; }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="card">
+  <h2><i class="fas fa-file-upload"></i> رفع واستيراد بيانات الإكسيل</h2>
+  
+  <div class="form-row">
+    <div class="form-group">
+      <label for="sheetType">نوع البيانات:</label>
+      <select id="sheetType">
+        <option value="A123" selected>A123 (عدادات محولات/مغذيات A1/A2/A3)</option>
+        <option value="A45">A45 (عدادات تركيبات A4/A5)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="excelFile">اختر ملف الإكسيل:</label>
+      <input type="file" id="excelFile" accept=".xlsx, .xls" />
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="previewArea" style="display:none;">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span class="number" id="totalRowsCount">0</span>
+        <span class="label">إجمالي السجلات</span>
+      </div>
+      <div class="stat-item">
+        <span class="number" id="validRowsCount">0</span>
+        <span class="label">سجلات صالحة</span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="previewTable">
+        <thead>
+          <tr id="tableHeader"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="action-btns">
+      <button class="btn btn-success" id="btnUpload"><i class="fas fa-cloud-upload-alt"></i> رفع البيانات إلى الفايربيز</button>
+      <button class="btn btn-secondary" id="btnCancel"><i class="fas fa-times"></i> إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+    authDomain: "trial-85.firebaseapp.com",
+    databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
+    projectId: "trial-85",
+    storageBucket: "trial-85.firebasestorage.app",
+    messagingSenderId: "660343156279",
+    appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+    measurementId: "G-RLMVPCLZW3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let parsedData = [];
+
+  const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+  // Converts Excel serial numbers (like 46130) or JS Date objects into DD/MM/YYYY
+  function convertExcelDateToDDMMYYYY(val) {
+    if (!val) return '';
+
+    // If SheetJS extracted it as a JavaScript Date object
+    if (val instanceof Date && !isNaN(val)) {
+      const day = String(val.getDate()).padStart(2, '0');
+      const month = String(val.getMonth() + 1).padStart(2, '0');
+      const year = val.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    // If value is a numeric string or serial number (e.g., 46130)
+    const num = Number(val);
+    if (!isNaN(num) && num > 10000) {
+      const dateObj = new Date(Math.round((num - 25569) * 86400000));
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    return norm(val);
+  }
+
+  function showStatus(msg, type = 'info') {
+    const s = document.getElementById('status');
+    s.textContent = msg;
+    s.className = type;
+    s.style.display = 'block';
+  }
+
+  document.getElementById('excelFile').addEventListener('change', handleFileSelect);
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    showStatus("جاري قراءة ومعالجة ملف الإكسيل...", "info");
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        
+        // Pass cellDates: true to parse Excel serial dates correctly
+        const workbook = XLSX.read(data, { 
+          type: 'array',
+          cellDates: true,
+          dateNF: 'dd/mm/yyyy'
+        });
+
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+        if (json.length === 0) {
+          showStatus("الملف فارغ أو يفتقر إلى بيانات صالحة", "error");
+          return;
+        }
+
+        parsedData = json;
+        renderPreview();
+        showStatus(`تم التحميل بنجاح. تم العثور على ${parsedData.length} سجل.`, "success");
+      } catch (err) {
+        showStatus("حدث خطأ أثناء قراءة الملف: " + err.message, "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderPreview() {
+    if (parsedData.length === 0) return;
+
+    const sheetType = document.getElementById('sheetType').value;
+    const headerTr = document.getElementById('tableHeader');
+    const tbody = document.getElementById('tableBody');
+
+    headerTr.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const cols = Object.keys(parsedData[0]);
+    cols.forEach(col => {
+      const th = document.createElement('th');
+      th.textContent = col;
+      headerTr.appendChild(th);
+    });
+
+    parsedData.slice(0, 15).forEach(row => {
+      const tr = document.createElement('tr');
+      cols.forEach(col => {
+        const td = document.createElement('td');
+        const rawVal = row[col];
+        
+        // Check if the column is a date field for preview formatting
+        if (col === 'install_date' || col === 'تاريخ التركيب') {
+          td.textContent = convertExcelDateToDDMMYYYY(rawVal);
+        } else {
+          td.textContent = norm(rawVal);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('totalRowsCount').textContent = parsedData.length;
+    document.getElementById('validRowsCount').textContent = parsedData.length;
+    document.getElementById('previewArea').style.display = 'block';
+  }
+
+  document.getElementById('btnUpload').addEventListener('click', async function() {
+    if (parsedData.length === 0) return;
+
+    showStatus("جاري رفع البيانات إلى قاعدة البيانات...", "info");
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of parsedData) {
+      const meterNum = norm(item['meter_number'] || item['رقم العداد']);
+      const keta3Id = norm(item['keta3_id'] || item['القطاع'] || item['keta3']);
+      const handsaCode = norm(item['handsa_id'] || item['handsa_code'] || item['كود الهندسة'] || item['handsa']);
+
+      if (!meterNum || !keta3Id || !handsaCode) {
+        errorCount++;
+        continue;
+      }
+
+      const formattedRecord = {
+        "meter_number": meterNum,
+        "sim_number": norm(item['sim_number'] || item['رقم الشريحة']),
+        "meter_type": norm(item['meter_type'] || item['نوع العداد']),
+        "trans_type": norm(item['trans_type'] || item['نوع المحول']),
+        "trans_name": norm(item['trans_name'] || item['اسم المحول']),
+        "trans_capacity": norm(item['trans_capacity'] || item['قدرة المحول']),
+        "trans_code": norm(item['trans_code'] || item['كود المحول']),
+        "feeder_name": norm(item['feeder_name'] || item['feeder'] || item['اسم المغذي']),
+        "feeder_code": norm(item['feeder_code'] || item['كود المغذي']),
+        "panel_name": norm(item['panel_name'] || item['اسم لوحة التوزيع']),
+        "install_date": convertExcelDateToDDMMYYYY(item['install_date'] || item['تاريخ التركيب']),
+        "address": norm(item['address'] || item['العنوان']),
+        "cell": norm(item['cell'] || item['اسم المغذي']),
+        "cell_code": norm(item['cell_code'] || item['كود المغذي']),
+        "dp": norm(item['dp'] || item['اسم لوحة التوزيع']),
+        "sub_name": norm(item['sub_name'] || item['اسم المحطة']),
+        "sub_code": norm(item['sub_code'] || item['كود المحطة']),
+        "keta3": norm(item['keta3']),
+        "handsa": norm(item['handsa']),
+        "keta3_id": keta3Id,
+        "handsa_code": handsaCode,
+        "lat": norm(item['lat']),
+        "lng": norm(item['lng']),
+        "_uploaded_at": Date.now()
+      };
+
+      try {
+        const targetRef = ref(db, `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${meterNum}`);
+        await set(targetRef, formattedRecord);
+        successCount++;
+      } catch (err) {
+        errorCount++;
+      }
+    }
+
+    showStatus(`اكتملت العملية: تم رفع ${successCount} سجل بنجاح${errorCount > 0 ? `، وتعذر رفع ${errorCount} سجل` : ''}.`, "success");
+  });
+
+  document.getElementById('btnCancel').addEventListener('click', function() {
+    parsedData = [];
+    document.getElementById('excelFile').value = '';
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('status').style.display = 'none';
+  });
+</script>
+
+</body>
+</html>
