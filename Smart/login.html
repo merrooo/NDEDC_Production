@@ -208,14 +208,47 @@
         const pwdHint = document.getElementById('pwdHint');
         const pwdError = document.getElementById('pwdError');
 
+        function updateAuthState() {
+            passwordInput.value = '';
+            pwdHint.textContent = '';
+            pwdError.style.display = 'none';
+
+            const userType = userTypeSelect.value;
+            const keta3Id = keta3Select.value;
+            const handsaId = handsaSelect.value;
+
+            if (userType && keta3Id && handsaId) {
+                passwordInput.disabled = false;
+                submitBtn.disabled = false;
+                checkUserTypeAuth(userType, keta3Id, handsaId);
+            } else {
+                passwordInput.disabled = true;
+                submitBtn.disabled = true;
+            }
+        }
+
+        async function checkUserTypeAuth(userType, keta3Id, handsaId) {
+            pwdHint.textContent = "جاري التحقق من قاعدة البيانات...";
+            try {
+                const userTypeAuthRef = ref(db, `auth_sectors/${keta3Id}/districts/${handsaId}/${userType}`);
+                const snapshot = await get(userTypeAuthRef);
+
+                if (!snapshot.exists()) {
+                    pwdHint.textContent = `ℹ️ أول دخول لجهة (${userType}): سيتم حفظ كلمة المرور كـ Key جديد.`;
+                } else {
+                    pwdHint.textContent = `ℹ️ جهة (${userType}) مسجلة مسبقاً، يرجى إدخال كلمة المرور الصحيحة.`;
+                }
+            } catch (err) {
+                console.error(err);
+                pwdHint.textContent = "⚠️ فشل الاتصال بقاعدة البيانات. تأكد من إعدادات الاتصال.";
+            }
+        }
+
+        userTypeSelect.addEventListener('change', updateAuthState);
+
         keta3Select.addEventListener('change', function () {
             const selectedId = this.value;
             handsaSelect.innerHTML = '<option value="">اختر الهندسة</option>';
-            passwordInput.disabled = true;
-            passwordInput.value = '';
-            submitBtn.disabled = true;
-            pwdHint.textContent = '';
-            pwdError.style.display = 'none';
 
             if (selectedId && handsaData[selectedId]) {
                 handsaSelect.disabled = false;
@@ -228,36 +261,11 @@
             } else {
                 handsaSelect.disabled = true;
             }
+
+            updateAuthState();
         });
 
-        handsaSelect.addEventListener('change', async function () {
-            const keta3Id = keta3Select.value;
-            const handsaId = this.value;
-
-            if (handsaId && keta3Id) {
-                passwordInput.disabled = false;
-                submitBtn.disabled = false;
-                pwdHint.textContent = "جاري التحقق من قاعدة البيانات...";
-
-                try {
-                    const districtAuthRef = ref(db, `auth_sectors/${keta3Id}/districts/${handsaId}`);
-                    const snapshot = await get(districtAuthRef);
-
-                    if (!snapshot.exists()) {
-                        pwdHint.textContent = "ℹ️ أول دخول لهذه الهندسة: سيتم حفظ كلمة المرور كـ Key جديد في auth_sectors.";
-                    } else {
-                        pwdHint.textContent = "ℹ️ هذه الهندسة مسجلة مسبقاً، يرجى إدخال كلمة المرور الصحيحة.";
-                    }
-                } catch (err) {
-                    console.error(err);
-                    pwdHint.textContent = "⚠️ فشل الاتصال بقاعدة البيانات. تأكد من إعدادات الاتصال.";
-                }
-            } else {
-                passwordInput.disabled = true;
-                submitBtn.disabled = true;
-                pwdHint.textContent = '';
-            }
-        });
+        handsaSelect.addEventListener('change', updateAuthState);
 
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -282,22 +290,22 @@
             submitBtn.textContent = "جاري التحقق...";
 
             try {
-                const authDistrictRef = ref(db, `auth_sectors/${keta3}/districts/${handsa}`);
-                const snapshot = await get(authDistrictRef);
+                const authUserTypeRef = ref(db, `auth_sectors/${keta3}/districts/${handsa}/${userType}`);
+                const snapshot = await get(authUserTypeRef);
 
                 const redirectUrl = `SM_DashBoard.html?keta3=${encodeURIComponent(keta3)}&handsa=${encodeURIComponent(handsa)}&userType=${encodeURIComponent(userType)}`;
 
                 if (!snapshot.exists()) {
-                    const passwordKeyRef = ref(db, `auth_sectors/${keta3}/districts/${handsa}/${password}`);
+                    const passwordKeyRef = ref(db, `auth_sectors/${keta3}/districts/${handsa}/${userType}/${password}`);
                     await set(passwordKeyRef, true);
 
-                    alert("تم تسجيل الدخول وحفظ كلمة المرور بنجاح!");
+                    alert(`تم تسجيل الدخول وحفظ كلمة المرور لجهة (${userType}) بنجاح!`);
                     window.location.href = redirectUrl;
                 } else {
                     if (snapshot.hasChild(password)) {
                         window.location.href = redirectUrl;
                     } else {
-                        pwdError.textContent = "فشل تسجيل الدخول: كلمة المرور غير صحيحة لهذه الهندسة.";
+                        pwdError.textContent = `فشل تسجيل الدخول: كلمة المرور غير صحيحة لجهة (${userType}).`;
                         pwdError.style.display = 'block';
                         submitBtn.disabled = false;
                         submitBtn.textContent = "دخول إلى النظام";

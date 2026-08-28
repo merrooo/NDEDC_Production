@@ -1,406 +1,1304 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>لوحة التحكم - رفع بيانات الإكسيل إلى الفايربيز</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --bg-main: #f8fafc;
-      --card-bg: #ffffff;
-      --border-color: #e2e8f0;
-      --text-dark: #0f172a;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - رفع واستعراض البيانات</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: var(--bg-main); color: var(--text-dark); padding: 30px 20px; direction: rtl; }
-    
-    .card { 
-      background: var(--card-bg); 
-      padding: 30px; 
-      border-radius: 12px; 
-      max-width: 1200px; 
-      margin: 0 auto; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-      border-top: 5px solid var(--primary);
-      margin-bottom: 20px;
-    }
-    
-    h2 { margin-bottom: 20px; font-size: 1.4rem; color: #1e293b; display: flex; align-items: center; gap: 10px; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: #334155; }
-    
-    input[type="file"], select { 
-      width: 100%; 
-      padding: 10px 12px; 
-      border: 1.5px solid var(--border-color); 
-      border-radius: 8px; 
-      font-size: 0.95rem; 
-      outline: none;
-      background-color: #fff;
-    }
+        body {
+            background-color: #f4f6f9;
+            margin: 20px;
+            padding: 0;
+            direction: rtl;
+        }
 
-    input[type="file"]:focus, select:focus { border-color: var(--primary); }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
 
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    #status { 
-      margin-top: 20px; 
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: 600; 
-      font-size: 0.9rem;
-      text-align: center; 
-      display: none;
-    }
+        h3 {
+            color: #1e293b;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
 
-    #status.info { display: block; background: #e0f2fe; color: #0369a1; }
-    #status.success { display: block; background: #d1fae5; color: #065f46; }
-    #status.error { display: block; background: #fee2e2; color: #991b1b; }
-    #status.warning { display: block; background: #fef3c7; color: #92400e; }
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-    .table-container {
-      overflow-x: auto;
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-top: 15px;
-    }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-      text-align: right;
-      white-space: nowrap;
-    }
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
 
-    th {
-      background-color: #f1f5f9;
-      color: #334155;
-      padding: 8px 10px;
-      font-weight: 700;
-      border-bottom: 2px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
+        button {
+            background-color: #2563eb;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-    td {
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--border-color);
-      color: #334155;
-      max-width: 150px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        button:hover {
+            background-color: #1d4ed8;
+        }
 
-    tr:hover { background-color: #f8fafc; }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
 
-    .summary-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin: 15px 0;
-    }
+        .btn-success {
+            background-color: #10b981;
+        }
 
-    .stat-item {
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-    }
+        .btn-success:hover {
+            background-color: #059669;
+        }
 
-    .stat-item .number { font-size: 1.5rem; font-weight: 700; display: block; }
-    .stat-item .label { font-size: 0.75rem; color: #64748b; }
+        .btn-success:disabled {
+            background-color: #6ee7b7;
+            cursor: not-allowed;
+        }
 
-    .action-btns {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
+        .btn-danger {
+            background-color: #dc2626;
+        }
 
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
 
-    .btn-success { background: var(--success); color: white; }
-    .btn-success:hover { background: #059669; }
-    .btn-secondary { background: #e2e8f0; color: #475569; }
-    .btn-secondary:hover { background: #cbd5e1; }
+        .btn-secondary {
+            background-color: #64748b;
+        }
 
-    @media (max-width: 768px) {
-      .form-row { grid-template-columns: 1fr; }
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+            width: auto;
+        }
+
+        .table-container {
+            margin-top: 15px;
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: right;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 700;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btns button {
+            width: auto;
+            padding: 10px 24px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .user-tag {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+        }
+
+        .type-group {
+            margin-bottom: 6px;
+        }
+
+        .type-title {
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 12px;
+            display: inline-block;
+            margin-left: 6px;
+        }
+
+        .edit-mode {
+            background-color: #fef3c7 !important;
+        }
+
+        .edit-mode td {
+            background-color: #fef3c7 !important;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .progress-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #2563eb);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .section-divider {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+            font-size: 13px;
+        }
+
+        .status-msg.success {
+            display: block;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-msg.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-msg.info {
+            display: block;
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-msg.warning {
+            display: block;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-msg.loading {
+            display: block;
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .edit-input {
+            padding: 4px 8px;
+            border: 2px solid #f59e0b;
+            border-radius: 4px;
+            font-size: 12px;
+            width: 140px;
+            background: white;
+            margin-bottom: 4px;
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .duplicate-warning {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .duplicate-warning .count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #92400e;
+        }
+
+        .duplicate-warning.internal {
+            border-color: #dc2626;
+            background: #fee2e2;
+        }
+
+        .duplicate-warning.internal .count {
+            color: #991b1b;
+        }
+
+        .checking-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .internal-duplicate-row {
+            background-color: #fee2e2 !important;
+        }
+
+        .internal-duplicate-row td {
+            background-color: #fee2e2 !important;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-btns button {
+                width: 100%;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
+
 <body>
 
-<div class="card">
-  <h2><i class="fas fa-file-upload"></i> رفع واستيراد بيانات الإكسيل</h2>
-  
-  <div class="form-row">
-    <div class="form-group">
-      <label for="sheetType">نوع البيانات:</label>
-      <select id="sheetType">
-        <option value="A123" selected>A123 (عدادات محولات/مغذيات A1/A2/A3)</option>
-        <option value="A45">A45 (عدادات تركيبات A4/A5)</option>
-      </select>
+    <div class="container">
+        <h2>📊 Admin - رفع واستعراض البيانات</h2>
+
+        <!-- ==================== قسم استعراض بيانات الصلاحيات ==================== -->
+        <div class="section-divider">
+            <h3><i class="fas fa-lock"></i> استعراض وتعديل صلاحيات المستخدمين</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sectorSelect">اختر القطاع:</label>
+                    <select id="sectorSelect">
+                        <option value="1">قطاع دمياط</option>
+                        <option value="2">قطاع شمال الدقهلية</option>
+                        <option value="3">قطاع جنوب الدقهلية</option>
+                        <option value="4">قطاع كفر الشيخ</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn-primary" id="btnFetchAuth" style="width:100%;">
+                        <i class="fas fa-sync-alt"></i> جلب الصلاحيات
+                    </button>
+                </div>
+            </div>
+
+            <div id="authStatus" class="status-msg"></div>
+
+            <div class="table-container" id="authTableContainer">
+                <table id="authTable">
+                    <thead>
+                        <tr>
+                            <th style="position:sticky;right:0;background:#f1f5f9;z-index:11;width:100px;">Handsa Code</th>
+                            <th style="position:sticky;right:0;background:#f1f5f9;z-index:11;">Handsa Name</th>
+                            <th style="position:sticky;right:0;background:#f1f5f9;z-index:11;width:350px;">كلمات المرور حسب جهة الدخول</th>
+                            <th style="position:sticky;right:0;background:#f1f5f9;z-index:11;width:180px;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="authBody">
+                        <tr>
+                            <td colspan="4" style="text-align:center;color:#94a3b8;padding:30px;">اختر قطاع واضغط "جلب الصلاحيات"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== قسم رفع البيانات ==================== -->
+        <div>
+            <h3><i class="fas fa-file-upload"></i> رفع بيانات الإكسيل</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="excelFile">اختر ملف الإكسيل:</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" />
+                </div>
+                <div class="form-group">
+                    <label for="uploadKey">المفتاح لتجنب التكرار:</label>
+                    <select id="uploadKey">
+                        <option value="meter_number">meter_number</option>
+                        <option value="sim_number">sim_number</option>
+                    </select>
+                    <div style="font-size:12px;color:#64748b;margin-top:4px;">
+                        <i class="fas fa-info-circle"></i> سيتم التحقق من التكرار بناءً على هذا المفتاح
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn-success" id="btnUpload" style="width:100%;">
+                        <i class="fas fa-cloud-upload-alt"></i> رفع البيانات
+                    </button>
+                </div>
+            </div>
+
+            <!-- Internal Duplicates Warning -->
+            <div id="internalDuplicateWarning" class="duplicate-warning internal" style="display:none;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="font-size:1.5rem;">🚫</span>
+                    <div>
+                        <strong>⚠️ تم العثور على <span class="count" id="internalDuplicateCount">0</span> سجل مكرر داخل الملف</strong>
+                        <div style="font-size:13px;color:#991b1b;margin-top:4px;" id="internalDuplicateList"></div>
+                        <div style="font-size:12px;color:#991b1b;margin-top:4px;">
+                            <strong>ملاحظة:</strong> يجب إزالة المكررات من الملف قبل الرفع، أو اختيار مفتاح تكرار مختلف.
+                        </div>
+                    </div>
+                </div>
+                <div class="action-btns" style="margin-top:10px;">
+                    <button class="btn btn-danger btn-sm" id="btnCancelUploadInternal" style="width:auto;">
+                        <i class="fas fa-times"></i> إلغاء الرفع
+                    </button>
+                    <button class="btn btn-warning btn-sm" id="btnUploadWithInternalDuplicates" style="width:auto;">
+                        <i class="fas fa-exclamation-triangle"></i> الرفع مع السماح بالتكرار
+                    </button>
+                </div>
+            </div>
+
+            <!-- External Duplicates Warning -->
+            <div id="externalDuplicateWarning" class="duplicate-warning" style="display:none;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="font-size:1.2rem;">⚠️</span>
+                    <div>
+                        <strong>تم العثور على <span class="count" id="externalDuplicateCount">0</span> سجل مكرر في قاعدة البيانات</strong>
+                        <div style="font-size:13px;color:#92400e;margin-top:4px;" id="externalDuplicateList"></div>
+                    </div>
+                </div>
+                <div class="action-btns" style="margin-top:10px;">
+                    <button class="btn btn-success btn-sm" id="btnUploadDuplicates" style="width:auto;">
+                        <i class="fas fa-cloud-upload-alt"></i> رفع المكررات (استبدال)
+                    </button>
+                    <button class="btn btn-secondary btn-sm" id="btnSkipDuplicates" style="width:auto;">
+                        <i class="fas fa-skip"></i> تخطي المكررات
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="btnCancelUpload" style="width:auto;">
+                        <i class="fas fa-times"></i> إلغاء
+                    </button>
+                </div>
+            </div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+
+            <div id="uploadStatus" style="margin-top:10px;padding:10px;border-radius:8px;display:none;"></div>
+
+            <div id="uploadPreviewArea" style="display:none;">
+                <div class="action-btns">
+                    <button class="btn btn-success" id="btnUploadConfirm" disabled><i class="fas fa-cloud-upload-alt"></i> تأكيد الرفع</button>
+                    <button class="btn btn-secondary" id="btnCancelUploadPreview"><i class="fas fa-times"></i> إلغاء</button>
+                </div>
+                <div class="table-container" style="max-height:200px; margin-top:10px;">
+                    <table>
+                        <thead>
+                            <tr id="uploadHeader"></tr>
+                        </thead>
+                        <tbody id="uploadBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="form-group">
-      <label for="excelFile">اختر ملف الإكسيل:</label>
-      <input type="file" id="excelFile" accept=".xlsx, .xls" />
-    </div>
-  </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  <div id="status"></div>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+            authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
+            projectId: "trial-85",
+            storageBucket: "trial-85.firebasestorage.app",
+            messagingSenderId: "660343156279",
+            appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+            measurementId: "G-RLMVPCLZW3"
+        };
 
-  <div id="previewArea" style="display:none;">
-    <div class="summary-stats">
-      <div class="stat-item">
-        <span class="number" id="totalRowsCount">0</span>
-        <span class="label">إجمالي السجلات</span>
-      </div>
-      <div class="stat-item">
-        <span class="number" id="validRowsCount">0</span>
-        <span class="label">سجلات صالحة</span>
-      </div>
-    </div>
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    <div class="table-container">
-      <table id="previewTable">
-        <thead>
-          <tr id="tableHeader"></tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+        // ==================== District Names Mapping ====================
+        const districtNames = {
+            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج',
+            '104': 'هندسة كفر سعد', '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر',
+            '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا', '109': 'هندسة فارسكور',
+            '110': 'هندسة الروضة', '111': 'هندسة الشعراء',
+            '201': 'هندسة مدينة شربين', '202': 'هندسة قري شربين', '203': 'هندسة دكرنس',
+            '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس', '206': 'هندسة مدينة بلقاس',
+            '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر',
+            '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة',
+            '213': 'هندسة مدينة المنزلة', '214': 'هندسة المطرية',
+            '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا',
+            '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2',
+            '307': 'هندسة اجا', '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين',
+            '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر', '312': 'هندسة قري ميت غمر',
+            '313': 'هندسة كوم النور',
+            '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ', '403': 'هندسة شرق كفر الشيخ',
+            '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم',
+            '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق',
+            '410': 'هندسة قرى جنوب دسوق', '411': 'هندسة فوه', '412': 'هندسة مطوبس',
+            '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول', '415': 'هندسة بيلا',
+            '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+        };
 
-    <div class="action-btns">
-      <button class="btn btn-success" id="btnUpload"><i class="fas fa-cloud-upload-alt"></i> رفع البيانات إلى الفايربيز</button>
-      <button class="btn btn-secondary" id="btnCancel"><i class="fas fa-times"></i> إلغاء</button>
-    </div>
-  </div>
-</div>
+        // ==================== استعراض الصلاحيات ====================
+        function getDistrictsForSector(sectorId) {
+            const sector = parseInt(sectorId);
+            const allDistricts = Object.keys(districtNames);
+            if (sector === 1) return allDistricts.filter(d => parseInt(d) >= 101 && parseInt(d) <= 111);
+            if (sector === 2) return allDistricts.filter(d => parseInt(d) >= 201 && parseInt(d) <= 214);
+            if (sector === 3) return allDistricts.filter(d => parseInt(d) >= 301 && parseInt(d) <= 313);
+            if (sector === 4) return allDistricts.filter(d => parseInt(d) >= 401 && parseInt(d) <= 417);
+            return [];
+        }
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        function showStatus(msg, type = 'info', target = 'authStatus') {
+            const s = document.getElementById(target);
+            s.textContent = msg;
+            s.className = `status-msg ${type}`;
+            s.style.display = 'block';
+            setTimeout(() => {
+                s.style.display = 'none';
+            }, 4000);
+        }
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
-    authDomain: "trial-85.firebaseapp.com",
-    databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
-    projectId: "trial-85",
-    storageBucket: "trial-85.firebasestorage.app",
-    messagingSenderId: "660343156279",
-    appId: "1:660343156279:web:3275f5d3da7721a35259b2",
-    measurementId: "G-RLMVPCLZW3"
-  };
+        async function fetchAuthData() {
+            const sectorId = document.getElementById('sectorSelect').value;
+            const authBody = document.getElementById('authBody');
+            authBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">جاري التحميل...</td></tr>';
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+            try {
+                const authRef = ref(db, `auth_sectors/${sectorId}/districts`);
+                const snapshot = await get(authRef);
 
-  let parsedData = [];
+                const districts = getDistrictsForSector(sectorId);
+                let html = '';
+                let authData = {};
 
-  const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+                if (snapshot.exists()) {
+                    authData = snapshot.val();
+                }
 
-  // Converts Excel serial numbers (like 46130) or JS Date objects into DD/MM/YYYY
-  function convertExcelDateToDDMMYYYY(val) {
-    if (!val) return '';
+                for (const districtId of districts) {
+                    const districtName = districtNames[districtId] || `هندسة ${districtId}`;
 
-    // If SheetJS extracted it as a JavaScript Date object
-    if (val instanceof Date && !isNaN(val)) {
-      const day = String(val.getDate()).padStart(2, '0');
-      const month = String(val.getMonth() + 1).padStart(2, '0');
-      const year = val.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
+                    const userTypePasswords = {
+                        "المعمل": [],
+                        "الهندسات": []
+                    };
 
-    // If value is a numeric string or serial number (e.g., 46130)
-    const num = Number(val);
-    if (!isNaN(num) && num > 10000) {
-      const dateObj = new Date(Math.round((num - 25569) * 86400000));
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const year = dateObj.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
+                    if (authData[districtId] && typeof authData[districtId] === 'object') {
+                        const distObj = authData[districtId];
+                        
+                        ['المعمل', 'الهندسات'].forEach(type => {
+                            if (distObj[type] && typeof distObj[type] === 'object') {
+                                for (const pwd of Object.keys(distObj[type])) {
+                                    if (distObj[type][pwd] === true) {
+                                        userTypePasswords[type].push(pwd);
+                                    }
+                                }
+                            }
+                        });
+                    }
 
-    return norm(val);
-  }
+                    let userDisplay = '';
+                    const hasLab = userTypePasswords['المعمل'].length > 0;
+                    const hasEng = userTypePasswords['الهندسات'].length > 0;
 
-  function showStatus(msg, type = 'info') {
-    const s = document.getElementById('status');
-    s.textContent = msg;
-    s.className = type;
-    s.style.display = 'block';
-  }
+                    if (hasLab || hasEng) {
+                        if (hasLab) {
+                            userDisplay += `
+                                <div class="type-group">
+                                    <span class="type-title">🧪 المعمل:</span>
+                                    ${userTypePasswords['المعمل'].map(p => `<span class="user-tag" data-user="${p}">${p}</span>`).join(' ')}
+                                </div>`;
+                        } else {
+                            userDisplay += `
+                                <div class="type-group">
+                                    <span class="type-title">🧪 المعمل:</span>
+                                    <span class="badge badge-red">❌ غير مسجل</span>
+                                </div>`;
+                        }
 
-  document.getElementById('excelFile').addEventListener('change', handleFileSelect);
+                        if (hasEng) {
+                            userDisplay += `
+                                <div class="type-group">
+                                    <span class="type-title">⚡ الهندسات:</span>
+                                    ${userTypePasswords['الهندسات'].map(p => `<span class="user-tag" data-user="${p}">${p}</span>`).join(' ')}
+                                </div>`;
+                        } else {
+                            userDisplay += `
+                                <div class="type-group">
+                                    <span class="type-title">⚡ الهندسات:</span>
+                                    <span class="badge badge-red">❌ غير مسجل</span>
+                                </div>`;
+                        }
+                    } else {
+                        userDisplay = '<span class="badge badge-red">❌ غير مصرح</span>';
+                    }
 
-  function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+                    const labPwdsStr = userTypePasswords['المعمل'].join(', ');
+                    const engPwdsStr = userTypePasswords['الهندسات'].join(', ');
 
-    showStatus("جاري قراءة ومعالجة ملف الإكسيل...", "info");
+                    html += `
+                    <tr id="row-${districtId}">
+                        <td><strong>${districtId}</strong></td>
+                        <td>${districtName}</td>
+                        <td class="users-cell" data-district="${districtId}">
+                            <div class="users-list" id="users-list-${districtId}">
+                                ${userDisplay}
+                            </div>
+                            <div class="edit-container" id="edit-container-${districtId}" style="display:none; margin-top:5px;">
+                                <div style="margin-bottom:6px;">
+                                    <label style="font-size:12px; margin-bottom:2px;">🧪 كلمة مرور المعمل:</label>
+                                    <input type="text" class="edit-input" id="edit-input-lab-${districtId}" value="${labPwdsStr}" placeholder="كلمة مرور المعمل" />
+                                </div>
+                                <div style="margin-bottom:6px;">
+                                    <label style="font-size:12px; margin-bottom:2px;">⚡ كلمة مرور الهندسات:</label>
+                                    <input type="text" class="edit-input" id="edit-input-eng-${districtId}" value="${engPwdsStr}" placeholder="كلمة مرور الهندسات" />
+                                </div>
+                                <button class="btn-sm btn-success" onclick="saveUserEdit('${districtId}')" style="margin-top:3px;">💾 حفظ</button>
+                                <button class="btn-sm btn-secondary" onclick="cancelEdit('${districtId}')" style="margin-top:3px;">✖ إلغاء</button>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn-sm btn-warning" onclick="editUser('${districtId}')">
+                                <i class="fas fa-edit"></i> تعديل
+                            </button>
+                            <button class="btn-sm btn-danger" onclick="deleteAllUsers('${districtId}')" style="margin-right:5px;">
+                                <i class="fas fa-trash"></i> حذف الكل
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                }
 
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        
-        // Pass cellDates: true to parse Excel serial dates correctly
-        const workbook = XLSX.read(data, { 
-          type: 'array',
-          cellDates: true,
-          dateNF: 'dd/mm/yyyy'
+                authBody.innerHTML = html;
+
+            } catch (err) {
+                console.error(err);
+                authBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">خطأ في جلب البيانات</td></tr>';
+            }
+        }
+
+        window.editUser = function (districtId) {
+            document.querySelectorAll('.edit-container').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            const container = document.getElementById(`edit-container-${districtId}`);
+            container.style.display = 'block';
+
+            const row = document.getElementById(`row-${districtId}`);
+            row.classList.add('edit-mode');
+        };
+
+        window.saveUserEdit = async function (districtId) {
+            const labInput = document.getElementById(`edit-input-lab-${districtId}`).value.trim();
+            const engInput = document.getElementById(`edit-input-eng-${districtId}`).value.trim();
+
+            const labUsers = labInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+            const engUsers = engInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+
+            if (labUsers.length === 0 && engUsers.length === 0) {
+                showStatus('يرجى إدخال كلمة مرور واحدة على الأقل لإحدى الجهات', 'error');
+                return;
+            }
+
+            const sectorId = document.getElementById('sectorSelect').value;
+
+            try {
+                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${districtId}`);
+                await remove(districtRef);
+
+                const updates = {};
+                if (labUsers.length > 0) {
+                    updates['المعمل'] = {};
+                    labUsers.forEach(u => updates['المعمل'][u] = true);
+                }
+                if (engUsers.length > 0) {
+                    updates['الهندسات'] = {};
+                    engUsers.forEach(u => updates['الهندسات'][u] = true);
+                }
+
+                await set(districtRef, updates);
+
+                showStatus(`✅ تم تحديث كلمات المرور بنجاح للمنطقة ${districtId}`, 'success');
+
+                cancelEdit(districtId);
+                await fetchAuthData();
+            } catch (err) {
+                showStatus('خطأ في تحديث البيانات: ' + err.message, 'error');
+                console.error(err);
+            }
+        };
+
+        window.cancelEdit = function (districtId) {
+            const container = document.getElementById(`edit-container-${districtId}`);
+            container.style.display = 'none';
+
+            const row = document.getElementById(`row-${districtId}`);
+            row.classList.remove('edit-mode');
+        };
+
+        window.deleteAllUsers = async function (districtId) {
+            if (!confirm(`هل أنت متأكد من حذف جميع كلمات المرور من هذه المنطقة (${districtId})؟`)) return;
+
+            const sectorId = document.getElementById('sectorSelect').value;
+
+            try {
+                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${districtId}`);
+                await remove(districtRef);
+
+                showStatus(`✅ تم حذف جميع كلمات المرور بنجاح`, 'success');
+                await fetchAuthData();
+            } catch (err) {
+                showStatus('خطأ في حذف البيانات: ' + err.message, 'error');
+                console.error(err);
+            }
+        };
+
+        document.getElementById('btnFetchAuth').addEventListener('click', fetchAuthData);
+
+        // ==================== رفع البيانات مع التحقق من التكرار ====================
+        let uploadData = [];
+        let internalDuplicateKeys = [];
+        let internalDuplicateRecords = [];
+        let externalDuplicateKeys = [];
+        let externalDuplicateRecords = [];
+        let uploadKey = 'meter_number';
+
+        const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+        function convertExcelDateToDDMMYYYY(val) {
+            if (!val) return '';
+            if (val instanceof Date && !isNaN(val)) {
+                const day = String(val.getDate()).padStart(2, '0');
+                const month = String(val.getMonth() + 1).padStart(2, '0');
+                const year = val.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            const num = Number(val);
+            if (!isNaN(num) && num > 10000) {
+                const dateObj = new Date(Math.round((num - 25569) * 86400000));
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            const strVal = String(val);
+            const dateMatch = strVal.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+                return `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
+            }
+            return norm(val);
+        }
+
+        const columnMapping = {
+            'meter_number': 'meter_number',
+            'sim_number': 'sim_number',
+            'facility': 'facility',
+            'facility_capacity': 'facility_capacity',
+            'facility_code': 'facility_code',
+            'facility_type': 'facility_type',
+            'address': 'address',
+            'install_date': 'install_date',
+            'feeder': 'feeder',
+            'feeder_code': 'feeder_code',
+            'dp': 'dp',
+            'keta3': 'keta3',
+            'handsa': 'handsa',
+            'lat': 'lat',
+            'lng': 'lng',
+            'meter_type': 'meter_type',
+            'keta3_id': 'keta3_id',
+            'handsa_code': 'handsa_code',
+            'meter_voltage': 'meter_voltage'
+        };
+
+        const sectorNames = {
+            '1': 'قطاع دمياط',
+            '2': 'قطاع شمال الدقهلية',
+            '3': 'قطاع جنوب الدقهلية',
+            '4': 'قطاع كفر الشيخ'
+        };
+
+        // ==================== INTERNAL DUPLICATE DETECTION ====================
+        function findInternalDuplicates(records, key) {
+            const seen = new Map();
+            const duplicates = [];
+            const duplicateValues = new Set();
+
+            for (const record of records) {
+                const value = record[key];
+                if (!value) continue;
+
+                if (seen.has(value)) {
+                    if (!duplicateValues.has(value)) {
+                        duplicateValues.add(value);
+                        duplicates.push({
+                            value: value,
+                            first: seen.get(value),
+                            duplicate: record
+                        });
+                    }
+                } else {
+                    seen.set(value, record);
+                }
+            }
+
+            return duplicates;
+        }
+
+        // ==================== EXTERNAL DUPLICATE DETECTION ====================
+        async function checkExternalDuplicatesOptimized(records, key) {
+            const duplicateKeysList = [];
+            const duplicateRecordsList = [];
+
+            const pathGroups = {};
+            for (const record of records) {
+                const keyValue = record[key];
+                if (!keyValue) continue;
+
+                const keta3Id = record['keta3_id'] || '1';
+                const handsaCode = record['handsa_code'] || '101';
+                const path = `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${keyValue}`;
+
+                if (!pathGroups[path]) {
+                    pathGroups[path] = [];
+                }
+                pathGroups[path].push({ record, keyValue });
+            }
+
+            const checkPromises = Object.entries(pathGroups).map(async ([path, items]) => {
+                try {
+                    const snapshot = await get(ref(db, path));
+                    const exists = snapshot.exists();
+                    if (exists) {
+                        for (const item of items) {
+                            duplicateKeysList.push(item.keyValue);
+                            duplicateRecordsList.push(item.record);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Error checking path:', path, err);
+                }
+            });
+
+            await Promise.all(checkPromises);
+
+            return { duplicateKeysList, duplicateRecordsList };
+        }
+
+        // ==================== PROCESS FILE ====================
+        document.getElementById('excelFile').addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('uploadStatus');
+            status.innerHTML = 'جاري قراءة الملف...';
+            status.className = 'info';
+            status.style.display = 'block';
+
+            document.getElementById('btnUploadConfirm').disabled = true;
+            document.getElementById('btnUploadDuplicates').disabled = true;
+            document.getElementById('btnSkipDuplicates').disabled = true;
+
+            document.getElementById('internalDuplicateWarning').style.display = 'none';
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = async function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                    if (json.length === 0) {
+                        status.textContent = 'الملف فارغ';
+                        status.className = 'error';
+                        return;
+                    }
+
+                    uploadData = json.map(row => {
+                        const record = {};
+                        for (const [excelCol, dbKey] of Object.entries(columnMapping)) {
+                            let value = row[excelCol];
+                            if (value !== undefined && value !== null && value !== '') {
+                                if (dbKey === 'install_date') {
+                                    record[dbKey] = convertExcelDateToDDMMYYYY(value);
+                                } else {
+                                    record[dbKey] = norm(String(value));
+                                }
+                            }
+                        }
+                        if (!record['keta3'] && record['keta3_id']) {
+                            record['keta3'] = sectorNames[record['keta3_id']] || `قطاع ${record['keta3_id']}`;
+                        }
+                        if (!record['handsa'] && record['handsa_code']) {
+                            record['handsa'] = districtNames[record['handsa_code']] || `هندسة ${record['handsa_code']}`;
+                        }
+                        if (!record['meter_type']) {
+                            record['meter_type'] = 'A4';
+                        }
+                        if (!record['meter_voltage']) {
+                            record['meter_voltage'] = (record['meter_type'] === 'A4' || record['meter_type'] === 'A5') ? '380' : '110';
+                        }
+                        return record;
+                    });
+
+                    const header = document.getElementById('uploadHeader');
+                    const body = document.getElementById('uploadBody');
+                    header.innerHTML = '';
+                    body.innerHTML = '';
+
+                    const cols = Object.keys(uploadData[0] || {});
+
+                    cols.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col;
+                        header.appendChild(th);
+                    });
+
+                    const key = document.getElementById('uploadKey').value;
+
+                    const internalDupes = findInternalDuplicates(uploadData, key);
+                    internalDuplicateKeys = internalDupes.map(d => d.value);
+                    internalDuplicateRecords = internalDupes.map(d => d.duplicate);
+
+                    uploadData.slice(0, 10).forEach((row) => {
+                        const tr = document.createElement('tr');
+                        const keyValue = row[key];
+                        const isDuplicate = internalDuplicateKeys.includes(keyValue);
+
+                        if (isDuplicate) {
+                            tr.classList.add('internal-duplicate-row');
+                        }
+
+                        cols.forEach(col => {
+                            const td = document.createElement('td');
+                            let displayText = String(row[col] ?? '').slice(0, 30);
+                            if (col === key && isDuplicate) {
+                                displayText += ' ⚠️ مكرر';
+                            }
+                            td.textContent = displayText;
+                            tr.appendChild(td);
+                        });
+                        body.appendChild(tr);
+                    });
+
+                    document.getElementById('uploadPreviewArea').style.display = 'block';
+
+                    const hasInternalDuplicates = internalDuplicateKeys.length > 0;
+
+                    if (hasInternalDuplicates) {
+                        const warningDiv = document.getElementById('internalDuplicateWarning');
+                        warningDiv.style.display = 'block';
+                        document.getElementById('internalDuplicateCount').textContent = internalDuplicateKeys.length;
+
+                        const displayList = internalDuplicateKeys.slice(0, 10).join('، ');
+                        document.getElementById('internalDuplicateList').textContent =
+                            `المفاتيح المكررة داخل الملف: ${displayList}${internalDuplicateKeys.length > 10 ? ` ... و ${internalDuplicateKeys.length - 10} أكثر` : ''}`;
+
+                        status.innerHTML = `🚫 تم العثور على ${internalDuplicateKeys.length} سجل مكرر داخل الملف`;
+                        status.className = 'error';
+
+                        document.getElementById('btnUploadWithInternalDuplicates').style.display = 'inline-block';
+                        document.getElementById('btnUploadConfirm').disabled = true;
+                        document.getElementById('btnUploadDuplicates').disabled = true;
+                        document.getElementById('btnSkipDuplicates').disabled = true;
+
+                        await checkExternalDuplicatesAndShow();
+                        return;
+                    }
+
+                    await checkExternalDuplicatesAndShow();
+
+                } catch (err) {
+                    status.textContent = 'خطأ: ' + err.message;
+                    status.className = 'error';
+                    console.error(err);
+                    document.getElementById('btnUploadConfirm').disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
         });
 
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+        async function checkExternalDuplicatesAndShow() {
+            const key = document.getElementById('uploadKey').value;
+            uploadKey = key;
 
-        if (json.length === 0) {
-          showStatus("الملف فارغ أو يفتقر إلى بيانات صالحة", "error");
-          return;
+            const status = document.getElementById('uploadStatus');
+            status.innerHTML = `<span class="checking-spinner"></span> جاري التحقق من التكرار في قاعدة البيانات...`;
+            status.className = 'loading';
+            status.style.display = 'block';
+
+            document.getElementById('btnUploadConfirm').disabled = true;
+            document.getElementById('btnUploadDuplicates').disabled = true;
+            document.getElementById('btnSkipDuplicates').disabled = true;
+
+            const warningDiv = document.getElementById('externalDuplicateWarning');
+            warningDiv.style.display = 'none';
+
+            try {
+                const result = await checkExternalDuplicatesOptimized(uploadData, key);
+
+                externalDuplicateKeys = result.duplicateKeysList;
+                externalDuplicateRecords = result.duplicateRecordsList;
+
+                if (externalDuplicateKeys.length > 0) {
+                    warningDiv.style.display = 'block';
+                    document.getElementById('externalDuplicateCount').textContent = externalDuplicateKeys.length;
+
+                    const displayList = externalDuplicateKeys.slice(0, 10).join('، ');
+                    document.getElementById('externalDuplicateList').textContent =
+                        `المفاتيح المكررة في قاعدة البيانات: ${displayList}${externalDuplicateKeys.length > 10 ? ` ... و ${externalDuplicateKeys.length - 10} أكثر` : ''}`;
+
+                    status.innerHTML = `⚠️ تم العثور على ${externalDuplicateKeys.length} سجل مكرر في قاعدة البيانات`;
+                    status.className = 'warning';
+
+                    document.getElementById('btnUploadConfirm').disabled = true;
+                    document.getElementById('btnUploadDuplicates').disabled = false;
+                    document.getElementById('btnSkipDuplicates').disabled = false;
+                } else {
+                    warningDiv.style.display = 'none';
+                    status.innerHTML = `✅ لا توجد سجلات مكررة. يمكنك الرفع بأمان.`;
+                    status.className = 'success';
+
+                    document.getElementById('btnUploadConfirm').disabled = false;
+                    document.getElementById('btnUploadDuplicates').disabled = true;
+                    document.getElementById('btnSkipDuplicates').disabled = true;
+                }
+
+            } catch (err) {
+                console.error('Error checking external duplicates:', err);
+                status.innerHTML = 'خطأ في التحقق من التكرار: ' + err.message;
+                status.className = 'error';
+                document.getElementById('btnUploadConfirm').disabled = false;
+                document.getElementById('btnUploadDuplicates').disabled = false;
+                document.getElementById('btnSkipDuplicates').disabled = false;
+            }
         }
 
-        parsedData = json;
-        renderPreview();
-        showStatus(`تم التحميل بنجاح. تم العثور على ${parsedData.length} سجل.`, "success");
-      } catch (err) {
-        showStatus("حدث خطأ أثناء قراءة الملف: " + err.message, "error");
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
+        // ==================== UPLOAD FUNCTIONS ====================
+        async function performUpload(skipDuplicates = false) {
+            if (uploadData.length === 0) {
+                showStatus('لا توجد بيانات للرفع', 'error', 'uploadStatus');
+                return;
+            }
 
-  function renderPreview() {
-    if (parsedData.length === 0) return;
+            const status = document.getElementById('uploadStatus');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
 
-    const sheetType = document.getElementById('sheetType').value;
-    const headerTr = document.getElementById('tableHeader');
-    const tbody = document.getElementById('tableBody');
+            status.textContent = 'جاري الرفع إلى قاعدة البيانات...';
+            status.className = 'info';
+            status.style.display = 'block';
 
-    headerTr.innerHTML = '';
-    tbody.innerHTML = '';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressFill.textContent = '0%';
 
-    const cols = Object.keys(parsedData[0]);
-    cols.forEach(col => {
-      const th = document.createElement('th');
-      th.textContent = col;
-      headerTr.appendChild(th);
-    });
+            document.getElementById('btnUploadConfirm').disabled = true;
+            document.getElementById('btnUploadDuplicates').disabled = true;
+            document.getElementById('btnSkipDuplicates').disabled = true;
+            document.getElementById('btnUploadWithInternalDuplicates').disabled = true;
 
-    parsedData.slice(0, 15).forEach(row => {
-      const tr = document.createElement('tr');
-      cols.forEach(col => {
-        const td = document.createElement('td');
-        const rawVal = row[col];
-        
-        // Check if the column is a date field for preview formatting
-        if (col === 'install_date' || col === 'تاريخ التركيب') {
-          td.textContent = convertExcelDateToDDMMYYYY(rawVal);
-        } else {
-          td.textContent = norm(rawVal);
+            let successCount = 0;
+            let errorCount = 0;
+            let skippedCount = 0;
+            let errors = [];
+            const total = uploadData.length;
+
+            const key = document.getElementById('uploadKey').value;
+            const duplicateKeySet = new Set(externalDuplicateKeys);
+
+            const allUploads = [];
+            let processed = 0;
+
+            for (const record of uploadData) {
+                const keyValue = record[key];
+
+                if (skipDuplicates && duplicateKeySet.has(keyValue)) {
+                    skippedCount++;
+                    processed++;
+                    const progress = Math.round((processed / total) * 100);
+                    progressFill.style.width = `${progress}%`;
+                    progressFill.textContent = `${progress}%`;
+                    status.textContent = `جاري الرفع... تخطي المكررات ${processed}/${total} (${progress}%)`;
+                    continue;
+                }
+
+                const meterNum = record['meter_number'] || `record_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                const keta3Id = record['keta3_id'] || '1';
+                const handsaCode = record['handsa_code'] || '101';
+
+                if (!keta3Id || !handsaCode) {
+                    errorCount++;
+                    errors.push(`سجل بدون keta3_id أو handsa_code: ${meterNum}`);
+                    processed++;
+                    continue;
+                }
+
+                const path = `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${meterNum}`;
+
+                const uploadPromise = set(ref(db, path), record)
+                    .then(() => {
+                        successCount++;
+                        processed++;
+                        const progress = Math.round((processed / total) * 100);
+                        progressFill.style.width = `${progress}%`;
+                        progressFill.textContent = `${progress}%`;
+                        status.textContent = `جاري الرفع... ${processed}/${total} (${progress}%)`;
+                    })
+                    .catch((err) => {
+                        errorCount++;
+                        processed++;
+                        errors.push(`${meterNum}: ${err.message}`);
+                        const progress = Math.round((processed / total) * 100);
+                        progressFill.style.width = `${progress}%`;
+                        progressFill.textContent = `${progress}%`;
+                        console.error(err);
+                    });
+                allUploads.push(uploadPromise);
+            }
+
+            await Promise.allSettled(allUploads);
+
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+            }, 1000);
+
+            let msg = `✅ تم رفع ${successCount} سجل بنجاح`;
+            if (skippedCount > 0) {
+                msg += `، تم تخطي ${skippedCount} سجل مكرر`;
+            }
+            if (errorCount > 0) {
+                msg += `، فشل ${errorCount} سجل`;
+                if (errors.length <= 5) {
+                    msg += `: ${errors.join('; ')}`;
+                }
+            }
+            status.textContent = msg;
+            status.className = errorCount > 0 && successCount === 0 ? 'error' : 'success';
+
+            document.getElementById('btnUploadConfirm').disabled = false;
+            document.getElementById('btnUploadDuplicates').disabled = false;
+            document.getElementById('btnSkipDuplicates').disabled = false;
+            document.getElementById('btnUploadWithInternalDuplicates').disabled = false;
+
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+            document.getElementById('internalDuplicateWarning').style.display = 'none';
         }
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
 
-    document.getElementById('totalRowsCount').textContent = parsedData.length;
-    document.getElementById('validRowsCount').textContent = parsedData.length;
-    document.getElementById('previewArea').style.display = 'block';
-  }
+        document.getElementById('btnUploadWithInternalDuplicates').addEventListener('click', async function () {
+            if (!confirm('⚠️ يوجد مكررات داخل الملف. هل أنت متأكد من المتابعة؟ قد يتسبب ذلك في مشاكل في البيانات.')) return;
+            await performUpload(false);
+        });
 
-  document.getElementById('btnUpload').addEventListener('click', async function() {
-    if (parsedData.length === 0) return;
+        document.getElementById('btnUploadConfirm').addEventListener('click', async function () {
+            const internalWarning = document.getElementById('internalDuplicateWarning');
+            if (internalWarning.style.display === 'block') {
+                return;
+            }
+            await performUpload(false);
+        });
 
-    showStatus("جاري رفع البيانات إلى قاعدة البيانات...", "info");
-    let successCount = 0;
-    let errorCount = 0;
+        document.getElementById('btnUploadDuplicates').addEventListener('click', async function () {
+            await performUpload(false);
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+        });
 
-    for (const item of parsedData) {
-      const meterNum = norm(item['meter_number'] || item['رقم العداد']);
-      const keta3Id = norm(item['keta3_id'] || item['القطاع'] || item['keta3']);
-      const handsaCode = norm(item['handsa_id'] || item['handsa_code'] || item['كود الهندسة'] || item['handsa']);
+        document.getElementById('btnSkipDuplicates').addEventListener('click', async function () {
+            await performUpload(true);
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+        });
 
-      if (!meterNum || !keta3Id || !handsaCode) {
-        errorCount++;
-        continue;
-      }
+        document.getElementById('btnCancelUpload').addEventListener('click', function () {
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+            uploadData = [];
+            document.getElementById('excelFile').value = '';
+            document.getElementById('uploadPreviewArea').style.display = 'none';
+            document.getElementById('uploadStatus').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('btnUploadConfirm').disabled = true;
+        });
 
-      const formattedRecord = {
-        "meter_number": meterNum,
-        "sim_number": norm(item['sim_number'] || item['رقم الشريحة']),
-        "meter_type": norm(item['meter_type'] || item['نوع العداد']),
-        "trans_type": norm(item['trans_type'] || item['نوع المحول']),
-        "trans_name": norm(item['trans_name'] || item['اسم المحول']),
-        "trans_capacity": norm(item['trans_capacity'] || item['قدرة المحول']),
-        "trans_code": norm(item['trans_code'] || item['كود المحول']),
-        "feeder_name": norm(item['feeder_name'] || item['feeder'] || item['اسم المغذي']),
-        "feeder_code": norm(item['feeder_code'] || item['كود المغذي']),
-        "panel_name": norm(item['panel_name'] || item['اسم لوحة التوزيع']),
-        "install_date": convertExcelDateToDDMMYYYY(item['install_date'] || item['تاريخ التركيب']),
-        "address": norm(item['address'] || item['العنوان']),
-        "cell": norm(item['cell'] || item['اسم المغذي']),
-        "cell_code": norm(item['cell_code'] || item['كود المغذي']),
-        "dp": norm(item['dp'] || item['اسم لوحة التوزيع']),
-        "sub_name": norm(item['sub_name'] || item['اسم المحطة']),
-        "sub_code": norm(item['sub_code'] || item['كود المحطة']),
-        "keta3": norm(item['keta3']),
-        "handsa": norm(item['handsa']),
-        "keta3_id": keta3Id,
-        "handsa_code": handsaCode,
-        "lat": norm(item['lat']),
-        "lng": norm(item['lng']),
-        "_uploaded_at": Date.now()
-      };
+        document.getElementById('btnCancelUploadInternal').addEventListener('click', function () {
+            document.getElementById('internalDuplicateWarning').style.display = 'none';
+            uploadData = [];
+            document.getElementById('excelFile').value = '';
+            document.getElementById('uploadPreviewArea').style.display = 'none';
+            document.getElementById('uploadStatus').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('btnUploadConfirm').disabled = true;
+        });
 
-      try {
-        const targetRef = ref(db, `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${meterNum}`);
-        await set(targetRef, formattedRecord);
-        successCount++;
-      } catch (err) {
-        errorCount++;
-      }
-    }
+        document.getElementById('btnCancelUploadPreview').addEventListener('click', function () {
+            uploadData = [];
+            document.getElementById('excelFile').value = '';
+            document.getElementById('uploadPreviewArea').style.display = 'none';
+            document.getElementById('uploadStatus').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('internalDuplicateWarning').style.display = 'none';
+            document.getElementById('externalDuplicateWarning').style.display = 'none';
+            document.getElementById('btnUploadConfirm').disabled = true;
+        });
 
-    showStatus(`اكتملت العملية: تم رفع ${successCount} سجل بنجاح${errorCount > 0 ? `، وتعذر رفع ${errorCount} سجل` : ''}.`, "success");
-  });
+        document.getElementById('uploadKey').addEventListener('change', function () {
+            if (uploadData.length > 0) {
+                const fileInput = document.getElementById('excelFile');
+                if (fileInput.files.length > 0) {
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            }
+        });
 
-  document.getElementById('btnCancel').addEventListener('click', function() {
-    parsedData = [];
-    document.getElementById('excelFile').value = '';
-    document.getElementById('previewArea').style.display = 'none';
-    document.getElementById('status').style.display = 'none';
-  });
-</script>
+        document.getElementById('btnUpload').addEventListener('click', function () {
+            document.getElementById('excelFile').click();
+        });
+
+        // ==================== التهيئة ====================
+        setTimeout(() => {
+            fetchAuthData();
+        }, 500);
+
+        console.log('Admin page loaded successfully.');
+    </script>
 
 </body>
+
 </html>
