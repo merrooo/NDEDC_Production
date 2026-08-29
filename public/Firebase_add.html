@@ -4,15 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Admin - Modern Dashboard</title>
+    <title>Firebase Admin - Excel Uploader</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=JetBrains+Mono&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --danger: #ef4444;
-            --danger-dark: #b91c1c;
             --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
             --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             --surface: #ffffff;
             --text-main: #1e293b;
@@ -49,7 +48,7 @@
         }
 
         .icon-wrapper {
-            background: #fff1f2;
+            background: #eff6ff;
             width: 60px;
             height: 60px;
             border-radius: 15px;
@@ -60,7 +59,7 @@
         }
 
         .header i {
-            color: var(--danger);
+            color: var(--primary);
             font-size: 1.8rem;
         }
 
@@ -77,10 +76,10 @@
             font-size: 0.95rem;
         }
 
-        .warning-box {
-            background: #fef2f2;
-            border: 1px solid #fee2e2;
-            border-right: 5px solid var(--danger);
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-right: 5px solid var(--primary);
             padding: 15px;
             border-radius: 12px;
             margin-bottom: 2rem;
@@ -88,7 +87,7 @@
             align-items: center;
             gap: 12px;
             font-size: 0.9rem;
-            color: #991b1b;
+            color: #1e40af;
         }
 
         .form-group {
@@ -124,12 +123,12 @@
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         }
 
-        .btn-destructive {
+        .btn-primary {
             width: 100%;
             padding: 16px;
             border: none;
             border-radius: 12px;
-            background: var(--danger);
+            background: var(--primary);
             color: white;
             font-size: 1rem;
             font-weight: 700;
@@ -139,27 +138,22 @@
             justify-content: center;
             align-items: center;
             gap: 12px;
-            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
         }
 
-        .btn-destructive:hover:not(:disabled) {
-            background: var(--danger-dark);
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
             transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.5);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
         }
 
-        .btn-destructive:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-destructive:disabled {
+        .btn-primary:disabled {
             background: #cbd5e1;
             box-shadow: none;
             cursor: not-allowed;
             opacity: 0.7;
         }
 
-        /* Terminal Style Console */
         .console-wrapper {
             margin-top: 2rem;
             background: #0f172a;
@@ -182,17 +176,9 @@
             border-radius: 50%;
         }
 
-        .dot.red {
-            background: #ff5f56;
-        }
-
-        .dot.yellow {
-            background: #ffbd2e;
-        }
-
-        .dot.green {
-            background: #27c93f;
-        }
+        .dot.red { background: #ff5f56; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #27c93f; }
 
         #logConsole {
             padding: 15px;
@@ -220,10 +206,6 @@
                 transform: rotate(360deg);
             }
         }
-
-        ::placeholder {
-            color: #94a3b8;
-        }
     </style>
 </head>
 
@@ -232,49 +214,44 @@
     <div class="admin-card">
         <div class="header">
             <div class="icon-wrapper">
-                <i class="fas fa-fire-alt"></i>
+                <i class="fas fa-file-excel"></i>
             </div>
-            <h1>مدير بيانات Firebase</h1>
-            <p>لوحة التحكم المتقدمة لحذف مسارات Realtime Database</p>
+            <h1>رفع ملف Excel إلى Firebase</h1>
+            <p>لوحة التحكم لتحميل وتخزين ملفات Excel داخل Realtime Database</p>
         </div>
 
-        <div class="warning-box">
-            <i class="fas fa-exclamation-triangle"></i>
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
             <div>
-                <strong>تنبيه أمني:</strong> تأكد من ضبط القواعد على <code>".write": true</code> مؤقتاً لتنفيذ العملية.
+                تأكد من اختيار ملف <code>.xlsx</code> أو <code>.xls</code> وتحديد المسار المطلوب للرفع.
             </div>
         </div>
 
         <div class="form-group">
-            <div class="form-group">
-                <label><i class="fas fa-code-branch"></i> إعدادات المشروع (JSON Config)</label>
-                <textarea id="firebaseConfigInput" rows="8" placeholder='const firebaseConfig = {
+            <label><i class="fas fa-code-branch"></i> إعدادات المشروع (JSON Config)</label>
+            <textarea id="firebaseConfigInput" rows="6" placeholder='const firebaseConfig = {
   "apiKey": "your-api-key",
   "authDomain": "your-app.firebaseapp.com",
   "databaseURL": "https://your-app.firebaseio.com",
-  "projectId": "your-project-id",
-  "storageBucket": "your-app.firebasestorage.app",
-  "messagingSenderId": "123456789",
-  "appId": "1:123456789:web:abcdef"
+  "projectId": "your-project-id"
 }'></textarea>
-            </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group">
                 <label><i class="fas fa-folder-open"></i> المسار المستهدف</label>
-                <input type="text" id="targetPath" value="/" placeholder="/users/data">
+                <input type="text" id="targetPath" value="/" placeholder="/uploads/excel_data">
             </div>
             <div class="form-group">
-                <label><i class="fas fa-key"></i> تأكيد الهوية</label>
-                <input type="text" id="confirmText" placeholder="اكتب DELETE للتفعيل">
+                <label><i class="fas fa-file-upload"></i> اختر ملف Excel</label>
+                <input type="file" id="excelFile" accept=".xlsx, .xls">
             </div>
         </div>
 
-        <button class="btn-destructive" id="startAction" disabled>
+        <button class="btn-primary" id="startAction" disabled>
             <span class="loader" id="loader"></span>
-            <span id="btnText">تنفيذ المسح النهائي</span>
-            <i class="fas fa-trash-alt"></i>
+            <span id="btnText">رفع البيانات</span>
+            <i class="fas fa-upload"></i>
         </button>
 
         <div class="console-wrapper">
@@ -282,28 +259,29 @@
                 <div class="dot red"></div>
                 <div class="dot yellow"></div>
                 <div class="dot green"></div>
-                <span
-                    style="color: #94a3b8; font-size: 0.7rem; margin-left: 10px; font-family: sans-serif;">Terminal</span>
+                <span style="color: #94a3b8; font-size: 0.7rem; margin-left: 10px; font-family: sans-serif;">Terminal</span>
             </div>
             <div id="logConsole">
-                <div id="logContent">> النظام جاهز... في انتظار الأوامر</div>
+                <div id="logContent">> النظام جاهز... حدد الملف والمسار ثم اضغط رفع</div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts remain largely the same, just keeping the IDs as they were -->
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         const btn = document.getElementById('startAction');
-        const confirmInput = document.getElementById('confirmText');
+        const fileInput = document.getElementById('excelFile');
         const loader = document.getElementById('loader');
         const btnText = document.getElementById('btnText');
         const logContent = document.getElementById('logContent');
 
-        confirmInput.addEventListener('input', (e) => {
-            btn.disabled = e.target.value.trim().toUpperCase() !== 'DELETE';
+        fileInput.addEventListener('change', () => {
+            btn.disabled = !fileInput.files.length;
         });
 
         function log(msg, type = 'info') {
@@ -315,40 +293,57 @@
             logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
         }
 
-        async function executePurge() {
-            const configText = document.getElementById('firebaseConfigInput').value; // الجديد
+        async function executeUpload() {
+            const configText = document.getElementById('firebaseConfigInput').value;
             const path = document.getElementById('targetPath').value.trim() || "/";
+            const file = fileInput.files[0];
+
+            if (!file) {
+                log("🛑 يرجى اختيار ملف Excel أولاً", "error");
+                return;
+            }
 
             btn.disabled = true;
             loader.style.display = 'inline-block';
-            btnText.innerText = "جاري الحذف...";
+            btnText.innerText = "جاري قراءة الملف...";
 
             try {
                 const jsonMatch = configText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) throw new Error("لم يتم العثور على صيغة JSON صحيحة");
+                if (!jsonMatch) throw new Error("لم يتم العثور على صيغة JSON صحيحة للتهيئة");
 
                 const config = new Function(`return ${jsonMatch[0]}`)();
 
                 if (firebase.apps.length) await firebase.app().delete();
                 firebase.initializeApp(config);
 
-                log(`بدء الاتصال... المسار المحدد: [${path}]`, 'warn');
+                // Read Excel File
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                await firebase.database().ref(path).remove();
+                log(`قراءة Sheet: [${firstSheetName}] بنجاح. عدد السجلات: ${jsonData.length}`, 'warn');
+                log(`بدء الاتصال بـ Firebase... المسار المحدد: [${path}]`, 'info');
 
-                log("✅ تم مسح البيانات بنجاح من الخادم.", "info");
-                confirmInput.value = "";
-                btnText.innerText = "اكتملت المهمة";
+                btnText.innerText = "جاري رفع البيانات...";
+
+                // Upload to Realtime Database using set()
+                await firebase.database().ref(path).set(jsonData);
+
+                log("✅ تم رفع البيانات إلى Realtime Database بنجاح.", "info");
+                btnText.innerText = "اكتملت العملية";
 
             } catch (err) {
                 log("🛑 خطأ: " + err.message, "error");
                 btnText.innerText = "فشل العملية";
             } finally {
                 loader.style.display = 'none';
+                btn.disabled = false;
             }
         }
 
-        btn.onclick = executePurge;
+        btn.onclick = executeUpload;
     </script>
 
 </body>
