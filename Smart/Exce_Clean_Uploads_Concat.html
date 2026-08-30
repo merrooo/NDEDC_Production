@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Persistent Excel Merger & Live Editor</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #107c41;
+      --bg: #f4f6f8;
+      --border: #d0d7de;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: #333;
+    }
+    h2 { margin-top: 0; color: var(--primary); }
+    .container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+    .file-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    .instructions {
+      font-size: 13px;
+      color: #444;
+      background: #eef7f2;
+      border-left: 4px solid var(--primary);
+      padding: 10px 14px;
+      margin-bottom: 15px;
+      border-radius: 2px;
+    }
+    .instructions ul { margin: 5px 0 0 18px; padding: 0; }
+    .table-container {
+      max-height: 650px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e0e0e0;
+      padding: 8px 12px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      background: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: grab;
+      user-select: none;
+    }
+    th.dragging {
+      opacity: 0.4;
+      background: #e2e8f0;
+    }
+    th.drag-over {
+      border-left: 4px solid var(--primary);
+    }
+    td.fillable {
+      cursor: pointer;
+    }
+    td.fillable:hover {
+      background-color: #f0fdf4;
+    }
+    .btn-main {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .btn-main:disabled { background: #ccc; cursor: not-allowed; }
+    .controls { display: flex; gap: 8px; margin-top: 10px; }
+    .controls button {
+      flex: 1;
+      padding: 6px;
+      background: #e9ecef;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Excel File Combiner & Live Interactive Editor</h2>
+
+  <div class="container">
+    <!-- Left Sidebar: Upload & Select Files -->
+    <div class="card">
+      <h3>1. Upload & Select Files</h3>
+      <input type="file" id="excelFiles" multiple accept=".xlsx, .xls" onchange="loadFiles(event)">
+      
+      <div class="controls">
+        <button onclick="toggleAll(true)">Check All</button>
+        <button onclick="toggleAll(false)">Uncheck All</button>
+      </div>
+
+      <div class="file-list" id="fileListCard">
+        <em>No files loaded yet.</em>
+      </div>
+
+      <button class="btn-main" id="exportBtn" onclick="exportExcel()" disabled>Download Final Excel File</button>
+    </div>
+
+    <!-- Right Panel: Interactive Table -->
+    <div class="card">
+      <h3>2. Live Data Table (All Rows Visible)</h3>
+      
+      <div class="instructions">
+        <strong>Direct Table Actions:</strong>
+        <ul>
+          <li><strong>Drag & Drop Column Header:</strong> Moves and transfers columns left or right automatically.</li>
+          <li><strong>Double-Click Header:</strong> Rename header name.</li>
+          <li><strong>Right-Click Header:</strong> Delete column immediately across all rows.</li>
+          <li><strong>Double-Click Any Data Cell:</strong> Apply its value down to all cells below in that column.</li>
+        </ul>
+      </div>
+
+      <div id="status">Upload files to display full preview.</div>
+      
+      <div class="table-container">
+        <table id="previewTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let filesMap = new Map();
+    let rawParsedData = [];
+    
+    // Master persistent state
+    let tableHeaders = [];
+    let tableRows = [];
+    let draggedColIdx = null;
+
+    async function loadFiles(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+
+      filesMap.clear();
+      rawParsedData = [];
+      const fileListCard = document.getElementById('fileListCard');
+      fileListCard.innerHTML = '';
+
+      document.getElementById('status').textContent = 'Reading and parsing files...';
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        filesMap.set(file.name, { file: file, checked: true });
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'file-item';
+        itemDiv.innerHTML = `
+          <input type="checkbox" id="file_${i}" checked onchange="onCheckboxChange('${file.name}', this.checked)">
+          <label for="file_${i}">${file.name}</label>
+        `;
+        fileListCard.appendChild(itemDiv);
+
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (json.length > 0) {
+          rawParsedData.push({
+            fileName: file.name,
+            headers: json[0],
+            rows: json.slice(1)
+          });
+        }
+      }
+
+      // First initial load builds working state
+      initializeMasterData();
+      document.getElementById('exportBtn').disabled = false;
+    }
+
+    function initializeMasterData() {
+      if (rawParsedData.length === 0) return;
+
+      const baseHeaders = rawParsedData[0].headers.slice();
+      baseHeaders.push("Source_File_Name");
+      tableHeaders = baseHeaders;
+
+      tableRows = [];
+      rawParsedData.forEach(item => {
+        item.rows.forEach(r => {
+          if (r.length > 0) {
+            const rowCopy = r.slice();
+            rowCopy.push(item.fileName);
+            tableRows.push(rowCopy);
+          }
+        });
+      });
+
+      renderTable();
+    }
+
+    function onCheckboxChange(fileName, isChecked) {
+      const fileObj = filesMap.get(fileName);
+      if (fileObj) fileObj.checked = isChecked;
+      renderTable(); // Filters display rows without destroying edits
+    }
+
+    function toggleAll(checkedState) {
+      filesMap.forEach((val) => val.checked = checkedState);
+      const checkboxes = document.querySelectorAll('.file-list input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = checkedState);
+      renderTable();
+    }
+
+    // Get active visible rows depending on file checkboxes
+    function getFilteredRows() {
+      return tableRows.filter(row => {
+        const sourceFileName = row[tableHeaders.indexOf("Source_File_Name")];
+        if (!sourceFileName) return true;
+        const fileState = filesMap.get(sourceFileName);
+        return fileState ? fileState.checked : true;
+      });
+    }
+
+    function renderTable() {
+      const thead = document.getElementById('tableHead');
+      const tbody = document.getElementById('tableBody');
+      const status = document.getElementById('status');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      const visibleRows = getFilteredRows();
+
+      if (visibleRows.length === 0) {
+        status.textContent = 'No data to display. Check at least one file.';
+        return;
+      }
+
+      status.textContent = `Displaying ALL ${visibleRows.length} total rows from checked files.`;
+
+      // Render Headers
+      const trHead = document.createElement('tr');
+      tableHeaders.forEach((header, index) => {
+        const th = document.createElement('th');
+        th.textContent = header || `Column ${index + 1}`;
+        th.draggable = true;
+        th.dataset.index = index;
+
+        // Drag & Drop events
+        th.addEventListener('dragstart', handleDragStart);
+        th.addEventListener('dragover', handleDragOver);
+        th.addEventListener('dragleave', handleDragLeave);
+        th.addEventListener('drop', handleDrop);
+        th.addEventListener('dragend', handleDragEnd);
+
+        // Rename on double click
+        th.addEventListener('dblclick', () => renameHeader(index));
+
+        // Delete on right click
+        th.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          deleteColumn(index);
+        });
+
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+
+      // Render ALL data rows without limit
+      visibleRows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        tableHeaders.forEach((_, colIdx) => {
+          const td = document.createElement('td');
+          td.textContent = row[colIdx] !== undefined ? row[colIdx] : '';
+          td.className = 'fillable';
+          
+          // Double click cell to fill down to all cells below
+          td.addEventListener('dblclick', () => fillDown(rowIndex, colIdx, visibleRows));
+          
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- Drag and Drop Logic (Reorder Columns) ---
+    function handleDragStart(e) {
+      draggedColIdx = parseInt(e.target.dataset.index);
+      e.target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const th = e.target.closest('th');
+      if (th) th.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      const th = e.target.closest('th');
+      if (th) th.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetTh = e.target.closest('th');
+      if (!targetTh) return;
+
+      const targetColIdx = parseInt(targetTh.dataset.index);
+      if (draggedColIdx === null || draggedColIdx === targetColIdx) return;
+
+      // Reorder Master Headers
+      const movedHeader = tableHeaders.splice(draggedColIdx, 1)[0];
+      tableHeaders.splice(targetColIdx, 0, movedHeader);
+
+      // Reorder Master Rows
+      tableRows.forEach(row => {
+        const movedVal = row.splice(draggedColIdx, 1)[0];
+        row.splice(targetColIdx, 0, movedVal);
+      });
+
+      renderTable();
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      document.querySelectorAll('th').forEach(th => th.classList.remove('drag-over'));
+    }
+
+    // --- Rename Header ---
+    function renameHeader(index) {
+      const currentName = tableHeaders[index];
+      const newName = prompt("Rename column header:", currentName);
+      if (newName !== null && newName.trim() !== "") {
+        tableHeaders[index] = newName.trim();
+        renderTable();
+      }
+    }
+
+    // --- Delete Column ---
+    function deleteColumn(index) {
+      if (tableHeaders.length <= 1) {
+        alert("Cannot delete the last column.");
+        return;
+      }
+      if (confirm(`Delete column "${tableHeaders[index]}"?`)) {
+        tableHeaders.splice(index, 1);
+        tableRows.forEach(row => row.splice(index, 1));
+        renderTable();
+      }
+    }
+
+    // --- Fill Down Logic ---
+    function fillDown(startRowIdx, colIdx, visibleRows) {
+      const valueToCopy = visibleRows[startRowIdx][colIdx];
+      const confirmAction = confirm(`Copy "${valueToCopy}" down to all rows below in this column?`);
+      if (confirmAction) {
+        for (let i = startRowIdx + 1; i < visibleRows.length; i++) {
+          visibleRows[i][colIdx] = valueToCopy;
+        }
+        renderTable();
+      }
+    }
+
+    // --- Export Workbook ---
+    function exportExcel() {
+      const activeRows = getFilteredRows();
+      const exportData = [tableHeaders, ...activeRows];
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Combined_Data");
+      XLSX.writeFile(wb, "combined_final_output.xlsx");
+    }
+  </script>
+</body>
+</html>

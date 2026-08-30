@@ -803,40 +803,51 @@
                 flex-direction: column;
                 text-align: center;
             }
+
             .header-left {
                 justify-content: center;
             }
+
             .table-controls {
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .search-group {
                 flex-direction: column;
             }
+
             .search-box {
                 max-width: 100%;
             }
+
             .upload-row {
                 flex-direction: column;
             }
+
             .upload-area-compact {
                 width: 100%;
             }
+
             .modal {
                 width: 95%;
                 padding: 15px;
             }
+
             .db-selector {
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .db-selector .select-wrapper {
                 max-width: 100%;
             }
+
             .path-input {
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .quick-upload-presets {
                 justify-content: center;
             }
@@ -880,14 +891,16 @@
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
-            
+
             <!-- Quick Upload Presets -->
             <div class="quick-upload-presets">
                 <span style="font-size:0.7rem;color:var(--secondary);font-weight:600;">⬆️ رفع سريع:</span>
-                <button class="preset-btn" onclick="quickSelectDb('dp_codes_completed')" title="رفع بيانات لوحات التوزيع">
+                <button class="preset-btn" onclick="quickSelectDb('dp_codes_completed')"
+                    title="رفع بيانات لوحات التوزيع">
                     <span class="icon">🖥️</span> DP Codes
                 </button>
-                <button class="preset-btn" onclick="quickSelectDb('cells_codes_completed_v2')" title="رفع بيانات المغذيات">
+                <button class="preset-btn" onclick="quickSelectDb('cells_codes_completed_v2')"
+                    title="رفع بيانات المغذيات">
                     <span class="icon">🔌</span> Cells Codes
                 </button>
                 <button class="preset-btn" onclick="quickSelectDb('sim_codes')" title="رفع بيانات شرائح SIM">
@@ -900,7 +913,7 @@
                     <span class="icon">⚡</span> TRF Codes
                 </button>
             </div>
-            
+
             <div id="pathDisplay" style="margin-top:8px;display:none;">
                 <span style="font-size:0.75rem;color:var(--secondary);">📂 المسار: </span>
                 <span id="currentPath" class="path-display">reference_data/</span>
@@ -931,195 +944,195 @@
         </div>
     </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, set, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get, set, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Load SheetJS for Excel parsing
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    script.onload = () => console.log('📊 SheetJS loaded');
-    document.head.appendChild(script);
+        // Load SheetJS for Excel parsing
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = () => console.log('📊 SheetJS loaded');
+        document.head.appendChild(script);
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
-        authDomain: "trial-85.firebaseapp.com",
-        databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
-        projectId: "trial-85",
-        storageBucket: "trial-85.firebasestorage.app",
-        messagingSenderId: "660343156279",
-        appId: "1:660343156279:web:3275f5d3da7721a35259b2",
-        measurementId: "G-RLMVPCLZW3"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const norm = v => String(v ?? '').trim();
-
-    // ==================== PRESET COLLECTIONS ====================
-    const PRESET_COLLECTIONS = {
-        'dp_codes_completed': {
-            label: 'DP Codes (لوحات التوزيع)',
-            icon: '🖥️',
-            file: 'DP_Codes_Completed.xlsx',
-            expectedColumns: ['handsa_code', 'dp', 'dp_code', 'x_coord', 'y_coord', 'own']
-        },
-        'cells_codes_completed_v2': {
-            label: 'Cells Codes (المغذيات)',
-            icon: '🔌',
-            file: 'Cells_Codes_Completed_v2.xlsx',
-            expectedColumns: ['handsa', 'handsa_code', 'cell_out_code', 'cell_out']
-        },
-        'sim_codes': {
-            label: 'SIM Codes (شرائح)',
-            icon: '📱',
-            file: 'sr.xlsx',
-            expectedColumns: ['sim', 'mobile_service']
-        },
-        'sub_codes': {
-            label: 'Sub Codes (المحطات)',
-            icon: '🏛️',
-            file: 'Sub_Codes.xlsx',
-            expectedColumns: ['sub', 'y', 'x', 'sub_code', 'dp', 'cell_incom', 'cell_out', 'keta3', 'keta3_code', 'handsa', 'handsa_code']
-        },
-        'trf_codes_completed': {
-            label: 'TRF Codes (المحولات)',
-            icon: '⚡',
-            file: 'TRF_Codes_Completed_v2.xlsx',
-            expectedColumns: ['handsa', 'handsa_code', 'trf_code', 'trf']
-        }
-    };
-
-    // ==================== QUICK SELECT ====================
-    window.quickSelectDb = function(dbName) {
-        const selector = document.getElementById('dbSelector');
-        // Check if the option exists
-        let optionExists = false;
-        for (let i = 0; i < selector.options.length; i++) {
-            if (selector.options[i].value === dbName) {
-                optionExists = true;
-                break;
-            }
-        }
-        
-        if (!optionExists) {
-            showStatus(`⚠️ قاعدة البيانات "${dbName}" غير موجودة. قم بإنشائها باستخدام "رفع أي بيانات" أولاً.`, 'error');
-            return;
-        }
-        
-        selector.value = dbName;
-        loadSelectedDatabase();
-        
-        // Highlight the preset button
-        document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            if (btn.textContent.includes(dbName.replace('_codes_completed', '').replace('_codes', '')) ||
-                btn.textContent.includes(dbName)) {
-                btn.classList.add('active');
-            }
-        });
-        
-        showStatus(`✅ تم التبديل إلى "${PRESET_COLLECTIONS[dbName]?.label || dbName}"`, 'success');
-    };
-
-    // ==================== LOAD REFERENCE DATABASES ====================
-    window.loadReferenceDatabases = function() {
-        const selector = document.getElementById('dbSelector');
-        selector.innerHTML = '<option value="">⏳ جاري التحميل...</option>';
-        selector.disabled = true;
-        updateSyncStatus(true);
-
-        const dbRef = ref(db, 'reference_data');
-        get(dbRef).then((snapshot) => {
-            if (snapshot.exists()) {
-                referenceDatabases = snapshot.val();
-                dbNames = Object.keys(referenceDatabases).sort();
-                populateSelector(dbNames);
-                showStatus(`✅ تم تحميل ${dbNames.length} قاعدة بيانات`, 'success');
-            } else {
-                selector.innerHTML = '<option value="">-- لا توجد قواعد بيانات --</option>';
-                showStatus('⚠️ لا توجد قواعد بيانات في reference_data', 'info');
-            }
-            selector.disabled = false;
-            updateSyncStatus(false);
-        }).catch((err) => {
-            selector.innerHTML = '<option value="">-- خطأ في التحميل --</option>';
-            selector.disabled = false;
-            showStatus(`❌ خطأ: ${err.message}`, 'error');
-            updateSyncStatus(false);
-        });
-    };
-
-    // ==================== POPULATE SELECTOR ====================
-    function populateSelector(names) {
-        const selector = document.getElementById('dbSelector');
-        selector.innerHTML = '<option value="">-- اختر قاعدة البيانات --</option>';
-        
-        const uploadOption = document.createElement('option');
-        uploadOption.value = '__upload_any__';
-        uploadOption.textContent = '📤 رفع أي بيانات (Upload Any Data)';
-        uploadOption.style.fontWeight = 'bold';
-        uploadOption.style.color = 'var(--primary)';
-        selector.appendChild(uploadOption);
-
-        const separator = document.createElement('option');
-        separator.disabled = true;
-        separator.textContent = '──────────';
-        selector.appendChild(separator);
-        
-        const grouped = {};
-        names.forEach(name => {
-            const prefix = name.split('_')[0] || 'other';
-            if (!grouped[prefix]) grouped[prefix] = [];
-            grouped[prefix].push(name);
-        });
-
-        const emojis = {
-            'cells': '🔌',
-            'dp': '🖥️',
-            'sim': '📱',
-            'sub': '🏛️',
-            'trf': '⚡',
-            'other': '📁'
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+            authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
+            projectId: "trial-85",
+            storageBucket: "trial-85.firebasestorage.app",
+            messagingSenderId: "660343156279",
+            appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+            measurementId: "G-RLMVPCLZW3"
         };
 
-        const labels = {
-            'cells': 'المغذيات',
-            'dp': 'لوحات التوزيع',
-            'sim': 'شرائح SIM',
-            'sub': 'المحطات',
-            'trf': 'المحولات',
-            'other': 'أخرى'
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const norm = v => String(v ?? '').trim();
+
+        // ==================== PRESET COLLECTIONS ====================
+        const PRESET_COLLECTIONS = {
+            'dp_codes_completed': {
+                label: 'DP Codes (لوحات التوزيع)',
+                icon: '🖥️',
+                file: 'DP_Codes_Completed.xlsx',
+                expectedColumns: ['handsa_code', 'dp', 'dp_code', 'x_coord', 'y_coord', 'own']
+            },
+            'cells_codes_completed_v2': {
+                label: 'Cells Codes (المغذيات)',
+                icon: '🔌',
+                file: 'Cells_Codes_Completed_v2.xlsx',
+                expectedColumns: ['handsa', 'handsa_code', 'cell_out_code', 'cell_out']
+            },
+            'sim_codes': {
+                label: 'SIM Codes (شرائح)',
+                icon: '📱',
+                file: 'sr.xlsx',
+                expectedColumns: ['sim', 'mobile_service']
+            },
+            'sub_codes': {
+                label: 'Sub Codes (المحطات)',
+                icon: '🏛️',
+                file: 'Sub_Codes.xlsx',
+                expectedColumns: ['sub', 'y', 'x', 'sub_code', 'dp', 'cell_incom', 'cell_out', 'keta3', 'keta3_code', 'handsa', 'handsa_code']
+            },
+            'trf_codes_completed': {
+                label: 'TRF Codes (المحولات)',
+                icon: '⚡',
+                file: 'TRF_Codes_Completed_v2.xlsx',
+                expectedColumns: ['handsa', 'handsa_code', 'trf_code', 'trf']
+            }
         };
 
-        const sortedGroups = Object.keys(grouped).sort();
-        sortedGroups.forEach(group => {
-            const groupLabel = `${emojis[group] || '📁'} ${labels[group] || group}`;
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = groupLabel;
-            
-            grouped[group].sort().forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                const count = referenceDatabases[name] ? Object.keys(referenceDatabases[name]).length : 0;
-                const displayName = name.replace(/_/g, ' ');
-                option.textContent = `📄 ${displayName} (${count} سجل)`;
-                optgroup.appendChild(option);
+        // ==================== QUICK SELECT ====================
+        window.quickSelectDb = function (dbName) {
+            const selector = document.getElementById('dbSelector');
+            // Check if the option exists
+            let optionExists = false;
+            for (let i = 0; i < selector.options.length; i++) {
+                if (selector.options[i].value === dbName) {
+                    optionExists = true;
+                    break;
+                }
+            }
+
+            if (!optionExists) {
+                showStatus(`⚠️ قاعدة البيانات "${dbName}" غير موجودة. قم بإنشائها باستخدام "رفع أي بيانات" أولاً.`, 'error');
+                return;
+            }
+
+            selector.value = dbName;
+            loadSelectedDatabase();
+
+            // Highlight the preset button
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                if (btn.textContent.includes(dbName.replace('_codes_completed', '').replace('_codes', '')) ||
+                    btn.textContent.includes(dbName)) {
+                    btn.classList.add('active');
+                }
             });
-            selector.appendChild(optgroup);
-        });
-    }
 
-    // ==================== LOAD SELECTED DATABASE ====================
-    window.loadSelectedDatabase = function() {
-        const selector = document.getElementById('dbSelector');
-        const selected = selector.value;
-        
-        filteredKeys = [];
-        
-        if (!selected) {
-            document.getElementById('contentArea').innerHTML = `
+            showStatus(`✅ تم التبديل إلى "${PRESET_COLLECTIONS[dbName]?.label || dbName}"`, 'success');
+        };
+
+        // ==================== LOAD REFERENCE DATABASES ====================
+        window.loadReferenceDatabases = function () {
+            const selector = document.getElementById('dbSelector');
+            selector.innerHTML = '<option value="">⏳ جاري التحميل...</option>';
+            selector.disabled = true;
+            updateSyncStatus(true);
+
+            const dbRef = ref(db, 'reference_data');
+            get(dbRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    referenceDatabases = snapshot.val();
+                    dbNames = Object.keys(referenceDatabases).sort();
+                    populateSelector(dbNames);
+                    showStatus(`✅ تم تحميل ${dbNames.length} قاعدة بيانات`, 'success');
+                } else {
+                    selector.innerHTML = '<option value="">-- لا توجد قواعد بيانات --</option>';
+                    showStatus('⚠️ لا توجد قواعد بيانات في reference_data', 'info');
+                }
+                selector.disabled = false;
+                updateSyncStatus(false);
+            }).catch((err) => {
+                selector.innerHTML = '<option value="">-- خطأ في التحميل --</option>';
+                selector.disabled = false;
+                showStatus(`❌ خطأ: ${err.message}`, 'error');
+                updateSyncStatus(false);
+            });
+        };
+
+        // ==================== POPULATE SELECTOR ====================
+        function populateSelector(names) {
+            const selector = document.getElementById('dbSelector');
+            selector.innerHTML = '<option value="">-- اختر قاعدة البيانات --</option>';
+
+            const uploadOption = document.createElement('option');
+            uploadOption.value = '__upload_any__';
+            uploadOption.textContent = '📤 رفع أي بيانات (Upload Any Data)';
+            uploadOption.style.fontWeight = 'bold';
+            uploadOption.style.color = 'var(--primary)';
+            selector.appendChild(uploadOption);
+
+            const separator = document.createElement('option');
+            separator.disabled = true;
+            separator.textContent = '──────────';
+            selector.appendChild(separator);
+
+            const grouped = {};
+            names.forEach(name => {
+                const prefix = name.split('_')[0] || 'other';
+                if (!grouped[prefix]) grouped[prefix] = [];
+                grouped[prefix].push(name);
+            });
+
+            const emojis = {
+                'cells': '🔌',
+                'dp': '🖥️',
+                'sim': '📱',
+                'sub': '🏛️',
+                'trf': '⚡',
+                'other': '📁'
+            };
+
+            const labels = {
+                'cells': 'المغذيات',
+                'dp': 'لوحات التوزيع',
+                'sim': 'شرائح SIM',
+                'sub': 'المحطات',
+                'trf': 'المحولات',
+                'other': 'أخرى'
+            };
+
+            const sortedGroups = Object.keys(grouped).sort();
+            sortedGroups.forEach(group => {
+                const groupLabel = `${emojis[group] || '📁'} ${labels[group] || group}`;
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = groupLabel;
+
+                grouped[group].sort().forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    const count = referenceDatabases[name] ? Object.keys(referenceDatabases[name]).length : 0;
+                    const displayName = name.replace(/_/g, ' ');
+                    option.textContent = `📄 ${displayName} (${count} سجل)`;
+                    optgroup.appendChild(option);
+                });
+                selector.appendChild(optgroup);
+            });
+        }
+
+        // ==================== LOAD SELECTED DATABASE ====================
+        window.loadSelectedDatabase = function () {
+            const selector = document.getElementById('dbSelector');
+            const selected = selector.value;
+
+            filteredKeys = [];
+
+            if (!selected) {
+                document.getElementById('contentArea').innerHTML = `
                 <div class="card">
                     <div class="empty-state">
                         <i class="fas fa-hand-pointer"></i>
@@ -1128,81 +1141,81 @@
                     </div>
                 </div>
             `;
-            document.getElementById('selectedBadge').style.display = 'none';
-            document.getElementById('pathDisplay').style.display = 'none';
+                document.getElementById('selectedBadge').style.display = 'none';
+                document.getElementById('pathDisplay').style.display = 'none';
+                isUploadAnyMode = false;
+                return;
+            }
+
+            if (selected === '__upload_any__') {
+                isUploadAnyMode = true;
+                document.getElementById('selectedBadge').style.display = 'inline-block';
+                document.getElementById('selectedBadge').textContent = '📤 رفع أي بيانات';
+                document.getElementById('pathDisplay').style.display = 'none';
+                showUploadAnyContent();
+                return;
+            }
+
             isUploadAnyMode = false;
-            return;
-        }
+            currentDbName = selected;
+            currentDbPath = `reference_data/${selected}`;
 
-        if (selected === '__upload_any__') {
-            isUploadAnyMode = true;
-            document.getElementById('selectedBadge').style.display = 'inline-block';
-            document.getElementById('selectedBadge').textContent = '📤 رفع أي بيانات';
-            document.getElementById('pathDisplay').style.display = 'none';
-            showUploadAnyContent();
-            return;
-        }
+            const badge = document.getElementById('selectedBadge');
+            badge.style.display = 'inline-block';
+            const displayName = selected.replace(/_/g, ' ');
+            badge.textContent = `📄 ${displayName}`;
 
-        isUploadAnyMode = false;
-        currentDbName = selected;
-        currentDbPath = `reference_data/${selected}`;
-        
-        const badge = document.getElementById('selectedBadge');
-        badge.style.display = 'inline-block';
-        const displayName = selected.replace(/_/g, ' ');
-        badge.textContent = `📄 ${displayName}`;
-        
-        document.getElementById('currentPath').textContent = currentDbPath;
-        document.getElementById('pathDisplay').style.display = 'block';
+            document.getElementById('currentPath').textContent = currentDbPath;
+            document.getElementById('pathDisplay').style.display = 'block';
 
-        loadDatabaseData(selected);
-    };
+            loadDatabaseData(selected);
+        };
 
-    // ==================== LOAD DATABASE DATA ====================
-    function loadDatabaseData(dbName) {
-        const dbRef = ref(db, `reference_data/${dbName}`);
-        updateSyncStatus(true);
+        // ==================== LOAD DATABASE DATA ====================
+        function loadDatabaseData(dbName) {
+            const dbRef = ref(db, `reference_data/${dbName}`);
+            updateSyncStatus(true);
 
-        onValue(dbRef, (snapshot) => {
-            if (snapshot.exists()) {
-                currentDbData = snapshot.val();
-                currentDbKeys = Object.keys(currentDbData);
-                totalRecords = currentDbKeys.length;
-                
-                if (totalRecords > 0) {
-                    const firstKey = currentDbKeys[0];
-                    const firstRecord = currentDbData[firstKey];
-                    if (typeof firstRecord === 'object' && firstRecord !== null) {
-                        currentFields = Object.keys(firstRecord);
+            onValue(dbRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    currentDbData = snapshot.val();
+                    currentDbKeys = Object.keys(currentDbData);
+                    totalRecords = currentDbKeys.length;
+
+                    if (totalRecords > 0) {
+                        const firstKey = currentDbKeys[0];
+                        const firstRecord = currentDbData[firstKey];
+                        if (typeof firstRecord === 'object' && firstRecord !== null) {
+                            currentFields = Object.keys(firstRecord);
+                        } else {
+                            currentFields = ['value'];
+                        }
                     } else {
-                        currentFields = ['value'];
+                        currentFields = [];
                     }
                 } else {
+                    currentDbData = {};
+                    currentDbKeys = [];
+                    totalRecords = 0;
                     currentFields = [];
                 }
-            } else {
-                currentDbData = {};
-                currentDbKeys = [];
-                totalRecords = 0;
-                currentFields = [];
-            }
-            
-            displayLimit = 20;
-            renderDatabaseLayout();
-            applyFilterAndRenderTable();
-            updateSyncStatus(false);
-        }, (error) => {
-            showStatus(`خطأ: ${error.message}`, 'error');
-            updateSyncStatus(false);
-        });
-    }
 
-    // ==================== RENDER LAYOUT ONCE ====================
-    function renderDatabaseLayout() {
-        const container = document.getElementById('contentArea');
-        const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
+                displayLimit = 20;
+                renderDatabaseLayout();
+                applyFilterAndRenderTable();
+                updateSyncStatus(false);
+            }, (error) => {
+                showStatus(`خطأ: ${error.message}`, 'error');
+                updateSyncStatus(false);
+            });
+        }
 
-        let html = `
+        // ==================== RENDER LAYOUT ONCE ====================
+        function renderDatabaseLayout() {
+            const container = document.getElementById('contentArea');
+            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
+
+            let html = `
             <div class="card">
                 <div class="card-title">
                     <i class="fas fa-cloud-upload-alt"></i> رفع بيانات - ${displayName}
@@ -1271,143 +1284,143 @@
             </div>
         `;
 
-        container.innerHTML = html;
-        setupUploadListeners();
-    }
-
-    // ==================== FAST IN-MEMORY FILTER & TABLE RENDER ====================
-    function applyFilterAndRenderTable() {
-        const searchInput = document.getElementById('searchInput');
-        const subSearchInput = document.getElementById('subsearchInput');
-        
-        const mainSearchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        const subSearchTerm = subSearchInput ? subSearchInput.value.toLowerCase().trim() : '';
-
-        // Update clear buttons visibility
-        const clearMainBtn = document.getElementById('clearMainBtn');
-        const clearSubBtn = document.getElementById('clearSubBtn');
-        if (clearMainBtn) clearMainBtn.classList.toggle('visible', mainSearchTerm.length > 0);
-        if (clearSubBtn) clearSubBtn.classList.toggle('visible', subSearchTerm.length > 0);
-
-        // Filter keys in memory efficiently
-        let resultKeys = currentDbKeys;
-
-        if (mainSearchTerm) {
-            resultKeys = resultKeys.filter(key => {
-                const record = currentDbData[key];
-                return JSON.stringify(record).toLowerCase().includes(mainSearchTerm);
-            });
-        }
-        
-        if (subSearchTerm && resultKeys.length > 0) {
-            resultKeys = resultKeys.filter(key => {
-                const record = currentDbData[key];
-                return JSON.stringify(record).toLowerCase().includes(subSearchTerm);
-            });
+            container.innerHTML = html;
+            setupUploadListeners();
         }
 
-        filteredKeys = resultKeys;
-        const filteredTotal = filteredKeys.length;
-        const displayKeys = filteredKeys.slice(0, displayLimit);
+        // ==================== FAST IN-MEMORY FILTER & TABLE RENDER ====================
+        function applyFilterAndRenderTable() {
+            const searchInput = document.getElementById('searchInput');
+            const subSearchInput = document.getElementById('subsearchInput');
 
-        // Update counts
-        const displayedNum = document.getElementById('displayedNum');
-        const filteredNum = document.getElementById('filteredNum');
-        if (displayedNum) displayedNum.textContent = displayKeys.length;
-        if (filteredNum) filteredNum.textContent = filteredTotal;
+            const mainSearchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const subSearchTerm = subSearchInput ? subSearchInput.value.toLowerCase().trim() : '';
 
-        // Render Table Body only
-        const tableContainer = document.getElementById('tableContainer');
-        if (!tableContainer) return;
+            // Update clear buttons visibility
+            const clearMainBtn = document.getElementById('clearMainBtn');
+            const clearSubBtn = document.getElementById('clearSubBtn');
+            if (clearMainBtn) clearMainBtn.classList.toggle('visible', mainSearchTerm.length > 0);
+            if (clearSubBtn) clearSubBtn.classList.toggle('visible', subSearchTerm.length > 0);
 
-        if (displayKeys.length === 0) {
-            tableContainer.innerHTML = `<div class="no-data">${mainSearchTerm || subSearchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات في هذه القاعدة'}</div>`;
-        } else {
-            tableContainer.innerHTML = renderTableContent(displayKeys);
-        }
+            // Filter keys in memory efficiently
+            let resultKeys = currentDbKeys;
 
-        // Toggle Load More
-        const loadMoreContainer = document.getElementById('loadMoreContainer');
-        const loadMoreText = document.getElementById('loadMoreText');
-        if (loadMoreContainer && loadMoreText) {
-            const remaining = filteredTotal - displayKeys.length;
-            if (remaining > 0) {
-                loadMoreContainer.style.display = 'block';
-                loadMoreText.textContent = `عرض المزيد (${remaining} سجل متبقي)`;
+            if (mainSearchTerm) {
+                resultKeys = resultKeys.filter(key => {
+                    const record = currentDbData[key];
+                    return JSON.stringify(record).toLowerCase().includes(mainSearchTerm);
+                });
+            }
+
+            if (subSearchTerm && resultKeys.length > 0) {
+                resultKeys = resultKeys.filter(key => {
+                    const record = currentDbData[key];
+                    return JSON.stringify(record).toLowerCase().includes(subSearchTerm);
+                });
+            }
+
+            filteredKeys = resultKeys;
+            const filteredTotal = filteredKeys.length;
+            const displayKeys = filteredKeys.slice(0, displayLimit);
+
+            // Update counts
+            const displayedNum = document.getElementById('displayedNum');
+            const filteredNum = document.getElementById('filteredNum');
+            if (displayedNum) displayedNum.textContent = displayKeys.length;
+            if (filteredNum) filteredNum.textContent = filteredTotal;
+
+            // Render Table Body only
+            const tableContainer = document.getElementById('tableContainer');
+            if (!tableContainer) return;
+
+            if (displayKeys.length === 0) {
+                tableContainer.innerHTML = `<div class="no-data">${mainSearchTerm || subSearchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات في هذه القاعدة'}</div>`;
             } else {
-                loadMoreContainer.style.display = 'none';
+                tableContainer.innerHTML = renderTableContent(displayKeys);
+            }
+
+            // Toggle Load More
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            const loadMoreText = document.getElementById('loadMoreText');
+            if (loadMoreContainer && loadMoreText) {
+                const remaining = filteredTotal - displayKeys.length;
+                if (remaining > 0) {
+                    loadMoreContainer.style.display = 'block';
+                    loadMoreText.textContent = `عرض المزيد (${remaining} سجل متبقي)`;
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
             }
         }
-    }
 
-    // ==================== SEARCH WITH DEBOUNCE ====================
-    window.onSearch = function() {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            displayLimit = 20;
+        // ==================== SEARCH WITH DEBOUNCE ====================
+        window.onSearch = function () {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                displayLimit = 20;
+                applyFilterAndRenderTable();
+            }, 150);
+        };
+
+        window.clearSearch = function () {
+            const input = document.getElementById('searchInput');
+            if (input) {
+                input.value = '';
+                onSearch();
+            }
+        };
+
+        window.clearSubSearch = function () {
+            const input = document.getElementById('subsearchInput');
+            if (input) {
+                input.value = '';
+                onSearch();
+            }
+        };
+
+        window.loadMore = function () {
+            displayLimit += 50;
             applyFilterAndRenderTable();
-        }, 150);
-    };
+        };
 
-    window.clearSearch = function() {
-        const input = document.getElementById('searchInput');
-        if (input) {
-            input.value = '';
-            onSearch();
-        }
-    };
-
-    window.clearSubSearch = function() {
-        const input = document.getElementById('subsearchInput');
-        if (input) {
-            input.value = '';
-            onSearch();
-        }
-    };
-
-    window.loadMore = function() {
-        displayLimit += 50;
-        applyFilterAndRenderTable();
-    };
-
-    // ==================== RENDER TABLE CONTENT ====================
-    function renderTableContent(displayKeys) {
-        let fields = currentFields;
-        if (fields.length === 0 && displayKeys.length > 0) {
-            const firstKey = displayKeys[0];
-            const record = currentDbData[firstKey];
-            if (typeof record === 'object' && record !== null) {
-                fields = Object.keys(record);
-            } else {
-                fields = ['value'];
-            }
-        }
-
-        let html = `<table><thead><tr><th>#</th>`;
-        for (const field of fields) {
-            html += `<th>${field}</th>`;
-        }
-        html += `<th>الإجراءات</th></tr></thead><tbody>`;
-
-        let index = 0;
-        displayKeys.forEach(key => {
-            const record = currentDbData[key];
-            index++;
-            html += `<tr>`;
-            html += `<td>${index}</td>`;
-            for (const field of fields) {
-                let value = '';
+        // ==================== RENDER TABLE CONTENT ====================
+        function renderTableContent(displayKeys) {
+            let fields = currentFields;
+            if (fields.length === 0 && displayKeys.length > 0) {
+                const firstKey = displayKeys[0];
+                const record = currentDbData[firstKey];
                 if (typeof record === 'object' && record !== null) {
-                    value = record[field] !== undefined ? record[field] : '';
-                } else if (field === 'value') {
-                    value = record;
+                    fields = Object.keys(record);
+                } else {
+                    fields = ['value'];
                 }
-                if (typeof value === 'object') {
-                    value = JSON.stringify(value);
-                }
-                html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
             }
-            html += `
+
+            let html = `<table><thead><tr><th>#</th>`;
+            for (const field of fields) {
+                html += `<th>${field}</th>`;
+            }
+            html += `<th>الإجراءات</th></tr></thead><tbody>`;
+
+            let index = 0;
+            displayKeys.forEach(key => {
+                const record = currentDbData[key];
+                index++;
+                html += `<tr>`;
+                html += `<td>${index}</td>`;
+                for (const field of fields) {
+                    let value = '';
+                    if (typeof record === 'object' && record !== null) {
+                        value = record[field] !== undefined ? record[field] : '';
+                    } else if (field === 'value') {
+                        value = record;
+                    }
+                    if (typeof value === 'object') {
+                        value = JSON.stringify(value);
+                    }
+                    html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
+                }
+                html += `
                 <td>
                     <div class="actions-cell">
                         <button class="btn btn-warning btn-sm" onclick="openEditModal('${key}')">
@@ -1419,18 +1432,18 @@
                     </div>
                 </td>
             `;
-            html += `</tr>`;
-        });
+                html += `</tr>`;
+            });
 
-        html += `</tbody></table>`;
-        return html;
-    }
+            html += `</tbody></table>`;
+            return html;
+        }
 
-    // ==================== SHOW UPLOAD ANY CONTENT ====================
-    window.showUploadAnyContent = function() {
-        const container = document.getElementById('contentArea');
-        
-        let html = `
+        // ==================== SHOW UPLOAD ANY CONTENT ====================
+        window.showUploadAnyContent = function () {
+            const container = document.getElementById('contentArea');
+
+            let html = `
             <div class="card">
                 <div class="card-title">
                     <i class="fas fa-cloud-upload-alt"></i> رفع أي بيانات إلى أي مسار
@@ -1461,495 +1474,499 @@
             </div>
         `;
 
-        container.innerHTML = html;
-        setupAnyUploadListeners();
-    };
-
-    function setupAnyUploadListeners() {
-        const area = document.getElementById('uploadAnyArea');
-        if (area) {
-            area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
-            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
-            area.addEventListener('drop', (e) => {
-                e.preventDefault();
-                area.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const input = document.getElementById('uploadAnyFile');
-                    const dt = new DataTransfer();
-                    dt.items.add(files[0]);
-                    input.files = dt.files;
-                    handleAnyFileUpload(input);
-                }
-            });
-        }
-    }
-
-    // ==================== HANDLE FILE UPLOADS ====================
-    window.handleAnyFileUpload = function(input) {
-        const file = input.files[0];
-        if (!file) return;
-
-        if (typeof XLSX === 'undefined') {
-            showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-            return;
-        }
-
-        const reader = new FileReader();
-        const progressBar = document.getElementById('progressAny');
-        const progressFill = document.getElementById('progressFillAny');
-        
-        progressBar.style.display = 'block';
-        progressFill.style.width = '30%';
-
-        reader.onload = function(e) {
-            try {
-                progressFill.style.width = '60%';
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-                progressFill.style.width = '90%';
-                
-                anyUploadData = jsonData;
-                renderAnyUploadPreview(jsonData);
-                
-                progressFill.style.width = '100%';
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }, 500);
-
-                document.getElementById('uploadAnyStatus').textContent = 
-                    `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
-                document.getElementById('saveAnyBtn').disabled = false;
-                
-            } catch (err) {
-                showStatus(`❌ خطأ: ${err.message}`, 'error');
-                progressBar.style.display = 'none';
-                progressFill.style.width = '0%';
-            }
+            container.innerHTML = html;
+            setupAnyUploadListeners();
         };
 
-        reader.readAsArrayBuffer(file);
-    };
-
-    window.renderAnyUploadPreview = function(data) {
-        const container = document.getElementById('uploadAnyPreview');
-        if (!data || data.length === 0) {
-            container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
-            return;
+        function setupAnyUploadListeners() {
+            const area = document.getElementById('uploadAnyArea');
+            if (area) {
+                area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
+                area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        const input = document.getElementById('uploadAnyFile');
+                        const dt = new DataTransfer();
+                        dt.items.add(files[0]);
+                        input.files = dt.files;
+                        handleAnyFileUpload(input);
+                    }
+                });
+            }
         }
 
-        const fields = Object.keys(data[0]);
+        // ==================== HANDLE FILE UPLOADS ====================
+        window.handleAnyFileUpload = function (input) {
+            const file = input.files[0];
+            if (!file) return;
 
-        let html = `<table><thead><tr><th>#</th>`;
-        fields.forEach(field => { html += `<th>${field}</th>`; });
-        html += `</tr></thead><tbody>`;
+            if (typeof XLSX === 'undefined') {
+                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
+                return;
+            }
 
-        data.forEach((record, index) => {
-            html += `<tr><td>${index + 1}</td>`;
-            fields.forEach(field => {
-                let value = record[field] !== undefined ? record[field] : '';
-                if (typeof value === 'object') value = JSON.stringify(value);
-                html += `<td style="max-width:150px;white-space:normal;word-break:break-word;">${value}</td>`;
+            const reader = new FileReader();
+            const progressBar = document.getElementById('progressAny');
+            const progressFill = document.getElementById('progressFillAny');
+
+            progressBar.style.display = 'block';
+            progressFill.style.width = '30%';
+
+            reader.onload = function (e) {
+                try {
+                    progressFill.style.width = '60%';
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    progressFill.style.width = '90%';
+
+                    anyUploadData = jsonData;
+                    renderAnyUploadPreview(jsonData);
+
+                    progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 500);
+
+                    document.getElementById('uploadAnyStatus').textContent =
+                        `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
+                    document.getElementById('saveAnyBtn').disabled = false;
+
+                } catch (err) {
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.renderAnyUploadPreview = function (data) {
+            const container = document.getElementById('uploadAnyPreview');
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
+                return;
+            }
+
+            const fields = Object.keys(data[0]);
+
+            let html = `<table><thead><tr><th>#</th>`;
+            fields.forEach(field => { html += `<th>${field}</th>`; });
+            html += `</tr></thead><tbody>`;
+
+            data.forEach((record, index) => {
+                html += `<tr><td>${index + 1}</td>`;
+                fields.forEach(field => {
+                    let value = record[field] !== undefined ? record[field] : '';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    html += `<td style="max-width:150px;white-space:normal;word-break:break-word;">${value}</td>`;
+                });
+                html += `</tr>`;
             });
-            html += `</tr>`;
-        });
 
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-    };
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        };
 
-    // ==================== OPTIMIZED SAVE FUNCTIONS ====================
-    
-    // Optimized save for regular database
-    window.saveToDatabaseOptimized = function() {
-        if (isUploading) return;
-        if (!anyUploadData || anyUploadData.length === 0) {
-            showStatus('❌ لا توجد بيانات للحفظ', 'error');
-            return;
-        }
+        // ==================== OPTIMIZED SAVE FUNCTIONS ====================
 
-        if (!currentDbName) {
-            showStatus('⚠️ يرجى اختيار قاعدة بيانات', 'error');
-            return;
-        }
+        // Optimized save for regular database
+        window.saveToDatabaseOptimized = function () {
+            if (isUploading) return;
+            if (!anyUploadData || anyUploadData.length === 0) {
+                showStatus('❌ لا توجد بيانات للحفظ', 'error');
+                return;
+            }
 
-        // Compress data before upload
-        const compressedData = compressData(anyUploadData);
-        const totalRecords = compressedData.length;
+            if (!currentDbName) {
+                showStatus('⚠️ يرجى اختيار قاعدة بيانات', 'error');
+                return;
+            }
 
-        if (!confirm(`حفظ ${totalRecords} سجل في "${currentDbName}"؟`)) return;
+            // Compress data before upload
+            const compressedData = compressData(anyUploadData);
+            const totalRecords = compressedData.length;
 
-        isUploading = true;
-        updateSyncStatus(true);
-        document.getElementById('saveBtn').disabled = true;
-        document.getElementById('uploadStatus').textContent = '⏳ جاري الحفظ...';
-        
-        const progressFill = document.getElementById('progressFill');
-        progressFill.style.display = 'block';
-        progressFill.style.width = '0%';
+            if (!confirm(`حفظ ${totalRecords} سجل في "${currentDbName}"؟`)) return;
 
-        const collectionRef = ref(db, `reference_data/${currentDbName}`);
-        
-        // Create batch data
-        const batchData = {};
-        compressedData.forEach((record, index) => {
-            const newKey = push(collectionRef).key;
-            batchData[newKey] = record;
-        });
-
-        const startTime = Date.now();
-
-        // Single write operation for ALL records
-        set(collectionRef, {
-            ...currentDbData,
-            ...batchData
-        })
-        .then(() => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const speed = (totalRecords / elapsed).toFixed(1);
-            
-            updateSyncStatus(false);
-            showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
-            
+            isUploading = true;
+            updateSyncStatus(true);
             document.getElementById('saveBtn').disabled = true;
-            document.getElementById('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
-            document.getElementById('uploadSpeed').textContent = `⚡ ${speed} سجل/ثانية`;
-            
-            progressFill.style.width = '100%';
-            setTimeout(() => {
-                progressFill.style.display = 'none';
-                progressFill.style.width = '0%';
-            }, 1000);
-            
-            anyUploadData = [];
-            document.getElementById('uploadFile').value = '';
-            isUploading = false;
-            refreshData();
-        })
-        .catch((err) => {
-            updateSyncStatus(false);
-            document.getElementById('saveBtn').disabled = false;
-            document.getElementById('uploadStatus').textContent = '❌ فشل الحفظ';
-            showStatus(`❌ خطأ: ${err.message}`, 'error');
-            isUploading = false;
-            progressFill.style.display = 'none';
-        });
-    };
+            document.getElementById('uploadStatus').textContent = '⏳ جاري الحفظ...';
 
-    // Optimized save for "Upload Any" mode
-    window.saveAnyDataOptimized = function() {
-        if (isUploading) return;
-        if (!anyUploadData || anyUploadData.length === 0) {
-            showStatus('❌ لا توجد بيانات للحفظ', 'error');
-            return;
-        }
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.display = 'block';
+            progressFill.style.width = '0%';
 
-        const path = document.getElementById('uploadAnyPath').value.trim();
-        if (!path) {
-            showStatus('⚠️ يرجى إدخال المسار المستهدف', 'error');
-            return;
-        }
+            const collectionRef = ref(db, `reference_data/${currentDbName}`);
 
-        // Compress data
-        const compressedData = compressData(anyUploadData);
-        const totalRecords = compressedData.length;
-
-        if (!confirm(`حفظ ${totalRecords} سجل في "${path}"؟`)) return;
-
-        isUploading = true;
-        updateSyncStatus(true);
-        document.getElementById('saveAnyBtn').disabled = true;
-        document.getElementById('uploadAnyStatus').textContent = '⏳ جاري الحفظ...';
-        
-        const progressFill = document.getElementById('progressFillAny');
-        progressFill.style.display = 'block';
-        progressFill.style.width = '0%';
-
-        const dbRef = ref(db, path);
-        
-        // Get existing data first
-        const startTime = Date.now();
-        
-        get(dbRef).then((snapshot) => {
-            const existingData = snapshot.exists() ? snapshot.val() : {};
-            
             // Create batch data
             const batchData = {};
             compressedData.forEach((record, index) => {
-                const newKey = push(dbRef).key;
+                const newKey = push(collectionRef).key;
                 batchData[newKey] = record;
             });
 
-            // Single write
-            return set(dbRef, { ...existingData, ...batchData });
-        })
-        .then(() => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const speed = (totalRecords / elapsed).toFixed(1);
-            
-            updateSyncStatus(false);
-            showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
-            
-            document.getElementById('saveAnyBtn').disabled = true;
-            document.getElementById('uploadAnyStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
-            document.getElementById('uploadAnySpeed').textContent = `⚡ ${speed} سجل/ثانية`;
-            
-            progressFill.style.width = '100%';
-            setTimeout(() => {
-                progressFill.style.display = 'none';
-                progressFill.style.width = '0%';
-            }, 1000);
-            
-            anyUploadData = [];
-            document.getElementById('uploadAnyFile').value = '';
-            document.getElementById('uploadAnyPreview').innerHTML = 
-                `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-            isUploading = false;
-        })
-        .catch((err) => {
-            updateSyncStatus(false);
-            document.getElementById('saveAnyBtn').disabled = false;
-            document.getElementById('uploadAnyStatus').textContent = '❌ فشل الحفظ';
-            showStatus(`❌ خطأ: ${err.message}`, 'error');
-            isUploading = false;
-            progressFill.style.display = 'none';
-        });
-    };
+            const startTime = Date.now();
 
-    // Helper function to compress data and clean coordinates
-    function compressData(data) {
-        return data.map(record => {
-            const compressed = {};
-            for (const [key, value] of Object.entries(record)) {
-                // Remove empty or null values to reduce payload
-                if (value !== '' && value !== null && value !== undefined) {
-                    let cleanedValue = typeof value === 'string' ? value.trim() : value;
-                    if (typeof cleanedValue === 'string') {
-                        // Remove trailing commas from coordinates
-                        cleanedValue = cleanedValue.replace(/,$/, '');
-                        // Remove double commas
-                        cleanedValue = cleanedValue.replace(/,{2,}/g, ',');
-                    }
-                    compressed[key] = cleanedValue;
-                }
+            // Single write operation for ALL records
+            set(collectionRef, {
+                ...currentDbData,
+                ...batchData
+            })
+                .then(() => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const speed = (totalRecords / elapsed).toFixed(1);
+
+                    updateSyncStatus(false);
+                    showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
+
+                    document.getElementById('saveBtn').disabled = true;
+                    document.getElementById('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
+                    document.getElementById('uploadSpeed').textContent = `⚡ ${speed} سجل/ثانية`;
+
+                    progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        progressFill.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 1000);
+
+                    anyUploadData = [];
+                    document.getElementById('uploadFile').value = '';
+                    isUploading = false;
+                    refreshData();
+                })
+                .catch((err) => {
+                    updateSyncStatus(false);
+                    document.getElementById('saveBtn').disabled = false;
+                    document.getElementById('uploadStatus').textContent = '❌ فشل الحفظ';
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    isUploading = false;
+                    progressFill.style.display = 'none';
+                });
+        };
+
+        // Optimized save for "Upload Any" mode
+        window.saveAnyDataOptimized = function () {
+            if (isUploading) return;
+            if (!anyUploadData || anyUploadData.length === 0) {
+                showStatus('❌ لا توجد بيانات للحفظ', 'error');
+                return;
             }
-            return compressed;
-        });
-    }
 
-    // Legacy save functions (kept for compatibility)
-    window.saveToDatabase = window.saveToDatabaseOptimized;
-    window.saveAnyData = window.saveAnyDataOptimized;
+            const path = document.getElementById('uploadAnyPath').value.trim();
+            if (!path) {
+                showStatus('⚠️ يرجى إدخال المسار المستهدف', 'error');
+                return;
+            }
 
-    function setupUploadListeners() {
-        const area = document.getElementById('uploadArea');
-        if (area) {
-            area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
-            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
-            area.addEventListener('drop', (e) => {
-                e.preventDefault();
-                area.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const input = document.getElementById('uploadFile');
-                    const dt = new DataTransfer();
-                    dt.items.add(files[0]);
-                    input.files = dt.files;
-                    handleFileUpload(input);
+            // Compress data
+            const compressedData = compressData(anyUploadData);
+            const totalRecords = compressedData.length;
+
+            if (!confirm(`حفظ ${totalRecords} سجل في "${path}"؟`)) return;
+
+            isUploading = true;
+            updateSyncStatus(true);
+            document.getElementById('saveAnyBtn').disabled = true;
+            document.getElementById('uploadAnyStatus').textContent = '⏳ جاري الحفظ...';
+
+            const progressFill = document.getElementById('progressFillAny');
+            progressFill.style.display = 'block';
+            progressFill.style.width = '0%';
+
+            const dbRef = ref(db, path);
+
+            // Get existing data first
+            const startTime = Date.now();
+
+            get(dbRef).then((snapshot) => {
+                const existingData = snapshot.exists() ? snapshot.val() : {};
+
+                // Create batch data
+                const batchData = {};
+                compressedData.forEach((record, index) => {
+                    const newKey = push(dbRef).key;
+                    batchData[newKey] = record;
+                });
+
+                // Single write
+                return set(dbRef, { ...existingData, ...batchData });
+            })
+                .then(() => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const speed = (totalRecords / elapsed).toFixed(1);
+
+                    updateSyncStatus(false);
+                    showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
+
+                    document.getElementById('saveAnyBtn').disabled = true;
+                    document.getElementById('uploadAnyStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
+                    document.getElementById('uploadAnySpeed').textContent = `⚡ ${speed} سجل/ثانية`;
+
+                    progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        progressFill.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 1000);
+
+                    anyUploadData = [];
+                    document.getElementById('uploadAnyFile').value = '';
+                    document.getElementById('uploadAnyPreview').innerHTML =
+                        `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
+                    isUploading = false;
+                })
+                .catch((err) => {
+                    updateSyncStatus(false);
+                    document.getElementById('saveAnyBtn').disabled = false;
+                    document.getElementById('uploadAnyStatus').textContent = '❌ فشل الحفظ';
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    isUploading = false;
+                    progressFill.style.display = 'none';
+                });
+        };
+
+        // Helper function to compress data and clean coordinates
+        // Helper function to sanitize keys for Firebase and compress data
+        function compressData(data) {
+            return data.map(record => {
+                const compressed = {};
+                for (const [key, value] of Object.entries(record)) {
+                    // Remove illegal Firebase key characters: . # $ / [ ]
+                    const sanitizedKey = key.replace(/[.#$/[\]]/g, '_').trim();
+
+                    // Remove empty or null values to reduce payload
+                    if (value !== '' && value !== null && value !== undefined) {
+                        let cleanedValue = typeof value === 'string' ? value.trim() : value;
+                        if (typeof cleanedValue === 'string') {
+                            // Remove trailing commas from coordinates
+                            cleanedValue = cleanedValue.replace(/,$/, '');
+                            // Remove double commas
+                            cleanedValue = cleanedValue.replace(/,{2,}/g, ',');
+                        }
+                        compressed[sanitizedKey] = cleanedValue;
+                    }
                 }
+                return compressed;
             });
         }
-    }
 
-    window.handleFileUpload = function(input) {
-        const file = input.files[0];
-        if (!file) return;
+        // Legacy save functions (kept for compatibility)
+        window.saveToDatabase = window.saveToDatabaseOptimized;
+        window.saveAnyData = window.saveAnyDataOptimized;
 
-        if (typeof XLSX === 'undefined') {
-            showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-            return;
+        function setupUploadListeners() {
+            const area = document.getElementById('uploadArea');
+            if (area) {
+                area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
+                area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        const input = document.getElementById('uploadFile');
+                        const dt = new DataTransfer();
+                        dt.items.add(files[0]);
+                        input.files = dt.files;
+                        handleFileUpload(input);
+                    }
+                });
+            }
         }
 
-        const reader = new FileReader();
-        const progressBar = document.getElementById('progressBar');
-        const progressFill = document.getElementById('progressFill');
-        
-        progressBar.style.display = 'block';
-        progressFill.style.width = '30%';
+        window.handleFileUpload = function (input) {
+            const file = input.files[0];
+            if (!file) return;
 
-        reader.onload = function(e) {
-            try {
-                progressFill.style.width = '60%';
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            if (typeof XLSX === 'undefined') {
+                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
+                return;
+            }
 
-                progressFill.style.width = '90%';
-                
-                anyUploadData = jsonData;
-                renderUploadPreview(jsonData);
-                
-                progressFill.style.width = '100%';
-                setTimeout(() => {
+            const reader = new FileReader();
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+
+            progressBar.style.display = 'block';
+            progressFill.style.width = '30%';
+
+            reader.onload = function (e) {
+                try {
+                    progressFill.style.width = '60%';
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    progressFill.style.width = '90%';
+
+                    anyUploadData = jsonData;
+                    renderUploadPreview(jsonData);
+
+                    progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 500);
+
+                    document.getElementById('uploadStatus').textContent =
+                        `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
+                    document.getElementById('saveBtn').disabled = false;
+                    document.getElementById('uploadSpeed').textContent = '';
+
+                } catch (err) {
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
                     progressBar.style.display = 'none';
                     progressFill.style.width = '0%';
-                }, 500);
+                }
+            };
 
-                document.getElementById('uploadStatus').textContent = 
-                    `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
-                document.getElementById('saveBtn').disabled = false;
-                document.getElementById('uploadSpeed').textContent = '';
-                
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.renderUploadPreview = function (data) {
+            const container = document.getElementById('tableContainer');
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
+                return;
+            }
+
+            const fields = Object.keys(data[0]);
+
+            let html = `<table><thead><tr><th>#</th>`;
+            fields.forEach(field => { html += `<th>${field}</th>`; });
+            html += `</tr></thead><tbody>`;
+
+            data.forEach((record, index) => {
+                html += `<tr><td>${index + 1}</td>`;
+                fields.forEach(field => {
+                    let value = record[field] !== undefined ? record[field] : '';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        };
+
+        window.clearPreview = function () {
+            anyUploadData = [];
+            document.getElementById('uploadFile').value = '';
+            document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('uploadSpeed').textContent = '';
+            document.getElementById('saveBtn').disabled = true;
+            refreshData();
+        };
+
+        window.clearAnyUpload = function () {
+            anyUploadData = [];
+            document.getElementById('uploadAnyFile').value = '';
+            document.getElementById('uploadAnyPreview').innerHTML =
+                `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
+            document.getElementById('uploadAnyStatus').textContent = '';
+            document.getElementById('uploadAnySpeed').textContent = '';
+            document.getElementById('saveAnyBtn').disabled = true;
+        };
+
+        window.refreshData = function () {
+            if (!currentDbName) return;
+            updateSyncStatus(true);
+            showStatus('🔄 جاري التحديث...', 'info');
+            displayLimit = 20;
+
+            const searchInput = document.getElementById('searchInput');
+            const subSearchInput = document.getElementById('subsearchInput');
+            if (searchInput) searchInput.value = '';
+            if (subSearchInput) subSearchInput.value = '';
+
+            filteredKeys = [];
+            loadDatabaseData(currentDbName);
+        };
+
+        // ==================== EXPORT TO EXCEL ====================
+        window.exportToExcel = function () {
+            const keys = filteredKeys.length > 0 ? filteredKeys : currentDbKeys;
+
+            if (keys.length === 0) {
+                showStatus('❌ لا توجد بيانات للتصدير', 'error');
+                return;
+            }
+
+            if (typeof XLSX === 'undefined') {
+                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
+                return;
+            }
+
+            let fields = currentFields;
+            if (fields.length === 0) {
+                const firstKey = keys[0];
+                const record = currentDbData[firstKey];
+                if (typeof record === 'object' && record !== null) {
+                    fields = Object.keys(record);
+                } else {
+                    fields = ['value'];
+                }
+            }
+
+            const exportData = [];
+            keys.forEach(key => {
+                const record = currentDbData[key];
+                const row = { '_key': key };
+                if (typeof record === 'object' && record !== null) {
+                    fields.forEach(field => {
+                        row[field] = record[field] || '';
+                    });
+                } else {
+                    row['value'] = record;
+                }
+                exportData.push(row);
+            });
+
+            try {
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Data');
+
+                const filename = `${currentDbName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, filename);
+
+                showStatus(`✅ تم تصدير ${exportData.length} سجل`, 'success');
             } catch (err) {
                 showStatus(`❌ خطأ: ${err.message}`, 'error');
-                progressBar.style.display = 'none';
-                progressFill.style.width = '0%';
             }
         };
 
-        reader.readAsArrayBuffer(file);
-    };
+        // ==================== MODAL FUNCTIONS ====================
+        window.openAddModal = function () {
+            modalMode = 'add';
+            modalEditKey = '';
+            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
+            document.getElementById('modalTitle').textContent = `إضافة سجل جديد - ${displayName}`;
 
-    window.renderUploadPreview = function(data) {
-        const container = document.getElementById('tableContainer');
-        if (!data || data.length === 0) {
-            container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
-            return;
-        }
+            let fields = currentFields;
+            if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
 
-        const fields = Object.keys(data[0]);
-
-        let html = `<table><thead><tr><th>#</th>`;
-        fields.forEach(field => { html += `<th>${field}</th>`; });
-        html += `</tr></thead><tbody>`;
-
-        data.forEach((record, index) => {
-            html += `<tr><td>${index + 1}</td>`;
+            let html = '';
             fields.forEach(field => {
-                let value = record[field] !== undefined ? record[field] : '';
-                if (typeof value === 'object') value = JSON.stringify(value);
-                html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
-            });
-            html += `</tr>`;
-        });
-
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-    };
-
-    window.clearPreview = function() {
-        anyUploadData = [];
-        document.getElementById('uploadFile').value = '';
-        document.getElementById('uploadStatus').textContent = '';
-        document.getElementById('uploadSpeed').textContent = '';
-        document.getElementById('saveBtn').disabled = true;
-        refreshData();
-    };
-
-    window.clearAnyUpload = function() {
-        anyUploadData = [];
-        document.getElementById('uploadAnyFile').value = '';
-        document.getElementById('uploadAnyPreview').innerHTML = 
-            `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-        document.getElementById('uploadAnyStatus').textContent = '';
-        document.getElementById('uploadAnySpeed').textContent = '';
-        document.getElementById('saveAnyBtn').disabled = true;
-    };
-
-    window.refreshData = function() {
-        if (!currentDbName) return;
-        updateSyncStatus(true);
-        showStatus('🔄 جاري التحديث...', 'info');
-        displayLimit = 20;
-        
-        const searchInput = document.getElementById('searchInput');
-        const subSearchInput = document.getElementById('subsearchInput');
-        if (searchInput) searchInput.value = '';
-        if (subSearchInput) subSearchInput.value = '';
-        
-        filteredKeys = [];
-        loadDatabaseData(currentDbName);
-    };
-
-    // ==================== EXPORT TO EXCEL ====================
-    window.exportToExcel = function() {
-        const keys = filteredKeys.length > 0 ? filteredKeys : currentDbKeys;
-        
-        if (keys.length === 0) {
-            showStatus('❌ لا توجد بيانات للتصدير', 'error');
-            return;
-        }
-
-        if (typeof XLSX === 'undefined') {
-            showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-            return;
-        }
-
-        let fields = currentFields;
-        if (fields.length === 0) {
-            const firstKey = keys[0];
-            const record = currentDbData[firstKey];
-            if (typeof record === 'object' && record !== null) {
-                fields = Object.keys(record);
-            } else {
-                fields = ['value'];
-            }
-        }
-
-        const exportData = [];
-        keys.forEach(key => {
-            const record = currentDbData[key];
-            const row = { '_key': key };
-            if (typeof record === 'object' && record !== null) {
-                fields.forEach(field => {
-                    row[field] = record[field] || '';
-                });
-            } else {
-                row['value'] = record;
-            }
-            exportData.push(row);
-        });
-
-        try {
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Data');
-            
-            const filename = `${currentDbName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            XLSX.writeFile(wb, filename);
-            
-            showStatus(`✅ تم تصدير ${exportData.length} سجل`, 'success');
-        } catch (err) {
-            showStatus(`❌ خطأ: ${err.message}`, 'error');
-        }
-    };
-
-    // ==================== MODAL FUNCTIONS ====================
-    window.openAddModal = function() {
-        modalMode = 'add';
-        modalEditKey = '';
-        const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
-        document.getElementById('modalTitle').textContent = `إضافة سجل جديد - ${displayName}`;
-        
-        let fields = currentFields;
-        if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
-        
-        let html = '';
-        fields.forEach(field => {
-            html += `
+                html += `
                 <div class="form-group">
                     <label>${field}</label>
                     <input type="text" id="modal_field_${field}" placeholder="أدخل ${field}" value="">
                 </div>
             `;
-        });
-        
-        html += `
+            });
+
+            html += `
             <div class="form-actions">
                 <button class="btn btn-success" onclick="saveModalData()">
                     <i class="fas fa-save"></i> حفظ
@@ -1959,49 +1976,49 @@
                 </button>
             </div>
         `;
-        
-        document.getElementById('modalBody').innerHTML = html;
-        document.getElementById('dataModal').classList.add('active');
-    };
 
-    window.openEditModal = function(key) {
-        const record = currentDbData[key];
-        if (!record) {
-            showStatus('❌ السجل غير موجود', 'error');
-            return;
-        }
-        
-        modalMode = 'edit';
-        modalEditKey = key;
-        const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
-        document.getElementById('modalTitle').textContent = `تعديل سجل - ${displayName}`;
-        
-        let fields = currentFields;
-        if (fields.length === 0) {
-            if (typeof record === 'object' && record !== null) {
-                fields = Object.keys(record);
-            } else {
-                fields = ['value'];
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('dataModal').classList.add('active');
+        };
+
+        window.openEditModal = function (key) {
+            const record = currentDbData[key];
+            if (!record) {
+                showStatus('❌ السجل غير موجود', 'error');
+                return;
             }
-        }
-        
-        let html = '';
-        fields.forEach(field => {
-            let value = '';
-            if (typeof record === 'object' && record !== null) {
-                value = record[field] || '';
-            } else if (field === 'value') {
-                value = record;
+
+            modalMode = 'edit';
+            modalEditKey = key;
+            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
+            document.getElementById('modalTitle').textContent = `تعديل سجل - ${displayName}`;
+
+            let fields = currentFields;
+            if (fields.length === 0) {
+                if (typeof record === 'object' && record !== null) {
+                    fields = Object.keys(record);
+                } else {
+                    fields = ['value'];
+                }
             }
-            html += `
+
+            let html = '';
+            fields.forEach(field => {
+                let value = '';
+                if (typeof record === 'object' && record !== null) {
+                    value = record[field] || '';
+                } else if (field === 'value') {
+                    value = record;
+                }
+                html += `
                 <div class="form-group">
                     <label>${field}</label>
                     <input type="text" id="modal_field_${field}" placeholder="أدخل ${field}" value="${value}">
                 </div>
             `;
-        });
-        
-        html += `
+            });
+
+            html += `
             <div class="form-actions">
                 <button class="btn btn-warning" onclick="saveModalData()">
                     <i class="fas fa-edit"></i> تحديث
@@ -2011,151 +2028,151 @@
                 </button>
             </div>
         `;
-        
-        document.getElementById('modalBody').innerHTML = html;
-        document.getElementById('dataModal').classList.add('active');
-    };
 
-    window.closeModal = function() {
-        document.getElementById('dataModal').classList.remove('active');
-    };
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('dataModal').classList.add('active');
+        };
 
-    window.saveModalData = function() {
-        let fields = currentFields;
-        if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
-        
-        const data = {};
-        let isValid = true;
-        
-        fields.forEach(field => {
-            const input = document.getElementById(`modal_field_${field}`);
-            if (input) {
-                const value = norm(input.value);
-                if (value === '' && field === fields[0]) isValid = false;
-                data[field] = value;
-            }
-        });
-        
-        if (!isValid) {
-            showStatus(`⚠️ الحقل "${fields[0]}" مطلوب`, 'error');
-            return;
-        }
-        
-        updateSyncStatus(true);
-        const collectionRef = ref(db, `reference_data/${currentDbName}`);
-        
-        if (modalMode === 'add') {
-            const newRef = push(collectionRef);
-            set(newRef, data)
-                .then(() => {
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم إضافة السجل بنجاح!`, 'success');
-                    closeModal();
-                    refreshData();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                });
-        } else {
-            const recordRef = ref(db, `reference_data/${currentDbName}/${modalEditKey}`);
-            set(recordRef, data)
-                .then(() => {
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم تحديث السجل بنجاح!`, 'success');
-                    closeModal();
-                    refreshData();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                });
-        }
-    };
+        window.closeModal = function () {
+            document.getElementById('dataModal').classList.remove('active');
+        };
 
-    document.getElementById('dataModal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-    });
+        window.saveModalData = function () {
+            let fields = currentFields;
+            if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
 
-    window.deleteRecord = function(key) {
-        if (!confirm(`هل أنت متأكد من حذف هذا السجل؟`)) return;
-        
-        updateSyncStatus(true);
-        const recordRef = ref(db, `reference_data/${currentDbName}/${key}`);
-        remove(recordRef)
-            .then(() => {
-                updateSyncStatus(false);
-                showStatus(`✅ تم حذف السجل بنجاح!`, 'success');
-                refreshData();
-            })
-            .catch((err) => {
-                updateSyncStatus(false);
-                showStatus(`❌ خطأ: ${err.message}`, 'error');
+            const data = {};
+            let isValid = true;
+
+            fields.forEach(field => {
+                const input = document.getElementById(`modal_field_${field}`);
+                if (input) {
+                    const value = norm(input.value);
+                    if (value === '' && field === fields[0]) isValid = false;
+                    data[field] = value;
+                }
             });
-    };
 
-    // ==================== STATE VARIABLES (for modal) ====================
-    let referenceDatabases = {};
-    let dbNames = [];
-    let currentDbName = '';
-    let currentDbData = {};
-    let currentDbKeys = [];
-    let displayLimit = 20;
-    let totalRecords = 0;
-    let modalMode = 'add';
-    let modalEditKey = '';
-    let anyUploadData = [];
-    let currentFields = [];
-    let currentDbPath = '';
-    let isUploadAnyMode = false;
-    let isUploading = false;
-    let filteredKeys = [];
-    let searchDebounceTimer = null;
+            if (!isValid) {
+                showStatus(`⚠️ الحقل "${fields[0]}" مطلوب`, 'error');
+                return;
+            }
 
-    // ==================== STATUS FUNCTIONS ====================
-    function showStatus(message, type = 'info') {
-        const div = document.getElementById('statusMessage');
-        div.textContent = message;
-        div.className = type;
-        div.style.display = 'block';
-        setTimeout(() => { div.style.display = 'none'; }, 5000);
-    }
+            updateSyncStatus(true);
+            const collectionRef = ref(db, `reference_data/${currentDbName}`);
 
-    function updateSyncStatus(isLoading = false) {
-        const status = document.getElementById('syncStatus');
-        status.textContent = isLoading ? '⏳ جاري الاتصال...' : '✅ متصل';
-        status.className = `sync-status ${isLoading ? 'loading' : ''}`;
-    }
+            if (modalMode === 'add') {
+                const newRef = push(collectionRef);
+                set(newRef, data)
+                    .then(() => {
+                        updateSyncStatus(false);
+                        showStatus(`✅ تم إضافة السجل بنجاح!`, 'success');
+                        closeModal();
+                        refreshData();
+                    })
+                    .catch((err) => {
+                        updateSyncStatus(false);
+                        showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    });
+            } else {
+                const recordRef = ref(db, `reference_data/${currentDbName}/${modalEditKey}`);
+                set(recordRef, data)
+                    .then(() => {
+                        updateSyncStatus(false);
+                        showStatus(`✅ تم تحديث السجل بنجاح!`, 'success');
+                        closeModal();
+                        refreshData();
+                    })
+                    .catch((err) => {
+                        updateSyncStatus(false);
+                        showStatus(`❌ خطأ: ${err.message}`, 'error');
+                    });
+            }
+        };
 
-    // Load databases on start
-    loadReferenceDatabases();
+        document.getElementById('dataModal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
 
-    // Export functions globally
-    window.loadReferenceDatabases = loadReferenceDatabases;
-    window.loadSelectedDatabase = loadSelectedDatabase;
-    window.handleFileUpload = handleFileUpload;
-    window.saveToDatabaseOptimized = saveToDatabaseOptimized;
-    window.saveToDatabase = saveToDatabaseOptimized;
-    window.clearPreview = clearPreview;
-    window.loadMore = loadMore;
-    window.onSearch = onSearch;
-    window.clearSearch = clearSearch;
-    window.clearSubSearch = clearSubSearch;
-    window.refreshData = refreshData;
-    window.exportToExcel = exportToExcel;
-    window.openAddModal = openAddModal;
-    window.openEditModal = openEditModal;
-    window.saveModalData = saveModalData;
-    window.closeModal = closeModal;
-    window.deleteRecord = deleteRecord;
-    window.showUploadAnyContent = showUploadAnyContent;
-    window.handleAnyFileUpload = handleAnyFileUpload;
-    window.renderAnyUploadPreview = renderAnyUploadPreview;
-    window.saveAnyDataOptimized = saveAnyDataOptimized;
-    window.saveAnyData = saveAnyDataOptimized;
-    window.clearAnyUpload = clearAnyUpload;
-    window.quickSelectDb = quickSelectDb;
-</script>
+        window.deleteRecord = function (key) {
+            if (!confirm(`هل أنت متأكد من حذف هذا السجل؟`)) return;
+
+            updateSyncStatus(true);
+            const recordRef = ref(db, `reference_data/${currentDbName}/${key}`);
+            remove(recordRef)
+                .then(() => {
+                    updateSyncStatus(false);
+                    showStatus(`✅ تم حذف السجل بنجاح!`, 'success');
+                    refreshData();
+                })
+                .catch((err) => {
+                    updateSyncStatus(false);
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                });
+        };
+
+        // ==================== STATE VARIABLES (for modal) ====================
+        let referenceDatabases = {};
+        let dbNames = [];
+        let currentDbName = '';
+        let currentDbData = {};
+        let currentDbKeys = [];
+        let displayLimit = 20;
+        let totalRecords = 0;
+        let modalMode = 'add';
+        let modalEditKey = '';
+        let anyUploadData = [];
+        let currentFields = [];
+        let currentDbPath = '';
+        let isUploadAnyMode = false;
+        let isUploading = false;
+        let filteredKeys = [];
+        let searchDebounceTimer = null;
+
+        // ==================== STATUS FUNCTIONS ====================
+        function showStatus(message, type = 'info') {
+            const div = document.getElementById('statusMessage');
+            div.textContent = message;
+            div.className = type;
+            div.style.display = 'block';
+            setTimeout(() => { div.style.display = 'none'; }, 5000);
+        }
+
+        function updateSyncStatus(isLoading = false) {
+            const status = document.getElementById('syncStatus');
+            status.textContent = isLoading ? '⏳ جاري الاتصال...' : '✅ متصل';
+            status.className = `sync-status ${isLoading ? 'loading' : ''}`;
+        }
+
+        // Load databases on start
+        loadReferenceDatabases();
+
+        // Export functions globally
+        window.loadReferenceDatabases = loadReferenceDatabases;
+        window.loadSelectedDatabase = loadSelectedDatabase;
+        window.handleFileUpload = handleFileUpload;
+        window.saveToDatabaseOptimized = saveToDatabaseOptimized;
+        window.saveToDatabase = saveToDatabaseOptimized;
+        window.clearPreview = clearPreview;
+        window.loadMore = loadMore;
+        window.onSearch = onSearch;
+        window.clearSearch = clearSearch;
+        window.clearSubSearch = clearSubSearch;
+        window.refreshData = refreshData;
+        window.exportToExcel = exportToExcel;
+        window.openAddModal = openAddModal;
+        window.openEditModal = openEditModal;
+        window.saveModalData = saveModalData;
+        window.closeModal = closeModal;
+        window.deleteRecord = deleteRecord;
+        window.showUploadAnyContent = showUploadAnyContent;
+        window.handleAnyFileUpload = handleAnyFileUpload;
+        window.renderAnyUploadPreview = renderAnyUploadPreview;
+        window.saveAnyDataOptimized = saveAnyDataOptimized;
+        window.saveAnyData = saveAnyDataOptimized;
+        window.clearAnyUpload = clearAnyUpload;
+        window.quickSelectDb = quickSelectDb;
+    </script>
 </body>
 
 </html>

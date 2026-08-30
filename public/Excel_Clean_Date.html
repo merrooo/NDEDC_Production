@@ -253,11 +253,6 @@
             font-weight: 600;
             color: #0b5e2e;
         }
-        .date-highlight {
-            background-color: #e8f5e9;
-            font-weight: 600;
-            color: #2e7d32;
-        }
         .converted-tags {
             display: flex;
             flex-wrap: wrap;
@@ -284,21 +279,6 @@
             background: #fee2e2;
             color: #b91c1c;
         }
-        .flex-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-        .badge-converted {
-            background: var(--success);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
         @media (max-width: 700px) {
             .control-bar {
                 grid-template-columns: 1fr;
@@ -311,23 +291,21 @@
 </head>
 <body>
 <div class="card">
-    <!-- Home Button -->
     <div class="nav-container">
-        <a href="#" class="back-link" onclick="alert('Home page integration – you can replace the link.'); return false;">
+        <a href="#" class="back-link" onclick="alert('Home page integration'); return false;">
             <i class="fas fa-arrow-left"></i> Return to Home
         </a>
     </div>
 
     <div class="header">
         <h1><i class="fas fa-calendar-alt" style="color: var(--primary);"></i> Multi‑Column Date Converter</h1>
-        <p>Fix Excel numeric dates (e.g., 45628) and batch‑convert multiple columns. Choose output format.</p>
+        <p>Fix Excel numeric dates (e.g., 46044) and batch‑convert multiple columns. Choose output format.</p>
     </div>
 
     <div class="content">
-        <!-- Upload area -->
         <div class="upload-area" id="uploadArea">
             <i class="fas fa-cloud-upload-alt"></i>
-            <div class="upload-label">📂 Click or Drag Excel File Here (Device_Data)</div>
+            <div class="upload-label">📂 Click or Drag Excel File Here</div>
             <input type="file" id="fileInput" accept=".xlsx, .xls, .xlsm, .csv">
             <div id="filePreview" class="file-preview" style="display: none;">
                 <b id="fileNameSpan"></b>
@@ -336,7 +314,6 @@
             </div>
         </div>
 
-        <!-- Controls panel -->
         <div id="controlsPanel" style="display: none;">
             <div class="control-bar">
                 <div class="control-group">
@@ -344,12 +321,12 @@
                     <select id="columnSelect"></select>
                 </div>
                 <div class="control-group">
-                    <label><i class="fas fa-format"></i> Output Format</label>
+                    <label><i class="fas fa-calendar"></i> Output Format</label>
                     <select id="dateFormatSelect">
-                        <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
-                        <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
-                        <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2026)</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2026)</option>
+                        <option value="YYYY/MM/DD">YYYY/MM/DD (2026/12/31)</option>
+                        <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2026)</option>
                     </select>
                 </div>
                 <div class="btn-group">
@@ -381,14 +358,12 @@
 
 <script>
     (function() {
-        // ----- state -----
         let headers = [];
-        let masterData = [];          // current data (rows as arrays)
-        let originalDataBackup = [];  // deep copy of original
-        let convertedColumns = new Map(); // colIndex -> format string
+        let masterData = [];
+        let originalDataBackup = [];
+        let convertedColumns = new Map();
         let originalFileName = "data";
 
-        // DOM refs
         const fileInput = document.getElementById('fileInput');
         const columnSelect = document.getElementById('columnSelect');
         const infoMsg = document.getElementById('infoMessage');
@@ -408,75 +383,70 @@
         const convertedTags = document.getElementById('convertedTags');
         const convertedColumnsList = document.getElementById('convertedColumnsList');
 
-        // ----- helpers -----
+        // Accurately convert Excel serial number to JS Date (Epoch: Dec 30, 1899)
         function excelSerialToDate(serial) {
             let num = Number(serial);
-            if (isNaN(num) || num < 1) return null;
-            return new Date((num - 25569) * 86400000);
+            if (isNaN(num) || num <= 0) return null;
+            
+            // Excel epoch starts December 30, 1899
+            const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+            const convertedMs = excelEpoch.getTime() + (num * 86400000);
+            return new Date(convertedMs);
         }
 
         function formatDate(date, format) {
             if (!date || isNaN(date.getTime())) return null;
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const y = date.getUTCFullYear();
+            
             if (format === "MM/DD/YYYY") return `${m}/${d}/${y}`;
             if (format === "YYYY/MM/DD") return `${y}/${m}/${d}`;
             if (format === "DD-MM-YYYY") return `${d}-${m}-${y}`;
-            return `${d}/${m}/${y}`; // DD/MM/YYYY default
+            return `${d}/${m}/${y}`;
         }
 
-        // enhanced date parser: tries Excel serial, then many string patterns
         function parseDateValue(val, format) {
             if (val === null || val === undefined || val === '') return '';
-
-            // 1) Excel serial number
-            if (typeof val === 'number' && val > 0) {
-                const d = excelSerialToDate(val);
-                if (d) return formatDate(d, format);
-            }
 
             const s = String(val).trim();
             if (s === '') return '';
 
-            // 2) Try YYYY-MM-DD or YYYY/MM/DD
+            // Handle string or numeric Excel serials (e.g. 46044 or "46044")
+            const num = Number(s);
+            if (!isNaN(num) && num > 10000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) return formatDate(d, format);
+            }
+
+            // Handle YYYY-MM-DD or YYYY/MM/DD
             let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
             if (m) {
-                const d = new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+                const d = new Date(Date.UTC(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])));
                 if (!isNaN(d)) return formatDate(d, format);
             }
 
-            // 3) Try DD-MM-YYYY or DD/MM/YYYY
+            // Handle DD-MM-YYYY or DD/MM/YYYY
             m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
             if (m) {
-                const d = new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+                const d = new Date(Date.UTC(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])));
                 if (!isNaN(d)) return formatDate(d, format);
             }
 
-            // 4) JS Date parse
-            const parsed = new Date(s);
-            if (!isNaN(parsed.getTime())) {
-                return formatDate(parsed, format);
-            }
-
-            return s; // return as-is
+            return s;
         }
 
-        // ----- UI update -----
         function updateUI() {
-            // populate column select with indicators
             columnSelect.innerHTML = headers.map((h, i) =>
                 `<option value="${i}">${h} ${convertedColumns.has(i) ? '✓' : ''}</option>`
             ).join('');
 
-            // tags
-            const tagsContainer = convertedTags;
-            tagsContainer.innerHTML = '';
+            convertedTags.innerHTML = '';
             convertedColumns.forEach((fmt, idx) => {
                 const span = document.createElement('span');
                 span.className = 'tag';
                 span.textContent = `${headers[idx]} (${fmt})`;
-                tagsContainer.appendChild(span);
+                convertedTags.appendChild(span);
             });
             convertedColumnsList.style.display = convertedColumns.size ? 'block' : 'none';
 
@@ -498,7 +468,6 @@
             document.getElementById('previewInfo').textContent = `Showing first ${preview.length} of ${masterData.length} rows.`;
         }
 
-        // ----- file handling -----
         function handleFile(file) {
             if (!file) return;
             originalFileName = file.name.split('.')[0] || 'data';
@@ -510,9 +479,10 @@
             reader.onload = function(evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    // Use cellDates: false & raw: true to maintain numerical serials correctly
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     const ws = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
 
                     if (rows.length === 0) {
                         infoMsg.textContent = "⚠️ File is empty.";
@@ -537,14 +507,12 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ----- event listeners -----
         uploadArea.onclick = () => fileInput.click();
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
 
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = 'var(--primary)';
@@ -561,7 +529,6 @@
             if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
         });
 
-        // ----- conversion -----
         convertBtn.onclick = function() {
             if (!masterData.length || !headers.length) {
                 infoMsg.textContent = "⚠️ Please load a file first.";
@@ -576,7 +543,7 @@
             const fmt = dateFormatSelect.value;
 
             let convertedCount = 0;
-            masterData.forEach((row, i) => {
+            masterData.forEach((row) => {
                 const val = row[idx];
                 const formatted = parseDateValue(val, fmt);
                 if (formatted !== String(val)) {
@@ -591,7 +558,6 @@
             infoMsg.classList.remove('error-msg');
         };
 
-        // ----- reset -----
         resetBtn.onclick = function() {
             if (!originalDataBackup.length) {
                 infoMsg.textContent = "⚠️ No data to reset.";
@@ -606,7 +572,6 @@
             }
         };
 
-        // ----- export -----
         exportBtn.onclick = function() {
             if (!masterData.length || !headers.length) {
                 infoMsg.textContent = "⚠️ No data to export.";
@@ -619,15 +584,6 @@
             infoMsg.textContent = `✅ Exported as ${originalFileName}_fixed.xlsx`;
         };
 
-        // ----- extra: re-process on format change (optional) -----
-        // we keep it manual via convert button, but we add a small helper if needed.
-        // we also support the "reprocessCurrentData" from the second script style: 
-        // but we integrate it as part of convert.
-
-        // Also make sure the format selector updates the current column's format when changed? 
-        // We'll keep it manual.
-
-        console.log("Date Cleaner ready – enhanced with multi‑format support.");
     })();
 </script>
 </body>
