@@ -196,6 +196,20 @@
             font-size: 11px;
         }
 
+        .btn-delete {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-delete:disabled {
+            background-color: #fca5a5;
+            cursor: not-allowed;
+        }
+
         .table-container {
             margin-top: 15px;
             overflow-x: auto;
@@ -237,6 +251,13 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 15px;
+        }
+
+        .delete-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: end;
         }
 
         .action-btns {
@@ -332,6 +353,10 @@
             color: white;
             font-size: 11px;
             font-weight: 600;
+        }
+
+        .progress-bar .progress-fill.danger {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
         }
 
         .section-divider {
@@ -460,8 +485,57 @@
             justify-content: center;
         }
 
+        /* Delete section styles */
+        .delete-section {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .delete-section h3 {
+            color: #991b1b;
+        }
+
+        .delete-section .form-group label {
+            color: #991b1b;
+        }
+
+        .delete-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .delete-stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .delete-stats .stat-item .value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .delete-stats .stat-item .value.danger {
+            color: #dc2626;
+        }
+
+        .delete-stats .stat-item .value.success {
+            color: #10b981;
+        }
+
         @media (max-width: 768px) {
-            .form-row, .upload-form-row {
+            .form-row,
+            .upload-form-row,
+            .delete-form-row {
                 grid-template-columns: 1fr;
             }
 
@@ -537,6 +611,61 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ==================== قسم حذف البيانات ==================== -->
+        <div class="delete-section">
+            <h3><i class="fas fa-trash-alt"></i> حذف البيانات حسب التاريخ</h3>
+            <p style="color:#991b1b;font-size:13px;margin-bottom:15px;">
+                <i class="fas fa-exclamation-triangle"></i> تحذير: هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع السجلات التي تحمل تاريخ الرفع المحدد.
+            </p>
+
+            <div class="delete-form-row">
+                <div class="form-group">
+                    <label for="deleteDateSelect">اختر تاريخ الرفع:</label>
+                    <select id="deleteDateSelect">
+                        <option value="">-- جاري تحميل التواريخ --</option>
+                    </select>
+                    <div style="font-size:12px;color:#64748b;margin-top:4px;">
+                        <i class="fas fa-calendar-alt"></i> اختر التاريخ لحذف جميع السجلات المرتبطة به
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary" id="btnLoadDeleteDates" style="width:100%;">
+                        <i class="fas fa-sync-alt"></i> تحميل التواريخ
+                    </button>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-danger" id="btnDeleteByDate" disabled style="width:100%;">
+                        <i class="fas fa-trash"></i> حذف البيانات
+                    </button>
+                </div>
+            </div>
+
+            <!-- Delete Stats -->
+            <div id="deleteStats" class="delete-stats" style="display:none;">
+                <div class="stat-item">
+                    <i class="fas fa-calendar-day"></i>
+                    التاريخ المحدد: <span class="value" id="selectedDeleteDate">-</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-file-alt"></i>
+                    عدد السجلات: <span class="value danger" id="deleteRecordsCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-layer-group"></i>
+                    عدد القطاعات: <span class="value" id="deleteSectorsCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-building"></i>
+                    عدد الهندسات: <span class="value" id="deleteDistrictsCount">0</span>
+                </div>
+            </div>
+
+            <div id="deleteStatus" class="status-msg"></div>
+            <div id="deleteProgress" class="progress-bar">
+                <div class="progress-fill danger" id="deleteProgressFill">0%</div>
             </div>
         </div>
 
@@ -644,7 +773,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, get, set, remove, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -735,6 +864,13 @@
             '410': 'هندسة قرى جنوب دسوق', '411': 'هندسة فوه', '412': 'هندسة مطوبس',
             '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول', '415': 'هندسة بيلا',
             '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+        };
+
+        const sectorNames = {
+            '1': 'قطاع دمياط',
+            '2': 'قطاع شمال الدقهلية',
+            '3': 'قطاع جنوب الدقهلية',
+            '4': 'قطاع كفر الشيخ'
         };
 
         // ==================== استعراض الصلاحيات ====================
@@ -1052,6 +1188,311 @@
             resetSessionTimer();
         });
 
+        // ==================== حذف البيانات حسب التاريخ ====================
+        async function loadDeleteDates() {
+            const select = document.getElementById('deleteDateSelect');
+            select.innerHTML = '<option value="">جاري التحميل...</option>';
+            document.getElementById('btnDeleteByDate').disabled = true;
+            document.getElementById('deleteStats').style.display = 'none';
+
+            const status = document.getElementById('deleteStatus');
+            status.textContent = 'جاري استعراض جميع السجلات...';
+            status.className = 'info';
+            status.style.display = 'block';
+
+            try {
+                const sectorsRef = ref(db, 'sectors');
+                const snapshot = await get(sectorsRef);
+
+                const dates = new Set();
+                let totalRecords = 0;
+                let sectorCount = 0;
+                let districtCount = 0;
+
+                if (snapshot.exists()) {
+                    const sectorsData = snapshot.val();
+                    const sectorKeys = Object.keys(sectorsData);
+                    sectorCount = sectorKeys.length;
+
+                    for (const sectorKey of sectorKeys) {
+                        const sectorData = sectorsData[sectorKey];
+                        if (sectorData.districts) {
+                            const districtKeys = Object.keys(sectorData.districts);
+                            districtCount += districtKeys.length;
+
+                            for (const districtKey of districtKeys) {
+                                const districtData = sectorData.districts[districtKey];
+                                if (districtData.manual_entries) {
+                                    const entries = districtData.manual_entries;
+                                    const entryKeys = Object.keys(entries);
+
+                                    for (const entryKey of entryKeys) {
+                                        const entry = entries[entryKey];
+                                        if (entry.upload_date) {
+                                            dates.add(entry.upload_date);
+                                            totalRecords++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                select.innerHTML = '<option value="">-- اختر تاريخ --</option>';
+
+                if (dates.size === 0) {
+                    select.innerHTML += '<option value="" disabled>لا توجد تواريخ متاحة</option>';
+                    status.textContent = 'لا توجد سجلات في قاعدة البيانات';
+                    status.className = 'warning';
+                    document.getElementById('btnDeleteByDate').disabled = true;
+                    return;
+                }
+
+                const sortedDates = Array.from(dates).sort().reverse();
+                for (const date of sortedDates) {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    select.appendChild(option);
+                }
+
+                status.textContent = `✅ تم تحميل ${sortedDates.length} تاريخ مختلف (إجمالي ${totalRecords} سجل)`;
+                status.className = 'success';
+                document.getElementById('btnDeleteByDate').disabled = false;
+
+                // Show stats
+                document.getElementById('deleteStats').style.display = 'flex';
+                document.getElementById('selectedDeleteDate').textContent = '-';
+                document.getElementById('deleteRecordsCount').textContent = totalRecords;
+                document.getElementById('deleteSectorsCount').textContent = sectorCount;
+                document.getElementById('deleteDistrictsCount').textContent = districtCount;
+
+                resetSessionTimer();
+
+            } catch (err) {
+                console.error('Error loading delete dates:', err);
+                select.innerHTML = '<option value="">خطأ في التحميل</option>';
+                status.textContent = 'خطأ في تحميل التواريخ: ' + err.message;
+                status.className = 'error';
+                document.getElementById('btnDeleteByDate').disabled = true;
+            }
+        }
+
+        async function previewDeleteDate() {
+            const selectedDate = document.getElementById('deleteDateSelect').value;
+            const status = document.getElementById('deleteStatus');
+
+            if (!selectedDate) {
+                document.getElementById('deleteStats').style.display = 'none';
+                document.getElementById('btnDeleteByDate').disabled = true;
+                return;
+            }
+
+            status.textContent = 'جاري حساب السجلات...';
+            status.className = 'loading';
+            status.style.display = 'block';
+            document.getElementById('btnDeleteByDate').disabled = true;
+
+            try {
+                const sectorsRef = ref(db, 'sectors');
+                const snapshot = await get(sectorsRef);
+
+                let recordCount = 0;
+                const sectorSet = new Set();
+                const districtSet = new Set();
+
+                if (snapshot.exists()) {
+                    const sectorsData = snapshot.val();
+                    const sectorKeys = Object.keys(sectorsData);
+
+                    for (const sectorKey of sectorKeys) {
+                        const sectorData = sectorsData[sectorKey];
+                        if (sectorData.districts) {
+                            const districtKeys = Object.keys(sectorData.districts);
+
+                            for (const districtKey of districtKeys) {
+                                const districtData = sectorData.districts[districtKey];
+                                if (districtData.manual_entries) {
+                                    const entries = districtData.manual_entries;
+                                    const entryKeys = Object.keys(entries);
+
+                                    for (const entryKey of entryKeys) {
+                                        const entry = entries[entryKey];
+                                        if (entry.upload_date === selectedDate) {
+                                            recordCount++;
+                                            sectorSet.add(sectorKey);
+                                            districtSet.add(districtKey);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                document.getElementById('deleteStats').style.display = 'flex';
+                document.getElementById('selectedDeleteDate').textContent = selectedDate;
+                document.getElementById('deleteRecordsCount').textContent = recordCount;
+                document.getElementById('deleteSectorsCount').textContent = sectorSet.size;
+                document.getElementById('deleteDistrictsCount').textContent = districtSet.size;
+
+                if (recordCount === 0) {
+                    status.textContent = `⚠️ لا توجد سجلات بتاريخ ${selectedDate}`;
+                    status.className = 'warning';
+                    document.getElementById('btnDeleteByDate').disabled = true;
+                } else {
+                    status.textContent = `✅ تم العثور على ${recordCount} سجل بتاريخ ${selectedDate}`;
+                    status.className = 'success';
+                    document.getElementById('btnDeleteByDate').disabled = false;
+                }
+
+                resetSessionTimer();
+
+            } catch (err) {
+                console.error('Error previewing delete:', err);
+                status.textContent = 'خطأ: ' + err.message;
+                status.className = 'error';
+                document.getElementById('btnDeleteByDate').disabled = true;
+            }
+        }
+
+        async function deleteByDate() {
+            const selectedDate = document.getElementById('deleteDateSelect').value;
+
+            if (!selectedDate) {
+                showStatus('يرجى اختيار تاريخ', 'error', 'deleteStatus');
+                return;
+            }
+
+            const recordCount = parseInt(document.getElementById('deleteRecordsCount').textContent);
+            if (recordCount === 0) {
+                showStatus('لا توجد سجلات للحذف', 'warning', 'deleteStatus');
+                return;
+            }
+
+            if (!confirm(`⚠️ تحذير: أنت على وشك حذف ${recordCount} سجل بتاريخ ${selectedDate}. هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد؟`)) {
+                return;
+            }
+
+            if (!confirm(`تأكيد نهائي: هل أنت متأكد من حذف جميع السجلات بتاريخ ${selectedDate}؟`)) {
+                return;
+            }
+
+            const status = document.getElementById('deleteStatus');
+            const progressBar = document.getElementById('deleteProgress');
+            const progressFill = document.getElementById('deleteProgressFill');
+
+            status.textContent = 'جاري حذف السجلات...';
+            status.className = 'loading';
+            status.style.display = 'block';
+
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressFill.textContent = '0%';
+
+            document.getElementById('btnDeleteByDate').disabled = true;
+            document.getElementById('btnLoadDeleteDates').disabled = true;
+
+            let deletedCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            try {
+                const sectorsRef = ref(db, 'sectors');
+                const snapshot = await get(sectorsRef);
+
+                const deletePromises = [];
+                let totalFound = 0;
+
+                if (snapshot.exists()) {
+                    const sectorsData = snapshot.val();
+                    const sectorKeys = Object.keys(sectorsData);
+
+                    for (const sectorKey of sectorKeys) {
+                        const sectorData = sectorsData[sectorKey];
+                        if (sectorData.districts) {
+                            const districtKeys = Object.keys(sectorData.districts);
+
+                            for (const districtKey of districtKeys) {
+                                const districtData = sectorData.districts[districtKey];
+                                if (districtData.manual_entries) {
+                                    const entries = districtData.manual_entries;
+                                    const entryKeys = Object.keys(entries);
+
+                                    for (const entryKey of entryKeys) {
+                                        const entry = entries[entryKey];
+                                        if (entry.upload_date === selectedDate) {
+                                            totalFound++;
+                                            const path = `sectors/${sectorKey}/districts/${districtKey}/manual_entries/${entryKey}`;
+                                            const deletePromise = remove(ref(db, path))
+                                                .then(() => {
+                                                    deletedCount++;
+                                                    const progress = Math.round((deletedCount / totalFound) * 100);
+                                                    progressFill.style.width = `${progress}%`;
+                                                    progressFill.textContent = `${progress}%`;
+                                                    status.textContent =
+                                                        `جاري الحذف... ${deletedCount}/${totalFound} (${progress}%)`;
+                                                })
+                                                .catch((err) => {
+                                                    errorCount++;
+                                                    errors.push(`${entryKey}: ${err.message}`);
+                                                    console.error(err);
+                                                });
+                                            deletePromises.push(deletePromise);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await Promise.allSettled(deletePromises);
+
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 1000);
+
+                let msg = `✅ تم حذف ${deletedCount} سجل بنجاح`;
+                if (errorCount > 0) {
+                    msg += `، فشل حذف ${errorCount} سجل`;
+                    if (errors.length <= 5) {
+                        msg += `: ${errors.join('; ')}`;
+                    }
+                }
+                status.textContent = msg;
+                status.className = errorCount > 0 && deletedCount === 0 ? 'error' : 'success';
+
+                // Refresh the date list
+                await loadDeleteDates();
+
+            } catch (err) {
+                console.error('Error during delete:', err);
+                status.textContent = 'خطأ في عملية الحذف: ' + err.message;
+                status.className = 'error';
+            }
+
+            document.getElementById('btnDeleteByDate').disabled = false;
+            document.getElementById('btnLoadDeleteDates').disabled = false;
+            resetSessionTimer();
+        }
+
+        document.getElementById('btnLoadDeleteDates').addEventListener('click', function () {
+            loadDeleteDates();
+            resetSessionTimer();
+        });
+
+        document.getElementById('deleteDateSelect').addEventListener('change', function () {
+            previewDeleteDate();
+            resetSessionTimer();
+        });
+
+        document.getElementById('btnDeleteByDate').addEventListener('click', function () {
+            deleteByDate();
+            resetSessionTimer();
+        });
+
         // ==================== رفع البيانات مع التحقق من التكرار ====================
         let uploadData = [];
         let internalDuplicateKeys = [];
@@ -1106,13 +1547,6 @@
             'keta3_id': 'keta3_id',
             'handsa_code': 'handsa_code',
             'meter_voltage': 'meter_voltage'
-        };
-
-        const sectorNames = {
-            '1': 'قطاع دمياط',
-            '2': 'قطاع شمال الدقهلية',
-            '3': 'قطاع جنوب الدقهلية',
-            '4': 'قطاع كفر الشيخ'
         };
 
         function findInternalDuplicates(records, key) {
@@ -1564,8 +1998,10 @@
             resetSessionTimer();
         });
 
+        // Initial load
         setTimeout(() => {
             fetchAuthData();
+            loadDeleteDates();
         }, 500);
 
         console.log('Admin page loaded successfully.');
