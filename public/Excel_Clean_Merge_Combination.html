@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Excel Processing Suite</title>
+
+  <!-- External Libraries -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <style>
+    :root {
+      --primary-blue: #2563eb;
+      --excel-green: #107c41;
+      --bg-light: #f8fafc;
+      --card-white: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 2rem 0;
+    }
+
+    .card {
+      background: var(--card-white);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stats-container {
+      background: var(--card-white);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+      border-right: 1px solid var(--border-color);
+    }
+    .stat-box:last-child {
+      border-right: none;
+    }
+
+    .checkbox-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .checkbox-item {
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+    }
+    .checkbox-item:hover {
+      background: #f1f5f9;
+    }
+
+    /* Interactive Table Styling */
+    .table-interactive-container {
+      max-height: 550px;
+      overflow: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .table-interactive {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .table-interactive th, .table-interactive td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    .table-interactive th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: grab;
+      user-select: none;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .table-interactive th.dragging {
+      opacity: 0.4;
+      background: #cbd5e1;
+    }
+
+    .table-interactive th.drag-over {
+      border-left: 4px solid var(--primary-blue);
+    }
+
+    .table-interactive td.editable-cell {
+      cursor: pointer;
+    }
+
+    .table-interactive td.editable-cell:hover {
+      background-color: #f0fdf4;
+    }
+
+    .cell-input-inline {
+      width: 100%;
+      border: 1px solid var(--primary-blue);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .instructions-box {
+      font-size: 13px;
+      background: #eff6ff;
+      border-left: 4px solid var(--primary-blue);
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+
+    #fullscreenPreviewModal .modal-dialog {
+      max-width: 100vw !important;
+      width: 100vw !important;
+      margin: 0 !important;
+    }
+    #fullscreenPreviewModal .modal-content {
+      border-radius: 0 !important;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid px-4">
+    
+    <!-- Top Bar Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-800 mb-0"><i class="fas fa-layer-group text-primary me-2"></i> Unified Excel Processing Suite</h2>
+      <div>
+        <span class="badge bg-primary px-3 py-2">v3.2 Fully Feature-Restored</span>
+      </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="stats-container row text-center g-0">
+      <div class="col-md-3 stat-box">
+        <div class="text-muted small fw-bold">LOADED WORKING ROWS</div>
+        <div class="h4 mb-0 fw-bold" id="totalCount">0</div>
+      </div>
+      <div class="col-md-3 stat-box">
+        <div class="text-success small fw-bold">MATCHED / PROCESSED</div>
+        <div class="h4 mb-0 fw-bold text-success" id="matchedCount">0</div>
+      </div>
+      <div class="col-md-3 stat-box">
+        <div class="text-primary small fw-bold">ACTIVE FILES LOADED</div>
+        <div class="h4 mb-0 fw-bold text-primary" id="filesCount">0</div>
+      </div>
+      <div class="col-md-3 stat-box">
+        <div class="text-secondary small fw-bold">TOTAL COLUMNS</div>
+        <div class="h4 mb-0 fw-bold text-secondary" id="columnsCount">0</div>
+      </div>
+    </div>
+
+    <!-- Controls Card -->
+    <div class="card">
+      <ul class="nav nav-pills mb-3 border-bottom pb-3" id="processTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-bold" id="combine-tab" data-bs-toggle="pill" data-bs-target="#tab-combine" type="button"><i class="fas fa-file-contract me-2"></i>Mode A: Append / Merge Files Direct</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="update-tab" data-bs-toggle="pill" data-bs-target="#tab-update" type="button"><i class="fas fa-sync-alt me-2"></i>Mode B: Master VLookup Update Pipeline</button>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="processTabsContent">
+        
+        <!-- MODE A: Direct Merge/Combine Files -->
+        <div class="tab-pane fade show active" id="tab-combine" role="tabpanel">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+              <label class="fw-bold mb-1"><i class="fas fa-folder-open me-2 text-primary"></i> Upload Multiple Files to Concatenate</label>
+              <input type="file" id="combineFiles" class="form-control" multiple accept=".xlsx, .xls" onchange="loadCombineFiles(event)">
+            </div>
+            <div class="col-md-6">
+              <label class="fw-bold mb-1">Active File Selection</label>
+              <div class="d-flex gap-2 mb-1">
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllCombineFiles(true)">Check All</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllCombineFiles(false)">Uncheck All</button>
+              </div>
+              <div class="checkbox-card" id="combineFileList">
+                <em class="text-muted small">No files uploaded yet.</em>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE B: Master Key File Matching -->
+        <div class="tab-pane fade" id="tab-update" role="tabpanel">
+          <div class="row g-3">
+            <div class="col-md-6 border-end">
+              <label class="fw-bold mb-1"><i class="fas fa-file-invoice text-primary me-2"></i> 1. Master Structure File</label>
+              <input type="file" id="masterFile" class="form-control" accept=".xlsx, .xls">
+              <select id="keyDropdown" class="form-select mt-2" disabled>
+                <option value="">-- Choose Common Primary Key Column --</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="fw-bold mb-1"><i class="fas fa-file-import text-success me-2"></i> 2. External Data Sources</label>
+              <input type="file" id="updateFiles" class="form-control" accept=".xlsx, .xls" multiple>
+              <div id="updateFilesStatus" class="small text-muted mt-1">No source files selected</div>
+            </div>
+          </div>
+
+          <div class="row mt-3 pt-3 border-top">
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="fw-bold mb-0"><i class="fas fa-tasks me-2 text-warning"></i> 3. Select Columns to Extract/Update</label>
+                <div id="bulkSelectionButtons" style="display: none;">
+                  <button class="btn btn-outline-secondary btn-sm me-1" onclick="toggleAllCheckboxes(true)"><i class="fas fa-check-square me-1"></i>Select All</button>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllCheckboxes(false)"><i class="fas fa-square me-1"></i>Deselect All</button>
+                </div>
+              </div>
+              <div class="checkbox-card" id="checkboxAreaContainer">
+                <div class="text-center text-muted py-2" id="checkboxPlaceholderText">
+                  Select a key column above to view available fields from the master file.
+                </div>
+                <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-2" id="checkboxGridContainer"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3 pt-3 border-top justify-content-center">
+            <div class="col-md-8 text-center">
+              <label class="fw-bold mb-2 d-block"><i class="fas fa-sliders-h me-2 text-secondary"></i> 4. Processing Action Strategy</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="mergeMode" id="modeBoth" value="both" checked>
+                <label class="btn btn-outline-primary py-2 fw-bold" for="modeBoth">Update Existing & Add New</label>
+
+                <input type="radio" class="btn-check" name="mergeMode" id="modeUpdate" value="update">
+                <label class="btn btn-outline-primary py-2 fw-bold" for="modeUpdate">Update Existing Only</label>
+
+                <input type="radio" class="btn-check" name="mergeMode" id="modeNew" value="new">
+                <label class="btn btn-outline-primary py-2 fw-bold" for="modeNew">Add New Rows Only</label>
+              </div>
+              <button class="btn btn-primary fw-bold px-5 py-2 mt-3" onclick="runMasterMergeProcess()" id="processBtn" disabled>
+                <i class="fas fa-cogs me-2"></i> Execute VLookup Update Pipeline
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live Table & Interactive Editor -->
+    <div class="card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="fas fa-table me-2 text-primary"></i> Live Data Workspace & Interactive Editor</h5>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm fw-bold" onclick="openFullScreenModal()">
+            <i class="fas fa-expand me-1"></i> Maximize Grid View
+          </button>
+          <button class="btn btn-success btn-sm fw-bold" id="exportBtn" onclick="exportExcel()" disabled>
+            <i class="fas fa-file-excel me-1"></i> Export Workbook to Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="instructions-box">
+        <strong><i class="fas fa-mouse me-1"></i> Controls:</strong>
+        <span class="ms-2"><strong>Click Cell:</strong> Edit text.</span> |
+        <span class="ms-2"><strong>Double-Click Header:</strong> Rename column.</span> |
+        <span class="ms-2"><strong>Right-Click Header:</strong> Delete column.</span> |
+        <span class="ms-2"><strong>Drag Header:</strong> Reorder columns.</span> |
+        <span class="ms-2"><strong>Shift + Dbl-Click Cell:</strong> Fill down.</span>
+      </div>
+
+      <div id="statusMessage" class="small text-muted mb-2">Upload or process files to show preview.</div>
+
+      <div class="table-interactive-container">
+        <table class="table-interactive" id="previewTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Modal -->
+  <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content shadow-none border-0">
+        <div class="modal-header bg-dark text-white py-2 px-3">
+          <h6 class="modal-title"><i class="fas fa-table me-2 text-info"></i> Full-Screen Work Area View</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body bg-white p-2">
+          <div class="table-responsive w-100 h-100">
+            <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+          </div>
+        </div>
+        <div class="modal-footer py-1 px-3 bg-light border-top">
+          <button type="button" class="btn btn-secondary btn-sm fw-bold" data-bs-dismiss="modal">Close Workspace</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    let filesMap = new Map();
+    let rawParsedData = [];
+    let tableHeaders = [];
+    let tableRows = [];
+    let draggedColIdx = null;
+
+    let masterDataRaw = [];
+    let updateSourcesRaw = [];
+
+    // Helper Cleaners
+    function cleanValue(val) {
+      if (val === undefined || val === null || val === "") return "";
+      let s = String(val).replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+      if (typeof val === 'number' && val > 1e14) return val.toFixed(0);
+      return s;
+    }
+
+    function cleanForMatch(val) {
+      return cleanValue(val).toLowerCase().replace(/^0+/, '');
+    }
+
+    function normalizeHeader(str) {
+      if (!str) return "";
+      return String(str).replace(/[\u200B-\u200D\uFEFF]/g, "").trim().toLowerCase();
+    }
+
+    function escapeHtml(str) {
+      if(!str) return '';
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    async function readExcelFilePositional(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+          const jsonObjectRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          resolve({ matrix, jsonObjectRows });
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // MODE A: Direct Concatenation
+    async function loadCombineFiles(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+
+      filesMap.clear();
+      rawParsedData = [];
+      const fileListDiv = document.getElementById('combineFileList');
+      fileListDiv.innerHTML = '';
+      document.getElementById('statusMessage').textContent = 'Reading files...';
+
+      let maxCols = 0;
+      let parsedFilesTemp = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        filesMap.set(file.name, { file: file, checked: true });
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'checkbox-item d-flex align-items-center';
+        itemDiv.innerHTML = `
+          <input type="checkbox" class="form-check-input me-2" id="file_${i}" checked onchange="onCombineFileCheckboxChange('${escapeHtml(file.name)}', this.checked)">
+          <label class="form-check-label text-truncate" for="file_${i}">${escapeHtml(file.name)}</label>
+        `;
+        fileListDiv.appendChild(itemDiv);
+
+        const parsed = await readExcelFilePositional(file);
+        if (parsed.matrix.length > 0) {
+          parsed.matrix.forEach(r => { if (r.length > maxCols) maxCols = r.length; });
+          parsedFilesTemp.push({
+            fileName: file.name,
+            matrix: parsed.matrix
+          });
+        }
+      }
+
+      if (parsedFilesTemp.length > 0 && parsedFilesTemp[0].matrix.length > 0) {
+        let firstRow = parsedFilesTemp[0].matrix[0];
+        tableHeaders = [];
+        for (let c = 0; c < maxCols; c++) {
+          tableHeaders.push(firstRow[c] ? String(firstRow[c]).trim() : `Column ${c + 1}`);
+        }
+      }
+
+      if (!tableHeaders.includes("Source_File_Name")) {
+        tableHeaders.push("Source_File_Name");
+      }
+
+      rawParsedData = parsedFilesTemp;
+      rebuildActiveRowsFromCheckedFiles();
+      document.getElementById('exportBtn').disabled = false;
+    }
+
+    function rebuildActiveRowsFromCheckedFiles() {
+      tableRows = [];
+      
+      rawParsedData.forEach(item => {
+        const fileState = filesMap.get(item.fileName);
+        if (fileState && fileState.checked) {
+          for (let r = 1; r < item.matrix.length; r++) {
+            let rowMatrix = item.matrix[r];
+            let rowArray = [];
+
+            for (let c = 0; c < tableHeaders.length - 1; c++) {
+              rowArray.push(rowMatrix[c] !== undefined ? rowMatrix[c] : "");
+            }
+            rowArray.push(item.fileName);
+            tableRows.push(rowArray);
+          }
+        }
+      });
+
+      renderInteractiveTable();
+    }
+
+    function onCombineFileCheckboxChange(fileName, isChecked) {
+      const fileObj = filesMap.get(fileName);
+      if (fileObj) fileObj.checked = isChecked;
+      rebuildActiveRowsFromCheckedFiles();
+    }
+
+    function toggleAllCombineFiles(checkedState) {
+      filesMap.forEach((val) => val.checked = checkedState);
+      const checkboxes = document.querySelectorAll('#combineFileList input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = checkedState);
+      rebuildActiveRowsFromCheckedFiles();
+    }
+
+    // MODE B: Master VLookup Update Pipeline
+    document.getElementById('masterFile').onchange = async (e) => {
+      if (!e.target.files.length) return;
+      const parsed = await readExcelFilePositional(e.target.files[0]);
+      masterDataRaw = parsed.jsonObjectRows;
+      if (masterDataRaw.length > 0) {
+        populateKeyDropdown();
+      }
+      checkEnableMasterBtn();
+    };
+
+    document.getElementById('updateFiles').onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) {
+        updateSourcesRaw = [];
+        document.getElementById('updateFilesStatus').innerText = 'No source files selected';
+        checkEnableMasterBtn();
+        return;
+      }
+      updateSourcesRaw = [];
+      for (let file of files) {
+        const parsed = await readExcelFilePositional(file);
+        updateSourcesRaw.push(parsed.jsonObjectRows);
+      }
+      document.getElementById('updateFilesStatus').innerText = `${files.length} update file(s) parsed`;
+      checkEnableMasterBtn();
+    };
+
+    function populateKeyDropdown() {
+      const headers = Object.keys(masterDataRaw[0]);
+      const keyDropdown = document.getElementById('keyDropdown');
+      keyDropdown.innerHTML = '<option value="">-- Choose Key Column --</option>';
+      headers.forEach(h => {
+        if (h && h.trim() !== "") keyDropdown.innerHTML += `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`;
+      });
+      keyDropdown.disabled = false;
+      keyDropdown.onchange = () => {
+        if (keyDropdown.value) renderColumnCheckboxes(keyDropdown.value);
+      };
+    }
+
+    function renderColumnCheckboxes(selectedKey) {
+      const gridContainer = document.getElementById('checkboxGridContainer');
+      const placeholderText = document.getElementById('checkboxPlaceholderText');
+      const bulkButtons = document.getElementById('bulkSelectionButtons');
+
+      gridContainer.innerHTML = '';
+      if (!selectedKey) {
+        placeholderText.style.display = 'block';
+        bulkButtons.style.display = 'none';
+        return;
+      }
+
+      placeholderText.style.display = 'none';
+      bulkButtons.style.display = 'block';
+
+      const headers = Object.keys(masterDataRaw[0]);
+      headers.forEach((h, index) => {
+        if (h && h.trim() !== "" && h !== selectedKey) {
+          const safeId = `chk_${index}`;
+          gridContainer.innerHTML += `
+            <div class="col">
+              <div class="form-check checkbox-item d-flex align-items-center">
+                <input class="form-check-input column-update-checkbox me-2" type="checkbox" value="${escapeHtml(h)}" id="${safeId}">
+                <label class="form-check-label text-truncate" for="${safeId}">${escapeHtml(h)}</label>
+              </div>
+            </div>
+          `;
+        }
+      });
+    }
+
+    function toggleAllCheckboxes(status) {
+      document.querySelectorAll('.column-update-checkbox').forEach(chk => chk.checked = status);
+    }
+
+    function checkEnableMasterBtn() {
+      const masterOk = masterDataRaw && masterDataRaw.length > 0;
+      const sourceOk = updateSourcesRaw && updateSourcesRaw.length > 0;
+      document.getElementById('processBtn').disabled = !(masterOk && sourceOk);
+    }
+
+    function runMasterMergeProcess() {
+      const keyCol = document.getElementById('keyDropdown').value;
+      const checkedBoxes = document.querySelectorAll('.column-update-checkbox:checked');
+      const selectedColumns = Array.from(checkedBoxes).map(cb => cb.value);
+
+      if (!keyCol || selectedColumns.length === 0) {
+        alert("Select both a primary key and at least one target update column.");
+        return;
+      }
+
+      const activeMode = document.querySelector('input[name="mergeMode"]:checked').value;
+      let masterMap = new Map();
+
+      if (activeMode !== 'new') {
+        masterDataRaw.forEach(row => {
+          const keyVal = cleanForMatch(row[keyCol]);
+          if (keyVal !== "") masterMap.set(keyVal, { ...row });
+        });
+      } else {
+        masterDataRaw.forEach(row => {
+          const keyVal = cleanForMatch(row[keyCol]);
+          if (keyVal !== "") masterMap.set(keyVal, "EXISTS_IN_MASTER");
+        });
+      }
+
+      let updateCount = 0;
+      let newCount = 0;
+
+      updateSourcesRaw.forEach(fileData => {
+        fileData.forEach(sourceRow => {
+          let normalizedKeyCol = normalizeHeader(keyCol);
+          let actualSourceKeyCol = Object.keys(sourceRow).find(k => normalizeHeader(k) === normalizedKeyCol);
+          if (!actualSourceKeyCol) return;
+
+          const sourceKey = sourceRow[actualSourceKeyCol];
+          if (sourceKey === undefined || sourceKey === null || String(sourceKey).trim() === "") return;
+
+          const matchKey = cleanForMatch(sourceKey);
+          const existing = masterMap.get(matchKey);
+
+          if (existing && existing !== "EXISTS_IN_MASTER") {
+            if (activeMode === 'both' || activeMode === 'update') {
+              let changed = false;
+              selectedColumns.forEach(col => {
+                let normalizedTargetCol = normalizeHeader(col);
+                let actualSourceCol = Object.keys(sourceRow).find(k => normalizeHeader(k) === normalizedTargetCol);
+                if (actualSourceCol) {
+                  const sourceVal = sourceRow[actualSourceCol];
+                  if (sourceVal !== undefined && sourceVal !== null && String(sourceVal).trim() !== "") {
+                    if (existing[col] !== sourceVal) {
+                      existing[col] = sourceVal;
+                      changed = true;
+                    }
+                  }
+                }
+              });
+              if (changed) {
+                masterMap.set(matchKey, existing);
+                updateCount++;
+              }
+            }
+          } else if (existing === "EXISTS_IN_MASTER") {
+            return;
+          } else {
+            if (activeMode === 'both' || activeMode === 'new') {
+              let newRow = {};
+              Object.keys(masterDataRaw[0]).forEach(col => newRow[col] = "");
+              newRow[keyCol] = sourceRow[actualSourceKeyCol];
+              selectedColumns.forEach(col => {
+                let normalizedTargetCol = normalizeHeader(col);
+                let actualSourceCol = Object.keys(sourceRow).find(k => normalizeHeader(k) === normalizedTargetCol);
+                if (actualSourceCol && sourceRow[actualSourceCol] !== undefined) {
+                  newRow[col] = sourceRow[actualSourceCol];
+                }
+              });
+              masterMap.set(matchKey, newRow);
+              newCount++;
+            }
+          }
+        });
+      });
+
+      if (activeMode === 'new') {
+        for (let [k, v] of masterMap.entries()) {
+          if (v === "EXISTS_IN_MASTER") masterMap.delete(k);
+        }
+      }
+
+      const finalObjects = Array.from(masterMap.values());
+      if (finalObjects.length > 0) {
+        tableHeaders = Object.keys(finalObjects[0]);
+        tableRows = finalObjects.map(obj => tableHeaders.map(h => obj[h] !== undefined ? obj[h] : ""));
+      }
+
+      document.getElementById('matchedCount').innerText = `${updateCount} Updated, ${newCount} New`;
+      document.getElementById('filesCount').innerText = updateSourcesRaw.length;
+      document.getElementById('exportBtn').disabled = false;
+      filesMap.clear();
+      renderInteractiveTable();
+    }
+
+    // Table Rendering & Dynamic Editing
+    function renderInteractiveTable() {
+      const thead = document.getElementById('tableHead');
+      const tbody = document.getElementById('tableBody');
+      const status = document.getElementById('statusMessage');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      let activeCount = 0;
+      filesMap.forEach(v => { if (v.checked) activeCount++; });
+      document.getElementById('filesCount').innerText = filesMap.size > 0 ? `${activeCount} / ${filesMap.size}` : '0';
+      document.getElementById('totalCount').innerText = tableRows.length.toLocaleString();
+      document.getElementById('columnsCount').innerText = tableHeaders.length;
+
+      if (tableRows.length === 0) {
+        status.textContent = 'No data available to display.';
+        return;
+      }
+
+      status.textContent = `Displaying ${tableRows.length} loaded active rows across ${tableHeaders.length} columns.`;
+
+      // Header creation with dynamic events
+      const trHead = document.createElement('tr');
+      tableHeaders.forEach((header, index) => {
+        const th = document.createElement('th');
+        th.textContent = header || `Column ${index + 1}`;
+        th.draggable = true;
+        th.dataset.index = index;
+
+        th.addEventListener('dragstart', handleDragStart);
+        th.addEventListener('dragover', handleDragOver);
+        th.addEventListener('dragleave', handleDragLeave);
+        th.addEventListener('drop', handleDrop);
+        th.addEventListener('dragend', handleDragEnd);
+
+        th.addEventListener('dblclick', () => renameHeader(index));
+        th.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          deleteColumn(index);
+        });
+
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+
+      // Data Rows Rendering
+      tableRows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        tableHeaders.forEach((_, colIdx) => {
+          const td = document.createElement('td');
+          td.textContent = row[colIdx] !== undefined ? row[colIdx] : '';
+          td.className = 'editable-cell';
+          
+          td.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            makeCellEditable(td, rowIndex, colIdx);
+          });
+
+          td.addEventListener('dblclick', (e) => {
+            if (e.shiftKey) fillDown(rowIndex, colIdx);
+          });
+
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function makeCellEditable(td, rowIndex, colIdx) {
+      const currentVal = tableRows[rowIndex][colIdx] !== undefined ? tableRows[rowIndex][colIdx] : '';
+      td.innerHTML = '';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'cell-input-inline';
+      input.value = currentVal;
+
+      function saveEdit() {
+        const updatedVal = input.value;
+        tableRows[rowIndex][colIdx] = updatedVal;
+        td.textContent = updatedVal;
+      }
+
+      input.addEventListener('blur', saveEdit);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveEdit(); });
+
+      td.appendChild(input);
+      input.focus();
+    }
+
+    function handleDragStart(e) {
+      draggedColIdx = parseInt(e.target.dataset.index);
+      e.target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const th = e.target.closest('th');
+      if (th) th.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      const th = e.target.closest('th');
+      if (th) th.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetTh = e.target.closest('th');
+      if (!targetTh) return;
+
+      const targetColIdx = parseInt(targetTh.dataset.index);
+      if (draggedColIdx === null || draggedColIdx === targetColIdx) return;
+
+      const movedHeader = tableHeaders.splice(draggedColIdx, 1)[0];
+      tableHeaders.splice(targetColIdx, 0, movedHeader);
+
+      tableRows.forEach(row => {
+        const movedVal = row.splice(draggedColIdx, 1)[0];
+        row.splice(targetColIdx, 0, movedVal);
+      });
+
+      renderInteractiveTable();
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      document.querySelectorAll('th').forEach(th => th.classList.remove('drag-over'));
+    }
+
+    function renameHeader(index) {
+      const currentName = tableHeaders[index];
+      const newName = prompt("Rename column title:", currentName);
+      if (newName !== null && newName.trim() !== "") {
+        tableHeaders[index] = newName.trim();
+        renderInteractiveTable();
+      }
+    }
+
+    function deleteColumn(index) {
+      if (tableHeaders.length <= 1) {
+        alert("Cannot delete the only remaining column.");
+        return;
+      }
+      if (confirm(`Are you sure you want to delete column "${tableHeaders[index]}"?`)) {
+        tableHeaders.splice(index, 1);
+        tableRows.forEach(row => row.splice(index, 1));
+        renderInteractiveTable();
+      }
+    }
+
+    function fillDown(startRowIdx, colIdx) {
+      const valueToCopy = tableRows[startRowIdx][colIdx];
+      if (confirm(`Fill value "${valueToCopy}" down to all remaining rows below in this column?`)) {
+        for (let i = startRowIdx + 1; i < tableRows.length; i++) {
+          tableRows[i][colIdx] = valueToCopy;
+        }
+        renderInteractiveTable();
+      }
+    }
+
+    function exportExcel() {
+      const exportData = [tableHeaders, ...tableRows];
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Processed_Data");
+      XLSX.writeFile(wb, "Combined_Master_Export.xlsx");
+    }
+
+    function openFullScreenModal() {
+      const modalTable = $('#modalTable');
+      if ($.fn.DataTable.isDataTable('#modalTable')) {
+        modalTable.DataTable().destroy();
+        modalTable.empty();
+      }
+
+      const formattedData = tableRows.map(row => {
+        let obj = {};
+        tableHeaders.forEach((h, i) => obj[h] = row[i] !== undefined ? row[i] : "");
+        return obj;
+      });
+
+      const cols = tableHeaders.map(h => ({ title: h, data: h }));
+      const previewModal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+      previewModal.show();
+
+      setTimeout(() => {
+        modalTable.DataTable({
+          data: formattedData,
+          columns: cols,
+          scrollX: true,
+          scrollY: 'calc(100vh - 160px)',
+          scrollCollapse: true,
+          pageLength: 25,
+          dom: 'frtip'
+        });
+      }, 200);
+    }
+  </script>
+</body>
+</html>

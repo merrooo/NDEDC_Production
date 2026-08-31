@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البحث عن عداد بالإحداثيات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 20px 30px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-right: 6px solid var(--primary);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-icon {
+            width: 52px;
+            height: 52px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .header-title h1 {
+            font-size: 1.4rem;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .header-title .subtitle {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-back {
+            background-color: #f59e0b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-back:hover {
+            background-color: #d97706;
+        }
+
+        .sync-status {
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            font-weight: 600;
+        }
+
+        .sync-status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+        }
+
+        .user-info-badge {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info-badge .highlight {
+            color: #6ee7b7;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 45%;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 500px;
+        }
+
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .search-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-row .btn-search {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .search-row .btn-search:hover {
+            background: var(--primary-dark);
+        }
+
+        .search-row .btn-clear {
+            padding: 10px 16px;
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .search-row .btn-clear:hover {
+            background: #cbd5e1;
+        }
+
+        .coords-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .coords-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .coords-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .coords-row input::placeholder {
+            color: #94a3b8;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 200px;
+            max-height: 350px;
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .table-wrapper table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+
+        .table-wrapper th {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 8px 10px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .table-wrapper td {
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100px;
+        }
+
+        .table-wrapper tr:hover td {
+            background: #f8fafc;
+        }
+
+        .table-wrapper tr.clickable {
+            cursor: pointer;
+        }
+
+        .table-wrapper tr.clickable:hover td {
+            background: #dbeafe;
+        }
+
+        .table-wrapper .meter-num {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .table-wrapper .map-icon {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .table-wrapper .no-data {
+            text-align: center;
+            padding: 30px;
+            color: var(--secondary);
+        }
+
+        .table-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--secondary);
+            padding: 2px 4px;
+        }
+
+        .table-info .count {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* ===== STATS PANEL ===== */
+        .stats-panel {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: none;
+            border-right: 4px solid var(--primary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .stats-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .stats-panel::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .stats-panel.show {
+            display: block;
+        }
+
+        .stats-panel h4 {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 16px;
+        }
+
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+        }
+
+        .stats-item .label {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .stats-item .value {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* ===== MAP ===== */
+        .map-wrapper {
+            width: 55%;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        .map-wrapper .map-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        #map {
+            flex: 1;
+            min-height: 350px;
+            position: relative;
+            background: #e8edf3;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        #map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #map .map-placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #64748b;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #map .map-placeholder i {
+            font-size: 32px;
+            color: #94a3b8;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: row;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .map-control-btn {
+            background: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            transition: 0.2s;
+        }
+
+        .map-control-btn:hover {
+            background: #f8f9fa;
+            transform: scale(1.02);
+        }
+
+        /* ===== NOTIFICATION ===== */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+            border-right: 5px solid #2ecc71;
+            max-width: 450px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .notification.error {
+            border-right-color: #e74c3c;
+        }
+
+        .notification.warning {
+            border-right-color: #f39c12;
+        }
+
+        .notification.info {
+            border-right-color: #3498db;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== LOADING ===== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .session-timer {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .session-timer.warning {
+            color: #fcd34d;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .map-wrapper {
+                width: 100%;
+                min-height: 350px;
+            }
+
+            #map {
+                min-height: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-left {
+                flex-wrap: wrap;
+            }
+
+            .header-actions {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .search-row {
+                flex-direction: column;
+            }
+
+            .coords-row {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-wrapper {
+                max-height: 200px;
+            }
+
+            #map {
+                min-height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <div class="header-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <div class="header-title">
+                    <h1>البحث عن عداد بالإحداثيات</h1>
+                    <div class="subtitle">استعراض جميع العدادات وعرضها على الخريطة</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="sessionTimer" class="session-timer">⏱️ 5:00</span>
+                <span id="userInfoBadge" class="user-info-badge">👤 <span id="userInfoText" class="highlight">جاري
+                        التحميل...</span></span>
+                <span id="syncStatus" class="sync-status loading">⏳ جاري التحميل...</span>
+                <a id="backBtn" href="#" class="btn-back">
+                    <i class="fas fa-arrow-right"></i> رجوع
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-title">
+                    <i class="fas fa-sliders-h"></i> لوحة التحكم
+                </div>
+
+                <!-- Search -->
+                <div class="search-row">
+                    <input id="searchInput" type="text" placeholder="🔍 بحث برقم العداد أو المحول / المغذي..." />
+                    <button class="btn-search" id="searchBtn"><i class="fas fa-search"></i> بحث</button>
+                    <button class="btn-clear" id="clearBtn" title="مسح البحث وعرض جميع البيانات"><i
+                            class="fas fa-undo"></i> مسح</button>
+                </div>
+
+                <!-- Coordinates -->
+                <div class="coords-row">
+                    <input id="latInput" type="number" step="any" placeholder="خط العرض (°N)" />
+                    <input id="lngInput" type="number" step="any" placeholder="خط الطول (°E)" />
+                </div>
+                <input id="sourceInput" type="text" placeholder="المغذى \ المحول"
+                    style="padding:8px 12px; border:2px solid var(--border-color); border-radius:8px; font-size:0.85rem; outline:none; transition:0.3s;" />
+
+                <!-- Table Info -->
+                <div class="table-info">
+                    <span><i class="fas fa-list"></i> جميع البيانات</span>
+                    <span>عدد السجلات: <span class="count" id="totalCount">0</span></span>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrapper" id="tableWrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:30px;">#</th>
+                                <th>رقم العداد</th>
+                                <th>المحول / المغذي</th>
+                                <th>العنوان</th>
+                                <th>الهندسة</th>
+                                <th style="width:30px;"><i class="fas fa-map-marker-alt"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="6" class="no-data">جاري تحميل البيانات...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Stats Panel -->
+                <div class="stats-panel" id="statsPanel">
+                    <h4><i class="fas fa-chart-bar"></i> معلومات العداد</h4>
+                    <div class="stats-grid">
+                        <div class="stats-item">
+                            <span class="label">سعة المحول / المغذي:</span>
+                            <span class="value" id="capacityDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">كود المحول / المغذي:</span>
+                            <span class="value" id="facilityCodeDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">نوع المحول / المغذي:</span>
+                            <span class="value" id="facilityTypeDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">نوع العداد:</span>
+                            <span class="value" id="meterTypeDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">لوحة التوزيع:</span>
+                            <span class="value" id="dpDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">القطاع:</span>
+                            <span class="value" id="keta3Display">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">جهد العداد:</span>
+                            <span class="value" id="meterVoltageDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">رقم الشريحة:</span>
+                            <span class="value" id="simDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">رقم العداد:</span>
+                            <span class="value" id="meterDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">الإحداثيات:</span>
+                            <span class="value" id="coordDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">المغذى:</span>
+                            <span class="value" id="feederDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">الهندسة:</span>
+                            <span class="value" id="handsaDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">المحول / المغذي:</span>
+                            <span class="value" id="facilityDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="label">تاريخ التركيب:</span>
+                            <span class="value" id="installDateDisplay">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="map-wrapper">
+                <div class="map-title">
+                    <i class="fas fa-map"></i> الخريطة
+                </div>
+                <div id="map">
+                    <div class="map-placeholder">
+                        <i class="fas fa-map"></i>
+                        <span>جاري تحميل الخريطة...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+            authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
+            projectId: "trial-85",
+            storageBucket: "trial-85.firebasestorage.app",
+            messagingSenderId: "660343156279",
+            appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+            measurementId: "G-RLMVPCLZW3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // DOM Elements
+        const searchInput = document.getElementById("searchInput");
+        const latInput = document.getElementById("latInput");
+        const lngInput = document.getElementById("lngInput");
+        const sourceInput = document.getElementById("sourceInput");
+        const searchBtn = document.getElementById("searchBtn");
+        const clearBtn = document.getElementById("clearBtn");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        const notification = document.getElementById("notification");
+        const tableBody = document.getElementById("tableBody");
+        const totalCount = document.getElementById("totalCount");
+        const statsPanel = document.getElementById("statsPanel");
+        const syncStatus = document.getElementById("syncStatus");
+        const userInfoText = document.getElementById("userInfoText");
+
+        // Stats display elements
+        const meterDisplay = document.getElementById("meterDisplay");
+        const simDisplay = document.getElementById("simDisplay");
+        const coordDisplay = document.getElementById("coordDisplay");
+        const feederDisplay = document.getElementById("feederDisplay");
+        const keta3Display = document.getElementById("keta3Display");
+        const handsaDisplay = document.getElementById("handsaDisplay");
+        const meterTypeDisplay = document.getElementById("meterTypeDisplay");
+        const facilityDisplay = document.getElementById("facilityDisplay");
+        const capacityDisplay = document.getElementById("capacityDisplay");
+        const facilityCodeDisplay = document.getElementById("facilityCodeDisplay");
+        const facilityTypeDisplay = document.getElementById("facilityTypeDisplay");
+        const meterVoltageDisplay = document.getElementById("meterVoltageDisplay");
+        const dpDisplay = document.getElementById("dpDisplay");
+        const installDateDisplay = document.getElementById("installDateDisplay");
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const keta3Id = urlParams.get('keta3') || 'admin';
+        const handsaId = urlParams.get('handsa') || 'admin';
+        const userType = urlParams.get('userType') || 'Admin';
+
+        // Set back button URL
+        document.getElementById('backBtn').href = `Control_Smart.html?keta3=${keta3Id}&handsa=${handsaId}&userType=${userType}`;
+
+        // Sector and district names for display
+        const sectorNames = {
+            '1': 'قطاع دمياط',
+            '2': 'قطاع شمال الدقهلية',
+            '3': 'قطاع جنوب الدقهلية',
+            '4': 'قطاع كفر الشيخ'
+        };
+
+        const districtNames = {
+            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج',
+            '104': 'هندسة كفر سعد', '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر',
+            '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا', '109': 'هندسة فارسكور',
+            '110': 'هندسة الروضة', '111': 'هندسة الشعراء',
+            '201': 'هندسة مدينة شربين', '202': 'هندسة قري شربين', '203': 'هندسة دكرنس',
+            '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس', '206': 'هندسة مدينة بلقاس',
+            '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر',
+            '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة',
+            '213': 'هندسة مدينة المنزلة', '214': 'هندسة المطرية',
+            '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا',
+            '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2',
+            '307': 'هندسة اجا', '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين',
+            '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر', '312': 'هندسة قري ميت غمر',
+            '313': 'هندسة كوم النور',
+            '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ', '403': 'هندسة شرق كفر الشيخ',
+            '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم',
+            '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق',
+            '410': 'هندسة قرى جنوب دسوق', '411': 'هندسة فوه', '412': 'هندسة مطوبس',
+            '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول', '415': 'هندسة بيلا',
+            '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+        };
+
+        let allData = [];
+        let filteredData = [];
+        let mapInitialized = false;
+        let markerLat = null;
+        let markerLng = null;
+
+        // ============ SESSION TIMER ============
+        let sessionTimerInterval = null;
+        let sessionTimeLeft = 300;
+
+        function resetSessionTimer() {
+            sessionTimeLeft = 300;
+            updateTimerDisplay();
+            clearInterval(sessionTimerInterval);
+            startSessionTimer();
+        }
+
+        function startSessionTimer() {
+            sessionTimerInterval = setInterval(() => {
+                sessionTimeLeft--;
+                updateTimerDisplay();
+                if (sessionTimeLeft <= 0) {
+                    clearInterval(sessionTimerInterval);
+                    window.location.href = 'login_Smart.html';
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerEl = document.getElementById('sessionTimer');
+            if (timerEl) {
+                const minutes = Math.floor(sessionTimeLeft / 60);
+                const seconds = sessionTimeLeft % 60;
+                timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                if (sessionTimeLeft <= 60) {
+                    timerEl.classList.add('warning');
+                } else {
+                    timerEl.classList.remove('warning');
+                }
+            }
+        }
+
+        document.addEventListener('click', resetSessionTimer);
+        document.addEventListener('keydown', resetSessionTimer);
+        document.addEventListener('mousemove', resetSessionTimer);
+        document.addEventListener('scroll', resetSessionTimer);
+        startSessionTimer();
+
+        // ============ NOTIFICATIONS ============
+        function showLoading() { loadingOverlay.style.display = "flex"; }
+
+        function hideLoading() { loadingOverlay.style.display = "none"; }
+
+        function showNotification(message, type = "info") {
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = "flex";
+            setTimeout(() => { notification.style.display = "none"; }, 3000);
+            resetSessionTimer();
+        }
+
+        function updateSyncStatus(isLoading = false, message = '') {
+            syncStatus.textContent = isLoading ? '⏳ جاري التحميل...' : (message || '✅ متصل');
+            syncStatus.className = `sync-status ${isLoading ? 'loading' : ''}`;
+        }
+
+        function updateUserInfo() {
+            let displayText = '';
+            if (keta3Id === 'admin' && handsaId === 'admin') {
+                displayText = '👑 Admin (جميع البيانات)';
+            } else {
+                const sectorName = sectorNames[keta3Id] || `قطاع ${keta3Id}`;
+                const districtName = districtNames[handsaId] || `هندسة ${handsaId}`;
+                displayText = `${sectorName} - ${districtName}`;
+            }
+            userInfoText.textContent = displayText;
+        }
+        updateUserInfo();
+
+        // ============ INITIALIZE MAP ============
+        function initMap(lat = 30.0444, lng = 31.2357) {
+            try {
+                const mapElement = document.getElementById("map");
+                const iframe = document.createElement('iframe');
+                iframe.src =
+                    `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.1},${lat - 0.1},${lng + 0.1},${lat + 0.1}&layer=mapnik`;
+                iframe.allowFullscreen = true;
+                iframe.loading = "lazy";
+                iframe.style.width = "100%";
+                iframe.style.height = "100%";
+
+                mapElement.innerHTML = '';
+                mapElement.appendChild(iframe);
+                addMapControls();
+                mapInitialized = true;
+                console.log("✅ Map initialized");
+            } catch (error) {
+                console.error("Map error:", error);
+                document.getElementById("map").innerHTML = `
+                    <div class="map-placeholder" style="color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>خطأ في تحميل الخريطة</span>
+                    </div>
+                `;
+            }
+        }
+
+        function updateMapLocation(lat, lng) {
+            if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                showNotification("الإحداثيات غير صحيحة", "error");
+                return;
+            }
+
+            markerLat = lat;
+            markerLng = lng;
+
+            const mapElement = document.getElementById("map");
+            const iframe = document.createElement('iframe');
+            iframe.src =
+                `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.005},${lng + 0.005},${lat + 0.005}&layer=mapnik&marker=${lat},${lng}`;
+            iframe.allowFullscreen = true;
+            iframe.loading = "lazy";
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+
+            mapElement.innerHTML = '';
+            mapElement.appendChild(iframe);
+
+            console.log("✅ Map updated to:", lat, lng);
+        }
+
+        function addMapControls() {
+            const mapElement = document.getElementById("map");
+            if (mapElement.parentElement.querySelector('.map-controls')) return;
+
+            const controls = document.createElement("div");
+            controls.className = "map-controls";
+            controls.innerHTML = `
+                <button class="map-control-btn" id="resetMapBtn"><i class="fas fa-sync-alt"></i></button>
+            `;
+            mapElement.parentElement.appendChild(controls);
+
+            document.getElementById("resetMapBtn").addEventListener("click", () => {
+                markerLat = null;
+                markerLng = null;
+                initMap(30.0444, 31.2357);
+                showNotification("تم إعادة تعيين الخريطة", "info");
+                resetSessionTimer();
+            });
+        }
+
+        // ============ RENDER TABLE ============
+        function renderTable(data) {
+            tableBody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="no-data">لا توجد بيانات</td></tr>`;
+                totalCount.textContent = "0";
+                return;
+            }
+
+            totalCount.textContent = data.length;
+
+            data.forEach((item, index) => {
+                const tr = document.createElement("tr");
+                const hasCoords = item.lat && item.lng && !isNaN(parseFloat(item.lat)) && !isNaN(parseFloat(item.lng));
+
+                tr.className = hasCoords ? 'clickable' : '';
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td class="meter-num">${item.meter_number || '-'}</td>
+                    <td>${item.facility || '-'}</td>
+                    <td>${item.address || '-'}</td>
+                    <td>${item.handsa || '-'}</td>
+                    <td class="map-icon">${hasCoords ? '<i class="fas fa-map-marker-alt"></i>' : '-'}</td>
+                `;
+
+                if (hasCoords) {
+                    tr.title = "انقر لعرض الموقع على الخريطة";
+                    tr.addEventListener("click", () => {
+                        const lat = parseFloat(item.lat);
+                        const lng = parseFloat(item.lng);
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            showMapLocation(lat, lng, item);
+                            showNotification(`✅ تم عرض العداد ${item.meter_number}`, "success");
+                            resetSessionTimer();
+                        }
+                    });
+                } else {
+                    tr.style.opacity = "0.5";
+                    tr.title = "لا توجد إحداثيات";
+                }
+
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // ============ SHOW MAP LOCATION ============
+        function showMapLocation(lat, lng, data = {}) {
+            if (isNaN(lat) || isNaN(lng)) {
+                showNotification("الإحداثيات غير صحيحة", "error");
+                return;
+            }
+
+            updateMapLocation(lat, lng);
+
+            // Update stats panel
+            meterDisplay.textContent = data.meter_number || "-";
+            simDisplay.textContent = data.sim_number || "-";
+            coordDisplay.textContent = `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
+            feederDisplay.textContent = data.feeder || "-";
+            keta3Display.textContent = data.keta3 || "-";
+            handsaDisplay.textContent = data.handsa || "-";
+            meterTypeDisplay.textContent = data.meter_type || "-";
+            facilityDisplay.textContent = data.facility || "-";
+            capacityDisplay.textContent = data.facility_capacity || "-";
+            facilityCodeDisplay.textContent = data.facility_code || "-";
+            facilityTypeDisplay.textContent = data.facility_type || "-";
+            meterVoltageDisplay.textContent = data.meter_voltage ? `${data.meter_voltage} V` : "-";
+            dpDisplay.textContent = data.dp || "-";
+            installDateDisplay.textContent = data.install_date || "-";
+
+            statsPanel.classList.add("show");
+
+            // Update input fields
+            if (data.meter_number) searchInput.value = data.meter_number;
+            latInput.value = lat;
+            lngInput.value = lng;
+            if (data.facility || data.feeder) {
+                sourceInput.value = data.facility || data.feeder;
+            }
+
+            resetSessionTimer();
+        }
+
+        // ============ LOAD DATA BASED ON LOGIN ============
+        async function loadData() {
+            showLoading();
+            updateSyncStatus(true);
+
+            try {
+                const snapshot = await get(ref(db, "sectors"));
+
+                if (!snapshot.exists()) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="no-data">لا توجد بيانات في قاعدة البيانات</td></tr>`;
+                    totalCount.textContent = "0";
+                    showNotification("لا توجد بيانات في قاعدة البيانات", "error");
+                    hideLoading();
+                    updateSyncStatus(false);
+                    return;
+                }
+
+                const sectorsData = snapshot.val();
+                let rawData = [];
+
+                // Check if user is Admin
+                const isAdmin = (keta3Id === 'admin' && handsaId === 'admin');
+
+                for (const sectorKey of Object.keys(sectorsData)) {
+                    // If not admin, skip sectors that don't match
+                    if (!isAdmin && sectorKey !== keta3Id) continue;
+
+                    const sector = sectorsData[sectorKey];
+                    if (sector.districts) {
+                        for (const districtKey of Object.keys(sector.districts)) {
+                            // If not admin, skip districts that don't match
+                            if (!isAdmin && districtKey !== handsaId) continue;
+
+                            const district = sector.districts[districtKey];
+                            if (district.manual_entries) {
+                                for (const [meterKey, meterData] of Object.entries(district.manual_entries)) {
+                                    rawData.push({
+                                        ...meterData,
+                                        _sector: sectorKey,
+                                        _district: districtKey,
+                                        _key: meterKey
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                allData = rawData;
+                filteredData = allData;
+
+                console.log(`✅ Loaded ${allData.length} meters for user: ${isAdmin ? 'Admin' : `${keta3Id}/${handsaId}`}`);
+                renderTable(allData);
+
+                const sectorName = sectorNames[keta3Id] || `قطاع ${keta3Id}`;
+                const districtName = districtNames[handsaId] || `هندسة ${handsaId}`;
+                const userInfo = isAdmin ? 'جميع البيانات' : `${sectorName} - ${districtName}`;
+                showNotification(`تم تحميل ${allData.length} عداد (${userInfo})`, "success");
+                updateSyncStatus(false, `✅ ${allData.length} سجل`);
+
+                hideLoading();
+
+            } catch (error) {
+                console.error("Error loading data:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" class="no-data">خطأ في تحميل البيانات</td></tr>`;
+                showNotification("خطأ في تحميل البيانات: " + error.message, "error");
+                updateSyncStatus(false, '❌ خطأ');
+                hideLoading();
+            }
+        }
+
+        // ============ SEARCH ============
+        function searchData() {
+            const term = searchInput.value.trim().toLowerCase();
+
+            if (!term) {
+                renderTable(allData);
+                showNotification("عرض جميع البيانات", "info");
+                resetSessionTimer();
+                return;
+            }
+
+            const results = allData.filter(item => {
+                const meterNum = (item.meter_number || "").toLowerCase();
+                const facility = (item.facility || "").toLowerCase();
+                const address = (item.address || "").toLowerCase();
+                const feeder = (item.feeder || "").toLowerCase();
+
+                return meterNum.includes(term) ||
+                    facility.includes(term) ||
+                    address.includes(term) ||
+                    feeder.includes(term);
+            });
+
+            renderTable(results);
+
+            if (results.length === 0) {
+                showNotification(`❌ لم يتم العثور على نتائج لـ "${term}"`, "warning");
+            } else {
+                showNotification(`✅ تم العثور على ${results.length} نتيجة`, "success");
+            }
+            resetSessionTimer();
+        }
+
+        // ============ CLEAR SEARCH ============
+        function clearSearch() {
+            searchInput.value = '';
+            renderTable(allData);
+            showNotification("تم مسح البحث وعرض جميع البيانات", "info");
+            resetSessionTimer();
+        }
+
+        // ============ HANDLE GO ============
+        function handleGoButton() {
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            const serial = searchInput.value.trim() || "غير معروف";
+
+            if (isNaN(lat) || isNaN(lng)) {
+                showNotification("الرجاء إدخال إحداثيات صحيحة", "warning");
+                latInput.focus();
+                return;
+            }
+
+            const foundItem = allData.find(item => item.meter_number === serial);
+            const data = foundItem || { meter_number: serial };
+
+            showMapLocation(lat, lng, data);
+            showNotification("تم عرض الموقع", "success");
+            resetSessionTimer();
+        }
+
+        // ============ EVENTS ============
+        searchBtn.addEventListener("click", searchData);
+        clearBtn.addEventListener("click", clearSearch);
+
+        searchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                searchData();
+            }
+        });
+
+        latInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                handleGoButton();
+            }
+        });
+
+        lngInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                handleGoButton();
+            }
+        });
+
+        sourceInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                handleGoButton();
+            }
+        });
+
+        // ============ INIT ============
+        setTimeout(() => {
+            loadData();
+        }, 500);
+
+        setTimeout(() => {
+            initMap(30.0444, 31.2357);
+        }, 800);
+
+        setTimeout(() => {
+            const isAdmin = (keta3Id === 'admin' && handsaId === 'admin');
+            const sectorName = sectorNames[keta3Id] || `قطاع ${keta3Id}`;
+            const districtName = districtNames[handsaId] || `هندسة ${handsaId}`;
+            const userInfo = isAdmin ? 'Admin (جميع البيانات)' : `${sectorName} - ${districtName}`;
+            showNotification(`مرحباً بك - ${userInfo}`, "info");
+        }, 1500);
+
+        searchInput.focus();
+
+        // Reset timer on any click
+        document.addEventListener('click', resetSessionTimer);
+    </script>
+</body>
+
+</html>

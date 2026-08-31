@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lat/Lng Map Searcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <header class="bg-white shadow-md p-4 z-10">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4">
+            <h1 class="text-xl font-bold text-gray-800">Map Coordinates Finder</h1>
+            <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto justify-end flex-1">
+                <input type="number" id="latInput" placeholder="Latitude (e.g., 30.0444)" step="any" 
+                    class="border rounded px-3 py-2 text-sm w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" id="lngInput" placeholder="Longitude (e.g., 31.2357)" step="any" 
+                    class="border rounded px-3 py-2 text-sm w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="searchCoordinates()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition w-full sm:w-auto">
+                    Go to Location
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="map" class="flex-1 w-full"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Initialize the map (Default center set to Cairo, Egypt)
+        const map = L.map('map').setView([30.0444, 31.2357], 13);
+
+        // 2. Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 3. Keep track of the active marker
+        let marker = null;
+
+        // Function to move map and drop a pin based on input
+        function searchCoordinates() {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lng = parseFloat(document.getElementById('lngInput').value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert("Please enter valid numbers for both Latitude and Longitude.");
+                return;
+            }
+
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                alert("Invalid coordinates! Latitude must be between -90 and 90, and Longitude between -180 and 180.");
+                return;
+            }
+
+            // Update or create marker
+            updateMap(lat, lng, `Coordinates: ${lat}, ${lng}`);
+        }
+
+        // Helper function to update map view and marker
+        function updateMap(lat, lng, popupText) {
+            map.setView([lat, lng], 15);
+
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+
+            marker.bindPopup(popupText).openPopup();
+        }
+
+        // 4. Bonus: Click anywhere on the map to automatically fill in inputs
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6);
+            const lng = e.latlng.lng.toFixed(6);
+
+            document.getElementById('latInput').value = lat;
+            document.getElementById('lngInput').value = lng;
+
+            updateMap(lat, lng, `Clicked Location:<br>Lat: ${lat}<br>Lng: ${lng}`);
+        });
+    </script>
+</body>
+</html>

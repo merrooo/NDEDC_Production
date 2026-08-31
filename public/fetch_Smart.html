@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعراض جميع السجلات والملخصات الإحصائية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 25px 30px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-right: 6px solid var(--primary);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-icon {
+            width: 52px;
+            height: 52px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .header-title h1 {
+            font-size: 1.6rem;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .header-title .subtitle {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .stats-badge {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 8px 24px;
+            border-radius: 50px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e2e8f0;
+            font-size: 0.85rem;
+        }
+
+        .stat-item .value {
+            font-weight: 700;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-back {
+            background-color: #f59e0b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-back:hover {
+            background-color: #d97706;
+        }
+
+        .sync-status {
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            font-weight: 600;
+        }
+
+        .sync-status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .summary-header h3 {
+            font-size: 1.1rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card-item {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-card-item .type-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+
+        .summary-card-item .type-count {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+        }
+
+        .summary-card-item.total-item {
+            background: #dbeafe;
+            border-color: #bfdbfe;
+        }
+
+        .summary-card-item.total-item .type-count {
+            color: var(--primary);
+        }
+
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            position: relative;
+            min-height: 150px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 10px 12px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        tr.sector-row {
+            background-color: #e2e8f0;
+            font-weight: 700;
+        }
+
+        tr.grand-total-row {
+            background-color: #1e293b;
+            color: #ffffff;
+            font-weight: 800;
+        }
+
+        tr.grand-total-row td {
+            color: #ffffff;
+        }
+
+        .th-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary);
+            font-size: 0.8rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            color: var(--primary);
+            background: #dbeafe;
+        }
+
+        .filter-popover {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 100;
+            width: 280px;
+            text-align: right;
+        }
+
+        .filter-popover.show {
+            display: block;
+        }
+
+        .popover-search {
+            width: 100%;
+            padding: 6px 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .popover-search:focus {
+            border-color: var(--primary);
+        }
+
+        .filter-options-list {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .filter-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .filter-actions .btn-link {
+            font-size: 0.8rem;
+        }
+
+        .date-picker-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .date-picker-group label {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .date-picker-group input[type="date"] {
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-btns {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-excel {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-excel:hover {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+        }
+
+        .na {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary);
+        }
+
+        .column-toggle {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        #columnToggleCheckboxes {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .column-toggle label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--secondary);
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .column-toggle label:hover {
+            background: var(--bg-main);
+        }
+
+        .column-toggle label input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .search-box input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            min-width: 350px;
+            flex: 1;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-left {
+                flex-wrap: wrap;
+            }
+
+            .stats-badge {
+                justify-content: center;
+            }
+
+            .header-actions {
+                justify-content: center;
+            }
+
+            .table-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .action-btns {
+                justify-content: center;
+            }
+
+            .search-box {
+                flex-direction: column;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .search-box input {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .column-toggle {
+                justify-content: flex-start;
+            }
+        }
+
+        .session-timer {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .session-timer.warning {
+            color: #fcd34d;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <div class="header-icon"><i class="fas fa-database"></i></div>
+                <div class="header-title">
+                    <h1>استعراض جميع البيانات والملخصات</h1>
+                    <div class="subtitle">جميع السجلات - إحصائيات تفصيلية بالأنواع والقطاعات</div>
+                </div>
+            </div>
+            <div class="stats-badge" id="statsBadge">
+                <div class="stat-item"><i class="fas fa-file-alt"></i> إجمالي السجلات: <span class="value"
+                        id="totalRecords">0</span></div>
+                <div class="stat-item"><i class="fas fa-layer-group"></i> القطاعات: <span class="value"
+                        id="totalSectors">0</span></div>
+                <div class="stat-item"><i class="fas fa-building"></i> الهندسات: <span class="value"
+                        id="totalDistricts">0</span></div>
+                <div class="stat-item"><i class="fas fa-columns"></i> الأعمدة: <span class="value"
+                        id="totalColumns">0</span></div>
+            </div>
+            <div class="header-actions">
+                <span id="syncStatus" class="sync-status loading">⏳ جاري التحميل...</span>
+                <!-- Back button: returns to Control.html as Admin -->
+                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
+                    <i class="fas fa-arrow-right"></i> رجوع
+                </a>
+            </div>
+        </header>
+
+        <!-- MAIN TABLE CARD -->
+        <div class="card">
+            <div class="table-controls">
+                <div>
+                    <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل معروض</span>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 بحث في جميع الأعمدة..."
+                        onkeyup="searchAllColumns(this.value)">
+                    <button class="btn btn-secondary btn-sm"
+                        onclick="document.getElementById('searchInput').value='';searchAllColumns('')"><i
+                            class="fas fa-times"></i></button>
+                </div>
+                <div class="action-btns">
+                    <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير
+                        الجدول Excel</button>
+                    <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط
+                        الفلاتر</button>
+                    <button class="btn btn-secondary" onclick="loadAllData()"><i class="fas fa-sync-alt"></i>
+                        تحديث</button>
+                </div>
+            </div>
+
+            <!-- Horizontal Column Toggle Controls -->
+            <div class="column-toggle" id="columnToggleContainer">
+                <span style="font-weight:600;font-size:0.85rem;color:var(--secondary);margin-left:5px;">إظهار/إخفاء
+                    الأعمدة:</span>
+                <div id="columnToggleCheckboxes"></div>
+                <button class="btn-link" onclick="showAllColumns()">إظهار الكل</button>
+                <button class="btn-link" onclick="hideAllColumns()">إخفاء الكل</button>
+            </div>
+
+            <div class="table-container" id="tableContainer">
+                <div class="no-data">جاري تحميل البيانات...</div>
+            </div>
+
+            <div class="pagination" id="paginationControls">
+                <span id="pageIndicator" style="font-size: 0.85rem; color: var(--secondary);">الصفحة 1 من 1</span>
+                <div class="pagination-btns">
+                    <button class="btn btn-secondary" id="btnPrev" onclick="changePage(-1)">السابق</button>
+                    <button class="btn btn-secondary" id="btnNext" onclick="changePage(1)">التالي</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY 1: Count of A1, A2, A3, A4, A5 -->
+        <div class="card">
+            <div class="summary-header">
+                <h3><i class="fas fa-chart-pie"></i> ملخص الإحصائيات (A1 - A5)</h3>
+                <button class="btn btn-excel btn-sm" onclick="exportSummary1ToExcel()"><i class="fas fa-file-excel"></i>
+                    تصدير Excel (الملخص 1)</button>
+            </div>
+            <div class="summary-grid" id="summary1Container">
+                <div class="summary-card-item">
+                    <div class="type-title">A1</div>
+                    <div class="type-count" id="countA1">0</div>
+                </div>
+                <div class="summary-card-item">
+                    <div class="type-title">A2</div>
+                    <div class="type-count" id="countA2">0</div>
+                </div>
+                <div class="summary-card-item">
+                    <div class="type-title">A3</div>
+                    <div class="type-count" id="countA3">0</div>
+                </div>
+                <div class="summary-card-item">
+                    <div class="type-title">A4</div>
+                    <div class="type-count" id="countA4">0</div>
+                </div>
+                <div class="summary-card-item">
+                    <div class="type-title">A5</div>
+                    <div class="type-count" id="countA5">0</div>
+                </div>
+                <div class="summary-card-item total-item">
+                    <div class="type-title">الإجمالي</div>
+                    <div class="type-count" id="countTotal">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTOR SUMMARY CARD -->
+        <div class="card">
+            <div class="summary-header">
+                <h3><i class="fas fa-layer-group"></i> ملخص إجمالي القطاعات (A1 - A5)</h3>
+                <button class="btn btn-excel btn-sm" onclick="exportSectorSummaryToExcel()"><i
+                        class="fas fa-file-excel"></i> تصدير Excel (ملخص القطاعات)</button>
+            </div>
+            <div class="table-container" id="sectorSummaryContainer">
+                <div class="no-data">جاري حساب ملخص القطاعات...</div>
+            </div>
+        </div>
+
+        <!-- SUMMARY 2: Grouped Breakdown by Sector & District -->
+        <div class="card">
+            <div class="summary-header">
+                <h3><i class="fas fa-table"></i> التقرير التجميعي للقطاعات والهندسات (A1 - A5)</h3>
+                <button class="btn btn-excel btn-sm" onclick="exportSummary2ToExcel()"><i class="fas fa-file-excel"></i>
+                    تصدير Excel (الملخص 2)</button>
+            </div>
+            <div class="table-container" id="summary2Container">
+                <div class="no-data">جاري حساب التقرير...</div>
+            </div>
+        </div>
+
+        <!-- SUMMARY 3: Target Execution Rate (A4+A5) & Remaining Balance -->
+        <div class="card">
+            <div class="summary-header">
+                <h3><i class="fas fa-tasks"></i> ملخص إجمالي الهندسات ومعدل الإنجاز لمستهدف (A4+A5) والرصيد المتبقي</h3>
+                <button class="btn btn-excel btn-sm" onclick="exportTargetSummaryToExcel()"><i
+                        class="fas fa-file-excel"></i> تصدير Excel (تقرير الإنجاز)</button>
+            </div>
+            <div class="table-container" id="targetSummaryContainer">
+                <div class="no-data">جاري حساب معدل الإنجاز...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="filterPopover" class="filter-popover"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
+            authDomain: "trial-85.firebaseapp.com",
+            databaseURL: "https://trial-85-default-rtdb.firebaseio.com",
+            projectId: "trial-85",
+            storageBucket: "trial-85.firebasestorage.app",
+            messagingSenderId: "660343156279",
+            appId: "1:660343156279:web:3275f5d3da7721a35259b2",
+            measurementId: "G-RLMVPCLZW3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const sectorNames = {
+            '1': 'قطاع دمياط',
+            '2': 'قطاع شمال الدقهلية',
+            '3': 'قطاع جنوب الدقهلية',
+            '4': 'قطاع كفر الشيخ'
+        };
+
+        const districtNames = {
+            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج', '104': 'هندسة كفر سعد',
+            '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر', '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا',
+            '109': 'هندسة فارسكور', '110': 'هندسة الروضة', '111': 'هندسة الشعراء', '201': 'هندسة مدينة شربين',
+            '202': 'هندسة قري شربين', '203': 'هندسة دكرنس', '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس',
+            '206': 'هندسة مدينة بلقاس', '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر',
+            '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة', '213': 'هندسة مدينة المنزلة',
+            '214': 'هندسة المطرية', '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا',
+            '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2', '307': 'هندسة اجا',
+            '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين', '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر',
+            '312': 'هندسة قري ميت غمر', '313': 'هندسة كوم النور', '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ',
+            '403': 'هندسة شرق كفر الشيخ', '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم',
+            '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق', '410': 'هندسة قرى جنوب دسوق',
+            '411': 'هندسة فوه', '412': 'هندسة مطوبس', '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول',
+            '415': 'هندسة بيلا', '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+        };
+
+        // Master List for 55 Engineering Offices Targets (A4+A5)
+        const MASTER_TARGETS = {
+            "101": { name: "هندسة شمال دمياط", target: 310, sectorKey: "1" },
+            "102": { name: "هندسة جنوب دمياط", target: 535, sectorKey: "1" },
+            "103": { name: "هندسة عزبة البرج", target: 250, sectorKey: "1" },
+            "104": { name: "هندسة كفر سعد", target: 95, sectorKey: "1" },
+            "105": { name: "هندسة كفر البطيخ", target: 829, sectorKey: "1" },
+            "106": { name: "هندسة راس البر", target: 232, sectorKey: "1" },
+            "107": { name: "هندسة دمياط الجديدة", target: 162, sectorKey: "1" },
+            "108": { name: "هندسة الزرقا", target: 434, sectorKey: "1" },
+            "109": { name: "هندسة فارسكور", target: 369, sectorKey: "1" },
+            "110": { name: "هندسة الروضة", target: 281, sectorKey: "1" },
+            "111": { name: "هندسة الشعراء", target: 299, sectorKey: "1" },
+            "201": { name: "هندسة مدينة شربين", target: 193, sectorKey: "2" },
+            "202": { name: "هندسة قري شربين", target: 324, sectorKey: "2" },
+            "203": { name: "هندسة دكرنس", target: 271, sectorKey: "2" },
+            "204": { name: "هندسة جمصة", target: 240, sectorKey: "2" },
+            "205": { name: "هندسة قري بلقاس", target: 421, sectorKey: "2" },
+            "206": { name: "هندسة مدينة بلقاس", target: 223, sectorKey: "2" },
+            "207": { name: "هندسة الستاموني", target: 364, sectorKey: "2" },
+            "208": { name: "هندسة بني عبيد", target: 254, sectorKey: "2" },
+            "209": { name: "هندسة منية النصر", target: 308, sectorKey: "2" },
+            "210": { name: "هندسة ميت سلسيل", target: 230, sectorKey: "2" },
+            "211": { name: "هندسة الجمالية", target: 260, sectorKey: "2" },
+            "212": { name: "هندسة قري المنزلة", target: 296, sectorKey: "2" },
+            "213": { name: "هندسة مدينة المنزلة", target: 119, sectorKey: "2" },
+            "214": { name: "هندسة المطرية", target: 297, sectorKey: "2" },
+            "301": { name: "هندسة شرق المنصورة", target: 707, sectorKey: "3" },
+            "302": { name: "هندسة غرب المنصورة", target: 880, sectorKey: "3" },
+            "303": { name: "هندسة طلخا", target: 637, sectorKey: "3" },
+            "304": { name: "هندسة نبروه", target: 371, sectorKey: "3" },
+            "305": { name: "هندسة قري المنصورة 1", target: 497, sectorKey: "3" },
+            "306": { name: "هندسة قري المنصورة 2", target: 387, sectorKey: "3" },
+            "307": { name: "هندسة اجا", target: 760, sectorKey: "3" },
+            "308": { name: "هندسة مدينة السنبلاوين", target: 139, sectorKey: "3" },
+            "309": { name: "هندسة قري السنبلاوين", target: 571, sectorKey: "3" },
+            "310": { name: "هندسة تمي الامديد", target: 275, sectorKey: "3" },
+            "311": { name: "هندسة مدينة ميت غمر", target: 339, sectorKey: "3" },
+            "312": { name: "هندسة قري ميت غمر", target: 475, sectorKey: "3" },
+            "313": { name: "هندسة كوم النور", target: 345, sectorKey: "3" },
+            "401": { name: "هندسة مدينة كفر الشيخ", target: 446, sectorKey: "4" },
+            "402": { name: "هندسة غرب كفر الشيخ", target: 357, sectorKey: "4" },
+            "403": { name: "هندسة شرق كفر الشيخ", target: 332, sectorKey: "4" },
+            "404": { name: "هندسة قلين", target: 313, sectorKey: "4" },
+            "405": { name: "هندسة قرى سيدي سالم", target: 389, sectorKey: "4" },
+            "406": { name: "هندسة مدينة سيدي سالم", target: 353, sectorKey: "4" },
+            "407": { name: "هندسة الرياض", target: 435, sectorKey: "4" },
+            "408": { name: "هندسة مدينة دسوق", target: 201, sectorKey: "4" },
+            "409": { name: "هندسة قرى شمال دسوق", target: 385, sectorKey: "4" },
+            "410": { name: "هندسة قرى جنوب دسوق", target: 225, sectorKey: "4" },
+            "411": { name: "هندسة فوه", target: 332, sectorKey: "4" },
+            "412": { name: "هندسة مطوبس", target: 586, sectorKey: "4" },
+            "413": { name: "هندسة مدينة الحامول", target: 243, sectorKey: "4" },
+            "414": { name: "هندسة قرى الحامول", target: 333, sectorKey: "4" },
+            "415": { name: "هندسة بيلا", target: 502, sectorKey: "4" },
+            "416": { name: "هندسة بلطيم", target: 365, sectorKey: "4" },
+            "417": { name: "هندسة برج البرلس", target: 155, sectorKey: "4" }
+        };
+
+        let allRecordsList = [];
+        let filteredData = [];
+        let allColumns = [];
+        let visibleColumns = [];
+        let activeColumnFilters = {};
+        let currentPage = 1;
+        const PAGE_SIZE = 15;
+        let globalSearchTerm = '';
+        let sectorSummaryCalculatedData = [];
+        let summary2CalculatedData = [];
+        let targetSummaryCalculatedData = [];
+
+        function getRecordValue(record, colKey) {
+            let val = record[colKey];
+            if (colKey === 'sector' && val && sectorNames[val]) val = sectorNames[val];
+            if (colKey === 'district' && val && districtNames[val]) val = districtNames[val];
+            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : 'N/A';
+        }
+
+        function extractRecordType(record) {
+            const candidateKeys = ['type', 'type_code', 'fault_type', 'kind', 'النوع', 'نوع_العطل', 'نوع'];
+            for (let k of candidateKeys) {
+                if (record[k] && String(record[k]).trim()) {
+                    const val = String(record[k]).trim().toUpperCase();
+                    if (['A1', 'A2', 'A3', 'A4', 'A5'].includes(val)) return val;
+                }
+            }
+            for (let k in record) {
+                if (k !== '_recordId' && record[k]) {
+                    const val = String(record[k]).trim().toUpperCase();
+                    if (['A1', 'A2', 'A3', 'A4', 'A5'].includes(val)) return val;
+                }
+            }
+            return null;
+        }
+
+        function formatToDDMMYYYY(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return 'N/A';
+            if (!isNaN(dateStr) && dateStr.toString().length === 13) {
+                const date = new Date(Number(dateStr));
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            let parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+                } else if (parts[2].length === 4) {
+                    return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                }
+            }
+            return dateStr;
+        }
+
+        function parseToTimestamp(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return null;
+            if (!isNaN(dateStr) && dateStr.toString().length === 13) {
+                return Number(dateStr);
+            }
+            let day, month, year;
+            let parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[2].length === 4) {
+                    day = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    year = parseInt(parts[2], 10);
+                } else if (parts[0].length === 4) {
+                    year = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[2], 10);
+                }
+                const parsedDate = new Date(year, month, day);
+                return isNaN(parsedDate.getTime()) ? null : parsedDate.getTime();
+            }
+            return null;
+        }
+
+        function isDateColumn(colKey) {
+            const dateKeywords = ['date', 'time', '_uploaded_at', 'installation', 'created', 'updated'];
+            return dateKeywords.some(keyword => colKey.toLowerCase().includes(keyword));
+        }
+
+        function updateColumnToggles() {
+            const container = document.getElementById('columnToggleCheckboxes');
+            let html = '';
+            allColumns.forEach(col => {
+                const checked = visibleColumns.includes(col) ? 'checked' : '';
+                html += `
+                    <label>
+                        <input type="checkbox" ${checked} onchange="toggleColumn('${col}', this.checked)">
+                        ${col.replace(/_/g, ' ')}
+                    </label>`;
+            });
+            container.innerHTML = html;
+            document.getElementById('totalColumns').textContent = allColumns.length;
+        }
+
+        window.toggleColumn = function (colKey, show) {
+            if (show) {
+                if (!visibleColumns.includes(colKey)) {
+                    visibleColumns.push(colKey);
+                }
+            } else {
+                visibleColumns = visibleColumns.filter(c => c !== colKey);
+            }
+            filterAndRenderTable();
+        };
+
+        window.showAllColumns = function () {
+            visibleColumns = [...allColumns];
+            updateColumnToggles();
+            filterAndRenderTable();
+        };
+
+        window.hideAllColumns = function () {
+            visibleColumns = [];
+            updateColumnToggles();
+            filterAndRenderTable();
+        };
+
+        window.searchAllColumns = function (term) {
+            globalSearchTerm = term.trim().toLowerCase();
+            filterAndRenderTable();
+        };
+
+        function updateSummaries() {
+            const typeCounts = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0 };
+
+            // Initialize Grouped Structure for all 55 districts from MASTER_TARGETS
+            const grouped = {};
+            Object.keys(MASTER_TARGETS).forEach(dKey => {
+                const sKey = MASTER_TARGETS[dKey].sectorKey;
+                if (!grouped[sKey]) grouped[sKey] = {};
+                grouped[sKey][dKey] = {
+                    A1: 0,
+                    A2: 0,
+                    A3: 0,
+                    A4: 0,
+                    A5: 0,
+                    total: 0,
+                    target: MASTER_TARGETS[dKey].target
+                };
+            });
+
+            // Populate counts based on filtered records
+            filteredData.forEach(rec => {
+                const type = extractRecordType(rec);
+                if (type && typeCounts.hasOwnProperty(type)) {
+                    typeCounts[type]++;
+                }
+
+                const sKey = rec.sector || 'unknown';
+                const dKey = rec.district || 'unknown';
+
+                if (grouped[sKey] && grouped[sKey][dKey]) {
+                    if (type && typeCounts.hasOwnProperty(type)) {
+                        grouped[sKey][dKey][type]++;
+                        grouped[sKey][dKey].total++;
+                    }
+                } else if (sKey !== 'unknown' && dKey !== 'unknown') {
+                    if (!grouped[sKey]) grouped[sKey] = {};
+                    if (!grouped[sKey][dKey]) {
+                        grouped[sKey][dKey] = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
+                    }
+                    if (type && typeCounts.hasOwnProperty(type)) {
+                        grouped[sKey][dKey][type]++;
+                        grouped[sKey][dKey].total++;
+                    }
+                }
+            });
+
+            document.getElementById('countA1').textContent = typeCounts.A1;
+            document.getElementById('countA2').textContent = typeCounts.A2;
+            document.getElementById('countA3').textContent = typeCounts.A3;
+            document.getElementById('countA4').textContent = typeCounts.A4;
+            document.getElementById('countA5').textContent = typeCounts.A5;
+            document.getElementById('countTotal').textContent = filteredData.length;
+
+            sectorSummaryCalculatedData = [];
+            summary2CalculatedData = [];
+            targetSummaryCalculatedData = [];
+
+            let grandTotals = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
+
+            let secHtml = `<table>
+                <thead>
+                    <tr>
+                        <th>القطاع</th>
+                        <th>A1</th>
+                        <th>A2</th>
+                        <th>A3</th>
+                        <th>A4</th>
+                        <th>A5</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            let sum2Html = `<table>
+                <thead>
+                    <tr>
+                        <th>القطاعات والهندسات</th>
+                        <th>A1</th>
+                        <th>A2</th>
+                        <th>A3</th>
+                        <th>A4</th>
+                        <th>A5</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            let targetHtml = `<table>
+                <thead>
+                    <tr>
+                        <th>القطاعات والهندسات</th>
+                        <th>المستهدف</th>
+                        <th>المنفذ (A4+A5)</th>
+                        <th>الرصيد المتبقي</th>
+                        <th>معدل الإنجاز</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            const sectorKeysSorted = Object.keys(grouped).sort();
+
+            sectorKeysSorted.forEach(sKey => {
+                const sName = sectorNames[sKey] || `قطاع ${sKey}`;
+                const sectorTotals = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
+
+                const districtsObj = grouped[sKey];
+                const districtKeysSorted = Object.keys(districtsObj).sort();
+                const districtRowsTemp = [];
+
+                districtKeysSorted.forEach(dKey => {
+                    const dName = districtNames[dKey] || MASTER_TARGETS[dKey]?.name || `هندسة ${dKey}`;
+                    const dData = districtsObj[dKey];
+
+                    ['A1', 'A2', 'A3', 'A4', 'A5', 'total', 'target'].forEach(k => {
+                        sectorTotals[k] += dData[k];
+                        grandTotals[k] += dData[k];
+                    });
+
+                    districtRowsTemp.push({
+                        name: dName,
+                        A1: dData.A1,
+                        A2: dData.A2,
+                        A3: dData.A3,
+                        A4: dData.A4,
+                        A5: dData.A5,
+                        total: dData.total,
+                        target: dData.target
+                    });
+                });
+
+                const sectorRowTitle = `إجمالي ${sName.replace('قطاع ', '')}`;
+
+                sectorSummaryCalculatedData.push({
+                    'القطاع': sectorRowTitle,
+                    'A1': sectorTotals.A1,
+                    'A2': sectorTotals.A2,
+                    'A3': sectorTotals.A3,
+                    'A4': sectorTotals.A4,
+                    'A5': sectorTotals.A5,
+                    'الإجمالي': sectorTotals.total
+                });
+
+                secHtml += `
+                    <tr class="sector-row">
+                        <td>${sectorRowTitle}</td>
+                        <td>${sectorTotals.A1}</td>
+                        <td>${sectorTotals.A2}</td>
+                        <td>${sectorTotals.A3}</td>
+                        <td>${sectorTotals.A4}</td>
+                        <td>${sectorTotals.A5}</td>
+                        <td>${sectorTotals.total}</td>
+                    </tr>`;
+
+                summary2CalculatedData.push({
+                    'القطاعات والهندسات': sectorRowTitle,
+                    'A1': sectorTotals.A1,
+                    'A2': sectorTotals.A2,
+                    'A3': sectorTotals.A3,
+                    'A4': sectorTotals.A4,
+                    'A5': sectorTotals.A5,
+                    'الإجمالي': sectorTotals.total
+                });
+
+                sum2Html += `
+                    <tr class="sector-row">
+                        <td>${sectorRowTitle}</td>
+                        <td>${sectorTotals.A1}</td>
+                        <td>${sectorTotals.A2}</td>
+                        <td>${sectorTotals.A3}</td>
+                        <td>${sectorTotals.A4}</td>
+                        <td>${sectorTotals.A5}</td>
+                        <td>${sectorTotals.total}</td>
+                    </tr>`;
+
+                const secExecuted = sectorTotals.A4 + sectorTotals.A5;
+                const secRemaining = sectorTotals.target - secExecuted;
+                const secRate = sectorTotals.target > 0 ? ((secExecuted / sectorTotals.target) * 100).toFixed(1) + '%' :
+                    '0.0%';
+
+                targetSummaryCalculatedData.push({
+                    'القطاعات والهندسات': sectorRowTitle,
+                    'المستهدف': sectorTotals.target,
+                    'المنفذ (A4+A5)': secExecuted,
+                    'الرصيد المتبقي': secRemaining,
+                    'معدل الإنجاز': secRate
+                });
+
+                targetHtml += `
+                    <tr class="sector-row">
+                        <td>${sectorRowTitle}</td>
+                        <td>${sectorTotals.target}</td>
+                        <td>${secExecuted}</td>
+                        <td>${secRemaining}</td>
+                        <td>${secRate}</td>
+                    </tr>`;
+
+                districtRowsTemp.forEach(dRow => {
+                    summary2CalculatedData.push({
+                        'القطاعات والهندسات': dRow.name,
+                        'A1': dRow.A1,
+                        'A2': dRow.A2,
+                        'A3': dRow.A3,
+                        'A4': dRow.A4,
+                        'A5': dRow.A5,
+                        'الإجمالي': dRow.total
+                    });
+
+                    sum2Html += `
+                        <tr>
+                            <td style="padding-right: 25px;">${dRow.name}</td>
+                            <td>${dRow.A1}</td>
+                            <td>${dRow.A2}</td>
+                            <td>${dRow.A3}</td>
+                            <td>${dRow.A4}</td>
+                            <td>${dRow.A5}</td>
+                            <td>${dRow.total}</td>
+                        </tr>`;
+
+                    const dExecuted = dRow.A4 + dRow.A5;
+                    const dRemaining = dRow.target - dExecuted;
+                    const dRate = dRow.target > 0 ? ((dExecuted / dRow.target) * 100).toFixed(1) + '%' : '0.0%';
+
+                    targetSummaryCalculatedData.push({
+                        'القطاعات والهندسات': dRow.name,
+                        'المستهدف': dRow.target,
+                        'المنفذ (A4+A5)': dExecuted,
+                        'الرصيد المتبقي': dRemaining,
+                        'معدل الإنجاز': dRate
+                    });
+
+                    targetHtml += `
+                        <tr>
+                            <td style="padding-right: 25px;">${dRow.name}</td>
+                            <td>${dRow.target}</td>
+                            <td>${dExecuted}</td>
+                            <td>${dRemaining}</td>
+                            <td>${dRate}</td>
+                        </tr>`;
+                });
+            });
+
+            sectorSummaryCalculatedData.push({
+                'القطاع': 'الإجمالي العام',
+                'A1': grandTotals.A1,
+                'A2': grandTotals.A2,
+                'A3': grandTotals.A3,
+                'A4': grandTotals.A4,
+                'A5': grandTotals.A5,
+                'الإجمالي': grandTotals.total
+            });
+
+            secHtml += `
+                <tr class="grand-total-row">
+                    <td>الإجمالي العام</td>
+                    <td>${grandTotals.A1}</td>
+                    <td>${grandTotals.A2}</td>
+                    <td>${grandTotals.A3}</td>
+                    <td>${grandTotals.A4}</td>
+                    <td>${grandTotals.A5}</td>
+                    <td>${grandTotals.total}</td>
+                </tr>
+            </tbody></table>`;
+
+            summary2CalculatedData.push({
+                'القطاعات والهندسات': 'الإجمالي العام',
+                'A1': grandTotals.A1,
+                'A2': grandTotals.A2,
+                'A3': grandTotals.A3,
+                'A4': grandTotals.A4,
+                'A5': grandTotals.A5,
+                'الإجمالي': grandTotals.total
+            });
+
+            sum2Html += `
+                <tr class="grand-total-row">
+                    <td>الإجمالي العام</td>
+                    <td>${grandTotals.A1}</td>
+                    <td>${grandTotals.A2}</td>
+                    <td>${grandTotals.A3}</td>
+                    <td>${grandTotals.A4}</td>
+                    <td>${grandTotals.A5}</td>
+                    <td>${grandTotals.total}</td>
+                </tr>
+            </tbody></table>`;
+
+            const grandExecuted = grandTotals.A4 + grandTotals.A5;
+            const grandRemaining = grandTotals.target - grandExecuted;
+            const grandRate = grandTotals.target > 0 ? ((grandExecuted / grandTotals.target) * 100).toFixed(1) + '%' :
+                '0.0%';
+
+            targetSummaryCalculatedData.push({
+                'القطاعات والهندسات': 'الإجمالي العام',
+                'المستهدف': grandTotals.target,
+                'المنفذ (A4+A5)': grandExecuted,
+                'الرصيد المتبقي': grandRemaining,
+                'معدل الإنجاز': grandRate
+            });
+
+            targetHtml += `
+                <tr class="grand-total-row">
+                    <td>الإجمالي العام</td>
+                    <td>${grandTotals.target}</td>
+                    <td>${grandExecuted}</td>
+                    <td>${grandRemaining}</td>
+                    <td>${grandRate}</td>
+                </tr>
+            </tbody></table>`;
+
+            document.getElementById('sectorSummaryContainer').innerHTML = secHtml;
+            document.getElementById('summary2Container').innerHTML = sum2Html;
+            document.getElementById('targetSummaryContainer').innerHTML = targetHtml;
+        }
+
+        window.filterAndRenderTable = function () {
+            filteredData = allRecordsList.filter(record => {
+                if (globalSearchTerm) {
+                    let found = false;
+                    const allKeys = Object.keys(record);
+                    for (const key of allKeys) {
+                        const val = getRecordValue(record, key);
+                        if (val !== 'N/A' && val.toLowerCase().includes(globalSearchTerm)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) return false;
+                }
+
+                for (const colKey of Object.keys(activeColumnFilters)) {
+                    const filter = activeColumnFilters[colKey];
+                    if (filter && filter.type === 'date') {
+                        const recTimestamp = parseToTimestamp(getRecordValue(record, colKey));
+                        if (!recTimestamp) return false;
+                        if (filter.from) {
+                            const fromTs = parseToTimestamp(filter.from);
+                            if (fromTs && recTimestamp < fromTs) return false;
+                        }
+                        if (filter.to) {
+                            const toTs = parseToTimestamp(filter.to);
+                            if (toTs && recTimestamp > toTs) return false;
+                        }
+                    } else if (filter && filter.type === 'text' && filter.values && filter.values.length > 0) {
+                        const val = getRecordValue(record, colKey);
+                        if (!filter.values.includes(val)) return false;
+                    }
+                }
+                return true;
+            });
+
+            document.getElementById('recordsCount').textContent = `${filteredData.length} سجل معروض من ${allRecordsList.length}`;
+            currentPage = 1;
+            renderTablePage();
+            updateSummaries();
+        };
+
+        function renderTablePage() {
+            const container = document.getElementById('tableContainer');
+            if (filteredData.length === 0) {
+                container.innerHTML = `<div class="no-data">لا توجد سجلات مطابقة للفلاتر المحددة</div>`;
+                updatePaginationControls();
+                return;
+            }
+
+            const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const pageData = filteredData.slice(startIndex, startIndex + PAGE_SIZE);
+
+            let html = `<table><thead><tr><th>#</th>`;
+            visibleColumns.forEach(col => {
+                const filter = activeColumnFilters[col];
+                const isActive = filter && ((filter.type === 'text' && filter.values.length > 0) || (filter.type ===
+                    'date' && (filter.from || filter.to)));
+                html += `
+                    <th>
+                        <div class="th-content">
+                            <span>${col.replace(/_/g, ' ')}</span>
+                            <button class="filter-btn ${isActive ? 'active' : ''}" onclick="toggleFilterPopover(event, '${col}')">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </th>`;
+            });
+            html += `</tr></thead><tbody>`;
+
+            let index = startIndex;
+            pageData.forEach(record => {
+                index++;
+                html += `<tr><td>${index}</td>`;
+
+                visibleColumns.forEach(col => {
+                    let val = getRecordValue(record, col);
+                    if (isDateColumn(col)) {
+                        val = formatToDDMMYYYY(val);
+                    }
+                    if (val.length > 50) {
+                        val = val.substring(0, 50) + '...';
+                    }
+                    html +=
+                        `<td title="${getRecordValue(record, col)}">${val === 'N/A' ? '<span class="na">N/A</span>' : val}</td>`;
+                });
+
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
+            document.getElementById('pageIndicator').textContent = `الصفحة ${currentPage} من ${totalPages}`;
+            document.getElementById('btnPrev').disabled = (currentPage === 1);
+            document.getElementById('btnNext').disabled = (currentPage >= totalPages);
+        }
+
+        window.changePage = function (delta) {
+            const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
+            if (currentPage + delta >= 1 && currentPage + delta <= totalPages) {
+                currentPage += delta;
+                renderTablePage();
+            }
+        };
+
+        window.toggleFilterPopover = function (event, colKey) {
+            event.stopPropagation();
+            const popover = document.getElementById('filterPopover');
+            const button = event.currentTarget;
+            const rect = button.getBoundingClientRect();
+
+            if (popover.classList.contains('show') && popover.dataset.colKey === colKey) {
+                popover.classList.remove('show');
+                return;
+            }
+
+            const isDate = isDateColumn(colKey);
+            const label = colKey.replace(/_/g, ' ');
+            let popHtml = `<strong style="display:block; margin-bottom:8px; font-size:0.85rem;">تصفية حسب ${label}</strong>`;
+
+            if (isDate) {
+                const currentFilter = activeColumnFilters[colKey] || { fromRGB: '', toRGB: '' };
+                popHtml += `
+                    <div class="date-picker-group">
+                        <label>من تاريخ:</label>
+                        <input type="date" id="dateFromPicker" value="${currentFilter.fromRGB || ''}">
+                        <label>إلى تاريخ:</label>
+                        <input type="date" id="dateToPicker" value="${currentFilter.toRGB || ''}">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary btn-sm" onclick="applyDateFilter('${colKey}')">تطبيق</button>
+                        <button class="btn-link" onclick="clearDateFilter('${colKey}')">إلغاء</button>
+                    </div>`;
+            } else {
+                const uniqueValues = new Set();
+                allRecordsList.forEach(rec => {
+                    const val = getRecordValue(rec, colKey);
+                    if (val !== 'N/A') uniqueValues.add(val);
+                });
+
+                const sortedValues = Array.from(uniqueValues).sort();
+                const currentFilter = activeColumnFilters[colKey];
+                const currentSelected = currentFilter && currentFilter.type === 'text' ? currentFilter.values : [];
+
+                popHtml +=
+                    `<input type="text" class="popover-search" placeholder="🔍 بحث في القائمة..." oninput="filterPopoverOptions(this.value)">`;
+
+                popHtml += `<div class="filter-options-list" id="filterOptionsList">`;
+                if (sortedValues.length === 0) {
+                    popHtml += `<p style="color:var(--secondary);font-size:0.85rem;">لا توجد قيم للتصفية</p>`;
+                } else {
+                    sortedValues.forEach(val => {
+                        const checked = currentSelected.includes(val) ? 'checked' : '';
+                        popHtml += `
+                            <label class="filter-option">
+                                <input type="checkbox" value="${val}" ${checked} onchange="onCheckboxChange('${colKey}')">
+                                <span>${val}</span>
+                            </label>`;
+                    });
+                }
+                popHtml += `</div>`;
+
+                popHtml += `
+                    <div class="filter-actions">
+                        <button class="btn-link" onclick="selectAllColumn('${colKey}', true)">تحديد الكل</button>
+                        <button class="btn-link" onclick="selectAllColumn('${colKey}', false)">إلغاء الكل</button>
+                    </div>`;
+            }
+
+            popover.innerHTML = popHtml;
+            popover.dataset.colKey = colKey;
+            popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            popover.style.left = `${Math.min(rect.left + window.scrollX - 150, window.innerWidth - 300)}px`;
+            popover.classList.add('show');
+        };
+
+        window.filterPopoverOptions = function (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            const options = document.querySelectorAll('#filterOptionsList .filter-option');
+            options.forEach(opt => {
+                const text = opt.textContent.toLowerCase();
+                if (text.includes(term)) {
+                    opt.style.display = 'flex';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+        };
+
+        window.applyDateFilter = function (colKey) {
+            const fromRGB = document.getElementById('dateFromPicker').value;
+            const toRGB = document.getElementById('dateToPicker').value;
+
+            let from = '',
+                to = '';
+            if (fromRGB) {
+                const parts = fromRGB.split('-');
+                from = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            if (toRGB) {
+                const parts = toRGB.split('-');
+                to = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            if (fromRGB || toRGB) {
+                activeColumnFilters[colKey] = { type: 'date', from, to, fromRGB, toRGB };
+            } else {
+                delete activeColumnFilters[colKey];
+            }
+            document.getElementById('filterPopover').classList.remove('show');
+            filterAndRenderTable();
+        };
+
+        window.clearDateFilter = function (colKey) {
+            delete activeColumnFilters[colKey];
+            document.getElementById('filterPopover').classList.remove('show');
+            filterAndRenderTable();
+        };
+
+        window.onCheckboxChange = function (colKey) {
+            const popover = document.getElementById('filterPopover');
+            const checkboxes = popover.querySelectorAll('input[type="checkbox"]:checked');
+            const selected = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selected.length > 0) {
+                activeColumnFilters[colKey] = { type: 'text', values: selected };
+            } else {
+                delete activeColumnFilters[colKey];
+            }
+            filterAndRenderTable();
+        };
+
+        window.selectAllColumn = function (colKey, selectAll) {
+            const popover = document.getElementById('filterPopover');
+            const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = selectAll);
+            window.onCheckboxChange(colKey);
+        };
+
+        window.resetAllFilters = function () {
+            activeColumnFilters = {};
+            globalSearchTerm = '';
+            document.getElementById('searchInput').value = '';
+            filterAndRenderTable();
+        };
+
+        // EXPORT SUMMARY 1
+        window.exportSummary1ToExcel = function () {
+            const data = [{
+                'A1': document.getElementById('countA1').textContent,
+                'A2': document.getElementById('countA2').textContent,
+                'A3': document.getElementById('countA3').textContent,
+                'A4': document.getElementById('countA4').textContent,
+                'A5': document.getElementById('countA5').textContent,
+                'الإجمالي': document.getElementById('countTotal').textContent
+            }];
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص الإحصائيات");
+            XLSX.writeFile(workbook, `ملخص_الأنواع_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+
+        // EXPORT SECTOR SUMMARY
+        window.exportSectorSummaryToExcel = function () {
+            if (sectorSummaryCalculatedData.length === 0) {
+                alert("لا توجد بيانات لتصدير الملخص.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(sectorSummaryCalculatedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص_القطاعات");
+            XLSX.writeFile(workbook, `ملخص_إجمالي_القطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+
+        // EXPORT SUMMARY 2
+        window.exportSummary2ToExcel = function () {
+            if (summary2CalculatedData.length === 0) {
+                alert("لا توجد بيانات لتصدير الملخص.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(summary2CalculatedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "توزيع_القطاعات_والهندسات");
+            XLSX.writeFile(workbook, `ملخص_تجميعي_للقطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+
+        // EXPORT TARGET SUMMARY (A4+A5)
+        window.exportTargetSummaryToExcel = function () {
+            if (targetSummaryCalculatedData.length === 0) {
+                alert("لا توجد بيانات لتصدير التقرير.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(targetSummaryCalculatedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "معدل_الإنجاز");
+            XLSX.writeFile(workbook, `معدل_الإنجاز_والرصيد_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+
+        // EXPORT MAIN DATA TABLE
+        window.exportToExcel = function () {
+            if (allRecordsList.length === 0) {
+                alert("لا توجد بيانات لتصديرها.");
+                return;
+            }
+
+            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '';
+            const allColumnsSelected = visibleColumns.length === allColumns.length;
+            const isFilteredOrCustomized = hasActiveFilters || !allColumnsSelected;
+
+            const recordsToExport = isFilteredOrCustomized ? filteredData : allRecordsList;
+            const columnsToExport = isFilteredOrCustomized ? visibleColumns : allColumns;
+
+            if (recordsToExport.length === 0) {
+                alert("لا توجد بيانات مطابقة لتصديرها.");
+                return;
+            }
+
+            const exportData = recordsToExport.map((record, index) => {
+                const rowObj = { '#': index + 1 };
+                columnsToExport.forEach(col => {
+                    let val = getRecordValue(record, col);
+                    if (isDateColumn(col)) {
+                        val = formatToDDMMYYYY(val);
+                    }
+                    rowObj[col.replace(/_/g, ' ')] = val;
+                });
+                return rowObj;
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "السجلات التصدير");
+            XLSX.writeFile(workbook, `تصدير_البيانات_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('filterPopover');
+            if (popover && !popover.contains(e.target) && !e.target.closest('.filter-btn')) {
+                popover.classList.remove('show');
+            }
+        });
+
+        async function loadAllData() {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = '⏳ جاري التحميل...';
+            statusEl.className = 'sync-status loading';
+
+            try {
+                const sectorsRef = ref(db, 'sectors');
+                const snapshot = await get(sectorsRef);
+
+                const allRecordsListTemp = [];
+                const allFieldsSet = new Set();
+
+                let totalRecords = 0;
+                let totalSectors = Object.keys(sectorNames).length;
+                let totalDistricts = Object.keys(MASTER_TARGETS).length;
+
+                if (snapshot.exists()) {
+                    const sectorsData = snapshot.val();
+                    const sectorKeys = Object.keys(sectorsData);
+
+                    for (const sectorKey of sectorKeys) {
+                        const sectorData = sectorsData[sectorKey];
+                        if (sectorData.districts) {
+                            const districtKeys = Object.keys(sectorData.districts);
+
+                            for (const districtKey of districtKeys) {
+                                const districtData = sectorData.districts[districtKey];
+                                if (districtData.manual_entries) {
+                                    const entries = districtData.manual_entries;
+                                    const entryKeys = Object.keys(entries);
+
+                                    for (const entryKey of entryKeys) {
+                                        const entry = entries[entryKey];
+
+                                        const enrichedEntry = {
+                                            ...entry,
+                                            sector: sectorKey,
+                                            district: districtKey,
+                                            _recordId: `${sectorKey}_${districtKey}_${entryKey}`
+                                        };
+
+                                        allRecordsListTemp.push(enrichedEntry);
+                                        Object.keys(entry).forEach(field => allFieldsSet.add(field));
+                                        totalRecords++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                allRecordsList = allRecordsListTemp;
+
+                allColumns = Array.from(allFieldsSet)
+                    .filter(f => f !== 'sector' && f !== 'district' && f !== '_recordId')
+                    .sort();
+
+                visibleColumns = [...allColumns];
+
+                document.getElementById('totalRecords').textContent = totalRecords;
+                document.getElementById('totalSectors').textContent = totalSectors;
+                document.getElementById('totalDistricts').textContent = totalDistricts;
+                document.getElementById('totalColumns').textContent = allColumns.length;
+
+                updateColumnToggles();
+
+                statusEl.textContent = `✅ تم تحميل ${totalRecords} سجل`;
+                statusEl.className = 'sync-status';
+
+                activeColumnFilters = {};
+                globalSearchTerm = '';
+                document.getElementById('searchInput').value = '';
+                filterAndRenderTable();
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('tableContainer').innerHTML =
+                    `<div class="no-data">حدث خطأ في تحميل البيانات: ${error.message}</div>`;
+                statusEl.textContent = '❌ خطأ في التحميل';
+                statusEl.className = 'sync-status loading';
+            }
+        }
+
+        window.loadAllData = loadAllData;
+        loadAllData();
+
+
+        // ==================== SESSION TIMER (5 minutes) ====================
+        let sessionTimeout = null;
+        let sessionTimerInterval = null;
+        let sessionTimeLeft = 300; // 5 minutes in seconds
+
+
+        function resetSessionTimer() {
+            sessionTimeLeft = 300;
+            updateTimerDisplay();
+            clearTimeout(sessionTimeout);
+            clearInterval(sessionTimerInterval);
+            startSessionTimer();
+        }
+
+        function startSessionTimer() {
+            sessionTimerInterval = setInterval(() => {
+                sessionTimeLeft--;
+                updateTimerDisplay();
+                if (sessionTimeLeft <= 0) {
+                    clearInterval(sessionTimerInterval);
+                    clearTimeout(sessionTimeout);
+                    window.location.href = 'login_Smart.html';
+                }
+            }, 1000);
+        }
+
+
+        // Update the session timer display
+        function updateTimerDisplay() {
+            const timerEl = document.getElementById('sessionTimer');
+            if (timerEl) {
+                const minutes = Math.floor(sessionTimeLeft / 60);
+                const seconds = sessionTimeLeft % 60;
+                timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                if (sessionTimeLeft <= 60) {
+                    timerEl.classList.add('warning');
+                } else {
+                    timerEl.classList.remove('warning');
+                }
+            }
+        }
+
+        // Reset timer on user activity
+        document.addEventListener('click', resetSessionTimer);
+        document.addEventListener('keydown', resetSessionTimer);
+        document.addEventListener('mousemove', resetSessionTimer);
+        document.addEventListener('scroll', resetSessionTimer);
+
+        // Add timer display to header
+        const headerActions = document.querySelector('.header-actions');
+        if (headerActions) {
+            const timerSpan = document.createElement('span');
+            timerSpan.id = 'sessionTimer';
+            timerSpan.className = 'session-timer';
+            timerSpan.textContent = '⏱️ 5:00';
+            headerActions.insertBefore(timerSpan, headerActions.querySelector('.btn-back'));
+        }
+
+        // Start timer
+        startSessionTimer();
+
+
+    </script>
+</body>
+
+</html>
