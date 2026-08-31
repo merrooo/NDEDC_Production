@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Toolkit · SIM & Date Cleaner</title>
+    <!-- SheetJS (xlsx.full.min.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Font Awesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #107c41;
+            --primary-hover: #0b592e;
+            --accent: #4f46e5;
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--card);
+            max-width: 1300px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 24px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title p {
+            margin: 6px 0 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .home-btn {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .home-btn:hover {
+            background: #e2e8f0;
+            color: var(--primary);
+        }
+
+        /* Tool Tabs */
+        .tab-bar {
+            display: flex;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+        }
+
+        .tab-btn {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: auto;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        /* Upload area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+            background: #fafcfa;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #eef7f2;
+        }
+
+        .upload-area i {
+            font-size: 42px;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .upload-label {
+            font-weight: 600;
+            color: var(--primary);
+            display: inline-block;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: #e2e8f0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Controls */
+        .control-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            grid-column: 1 / -1;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .convert-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .convert-btn:hover {
+            background: #4338ca;
+        }
+
+        .export-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .export-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .reset-btn {
+            background: white;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .reset-btn:hover {
+            background: #fee2e2;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 450px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            z-index: 2;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .converted-col {
+            background-color: #f0fdf4;
+            font-weight: 600;
+            color: #0b5e2e;
+        }
+
+        .converted-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-msg {
+            margin: 15px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .error-msg {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        @media (max-width: 700px) {
+            .control-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="header-title">
+                <h1><i class="fas fa-file-excel" style="color: var(--primary);"></i> Excel Data Cleaning Toolkit</h1>
+                <p>Clean SIM numbers (fix 8.92E+18 scientific notation) or format date columns in bulk.</p>
+            </div>
+            <a href="Control_Excel.html" class="home-btn" id="homeBtn">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" id="simTabBtn" onclick="switchMode('sim')">
+                <i class="fas fa-sim-card"></i> SIM Number Cleaner
+            </button>
+            <button class="tab-btn" id="dateTabBtn" onclick="switchMode('date')">
+                <i class="fas fa-calendar-alt"></i> Date Converter
+            </button>
+        </div>
+
+        <div class="content">
+            <!-- File Upload -->
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <div class="upload-label">📂 Click or Drag Excel File Here (.xlsx, .xls, .csv)</div>
+                <input type="file" id="fileInput" accept=".xlsx, .xls, .xlsm, .csv">
+                <div id="filePreview" class="file-preview" style="display: none;">
+                    <b id="fileNameSpan"></b>
+                    <span class="badge" id="rowCountBadge"></span>
+                    <span class="badge" id="sizeBadge"></span>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div id="controlsPanel" style="display: none;">
+                <div class="control-bar">
+                    <div class="control-group">
+                        <label><i class="fas fa-columns"></i> Select Target Column</label>
+                        <select id="columnSelect"></select>
+                    </div>
+
+                    <!-- Date Format Control (Shown only in Date mode) -->
+                    <div class="control-group" id="dateFormatGroup" style="display: none;">
+                        <label><i class="fas fa-calendar"></i> Output Date Format</label>
+                        <select id="dateFormatSelect">
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
+                            <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
+                            <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="convertBtn" class="convert-btn"><i class="fas fa-check"></i> Apply Cleaning</button>
+                        <button id="exportBtn" class="export-btn"><i class="fas fa-file-download"></i> Export Excel</button>
+                        <button id="resetBtn" class="reset-btn"><i class="fas fa-undo-alt"></i> Reset All</button>
+                    </div>
+                </div>
+
+                <div id="convertedColumnsList" style="display: none; margin-bottom: 16px;">
+                    <small><b>Modified columns:</b></small>
+                    <div id="convertedTags" class="converted-tags"></div>
+                </div>
+            </div>
+
+            <div id="infoMessage" class="status-msg"><i class="fas fa-info-circle"></i> Waiting for file upload...</div>
+
+            <!-- Table Preview -->
+            <div id="tableContainer" style="display: none;">
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div id="previewInfo" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'sim'; // 'sim' or 'date'
+        let headers = [];
+        let masterData = [];          
+        let originalDataBackup = [];  
+        let convertedColumns = new Map(); // colIndex -> type string
+        let originalFileName = "data";
+
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const columnSelect = document.getElementById('columnSelect');
+        const infoMsg = document.getElementById('infoMessage');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const controlsPanel = document.getElementById('controlsPanel');
+        const tableContainer = document.getElementById('tableContainer');
+        const uploadArea = document.getElementById('uploadArea');
+        const convertBtn = document.getElementById('convertBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const dateFormatGroup = document.getElementById('dateFormatGroup');
+        const dateFormatSelect = document.getElementById('dateFormatSelect');
+        const filePreview = document.getElementById('filePreview');
+        const fileNameSpan = document.getElementById('fileNameSpan');
+        const rowCountBadge = document.getElementById('rowCountBadge');
+        const sizeBadge = document.getElementById('sizeBadge');
+        const convertedTags = document.getElementById('convertedTags');
+        const convertedColumnsList = document.getElementById('convertedColumnsList');
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('simTabBtn').classList.toggle('active', mode === 'sim');
+            document.getElementById('dateTabBtn').classList.toggle('active', mode === 'date');
+            dateFormatGroup.style.display = mode === 'date' ? 'block' : 'none';
+        }
+
+        // --- SIM Processing Logic ---
+        function cleanSIMNumber(val) {
+            if (val === null || val === undefined) return "";
+            let str = String(val).trim();
+            
+            // Expand Scientific Notation (e.g., 8.92002E+18)
+            if (/e/i.test(str)) {
+                let [mantissa, exponent] = str.toLowerCase().split('e');
+                let exp = parseInt(exponent, 10);
+                let [integer, decimal = ''] = mantissa.replace(/[^0-9.]/g, '').split('.');
+                let combined = integer + decimal;
+                let trailingZeros = exp - decimal.length;
+                
+                if (trailingZeros > 0) {
+                    combined += '0'.repeat(trailingZeros);
+                } else if (trailingZeros < 0) {
+                    combined = combined.slice(0, trailingZeros);
+                }
+                str = combined;
+            }
+            return str.replace(/[^0-9]/g, '');
+        }
+
+        // --- Date Processing Logic ---
+        function excelSerialToDate(serial) {
+            let num = Number(serial);
+            if (isNaN(num) || num < 1) return null;
+            return new Date((num - 25569) * 86400000);
+        }
+
+        function formatDate(date, format) {
+            if (!date || isNaN(date.getTime())) return null;
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            if (format === "MM/DD/YYYY") return `${m}/${d}/${y}`;
+            if (format === "YYYY/MM/DD") return `${y}/${m}/${d}`;
+            if (format === "DD-MM-YYYY") return `${d}-${m}-${y}`;
+            return `${d}/${m}/${y}`;
+        }
+
+        function parseDateValue(val, format) {
+            if (val === null || val === undefined || val === '') return '';
+            if (typeof val === 'number' && val > 0) {
+                const d = excelSerialToDate(val);
+                if (d) return formatDate(d, format);
+            }
+            const s = String(val).trim();
+            if (s === '') return '';
+
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+                if (!isNaN(d)) return formatDate(d, format);
+            }
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            if (m) {
+                const d = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+                if (!isNaN(d)) return formatDate(d, format);
+            }
+            const parsed = new Date(s);
+            if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
+
+            return s;
+        }
+
+        // --- UI Rendering ---
+        function updateUI() {
+            columnSelect.innerHTML = headers.map((h, i) =>
+                `<option value="${i}">${h} ${convertedColumns.has(i) ? '✓' : ''}</option>`
+            ).join('');
+
+            convertedTags.innerHTML = '';
+            convertedColumns.forEach((fmt, idx) => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = `${headers[idx]} (${fmt})`;
+                convertedTags.appendChild(span);
+            });
+            convertedColumnsList.style.display = convertedColumns.size ? 'block' : 'none';
+            renderTable();
+        }
+
+        function renderTable() {
+            const preview = masterData.slice(0, 15);
+            tableHead.innerHTML = `<tr>${headers.map((h, i) =>
+                `<th class="${convertedColumns.has(i) ? 'converted-col' : ''}">${h}</th>`).join('')}</tr>`;
+
+            tableBody.innerHTML = preview.map(row =>
+                `<tr>${row.map((cell, i) =>
+                    `<td class="${convertedColumns.has(i) ? 'converted-col' : ''}">${cell}</td>`
+                ).join('')}</tr>`
+            ).join('');
+
+            tableContainer.style.display = "block";
+            document.getElementById('previewInfo').textContent = `Showing first ${preview.length} of ${masterData.length} rows.`;
+        }
+
+        // --- File Reader ---
+        function handleFile(file) {
+            if (!file) return;
+            originalFileName = file.name.split('.')[0] || 'cleaned_data';
+            fileNameSpan.textContent = file.name;
+            sizeBadge.textContent = (file.size / 1024).toFixed(1) + " KB";
+            filePreview.style.display = "flex";
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    // Pass raw: false and cellText: true to fetch text representation (.w)
+                    const workbook = XLSX.read(data, { 
+                        type: 'array',
+                        cellText: true,
+                        cellDates: true,
+                        raw: false 
+                    });
+                    
+                    const ws = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+
+                    if (rows.length === 0) {
+                        infoMsg.textContent = "⚠️ File is empty.";
+                        infoMsg.classList.add('error-msg');
+                        return;
+                    }
+                    headers = rows[0] || [];
+                    masterData = rows.slice(1).map(r => [...r]);
+                    originalDataBackup = masterData.map(r => [...r]);
+                    convertedColumns.clear();
+
+                    rowCountBadge.textContent = masterData.length + " rows";
+                    controlsPanel.style.display = "block";
+                    updateUI();
+                    infoMsg.textContent = "✅ File loaded. Select a column and target tool, then click 'Apply Cleaning'.";
+                    infoMsg.classList.remove('error-msg');
+                } catch (err) {
+                    infoMsg.textContent = "❌ Error reading file: " + err.message;
+                    infoMsg.classList.add('error-msg');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- Controls Event Handlers ---
+        uploadArea.onclick = () => fileInput.click();
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary)';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--border)';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        convertBtn.onclick = function () {
+            if (!masterData.length || !headers.length) return;
+            const idx = parseInt(columnSelect.value);
+            if (isNaN(idx) || idx < 0 || idx >= headers.length) return;
+
+            let modCount = 0;
+            if (currentMode === 'sim') {
+                masterData.forEach(row => {
+                    const original = row[idx];
+                    const cleaned = cleanSIMNumber(original);
+                    if (original !== cleaned) {
+                        row[idx] = cleaned;
+                        modCount++;
+                    }
+                });
+                convertedColumns.set(idx, 'SIM Cleaned');
+                infoMsg.textContent = `✅ Processed column "${headers[idx]}" as SIM numbers (${modCount} cells modified).`;
+            } else {
+                const fmt = dateFormatSelect.value;
+                masterData.forEach(row => {
+                    const original = row[idx];
+                    const formatted = parseDateValue(original, fmt);
+                    if (original !== formatted) {
+                        row[idx] = formatted;
+                        modCount++;
+                    }
+                });
+                convertedColumns.set(idx, fmt);
+                infoMsg.textContent = `✅ Converted date column "${headers[idx]}" to ${fmt} (${modCount} cells modified).`;
+            }
+            infoMsg.classList.remove('error-msg');
+            updateUI();
+        };
+
+        resetBtn.onclick = function () {
+            if (!originalDataBackup.length) return;
+            if (confirm("Revert all column changes to original values?")) {
+                masterData = originalDataBackup.map(r => [...r]);
+                convertedColumns.clear();
+                updateUI();
+                infoMsg.textContent = "↩️ All values reverted to original.";
+                infoMsg.classList.remove('error-msg');
+            }
+        };
+
+        exportBtn.onclick = function () {
+            if (!masterData.length || !headers.length) return;
+            const ws = XLSX.utils.aoa_to_sheet([headers, ...masterData]);
+
+            // Ensure cells under SIM cleaned columns stay formatted strictly as text (@) in Excel
+            convertedColumns.forEach((label, colIndex) => {
+                if (label === 'SIM Cleaned') {
+                    for (let r = 1; r <= masterData.length; r++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: r, c: colIndex });
+                        if (ws[cellAddress]) {
+                            ws[cellAddress].z = '@';
+                        }
+                    }
+                }
+            });
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Processed_Data");
+            XLSX.writeFile(wb, `${originalFileName}_cleaned.xlsx`);
+            infoMsg.textContent = `✅ Exported successfully as ${originalFileName}_cleaned.xlsx`;
+        };
+    </script>
+</body>
+
+</html>

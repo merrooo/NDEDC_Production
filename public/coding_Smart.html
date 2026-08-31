@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>معاينة بيانات الملف المعالجة</title>
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS library for Excel parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      margin: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .sync-status {
+      font-size: 14px;
+      font-weight: 600;
+      color: #d97706;
+    }
+    .session-timer {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4b5563;
+      background: #f3f4f6;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background-color: #6c757d;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-back:hover {
+      background-color: #5a6268;
+      color: #ffffff;
+    }
+    .btn-back:active {
+      transform: scale(0.98);
+    }
+    .btn-back i {
+      font-size: 14px;
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-top: 0;
+    }
+    .upload-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 15px;
+    }
+    input[type="file"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .export-btn {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      display: none;
+    }
+    .export-btn:hover {
+      background-color: #218838;
+    }
+    .table-wrapper {
+      max-height: 550px;
+      overflow-x: auto;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #dee2e6;
+      border-left: 1px solid #dee2e6;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    .populated-cell {
+      background-color: #e3f2fd;
+      font-weight: bold;
+      color: #0d47a1;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-actions">
+    <span id="syncStatus" class="sync-status loading">⏳ جاري الاتصال...</span>
+    <span id="sessionTimer" class="session-timer">⏱️ 5:00</span>
+    <a href="javascript:void(0);" id="backBtn" class="btn-back">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </a>
+  </div>
+
+  <h2>معاينة ملف البيانات واستخراج الأكواد</h2>
+  <div class="upload-section">
+    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" />
+    <button id="exportBtn" class="export-btn">تصدير ملف Excel</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>قم برفع ملف Excel لمشاهدة البيانات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Dynamic Return Navigation Sequence
+  document.addEventListener('DOMContentLoaded', function () {
+    const backBtn = document.getElementById('backBtn');
+
+    backBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+
+      const currentParams = new URLSearchParams(window.location.search);
+      const keta3 = currentParams.get('keta3');
+      const handsa = currentParams.get('handsa');
+      const userType = currentParams.get('userType');
+
+      if (keta3 || handsa || userType) {
+        const targetParams = new URLSearchParams();
+        if (keta3) targetParams.set('keta3', keta3);
+        if (handsa) targetParams.set('handsa', handsa);
+        if (userType) targetParams.set('userType', userType);
+
+        window.location.href = `Control_Smart.html?${targetParams.toString()}`;
+      } else if (document.referrer && document.referrer.includes('Control_Smart.html')) {
+        window.location.href = document.referrer;
+      } else {
+        window.location.href = 'Control_Smart.html?keta3=admin&handsa=admin&userType=Admin';
+      }
+    });
+  });
+
+  // Sector and Engineering Lookup Tables
+  let processedData = [];
+
+  const keta3Data = {
+    "1": "قطاع دمياط",
+    "2": "قطاع شمال الدقهلية",
+    "3": "قطاع جنوب الدقهلية",
+    "4": "قطاع كفر الشيخ"
+  };
+
+  const handsaData = {
+    "1": [
+      { id: 101, name: "هندسة شمال دمياط" }, { id: 102, name: "هندسة جنوب دمياط" },
+      { id: 103, name: "هندسة عزبة البرج" }, { id: 104, name: "هندسة كفر سعد" },
+      { id: 105, name: "هندسة كفر البطيخ" }, { id: 106, name: "هندسة راس البر" },
+      { id: 107, name: "هندسة دمياط الجديدة" }, { id: 108, name: "هندسة الزرقا" },
+      { id: 109, name: "هندسة فارسكور" }, { id: 110, name: "هندسة الروضة" },
+      { id: 111, name: "هندسة الشعراء" }
+    ],
+    "2": [
+      { id: 201, name: "هندسة مدينة شربين" }, { id: 202, name: "هندسة قري شربين" },
+      { id: 203, name: "هندسة دكرنس" }, { id: 204, name: "هندسة جمصة" },
+      { id: 205, name: "هندسة قري بلقاس" }, { id: 206, name: "هندسة مدينة بلقاس" },
+      { id: 207, name: "هندسة الستاموني" }, { id: 208, name: "هندسة بني عبيد" },
+      { id: 209, name: "هندسة منية النصر" }, { id: 210, name: "هندسة ميت سلسيل" },
+      { id: 211, name: "هندسة الجمالية" }, { id: 212, name: "هندسة قري المنزلة" },
+      { id: 213, name: "هندسة مدينة المنزلة" }, { id: 214, name: "هندسة المطرية" }
+    ],
+    "3": [
+      { id: 301, name: "هندسة شرق المنصورة" }, { id: 302, name: "هندسة غرب المنصورة" },
+      { id: 303, name: "هندسة طلخا" }, { id: 304, name: "هندسة نبروه" },
+      { id: 305, name: "هندسة قري المنصورة 1" }, { id: 306, name: "هندسة قري المنصورة 2" },
+      { id: 307, name: "هندسة اجا" }, { id: 308, name: "هندسة مدينة السنبلاوين" },
+      { id: 309, name: "هندسة قري السنبلاوين" }, { id: 310, name: "هندسة تمي الامديد" },
+      { id: 311, name: "هندسة مدينة ميت غمر" }, { id: 312, name: "هندسة قري ميت غمر" },
+      { id: 313, name: "هندسة كوم النور" }
+    ],
+    "4": [
+      { id: 401, name: "هندسة مدينة كفر الشيخ" }, { id: 402, name: "هندسة غرب كفر الشيخ" },
+      { id: 403, name: "هندسة شرق كفر الشيخ" }, { id: 404, name: "هندسة قلين" },
+      { id: 405, name: "هندسة قرى سيدي سالم" }, { id: 406, name: "هندسة مدينة سيدي سالم" },
+      { id: 407, name: "هندسة الرياض" }, { id: 408, name: "هندسة مدينة دسوق" },
+      { id: 409, name: "هندسة قرى شمال دسوق" }, { id: 410, name: "هندسة قرى جنوب دسوق" },
+      { id: 411, name: "هندسة فوه" }, { id: 412, name: "هندسة مطوبس" },
+      { id: 413, name: "هندسة مدينة الحامول" }, { id: 414, name: "هندسة قرى الحامول" },
+      { id: 415, name: "هندسة بيلا" }, { id: 416, name: "هندسة بلطيم" },
+      { id: 417, name: "هندسة برج البرلس" }
+    ]
+  };
+
+  function cleanText(str) {
+    if (!str) return '';
+    return String(str)
+      .trim()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/\s+/g, '');
+  }
+
+  function formatDateToDDMMYYYY(val) {
+    if (val === null || val === undefined || val === '') return '';
+
+    if (!isNaN(val) && Number(val) > 10000 && Number(val) < 100000) {
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const dateObj = new Date(excelEpoch.getTime() + Number(val) * 86400000);
+      const day = String(dateObj.getUTCDate()).padStart(2, '0');
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const year = dateObj.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    const regex = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/;
+    const match = String(val).trim().match(regex);
+    if (match) {
+      const day = match[1].padStart(2, '0');
+      const month = match[2].padStart(2, '0');
+      const year = match[3];
+      return `${day}/${month}/${year}`;
+    }
+
+    return val;
+  }
+
+  function getKeta3Id(value) {
+    if (!value) return "غير معروف";
+    if (!isNaN(value) && String(value).trim() !== '') return String(value);
+    
+    const cleanInput = cleanText(value);
+    for (const [id, name] of Object.entries(keta3Data)) {
+      if (cleanText(name).includes(cleanInput) || cleanInput.includes(cleanText(name))) {
+        return id;
+      }
+    }
+    return "غير معروف";
+  }
+
+  function getHandsaCode(keta3Id, value) {
+    if (!value) return "غير معروف";
+    if (!isNaN(value) && String(value).trim() !== '') return String(value);
+
+    const cleanInput = cleanText(value);
+    const searchLists = keta3Id && keta3Id !== "غير معروف" && handsaData[keta3Id] 
+      ? [handsaData[keta3Id]] 
+      : Object.values(handsaData);
+
+    for (const list of searchLists) {
+      for (const item of list) {
+        if (cleanText(item.name).includes(cleanInput) || cleanInput.includes(cleanText(item.name))) {
+          return item.id;
+        }
+      }
+    }
+    return "غير معروف";
+  }
+
+  document.getElementById('excelFile').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: true });
+
+      if (jsonData.length === 0) return;
+
+      const thead = document.querySelector('#dataTable thead');
+      const tbody = document.querySelector('#dataTable tbody');
+      
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      processedData = [];
+
+      const originalHeaders = Object.keys(jsonData[0]);
+      
+      const keta3HeaderKey = originalHeaders.find(h => /^keta3$/i.test(h.trim()) || /قطاع/i.test(h));
+      const handsaHeaderKey = originalHeaders.find(h => /^handsa$/i.test(h.trim()) || /هندسة/i.test(h));
+
+      const headerTr = document.createElement('tr');
+      originalHeaders.forEach(header => {
+        headerTr.innerHTML += `<th>${header}</th>`;
+      });
+      thead.appendChild(headerTr);
+
+      jsonData.forEach((row) => {
+        const keta3Val = keta3HeaderKey ? row[keta3HeaderKey] : '';
+        const handsaVal = handsaHeaderKey ? row[handsaHeaderKey] : '';
+
+        const calculatedKeta3Id = getKeta3Id(keta3Val);
+        const calculatedHandsaCode = getHandsaCode(calculatedKeta3Id, handsaVal);
+
+        const processedRow = {};
+        const tr = document.createElement('tr');
+        let rowHtml = '';
+
+        originalHeaders.forEach(header => {
+          let cellValue = row[header];
+
+          if (/^keta3_id$/i.test(header.trim())) {
+            cellValue = calculatedKeta3Id;
+          } else if (/^handsa_code$/i.test(header.trim())) {
+            cellValue = calculatedHandsaCode;
+          } else if (/تاريخ|date/i.test(header) || /^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(String(cellValue).trim()) || (!isNaN(cellValue) && Number(cellValue) > 10000 && Number(cellValue) < 100000 && /تاريخ|date/i.test(header))) {
+            cellValue = formatDateToDDMMYYYY(cellValue);
+          }
+
+          processedRow[header] = cellValue;
+
+          if (/^keta3_id$/i.test(header.trim()) || /^handsa_code$/i.test(header.trim())) {
+            rowHtml += `<td class="populated-cell">${cellValue}</td>`;
+          } else {
+            rowHtml += `<td>${cellValue}</td>`;
+          }
+        });
+
+        processedData.push(processedRow);
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('exportBtn').style.display = 'block';
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    if (processedData.length === 0) return;
+
+    const worksheet = XLSX.utils.json_to_sheet(processedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Processed Data");
+    XLSX.writeFile(workbook, "processed_data.xlsx");
+  });
+</script>
+
+</body>
+</html>
