@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>استعراض جميع السجلات والملخصات الإحصائية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -108,6 +107,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .btn-back {
@@ -219,6 +219,52 @@
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
+        }
+
+        .date-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 4px 12px 4px 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .date-filter-group label {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .date-filter-group select {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: white;
+            outline: none;
+            min-width: 140px;
+            cursor: pointer;
+        }
+
+        .date-filter-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .date-filter-group .clear-date-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+
+        .date-filter-group .clear-date-btn:hover {
+            background: #fee2e2;
         }
 
         .table-container {
@@ -433,6 +479,15 @@
             background-color: #cbd5e1;
         }
 
+        .btn-custom-excel {
+            background-color: #0284c7;
+            color: white;
+        }
+
+        .btn-custom-excel:hover {
+            background-color: #0369a1;
+        }
+
         .btn-excel {
             background-color: #10b981;
             color: white;
@@ -587,6 +642,16 @@
             .column-toggle {
                 justify-content: flex-start;
             }
+
+            .date-filter-group {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            .date-filter-group select {
+                flex: 1;
+                min-width: 100px;
+            }
         }
 
         .session-timer {
@@ -601,6 +666,16 @@
         .session-timer.warning {
             color: #fcd34d;
             border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .date-badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid rgba(59, 130, 246, 0.2);
         }
     </style>
 </head>
@@ -627,7 +702,6 @@
             </div>
             <div class="header-actions">
                 <span id="syncStatus" class="sync-status loading">⏳ جاري التحميل...</span>
-                <!-- Back button: returns to Control.html as Admin -->
                 <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
                     <i class="fas fa-arrow-right"></i> رجوع
                 </a>
@@ -639,6 +713,9 @@
             <div class="table-controls">
                 <div>
                     <span id="recordsCount" style="font-weight: bold; color: var(--secondary);">0 سجل معروض</span>
+                    <span id="dateFilterBadge" class="date-badge" style="display:none; margin-right:10px;">
+                        <i class="fas fa-calendar-day"></i> <span id="selectedDateDisplay"></span>
+                    </span>
                 </div>
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 بحث في جميع الأعمدة..."
@@ -648,6 +725,22 @@
                             class="fas fa-times"></i></button>
                 </div>
                 <div class="action-btns">
+                    <!-- Date Filter Dropdown -->
+                    <div class="date-filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> التاريخ:</label>
+                        <select id="dateFilterSelect" onchange="applyDateFilterFromDropdown()">
+                            <option value="all">جميع التواريخ</option>
+                        </select>
+                        <button class="clear-date-btn" onclick="clearDateFilter()" title="إلغاء تصفية التاريخ">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-custom-excel" onclick="exportFormattedCustomExcel()">
+                        <i class="fas fa-file-export"></i> MDM
+                    </button>
+                    <button class="btn btn-excel" onclick="exportSecondCustomExcel()">
+                        <i class="fas fa-file-excel"></i> HES
+                    </button>
                     <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير
                         الجدول Excel</button>
                     <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط
@@ -795,7 +888,6 @@
             '415': 'هندسة بيلا', '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
         };
 
-        // Master List for 55 Engineering Offices Targets (A4+A5)
         const MASTER_TARGETS = {
             "101": { name: "هندسة شمال دمياط", target: 310, sectorKey: "1" },
             "102": { name: "هندسة جنوب دمياط", target: 535, sectorKey: "1" },
@@ -854,6 +946,20 @@
             "417": { name: "هندسة برج البرلس", target: 155, sectorKey: "4" }
         };
 
+        const exactExcelHeaders = [
+            "SerialNum", "LogicalName", "Badge Number", "Manufacturer", "Model",
+            "EEHC Unified code", "Facililty Description", "Disco", "Disco Section", "Disco Branch فرع",
+            "Losses Area", "Device function", "Distribution Facility", "Installation Date", "ADDRESS1",
+            "ADDRESS2", "ADDRESS3", "ADDRESS4", "Latitude(y)", "Longitude(x)", "VIP"
+        ];
+
+        const secondExcelHeaders = [
+            "operator", "dials", "sims", "imsi", "com", "كود المشترك",
+            "اسم المشترك", "العنوان", "الجهد", "القدرة", "رقم العداد",
+            "كود الشركة", "نوع العداد", "شركة العدادات",
+            "اسم الكشك الموصل بيه العميل", "اسم المغذي الموصل بيه العميل"
+        ];
+
         let allRecordsList = [];
         let filteredData = [];
         let allColumns = [];
@@ -865,6 +971,124 @@
         let sectorSummaryCalculatedData = [];
         let summary2CalculatedData = [];
         let targetSummaryCalculatedData = [];
+        let selectedDateFilter = 'all'; // 'all' or specific date string
+
+        function getFormattedDateString() {
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
+        }
+
+        function transformRecordToExcelFormat(rec) {
+            const meterNum = rec.meter_number || rec.meterNum || rec.meterNo || rec.meter_no || rec.meter || rec.SerialNum || '';
+            const meterTypeRaw = String(rec.meter_type || rec.meterType || rec.type || '').trim().toUpperCase();
+
+            let vip = "N";
+            if (meterTypeRaw === 'A5' || meterTypeRaw === 'A3') {
+                vip = "Y";
+            }
+
+            return {
+                "SerialNum": meterNum,
+                "LogicalName": meterNum ? `CLE25103${meterNum}` : '',
+                "Badge Number": "50/2024/2025",
+                "Manufacturer": "ESMC",
+                "Model": "CL730d22H",
+                "EEHC Unified code": rec.facility_code || rec.facilityCode || rec.code || rec['EEHC Unified code'] || '',
+                "Facililty Description": rec.facility || rec.facility_name || rec.name || rec['Facililty Description'] || '',
+                "Disco": "NDEDC",
+                "Disco Section": sectorNames[rec.keta3 || rec.sector] || rec.keta3 || rec.sector || rec['Disco Section'] || '',
+                "Disco Branch فرع": districtNames[rec.handsa || rec.district] || rec.handsa || rec.district || rec['Disco Branch فرع'] || '',
+                "Losses Area": rec.dp || rec['Losses Area'] || '',
+                "Device function": rec.facility_type || rec.facilityType || rec['Device function'] || '',
+                "Distribution Facility": rec.feeder_code || rec.feederCode || rec['Distribution Facility'] || '',
+                "Installation Date": rec.install_date || rec.installDate || rec.date || rec['Installation Date'] || '',
+                "ADDRESS1": rec.address || rec.ADDRESS1 || '',
+                "ADDRESS2": rec.ADDRESS2 || '',
+                "ADDRESS3": rec.ADDRESS3 || '',
+                "ADDRESS4": rec.ADDRESS4 || '',
+                "Latitude(y)": rec.lat || rec.latitude || rec['Latitude(y)'] || '',
+                "Longitude(x)": rec.lng || rec.longitude || rec['Longitude(x)'] || '',
+                "VIP": vip
+            };
+        }
+
+        function transformRecordToSecondExcelFormat(rec) {
+            const meterNum = rec.meter_number || rec.meterNum || rec.meterNo || rec.meter_no || rec.meter || rec.SerialNum || '';
+            const simVal = String(rec.sims || rec.sim || rec.sim_number || rec.sim_no || '').trim();
+
+            const meterTypeRaw = String(rec.meter_type || rec.meterType || rec.type || '').trim().toUpperCase();
+            const meterTypeVal = (meterTypeRaw === 'A3' || meterTypeRaw === 'A5') ? 'S' : 'D';
+
+            return {
+                "operator": "",
+                "dials": "",
+                "sims": simVal,
+                "imsi": "",
+                "com": "شمال الدلتا",
+                "كود المشترك": "",
+                "اسم المشترك": rec.facility || rec.facility_name || rec['Facililty Description'] || '',
+                "العنوان": rec.address || rec.ADDRESS1 || '',
+                "الجهد": rec.meter_voltage || rec.voltage || '',
+                "القدرة": rec.facility_capacity || rec.capacity || '',
+                "رقم العداد": meterNum,
+                "كود الشركة": "8",
+                "نوع العداد": meterTypeVal,
+                "شركة العدادات": "ESMC",
+                "اسم الكشك الموصل بيه العميل": rec.facility || rec.facility_name || rec['Facililty Description'] || '',
+                "اسم المغذي الموصل بيه العميل": rec.feeder || rec.feeder_name || rec.feeder_code || rec['Distribution Facility'] || ''
+            };
+        }
+
+        window.exportFormattedCustomExcel = function () {
+            const dataToExport = getDataForExport();
+            if (!dataToExport || dataToExport.length === 0) {
+                alert("لا توجد بيانات لتصديرها.");
+                return;
+            }
+
+            const formattedData = dataToExport.map(rec => transformRecordToExcelFormat(rec));
+            const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: exactExcelHeaders });
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+            
+            const count = dataToExport.length;
+            const dateStr = getFormattedDateString();
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `MDM${dateSuffix}-${count}-${dateStr}.xlsx`);
+        };
+
+        window.exportSecondCustomExcel = function () {
+            const dataToExport = getDataForExport();
+            if (!dataToExport || dataToExport.length === 0) {
+                alert("لا توجد بيانات لتصديرها.");
+                return;
+            }
+
+            const formattedData = dataToExport.map(rec => transformRecordToSecondExcelFormat(rec));
+            const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: secondExcelHeaders });
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+            
+            const count = dataToExport.length;
+            const dateStr = getFormattedDateString();
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `HES${dateSuffix}-${count}-${dateStr}.xlsx`);
+        };
+
+        // Helper function to get data based on current filter state
+        function getDataForExport() {
+            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || selectedDateFilter !== 'all';
+            const allColumnsSelected = visibleColumns.length === allColumns.length;
+            const isFilteredOrCustomized = hasActiveFilters || !allColumnsSelected;
+
+            if (isFilteredOrCustomized) {
+                return filteredData;
+            }
+            return allRecordsList;
+        }
 
         function getRecordValue(record, colKey) {
             let val = record[colKey];
@@ -981,10 +1205,68 @@
             filterAndRenderTable();
         };
 
+        // Populate date dropdown with distinct upload_date values
+        function populateDateDropdown() {
+            const dates = new Set();
+            allRecordsList.forEach(rec => {
+                if (rec.upload_date) {
+                    dates.add(rec.upload_date);
+                }
+            });
+
+            const select = document.getElementById('dateFilterSelect');
+            // Keep the "all" option
+            select.innerHTML = '<option value="all">جميع التواريخ</option>';
+            
+            const sortedDates = Array.from(dates).sort();
+            sortedDates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                select.appendChild(option);
+            });
+
+            // Restore selected value if it exists
+            if (selectedDateFilter !== 'all' && sortedDates.includes(selectedDateFilter)) {
+                select.value = selectedDateFilter;
+            } else {
+                select.value = 'all';
+                selectedDateFilter = 'all';
+            }
+        }
+
+        // Apply date filter from dropdown
+        window.applyDateFilterFromDropdown = function () {
+            const select = document.getElementById('dateFilterSelect');
+            selectedDateFilter = select.value;
+            updateDateFilterBadge();
+            filterAndRenderTable();
+        };
+
+        // Clear date filter
+        window.clearDateFilter = function () {
+            const select = document.getElementById('dateFilterSelect');
+            select.value = 'all';
+            selectedDateFilter = 'all';
+            updateDateFilterBadge();
+            filterAndRenderTable();
+        };
+
+        // Update the date filter badge
+        function updateDateFilterBadge() {
+            const badge = document.getElementById('dateFilterBadge');
+            const display = document.getElementById('selectedDateDisplay');
+            if (selectedDateFilter !== 'all') {
+                badge.style.display = 'inline-block';
+                display.textContent = `مصفى حسب: ${selectedDateFilter}`;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         function updateSummaries() {
             const typeCounts = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0 };
 
-            // Initialize Grouped Structure for all 55 districts from MASTER_TARGETS
             const grouped = {};
             Object.keys(MASTER_TARGETS).forEach(dKey => {
                 const sKey = MASTER_TARGETS[dKey].sectorKey;
@@ -1000,7 +1282,6 @@
                 };
             });
 
-            // Populate counts based on filtered records
             filteredData.forEach(rec => {
                 const type = extractRecordType(rec);
                 if (type && typeCounts.hasOwnProperty(type)) {
@@ -1296,6 +1577,15 @@
 
         window.filterAndRenderTable = function () {
             filteredData = allRecordsList.filter(record => {
+                // Date filter
+                if (selectedDateFilter !== 'all') {
+                    const recordDate = record.upload_date;
+                    if (!recordDate || recordDate !== selectedDateFilter) {
+                        return false;
+                    }
+                }
+
+                // Search filter
                 if (globalSearchTerm) {
                     let found = false;
                     const allKeys = Object.keys(record);
@@ -1309,6 +1599,7 @@
                     if (!found) return false;
                 }
 
+                // Column filters
                 for (const colKey of Object.keys(activeColumnFilters)) {
                     const filter = activeColumnFilters[colKey];
                     if (filter && filter.type === 'date') {
@@ -1542,11 +1833,13 @@
         window.resetAllFilters = function () {
             activeColumnFilters = {};
             globalSearchTerm = '';
+            selectedDateFilter = 'all';
             document.getElementById('searchInput').value = '';
+            document.getElementById('dateFilterSelect').value = 'all';
+            updateDateFilterBadge();
             filterAndRenderTable();
         };
 
-        // EXPORT SUMMARY 1
         window.exportSummary1ToExcel = function () {
             const data = [{
                 'A1': document.getElementById('countA1').textContent,
@@ -1559,10 +1852,10 @@
             const worksheet = XLSX.utils.json_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص الإحصائيات");
-            XLSX.writeFile(workbook, `ملخص_الأنواع_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `ملخص_الأنواع${dateSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        // EXPORT SECTOR SUMMARY
         window.exportSectorSummaryToExcel = function () {
             if (sectorSummaryCalculatedData.length === 0) {
                 alert("لا توجد بيانات لتصدير الملخص.");
@@ -1571,10 +1864,10 @@
             const worksheet = XLSX.utils.json_to_sheet(sectorSummaryCalculatedData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص_القطاعات");
-            XLSX.writeFile(workbook, `ملخص_إجمالي_القطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `ملخص_إجمالي_القطاعات${dateSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        // EXPORT SUMMARY 2
         window.exportSummary2ToExcel = function () {
             if (summary2CalculatedData.length === 0) {
                 alert("لا توجد بيانات لتصدير الملخص.");
@@ -1583,10 +1876,10 @@
             const worksheet = XLSX.utils.json_to_sheet(summary2CalculatedData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "توزيع_القطاعات_والهندسات");
-            XLSX.writeFile(workbook, `ملخص_تجميعي_للقطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `ملخص_تجميعي_للقطاعات${dateSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        // EXPORT TARGET SUMMARY (A4+A5)
         window.exportTargetSummaryToExcel = function () {
             if (targetSummaryCalculatedData.length === 0) {
                 alert("لا توجد بيانات لتصدير التقرير.");
@@ -1595,17 +1888,17 @@
             const worksheet = XLSX.utils.json_to_sheet(targetSummaryCalculatedData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "معدل_الإنجاز");
-            XLSX.writeFile(workbook, `معدل_الإنجاز_والرصيد_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `معدل_الإنجاز_والرصيد${dateSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        // EXPORT MAIN DATA TABLE
         window.exportToExcel = function () {
             if (allRecordsList.length === 0) {
                 alert("لا توجد بيانات لتصديرها.");
                 return;
             }
 
-            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '';
+            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || selectedDateFilter !== 'all';
             const allColumnsSelected = visibleColumns.length === allColumns.length;
             const isFilteredOrCustomized = hasActiveFilters || !allColumnsSelected;
 
@@ -1632,7 +1925,8 @@
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "السجلات التصدير");
-            XLSX.writeFile(workbook, `تصدير_البيانات_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            XLSX.writeFile(workbook, `تصدير_البيانات${dateSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
         document.addEventListener('click', (e) => {
@@ -1680,6 +1974,8 @@
                                             ...entry,
                                             sector: sectorKey,
                                             district: districtKey,
+                                            keta3: sectorKey,
+                                            handsa: districtKey,
                                             _recordId: `${sectorKey}_${districtKey}_${entryKey}`
                                         };
 
@@ -1707,13 +2003,17 @@
                 document.getElementById('totalColumns').textContent = allColumns.length;
 
                 updateColumnToggles();
+                populateDateDropdown();
 
                 statusEl.textContent = `✅ تم تحميل ${totalRecords} سجل`;
                 statusEl.className = 'sync-status';
 
                 activeColumnFilters = {};
                 globalSearchTerm = '';
+                selectedDateFilter = 'all';
                 document.getElementById('searchInput').value = '';
+                document.getElementById('dateFilterSelect').value = 'all';
+                updateDateFilterBadge();
                 filterAndRenderTable();
 
             } catch (error) {
@@ -1728,12 +2028,10 @@
         window.loadAllData = loadAllData;
         loadAllData();
 
-
-        // ==================== SESSION TIMER (5 minutes) ====================
+        // Session Timer (5 minutes)
         let sessionTimeout = null;
         let sessionTimerInterval = null;
-        let sessionTimeLeft = 300; // 5 minutes in seconds
-
+        let sessionTimeLeft = 300;
 
         function resetSessionTimer() {
             sessionTimeLeft = 300;
@@ -1755,8 +2053,6 @@
             }, 1000);
         }
 
-
-        // Update the session timer display
         function updateTimerDisplay() {
             const timerEl = document.getElementById('sessionTimer');
             if (timerEl) {
@@ -1771,13 +2067,11 @@
             }
         }
 
-        // Reset timer on user activity
         document.addEventListener('click', resetSessionTimer);
         document.addEventListener('keydown', resetSessionTimer);
         document.addEventListener('mousemove', resetSessionTimer);
         document.addEventListener('scroll', resetSessionTimer);
 
-        // Add timer display to header
         const headerActions = document.querySelector('.header-actions');
         if (headerActions) {
             const timerSpan = document.createElement('span');
@@ -1787,10 +2081,7 @@
             headerActions.insertBefore(timerSpan, headerActions.querySelector('.btn-back'));
         }
 
-        // Start timer
         startSessionTimer();
-
-
     </script>
 </body>
 
