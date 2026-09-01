@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One-Click Local Folder Organizer</title>
+    <style>
+        :root {
+            --bg: #090d16;
+            --card: #131c31;
+            --border: #1e293b;
+            --text: #f1f5f9;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        p.sub {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background-color: #050811;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            padding: 0.75rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: #090d16;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .notice {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .steps {
+            padding-left: 1.2rem;
+            color: #cbd5e1;
+        }
+
+        .steps li {
+            margin-bottom: 0.5rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--success);
+            color: #090d16;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>One-Click Local Folder Organizer</h1>
+    <p class="sub">Downloads a standalone desktop executable (.bat) that automatically runs and organizes your folder without requiring manual terminal commands.</p>
+
+    <div class="card">
+        <label for="folderPath">Target Local Folder Path</label>
+        <input type="text" id="folderPath" placeholder="e.g. C:\Users\YourName\Downloads">
+        
+        <div class="notice">
+            <strong>How this bypasses manual typing:</strong> Clicking the button below downloads a tiny automated script file directly to your computer. You just double-click it once, and it instantly organizes the folder.
+        </div>
+
+        <button onclick="downloadBatchFile()">Download & Run Organizer (.bat)</button>
+    </div>
+
+    <div class="card">
+        <label>How to use it:</label>
+        <ol class="steps">
+            <li>Type or paste your target folder path above.</li>
+            <li>Click <strong>Download & Run Organizer</strong>.</li>
+            <li>Double-click the downloaded <code>organize_folder.bat</code> file (it will instantly sort everything into subfolders like <em>Programs_Executables</em>, <em>Photos_Images</em>, <em>Songs_Audio</em>, and <em>Documents</em>).</li>
+        </ol>
+    </div>
+</div>
+
+<div class="toast" id="toast">Downloaded organizer script successfully!</div>
+
+<script>
+    function downloadBatchFile() {
+        const pathInput = document.getElementById('folderPath').value.trim();
+        if (!pathInput) {
+            alert("Please enter a valid folder path first.");
+            return;
+        }
+
+        // Generate a Windows Batch script that wraps PowerShell execution seamlessly
+        const batchContent = `@echo off
+TITLE Local Folder Organizer
+echo ========================================================
+echo Organizing target folder: ${pathInput}
+echo ========================================================
+
+powershell -NoProfile -Command ^
+"$targetPath = '${pathInput}';" ^
+"if (-not (Test-Path -Path $targetPath)) { Write-Host 'Error: Path does not exist.' -ForegroundColor Red; Read-Host 'Press Enter to exit'; exit }" ^
+"$categories = @{" ^
+"    'Programs_Executables' = @('.exe', '.msi', '.bat', '.cmd', '.app', '.dmg', '.pkg')" ^
+"    'Photos_Images'        = @('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico')" ^
+"    'Songs_Audio'          = @('.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma')" ^
+"    'Documents'            = @('.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx', '.odt')" ^
+"    'Videos'               = @('.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv')" ^
+"    'Archives'             = @('.zip', '.rar', '.7z', '.tar', '.gz')" ^
+"};" ^
+"Write-Host 'Processing files...' -ForegroundColor Cyan;" ^
+"$files = Get-ChildItem -Path $targetPath -File;" ^
+"foreach ($file in $files) {" ^
+"    $ext = $file.Extension.ToLower();" ^
+"    $moved = $false;" ^
+"    foreach ($category in $categories.Keys) {" ^
+"        if ($categories[$category] -contains $ext) {" ^
+"            $dest = Join-Path $targetPath $category;" ^
+"            if (-not (Test-Path -Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }" ^
+"            $destFile = Join-Path $dest $file.Name;" ^
+"            if (Test-Path -Path $destFile) {" ^
+"                $destFile = Join-Path $dest '$($file.BaseName)_$(Get-Date -Format \"yyyyMMddHHmmss\")' + $ext;" ^
+"            }" ^
+"            Move-Item -LiteralPath $file.FullName -Destination $destFile;" ^
+"            Write-Host 'Moved: ' -NoNewline; Write-Host '$($file.Name)' -ForegroundColor Yellow -NoNewline; Write-Host ' -> $category' -ForegroundColor Green;" ^
+"            $moved = $true;" ^
+"            break;" ^
+"        }" ^
+"    }" ^
+"    if (-not $moved) {" ^
+"        $other = Join-Path $targetPath 'Others';" ^
+"        if (-not (Test-Path -Path $other)) { New-Item -ItemType Directory -Path $other | Out-Null }" ^
+"        $destFile = Join-Path $other $file.Name;" ^
+"        if (Test-Path -Path $destFile) {" ^
+"            $destFile = Join-Path $other '$($file.BaseName)_$(Get-Date -Format \"yyyyMMddHHmmss\")' + $ext;" ^
+"        }" ^
+"        Move-Item -LiteralPath $file.FullName -Destination $destFile;" ^
+"        Write-Host 'Moved (Others): $($file.Name)' -ForegroundColor DarkGray;" ^
+"    }" ^
+"}"
+
+echo.
+echo ========================================================
+echo Organization completed successfully!
+echo ========================================================
+pause
+`;
+
+        const blob = new Blob([batchContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'organize_folder.bat';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+</script>
+
+</body>
+</html>

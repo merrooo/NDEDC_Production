@@ -1,88 +1,320 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lat/Lng Map Searcher</title>
+    <title>أقرب قرية - خريطة تفصيلية</title>
+    <!-- Tailwind + Leaflet -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+        #map { height: 100%; width: 100%; }
+        .info-card { transition: all 0.2s ease; }
+        .leaflet-control-layers { direction: ltr; }
+        .distance-badge {
+            background: #1e3a8a;
+            color: white;
+            border-radius: 20px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 h-screen flex flex-col">
+<body class="h-screen flex flex-col">
 
-    <header class="bg-white shadow-md p-4 z-10">
-        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4">
-            <h1 class="text-xl font-bold text-gray-800">Map Coordinates Finder</h1>
-            <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto justify-end flex-1">
-                <input type="number" id="latInput" placeholder="Latitude (e.g., 30.0444)" step="any" 
-                    class="border rounded px-3 py-2 text-sm w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="number" id="lngInput" placeholder="Longitude (e.g., 31.2357)" step="any" 
-                    class="border rounded px-3 py-2 text-sm w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <!-- header -->
+    <header class="bg-white/90 backdrop-blur-sm shadow-md p-3 z-20 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span>📍</span> أقرب قرية <span class="text-sm font-normal text-gray-500">(نقرة واحدة)</span>
+            </h1>
+            <div class="flex flex-wrap items-center gap-2">
+                <input type="text" id="latInput" placeholder="خط العرض" 
+                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="lngInput" placeholder="خط الطول" 
+                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:ring-2 focus:ring-blue-500">
                 <button onclick="searchCoordinates()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition w-full sm:w-auto">
-                    Go to Location
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
+                    بحث
                 </button>
             </div>
         </div>
     </header>
 
-    <div id="map" class="flex-1 w-full"></div>
+    <!-- map + sidebar -->
+    <div class="flex flex-1 overflow-hidden relative">
+        <div id="map" class="flex-1 h-full"></div>
+
+        <!-- sidebar info panel -->
+        <div class="w-80 bg-white shadow-2xl p-5 overflow-y-auto border-l border-gray-200 hidden md:block z-10">
+            <h2 class="font-bold text-gray-700 text-lg mb-4 flex items-center gap-2 border-b pb-2">
+                <span>🏡</span> أقرب قرية / تجمع
+            </h2>
+            <div id="infoPanel" class="text-sm text-gray-700 space-y-3">
+                <div class="bg-gray-50 rounded-xl p-4 text-gray-400 text-center">
+                    <span class="text-2xl block mb-1">👆</span>
+                    انقر على الخريطة لتحديد الموقع
+                </div>
+            </div>
+            <div class="mt-6 text-xs text-gray-400 border-t pt-3">
+                <span>🔄 طبقة تفصيلية: Esri World Street Map</span>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Initialize the map (Default center set to Cairo, Egypt)
-        const map = L.map('map').setView([30.0444, 31.2357], 13);
+        // ------------------ MAP INIT ------------------
+        const map = L.map('map', {
+            center: [31.0364, 31.3807],
+            zoom: 14,
+            zoomControl: true,
+        });
 
-        // 2. Add OpenStreetMap tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // ------------------ TILE LAYERS (detailed) ------------------
+        const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20,
+            attribution: '&copy; Esri, DeLorme, NAVTEQ',
+        });
+        const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+            attribution: '&copy; OpenStreetMap'
+        });
+        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20,
+            attribution: '&copy; Esri, DigitalGlobe'
+        });
 
-        // 3. Keep track of the active marker
+        esriStreet.addTo(map);
+        L.control.layers({
+            "🛣️ تفاصيل الشوارع": esriStreet,
+            "🗺️ عادية (OSM)": osmStandard,
+            "🛰️ قمر صناعي": esriSatellite
+        }, null, { position: 'topright', collapsed: false }).addTo(map);
+
+        L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
+
+        // ------------------ STATE ------------------
         let marker = null;
+        let circle = null;        // to show radius / distance indicator
 
-        // Function to move map and drop a pin based on input
-        function searchCoordinates() {
-            const lat = parseFloat(document.getElementById('latInput').value);
-            const lng = parseFloat(document.getElementById('lngInput').value);
-
-            if (isNaN(lat) || isNaN(lng)) {
-                alert("Please enter valid numbers for both Latitude and Longitude.");
-                return;
-            }
-
-            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                alert("Invalid coordinates! Latitude must be between -90 and 90, and Longitude between -180 and 180.");
-                return;
-            }
-
-            // Update or create marker
-            updateMap(lat, lng, `Coordinates: ${lat}, ${lng}`);
+        // ------------------ HELPER: haversine distance (meters) ------------------
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth radius in meters
+            const toRad = (deg) => deg * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
-        // Helper function to update map view and marker
-        function updateMap(lat, lng, popupText) {
-            map.setView([lat, lng], 15);
+        // ------------------ CORE: fetch nearest village (reverse geocode + distance) ------------------
+        async function fetchNearestVillage(lat, lng) {
+            // update map view
+            map.setView([lat, lng], 16, { animate: true });
 
+            // place / update marker
             if (marker) {
                 marker.setLatLng([lat, lng]);
             } else {
-                marker = L.marker([lat, lng]).addTo(map);
+                marker = L.marker([lat, lng], { riseOnHover: true }).addTo(map);
             }
 
-            marker.bindPopup(popupText).openPopup();
+            // remove old circle
+            if (circle) {
+                map.removeLayer(circle);
+                circle = null;
+            }
+
+            // show loading
+            const panel = document.getElementById('infoPanel');
+            panel.innerHTML = `<div class="bg-blue-50 rounded-xl p-4 text-blue-600 animate-pulse">⏳ جاري البحث عن أقرب قرية ...</div>`;
+
+            try {
+                // 1. Get reverse geocode details (to find the closest administrative village)
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`;
+                const response = await fetch(url, {
+                    headers: { 'Accept-Language': 'ar,en' }
+                });
+                const data = await response.json();
+                const addr = data.address || {};
+
+                // 2. Extract village/hamlet/town/city from the address
+                //    We consider "village" as the smallest settlement, then hamlet, town, suburb, city
+                const village = addr.village || addr.hamlet || addr.town || addr.suburb || addr.city || addr.municipality || null;
+                const district = addr.county || addr.state_district || addr.district || addr.region || '';
+                const governorate = addr.state || addr.region || addr.province || '';
+                const road = addr.road || addr.path || '';
+                const fullName = data.display_name || '';
+
+                // 3. If we have a village name, we try to get its coordinates (to compute distance)
+                let nearestName = village || 'غير محدد';
+                let nearestLat = lat;
+                let nearestLng = lng;
+                let distanceMeters = 0;
+                let villageCoordsFound = false;
+
+                // If we got a village name, we can try to geocode it to get exact coords (for distance)
+                if (village) {
+                    try {
+                        // search for the village name + governorate to get precise coords
+                        const searchQuery = `${village} ${governorate} مصر`.trim();
+                        const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&accept-language=ar`;
+                        const searchResp = await fetch(searchUrl);
+                        const searchData = await searchResp.json();
+                        if (searchData && searchData.length > 0) {
+                            const place = searchData[0];
+                            const foundLat = parseFloat(place.lat);
+                            const foundLon = parseFloat(place.lon);
+                            if (!isNaN(foundLat) && !isNaN(foundLon)) {
+                                nearestLat = foundLat;
+                                nearestLng = foundLon;
+                                distanceMeters = haversineDistance(lat, lng, nearestLat, nearestLng);
+                                villageCoordsFound = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Could not geocode village precisely, using fallback.');
+                    }
+                }
+
+                // Fallback: if no village found, try to use the nearest named place from address
+                if (!village) {
+                    // try to get any named place
+                    const fallback = addr.neighbourhood || addr.suburb || addr.city || addr.town || addr.hamlet || 'منطقة غير مسماة';
+                    nearestName = fallback;
+                    // we keep the clicked coordinates as the "nearest" point
+                    distanceMeters = 0;
+                }
+
+                // If we couldn't get precise village coords, we use the clicked point as reference
+                if (!villageCoordsFound && village) {
+                    // approximate distance (we don't have exact coords, but we can show 0)
+                    distanceMeters = 0;
+                }
+
+                // Format distance
+                let distanceStr = '';
+                if (distanceMeters > 0) {
+                    if (distanceMeters < 1000) {
+                        distanceStr = `${Math.round(distanceMeters)} متر`;
+                    } else {
+                        distanceStr = `${(distanceMeters / 1000).toFixed(2)} كم`;
+                    }
+                } else {
+                    distanceStr = '📍 الموقع نفسه';
+                }
+
+                // Build the sidebar content with nearest village info
+                const distanceDisplay = distanceMeters > 0 ? `المسافة: ${distanceStr}` : 'الموقع ضمن التجمع';
+
+                panel.innerHTML = `
+                    <div class="space-y-3 bg-white rounded-xl">
+                        <div class="bg-blue-50 p-3 rounded-lg border-r-4 border-blue-600">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">الإحداثيات</span>
+                                <span class="font-mono text-xs bg-gray-200 px-2 py-0.5 rounded">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="flex items-start gap-2"><span class="text-lg">🏡</span><div><span class="text-gray-500 text-xs">أقرب قرية / تجمع</span><br><strong class="text-gray-800 text-lg">${nearestName}</strong></div></div>
+                            ${district ? `<div class="flex items-start gap-2"><span class="text-lg">🏛️</span><div><span class="text-gray-500 text-xs">المركز / المنطقة</span><br><strong class="text-gray-800">${district}</strong></div></div>` : ''}
+                            ${governorate ? `<div class="flex items-start gap-2"><span class="text-lg">🏙️</span><div><span class="text-gray-500 text-xs">المحافظة</span><br><strong class="text-gray-800">${governorate}</strong></div></div>` : ''}
+                            ${road ? `<div class="flex items-start gap-2"><span class="text-lg">🛣️</span><div><span class="text-gray-500 text-xs">الطريق القريب</span><br><strong class="text-gray-800">${road}</strong></div></div>` : ''}
+                        </div>
+                        <div class="border-t pt-2 mt-1">
+                            <span class="text-gray-500 text-xs">📏 المسافة إلى القرية</span>
+                            <div class="mt-1"><span class="distance-badge">${distanceDisplay}</span></div>
+                        </div>
+                        <div class="border-t pt-2 mt-1">
+                            <span class="text-gray-500 text-xs">📍 العنوان التفصيلي</span>
+                            <p class="text-xs text-gray-600 bg-gray-50 p-2 rounded mt-1 break-words">${fullName || 'غير متوفر'}</p>
+                        </div>
+                    </div>
+                `;
+
+                // Draw a circle around the clicked point to indicate the village location if we have coords
+                if (villageCoordsFound && distanceMeters > 0) {
+                    // Show a circle centered at the village, radius = distance
+                    circle = L.circle([nearestLat, nearestLng], {
+                        radius: distanceMeters,
+                        color: '#2563eb',
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.15,
+                        weight: 2,
+                        dashArray: '5, 5',
+                        interactive: false
+                    }).addTo(map);
+                    // also add a small marker for the village
+                    L.marker([nearestLat, nearestLng], {
+                        icon: L.divIcon({ className: 'bg-green-600 rounded-full w-3 h-3 border-2 border-white shadow' })
+                    }).addTo(map).bindPopup(`🏡 ${nearestName}`).openPopup();
+                } else if (village) {
+                    // if we have a village name but no coords, just show a circle at clicked point
+                    circle = L.circle([lat, lng], {
+                        radius: 200,
+                        color: '#2563eb',
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.1,
+                        weight: 1,
+                        interactive: false
+                    }).addTo(map);
+                }
+
+                // update marker popup with village name
+                marker.bindPopup(`
+                    <b>🏡 ${nearestName}</b><br>
+                    <span style="font-size:0.8rem;color:#4b5563;">${governorate}</span><br>
+                    <span style="font-size:0.7rem;color:#6b7280;">${distanceStr}</span>
+                `).openPopup();
+
+            } catch (error) {
+                console.error('Error fetching nearest village:', error);
+                panel.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                        <span>❌</span> حدث خطأ. تأكد من الاتصال بالإنترنت.
+                    </div>
+                `;
+                // still show a basic marker
+                if (marker) {
+                    marker.bindPopup(`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`).openPopup();
+                }
+            }
         }
 
-        // 4. Bonus: Click anywhere on the map to automatically fill in inputs
+        // ------------------ SEARCH BY COORDINATES ------------------
+        window.searchCoordinates = function() {
+            const lat = parseFloat(document.getElementById('latInput').value.replace(',', '.'));
+            const lng = parseFloat(document.getElementById('lngInput').value.replace(',', '.'));
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('⚠️ يرجى إدخال إحداثيات صحيحة (مثال: 31.0364 , 31.3807)');
+                return;
+            }
+            fetchNearestVillage(lat, lng);
+        };
+
+        // ------------------ MAP CLICK ------------------
         map.on('click', function(e) {
-            const lat = e.latlng.lat.toFixed(6);
-            const lng = e.latlng.lng.toFixed(6);
-
-            document.getElementById('latInput').value = lat;
-            document.getElementById('lngInput').value = lng;
-
-            updateMap(lat, lng, `Clicked Location:<br>Lat: ${lat}<br>Lng: ${lng}`);
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            document.getElementById('latInput').value = lat.toFixed(6);
+            document.getElementById('lngInput').value = lng.toFixed(6);
+            fetchNearestVillage(lat, lng);
         });
+
+        // ------------------ ENTER KEY ------------------
+        document.getElementById('latInput').addEventListener('keypress', e => { if (e.key === 'Enter') searchCoordinates(); });
+        document.getElementById('lngInput').addEventListener('keypress', e => { if (e.key === 'Enter') searchCoordinates(); });
+
+        // ------------------ DEMO ON LOAD (المنصورة) ------------------
+        setTimeout(() => {
+            fetchNearestVillage(31.0364, 31.3807);
+        }, 500);
     </script>
 </body>
 </html>
