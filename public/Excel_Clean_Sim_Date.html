@@ -504,25 +504,38 @@
 
         function parseDateValue(val, format) {
             if (val === null || val === undefined || val === '') return '';
-            if (typeof val === 'number' && val > 0) {
-                const d = excelSerialToDate(val);
+
+            // Handle Excel serial numbers (passed as numbers or numeric strings)
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
                 if (d) return formatDate(d, format);
             }
+
             const s = String(val).trim();
             if (s === '') return '';
 
+            // Match YYYY-MM-DD or YYYY/MM/DD
             let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
             if (m) {
                 const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
-                if (!isNaN(d)) return formatDate(d, format);
+                if (!isNaN(d.getTime())) return formatDate(d, format);
             }
-            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+
+            // Match DD-MM-YYYY or MM-DD-YYYY
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
             if (m) {
-                const d = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
-                if (!isNaN(d)) return formatDate(d, format);
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const d = new Date(yr, parseInt(m[2]) - 1, parseInt(m[1]));
+                if (!isNaN(d.getTime())) return formatDate(d, format);
             }
-            const parsed = new Date(s);
-            if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
+
+            // Standard date string fallback (skips numeric strings)
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
+            }
 
             return s;
         }
@@ -571,16 +584,16 @@
             reader.onload = function (evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    // Pass raw: false and cellText: true to fetch text representation (.w)
+                    // Pass raw: true so Excel serial numbers stay numeric
                     const workbook = XLSX.read(data, { 
                         type: 'array',
-                        cellText: true,
-                        cellDates: true,
-                        raw: false 
+                        cellText: false,
+                        cellDates: false,
+                        raw: true 
                     });
                     
                     const ws = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
 
                     if (rows.length === 0) {
                         infoMsg.textContent = "⚠️ File is empty.";
