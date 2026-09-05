@@ -349,7 +349,7 @@
         <div class="header">
             <div class="header-title">
                 <h1><i class="fas fa-file-excel" style="color: var(--primary);"></i> Excel Data Cleaning Toolkit</h1>
-                <p>Clean SIM numbers (fix 8.92E+18 scientific notation) or format date columns in bulk.</p>
+                <p>Clean SIM numbers (fix 8.92E+18 scientific notation) or format/swap date columns in bulk.</p>
             </div>
             <a href="Control_Excel.html" class="home-btn" id="homeBtn">
                 <i class="fas fa-home"></i> Home
@@ -361,7 +361,7 @@
                 <i class="fas fa-sim-card"></i> SIM Number Cleaner
             </button>
             <button class="tab-btn" id="dateTabBtn" onclick="switchMode('date')">
-                <i class="fas fa-calendar-alt"></i> Date Converter
+                <i class="fas fa-calendar-alt"></i> Date Converter & Swapper
             </button>
         </div>
 
@@ -388,8 +388,9 @@
 
                     <!-- Date Format Control (Shown only in Date mode) -->
                     <div class="control-group" id="dateFormatGroup" style="display: none;">
-                        <label><i class="fas fa-calendar"></i> Output Date Format</label>
+                        <label><i class="fas fa-calendar"></i> Operation / Output Format</label>
                         <select id="dateFormatSelect">
+                            <option value="SWAP_DAY_MONTH">🔄 Swap Day & Month (DD/MM ↔ MM/DD)</option>
                             <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
                             <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
                             <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
@@ -502,8 +503,61 @@
             return `${d}/${m}/${y}`;
         }
 
+        function swapDayMonth(val) {
+            if (val === null || val === undefined || val === '') return '';
+
+            // Handle Excel serial numbers
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) {
+                    const swapped = new Date(d.getFullYear(), d.getDate() - 1, d.getMonth() + 1);
+                    return formatDate(swapped, "DD/MM/YYYY");
+                }
+            }
+
+            const s = String(val).trim();
+            if (s === '') return '';
+
+            // Match YYYY-MM-DD or YYYY/MM/DD -> swap MM and DD
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const yr = parseInt(m[1]);
+                const swappedMonth = parseInt(m[3]);
+                const swappedDay = parseInt(m[2]);
+                const d = new Date(yr, swappedMonth - 1, swappedDay);
+                if (!isNaN(d.getTime())) return formatDate(d, "DD/MM/YYYY");
+            }
+
+            // Match DD-MM-YYYY or MM-DD-YYYY -> swap DD and MM
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (m) {
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const swappedMonth = parseInt(m[1]);
+                const swappedDay = parseInt(m[2]);
+                const d = new Date(yr, swappedMonth - 1, swappedDay);
+                if (!isNaN(d.getTime())) return formatDate(d, "DD/MM/YYYY");
+            }
+
+            // Fallback for standard date parsing
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) {
+                    const swapped = new Date(parsed.getFullYear(), parsed.getDate() - 1, parsed.getMonth() + 1);
+                    return formatDate(swapped, "DD/MM/YYYY");
+                }
+            }
+
+            return s;
+        }
+
         function parseDateValue(val, format) {
             if (val === null || val === undefined || val === '') return '';
+
+            if (format === 'SWAP_DAY_MONTH') {
+                return swapDayMonth(val);
+            }
 
             // Handle Excel serial numbers (passed as numbers or numeric strings)
             const num = Number(val);
@@ -664,8 +718,9 @@
                         modCount++;
                     }
                 });
-                convertedColumns.set(idx, fmt);
-                infoMsg.textContent = `✅ Converted date column "${headers[idx]}" to ${fmt} (${modCount} cells modified).`;
+                const label = fmt === 'SWAP_DAY_MONTH' ? 'Day/Month Swapped' : fmt;
+                convertedColumns.set(idx, label);
+                infoMsg.textContent = `✅ Applied date conversion (${label}) on "${headers[idx]}" (${modCount} cells modified).`;
             }
             infoMsg.classList.remove('error-msg');
             updateUI();

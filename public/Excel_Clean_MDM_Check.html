@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDM-COLUMNS CHECKS</title>
+  <!-- SheetJS for Live Client-Side Excel Processing & Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      border-right: 6px solid var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header-text h1 {
+      margin: 0 0 6px 0;
+      font-size: 24px;
+    }
+
+    .header-text p {
+      margin: 0;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .home-btn {
+      background-color: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .home-btn:hover {
+      background-color: #1e293b;
+    }
+
+    .upload-section {
+      background: var(--card);
+      border: 2px dashed var(--accent);
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .upload-section:hover {
+      background-color: #eff6ff;
+    }
+
+    .upload-btn {
+      background: var(--accent);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .export-btn {
+      background: var(--success);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .export-btn:hover {
+      background-color: #059669;
+    }
+
+    .apply-cols-btn {
+      background: var(--accent);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .apply-cols-btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    .secondary-btn {
+      background: #64748b;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .secondary-btn:hover {
+      background-color: #475569;
+    }
+
+    .grid-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    .stat-card.active {
+      border: 2px solid var(--accent);
+      background-color: #eff6ff;
+    }
+
+    .stat-title {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .stat-count {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 6px 0;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .table-card {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .table-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-box {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 220px;
+    }
+
+    .column-picker-panel {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .column-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .column-picker-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #334155;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .checkbox-item {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 500px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      color: #475569;
+    }
+
+    tr.invalid-row {
+      background-color: #fef2f2;
+    }
+
+    .cell-error {
+      background-color: #fca5a5 !important;
+      color: #7f1d1d;
+      font-weight: bold;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-text">
+        <h1>فحص اعمدة MDM</h1>
+      </div>
+      <!-- Return to Home Button -->
+      <a href="Control_Excel.HTML" class="home-btn">
+        <span>🏠</span> العودة للرئيسية
+      </a>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="upload-section" onclick="document.getElementById('excelFile').click()">
+      <h3>اسحب ملف الـ Excel هنا أو اضغط للرفع</h3>
+      <p style="color: #64748b; font-size: 14px;">يدعم صيغ (.xlsx / .xls)</p>
+
+      <input type="file" id="excelFile" accept=".xlsx, .xls" style="display:none" onchange="handleFile(event)">
+      <button class="upload-btn">اختيار ملف</button>
+    </div>
+
+    <!-- Summary Cards Grid -->
+    <div id="statsContainer" class="grid-stats"></div>
+
+    <!-- Data Table Preview -->
+    <div class="table-card" id="tableCard" style="display:none;">
+      <div class="table-header-flex">
+        <h3 id="tableTitle">عرض البيانات المفحوصة</h3>
+        <div class="controls-group">
+          <input type="text" id="searchInput" class="search-box" placeholder="بحث سريع..." onkeyup="filterTableText()">
+          <button class="export-btn" onclick="exportCurrentTableExcel()">تصدير جدول المعاينة (Excel)</button>
+        </div>
+      </div>
+
+      <!-- Dynamic Column Exclude/Include Panel -->
+      <div class="column-picker-panel" id="columnPickerPanel">
+        <div class="column-picker-header">
+          <div class="column-picker-title">الأعمدة المعروضة (قم بزيادة أو إلغاء تحديد الأعمدة للاستبعاد عند التصدير):
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="secondary-btn" onclick="selectAllCols(true)">تحديد الكل ☑️</button>
+            <button class="secondary-btn" onclick="selectAllCols(false)">إلغاء الكل ⬛</button>
+            <button class="apply-cols-btn" onclick="applyColumnChoices()">تطبيق التحديد على الجدول 👁️</button>
+          </div>
+        </div>
+        <div class="checkbox-grid" id="checkboxGrid"></div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="dataTable">
+          <thead>
+            <tr id="tableHead"></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let globalData = [];
+    let activeFilter = 'ALL';
+    let selectedColsSet = new Set();
+    let currentFilteredRows = [];
+
+    const RULES = {
+      'SerialNum': (val) => {
+        let s = String(val || '').trim().replace(/\.0$/, '');
+        return s.length === 8 && /^\d+$/.test(s) && s.startsWith('830');
+      },
+      'SIM_S_Num': (val) => {
+        let s = String(val || '').trim().replace(/\.0$/, '');
+        return s.length === 19 && /^\d+$/.test(s);
+      },
+      'اسم المحول': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
+'قدرة المحول': (val) => {
+  let s = String(val || '').trim().toUpperCase();
+  
+  // If the cell contains "N/A", return true immediately (valid condition)
+  if (s === 'N/A') return true;
+  
+  // Otherwise, validate that it is a number between 50 and 1000
+  let n = parseFloat(val);
+  return !isNaN(n) && n >= 50 && n <= 1000;
+},
+      'اسم المغذي الموصل بيه المحول': (val) => {
+        // Handle both string "N/A" and Excel error values
+        if (val === 'N/A' || String(val).trim() === 'N/A') return true;
+        if (!val) return false;
+
+        return /[\u0600-\u06FF]/.test(String(val));
+      },
+
+      'كود المغذي الموصل بالمحول': (val) => {
+        // Handle both string "N/A" and Excel error values
+        if (val === 'N/A' || String(val).trim() === 'N/A') return true;
+        if (!val) return false;
+
+        let s = String(val).trim();
+        if (/^NDC-(DKH|DMT|KSH)-DP\d{3}-C\d{2}$/i.test(s)) return true;
+        if (/^NDC-(DKH|DMT|KSH)-SS\d{2}-TR0\d-C\d{2}$/i.test(s)) return true;
+        return false;
+      },
+      'كود المحول': (val) => {
+        let s = String(val || '').trim();
+        if (/^NDC-(DKH|DMT|KSH)-\d{2}-K\d{5}$/i.test(s)) return true;
+        if (/^NDC-(DKH|DMT|KSH)-\d{2}-PMT\d{4}$/i.test(s)) return true;
+        if (/^NDC-(DKH|DMT|KSH)-SS\d{2}-TR0\d-C\d{2}$/i.test(s)) return true;
+        if (/^NDC-(DKH|DMT|KSH)-DP\d{3}-C\d{2}$/i.test(s)) return true;
+        return false;
+      },
+      'عنوان المحول بالتفصيل': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
+      'تاريخ التركيب': (val) => {
+        let s = String(val || '').trim();
+        if (!s) return false;
+
+        // Strictly match DD/MM/YYYY or DD-MM-YYYY
+        let match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (!match) return false;
+
+        let day = parseInt(match[1], 10);
+        let month = parseInt(match[2], 10);
+        let year = parseInt(match[3], 10);
+
+        // Reject if month is out of 1-12 range (e.g., 10/25/2024 MM/DD/YYYY format)
+        if (month < 1 || month > 12) return false;
+
+        // Ensure valid day in calendar (e.g., prevents 31/02/2024)
+        let inputDate = new Date(year, month - 1, day);
+        if (
+          inputDate.getFullYear() !== year ||
+          inputDate.getMonth() !== month - 1 ||
+          inputDate.getDate() !== day
+        ) {
+          return false;
+        }
+
+        // Reject future dates
+        let today = new Date();
+        today.setHours(23, 59, 59, 999);
+
+        return inputDate <= today;
+      },
+      'اسم المغذي الموصل بيه المحول': (val) => {
+        let s = String(val || '').trim();
+
+        // If the cell contains "N/A", return true immediately (valid condition)
+        if (s === 'N/A') return true;
+
+        // Otherwise, validate that it contains Arabic text
+        return /[\u0600-\u06FF]/.test(s);
+      },
+      'كود المغذي الموصل بالمحول': (val) => {
+        let s = String(val || '').trim();
+
+        // If the cell contains "N/A", return true immediately (valid condition)
+        if (s === 'N/A') return true;
+
+        // Otherwise, validate against the NDC feeder code pattern
+        if (/^NDC-(DKH|DMT|KSH)-DP\d{3}-C\d{2}$/i.test(s)) return true;
+        if (/^NDC-(DKH|DMT|KSH)-SS\d{2}-TR0\d-C\d{2}$/i.test(s)) return true;
+        return false;
+      },
+      'اسم لوحة التوزيع': (val) => {
+        let s = String(val || '').trim();
+        return (s.startsWith('لوحة') || s.startsWith('محطة') || s.startsWith('لوحه') || s.startsWith('محطه')) && /[\u0600-\u06FF]/.test(s);
+      },
+      'القطاع': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
+      'الهندسة': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
+      'Latitude(y)': (val) => {
+        let n = parseFloat(val);
+        return !isNaN(n) && n >= -90 && n <= 90 && n !== 0;
+      },
+      'Longitude(x)': (val) => {
+        let n = parseFloat(val);
+        return !isNaN(n) && n >= -180 && n <= 180 && n !== 0;
+      },
+      'TYPE': (val) => Boolean(val && /[A-Za-z]/.test(String(val))),
+      'facility_type': (val) => Boolean(val && /[A-Za-z]/.test(String(val))),
+      'meter_voltage': (val) => {
+        let s = String(val || '').trim().replace(/\.0$/, '');
+        return s === '380' || s === '110';
+      }
+    };
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+
+        // Read raw string value without auto-converting dates or numbers
+        const workbook = XLSX.read(data, {
+          type: 'array',
+          cellText: true,
+          cellDates: false,
+          raw: false
+        });
+
+        const sheetName = workbook.SheetNames[0];
+        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+          defval: "",
+          raw: false
+        });
+
+        processAndValidateData(rawRows);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function processAndValidateData(rows) {
+      globalData = rows.map((row, idx) => {
+        let rowErrors = {};
+        let errCount = 0;
+
+        for (let col in RULES) {
+          let val = row[col];
+          if (typeof val === 'string') val = val.replace(/[\u200c\u200b]/g, '').trim();
+
+          let isValid = RULES[col](val);
+          if (!isValid) {
+            rowErrors[col] = true;
+            errCount++;
+          }
+        }
+
+        return {
+          _rowNum: idx + 2,
+          _data: row,
+          _errors: rowErrors,
+          _errCount: errCount
+        };
+      });
+
+      renderStatsCards();
+      filterAndRenderTable('ALL');
+    }
+
+    function renderStatsCards() {
+      const statsContainer = document.getElementById('statsContainer');
+      statsContainer.innerHTML = '';
+
+      const totalInvalid = globalData.filter(r => r._errCount > 0).length;
+
+      let html = `
+        <div class="stat-card ${activeFilter === 'ALL' ? 'active' : ''}" onclick="filterAndRenderTable('ALL')">
+            <div class="stat-title">جميع السجلات</div>
+            <div class="stat-count">${globalData.length}</div>
+            <div class="stat-sub">إجمالي الصفوف</div>
+        </div>
+        <div class="stat-card ${activeFilter === 'ERRORS' ? 'active' : ''}" onclick="filterAndRenderTable('ERRORS')">
+            <div class="stat-title" style="color: var(--danger)">صفوف تحوي أخطاء</div>
+            <div class="stat-count" style="color: var(--danger)">${totalInvalid}</div>
+            <div class="stat-sub">اضغط لعرضها</div>
+        </div>
+    `;
+
+      for (let col in RULES) {
+        let failCount = globalData.filter(r => r._errors[col]).length;
+        html += `
+            <div class="stat-card ${activeFilter === col ? 'active' : ''}" onclick="filterAndRenderTable('${col}')">
+                <div class="stat-title">${col}</div>
+                <div class="stat-count" style="color: ${failCount > 0 ? 'var(--warning)' : 'var(--success)'}">${failCount}</div>
+                <div class="stat-sub">مخالفة للشرط</div>
+            </div>
+        `;
+      }
+
+      statsContainer.innerHTML = html;
+    }
+
+    function filterAndRenderTable(filterKey) {
+      activeFilter = filterKey;
+      renderStatsCards();
+
+      let title = "عرض البيانات";
+
+      if (filterKey === 'ALL') {
+        currentFilteredRows = globalData;
+        title = "عرض جميع البيانات المفحوصة";
+      } else if (filterKey === 'ERRORS') {
+        currentFilteredRows = globalData.filter(r => r._errCount > 0);
+        title = "عرض الصفوف التي تحتوي على أخطاء";
+      } else {
+        currentFilteredRows = globalData.filter(r => r._errors[filterKey]);
+        title = `مشكلة العمود: (${filterKey})`;
+      }
+
+      document.getElementById('tableTitle').innerText = `${title} (${currentFilteredRows.length} سجل)`;
+      document.getElementById('tableCard').style.display = 'block';
+
+      // Default column selections
+      const allCols = Object.keys(globalData[0]._data);
+      if (filterKey !== 'ALL' && filterKey !== 'ERRORS') {
+        const keyCols = ['SerialNum', 'SIM_S_Num', 'الهندسة', 'TYPE', 'facility_type'];
+        const targetCols = new Set([...keyCols, filterKey]);
+        selectedColsSet = new Set(allCols.filter(c => targetCols.has(c)));
+      } else {
+        selectedColsSet = new Set(allCols);
+      }
+
+      renderColumnCheckboxes(allCols);
+      renderTable();
+    }
+
+    function renderColumnCheckboxes(allCols) {
+      const grid = document.getElementById('checkboxGrid');
+      let html = '';
+      allCols.forEach(col => {
+        let checked = selectedColsSet.has(col) ? 'checked' : '';
+        html += `
+          <label class="checkbox-item">
+            <input type="checkbox" value="${col}" class="col-checkbox" ${checked}>
+            <span>${col}</span>
+          </label>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function selectAllCols(status) {
+      const checkboxes = document.querySelectorAll('.col-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = status;
+      });
+    }
+
+    function applyColumnChoices() {
+      const checkboxes = document.querySelectorAll('.col-checkbox');
+      selectedColsSet.clear();
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          selectedColsSet.add(cb.value);
+        }
+      });
+      renderTable();
+    }
+
+    function renderTable() {
+      if (globalData.length === 0) return;
+
+      const allCols = Object.keys(globalData[0]._data);
+      const displayCols = allCols.filter(c => selectedColsSet.has(c));
+
+      // Build Table Header
+      let headHtml = '<th># رقم الصف</th>';
+      displayCols.forEach(c => { headHtml += `<th>${c}</th>`; });
+      document.getElementById('tableHead').innerHTML = headHtml;
+
+      // Build Table Body
+      let bodyHtml = '';
+      currentFilteredRows.slice(0, 500).forEach(r => {
+        let isErrRow = r._errCount > 0;
+        bodyHtml += `<tr class="${isErrRow ? 'invalid-row' : ''}">`;
+        bodyHtml += `<td><strong>${r._rowNum}</strong></td>`;
+
+        displayCols.forEach(c => {
+          let val = r._data[c] !== undefined ? r._data[c] : '';
+          let isCellErr = r._errors[c];
+          bodyHtml += `<td class="${isCellErr ? 'cell-error' : ''}">${val}</td>`;
+        });
+
+        bodyHtml += '</tr>';
+      });
+
+      document.getElementById('tableBody').innerHTML = bodyHtml;
+    }
+
+    function exportCurrentTableExcel() {
+      if (currentFilteredRows.length === 0) {
+        alert("لا توجد بيانات معروضة للتصدير!");
+        return;
+      }
+
+      const allCols = Object.keys(globalData[0]._data);
+      const displayCols = allCols.filter(c => selectedColsSet.has(c));
+
+      // Build JSON array matching current preview columns
+      const exportData = currentFilteredRows.map(r => {
+        let rowObj = { '# رقم الصف': r._rowNum };
+        displayCols.forEach(c => {
+          rowObj[c] = r._data[c];
+        });
+        return rowObj;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered_Data");
+
+      let fileName = `preview_export_${activeFilter}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+    }
+
+    function filterTableText() {
+      let text = document.getElementById('searchInput').value.toLowerCase();
+      let trs = document.querySelectorAll('#tableBody tr');
+
+      trs.forEach(tr => {
+        let match = tr.innerText.toLowerCase().includes(text);
+        tr.style.display = match ? '' : 'none';
+      });
+    }
+  </script>
+
+</body>
+
+</html>
