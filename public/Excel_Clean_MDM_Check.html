@@ -337,7 +337,7 @@
         <h1>فحص اعمدة MDM</h1>
       </div>
       <!-- Return to Home Button -->
-      <a href="Control_Excel.HTML" class="home-btn">
+      <a href="Control_Excel.html" class="home-btn">
         <span>🏠</span> العودة للرئيسية
       </a>
     </div>
@@ -405,30 +405,20 @@
         return s.length === 19 && /^\d+$/.test(s);
       },
       'اسم المحول': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
-'قدرة المحول': (val) => {
-  let s = String(val || '').trim().toUpperCase();
-  
-  // If the cell contains "N/A", return true immediately (valid condition)
-  if (s === 'N/A') return true;
-  
-  // Otherwise, validate that it is a number between 50 and 1000
-  let n = parseFloat(val);
-  return !isNaN(n) && n >= 50 && n <= 1000;
-},
-      'اسم المغذي الموصل بيه المحول': (val) => {
-        // Handle both string "N/A" and Excel error values
-        if (val === 'N/A' || String(val).trim() === 'N/A') return true;
-        if (!val) return false;
-
-        return /[\u0600-\u06FF]/.test(String(val));
+      'قدرة المحول': (val) => {
+        let s = String(val || '').trim().toUpperCase();
+        if (s === 'N/A') return true;
+        let n = parseFloat(val);
+        return !isNaN(n) && n >= 50 && n <= 1000;
       },
-
+      'اسم المغذي الموصل بيه المحول': (val) => {
+        let s = String(val || '').trim();
+        if (s === 'N/A') return true;
+        return /[\u0600-\u06FF]/.test(s);
+      },
       'كود المغذي الموصل بالمحول': (val) => {
-        // Handle both string "N/A" and Excel error values
-        if (val === 'N/A' || String(val).trim() === 'N/A') return true;
-        if (!val) return false;
-
-        let s = String(val).trim();
+        let s = String(val || '').trim();
+        if (s === 'N/A') return true;
         if (/^NDC-(DKH|DMT|KSH)-DP\d{3}-C\d{2}$/i.test(s)) return true;
         if (/^NDC-(DKH|DMT|KSH)-SS\d{2}-TR0\d-C\d{2}$/i.test(s)) return true;
         return false;
@@ -443,55 +433,48 @@
       },
       'عنوان المحول بالتفصيل': (val) => Boolean(val && /[\u0600-\u06FF]/.test(String(val))),
       'تاريخ التركيب': (val) => {
-        let s = String(val || '').trim();
-        if (!s) return false;
+        if (val === undefined || val === null || val === '') return false;
 
-        // Strictly match DD/MM/YYYY or DD-MM-YYYY
-        let match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-        if (!match) return false;
+        let inputDate = null;
 
-        let day = parseInt(match[1], 10);
-        let month = parseInt(match[2], 10);
-        let year = parseInt(match[3], 10);
+        // 1. If SheetJS parsed it directly as a JavaScript Date object
+        if (val instanceof Date) {
+          inputDate = val;
+        } 
+        // 2. If stored as raw Excel numeric serial (e.g. 45200)
+        else if (typeof val === 'number' || (!isNaN(val) && !String(val).includes('/') && !String(val).includes('-'))) {
+          let serial = parseFloat(val);
+          inputDate = new Date(Math.round((serial - 25569) * 86400 * 1000));
+        } 
+        // 3. Strict text match for DD/MM/YYYY or DD-MM-YYYY
+        else {
+          let s = String(val).trim();
+          let match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+          if (!match) return false;
 
-        // Reject if month is out of 1-12 range (e.g., 10/25/2024 MM/DD/YYYY format)
-        if (month < 1 || month > 12) return false;
+          let day = parseInt(match[1], 10);
+          let month = parseInt(match[2], 10);
+          let year = parseInt(match[3], 10);
 
-        // Ensure valid day in calendar (e.g., prevents 31/02/2024)
-        let inputDate = new Date(year, month - 1, day);
-        if (
-          inputDate.getFullYear() !== year ||
-          inputDate.getMonth() !== month - 1 ||
-          inputDate.getDate() !== day
-        ) {
-          return false;
+          if (month < 1 || month > 12) return false;
+
+          let d = new Date(year, month - 1, day);
+          if (
+            d.getFullYear() === year &&
+            d.getMonth() === month - 1 &&
+            d.getDate() === day
+          ) {
+            inputDate = d;
+          }
         }
 
-        // Reject future dates
+        if (!inputDate || isNaN(inputDate.getTime())) return false;
+
+        // 4. Reject future dates
         let today = new Date();
         today.setHours(23, 59, 59, 999);
 
         return inputDate <= today;
-      },
-      'اسم المغذي الموصل بيه المحول': (val) => {
-        let s = String(val || '').trim();
-
-        // If the cell contains "N/A", return true immediately (valid condition)
-        if (s === 'N/A') return true;
-
-        // Otherwise, validate that it contains Arabic text
-        return /[\u0600-\u06FF]/.test(s);
-      },
-      'كود المغذي الموصل بالمحول': (val) => {
-        let s = String(val || '').trim();
-
-        // If the cell contains "N/A", return true immediately (valid condition)
-        if (s === 'N/A') return true;
-
-        // Otherwise, validate against the NDC feeder code pattern
-        if (/^NDC-(DKH|DMT|KSH)-DP\d{3}-C\d{2}$/i.test(s)) return true;
-        if (/^NDC-(DKH|DMT|KSH)-SS\d{2}-TR0\d-C\d{2}$/i.test(s)) return true;
-        return false;
       },
       'اسم لوحة التوزيع': (val) => {
         let s = String(val || '').trim();
@@ -523,18 +506,17 @@
       reader.onload = function (event) {
         const data = new Uint8Array(event.target.result);
 
-        // Read raw string value without auto-converting dates or numbers
+        // Read raw objects/dates directly from Excel without localized text formatting
         const workbook = XLSX.read(data, {
           type: 'array',
-          cellText: true,
-          cellDates: false,
-          raw: false
+          cellDates: true,
+          raw: true
         });
 
         const sheetName = workbook.SheetNames[0];
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
           defval: "",
-          raw: false
+          raw: true
         });
 
         processAndValidateData(rawRows);
@@ -690,6 +672,15 @@
 
         displayCols.forEach(c => {
           let val = r._data[c] !== undefined ? r._data[c] : '';
+          
+          // Format date display nicely if it's a JS Date object
+          if (val instanceof Date) {
+            let day = String(val.getDate()).padStart(2, '0');
+            let month = String(val.getMonth() + 1).padStart(2, '0');
+            let year = val.getFullYear();
+            val = `${day}/${month}/${year}`;
+          }
+
           let isCellErr = r._errors[c];
           bodyHtml += `<td class="${isCellErr ? 'cell-error' : ''}">${val}</td>`;
         });
@@ -713,7 +704,14 @@
       const exportData = currentFilteredRows.map(r => {
         let rowObj = { '# رقم الصف': r._rowNum };
         displayCols.forEach(c => {
-          rowObj[c] = r._data[c];
+          let val = r._data[c];
+          if (val instanceof Date) {
+            let day = String(val.getDate()).padStart(2, '0');
+            let month = String(val.getMonth() + 1).padStart(2, '0');
+            let year = val.getFullYear();
+            val = `${day}/${month}/${year}`;
+          }
+          rowObj[c] = val;
         });
         return rowObj;
       });
