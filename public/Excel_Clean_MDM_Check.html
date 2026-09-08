@@ -108,6 +108,36 @@
       font-size: 14px;
     }
 
+    .main-search-panel {
+      background: var(--card);
+      padding: 8px 0;
+      margin-bottom: 12px;
+    }
+
+    .main-search-panel label {
+      display: block;
+      margin-bottom: 4px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .main-search-box {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font: inherit;
+      font-size: 13px;
+      direction: rtl;
+    }
+
+    .main-search-box:focus {
+      outline: 2px solid #bfdbfe;
+      border-color: var(--accent);
+    }
+
     .file-input-hidden {
       display: none;
     }
@@ -410,7 +440,6 @@
       <div class="table-header-flex">
         <h3 id="tableTitle">عرض البيانات المفحوصة</h3>
         <div class="controls-group">
-          <input type="text" id="searchInput" class="search-box" placeholder="بحث سريع..." onkeyup="filterTableText()">
           <button class="export-btn" onclick="exportCurrentTableExcel()">تصدير جدول المعاينة (Excel)</button>
         </div>
       </div>
@@ -431,6 +460,12 @@
           </div>
         </div>
         <div class="checkbox-grid" id="checkboxGrid"></div>
+      </div>
+
+      <div class="main-search-panel">
+        <label for="searchInput">البحث في السجلات</label>
+        <input type="text" id="searchInput" class="main-search-box"
+          placeholder="ابحث برقم SerialNum أو القطاع أو الهندسة..." oninput="filterTableText()">
       </div>
 
       <div class="table-wrapper">
@@ -572,6 +607,16 @@
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
           defval: "",
           raw: true
+        });
+
+        let lastSector = '';
+        rawRows.forEach(row => {
+          const sector = String(row['القطاع'] || '').trim();
+          if (sector) {
+            lastSector = sector;
+          } else if (lastSector) {
+            row['القطاع'] = lastSector;
+          }
         });
 
         processAndValidateData(rawRows);
@@ -773,6 +818,15 @@
 
       const allCols = Object.keys(globalData[0]._data);
       const displayCols = allCols.filter(c => selectedColsSet.has(c));
+      const searchText = document.getElementById('searchInput').value.trim().toLowerCase();
+      const rowsToRender = searchText
+        ? currentFilteredRows.filter(r => {
+          const rowText = [r._rowNum, ...Object.values(r._data)]
+            .map(value => String(value ?? '').toLowerCase())
+            .join(' ');
+          return rowText.includes(searchText);
+        })
+        : currentFilteredRows;
 
       // Build Table Header
       let headHtml = '<th># رقم الصف</th>';
@@ -781,13 +835,15 @@
 
       // Build Table Body
       let bodyHtml = '';
-      currentFilteredRows.slice(0, 500).forEach(r => {
+      rowsToRender.slice(0, 500).forEach(r => {
         let isErrRow = r._errCount > 0;
         bodyHtml += `<tr class="${isErrRow ? 'invalid-row' : ''}">`;
         bodyHtml += `<td><strong>${r._rowNum}</strong></td>`;
 
         displayCols.forEach(c => {
           let val = r._data[c] !== undefined ? r._data[c] : '';
+          const isMissingValue = val === null || val === undefined || String(val).trim() === '';
+          if (isMissingValue) val = 'بيانات مفقودة';
           
           // Format date display nicely if it's a JS Date object
           if (val instanceof Date) {
@@ -803,6 +859,10 @@
 
         bodyHtml += '</tr>';
       });
+
+      if (searchText && rowsToRender.length === 0) {
+        bodyHtml = `<tr><td colspan="${displayCols.length + 1}">لا توجد نتائج مطابقة للبحث</td></tr>`;
+      }
 
       document.getElementById('tableBody').innerHTML = bodyHtml;
     }
@@ -841,13 +901,7 @@
     }
 
     function filterTableText() {
-      let text = document.getElementById('searchInput').value.toLowerCase();
-      let trs = document.querySelectorAll('#tableBody tr');
-
-      trs.forEach(tr => {
-        let match = tr.innerText.toLowerCase().includes(text);
-        tr.style.display = match ? '' : 'none';
-      });
+      renderTable();
     }
   </script>
 

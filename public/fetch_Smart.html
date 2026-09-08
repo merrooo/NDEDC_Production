@@ -519,6 +519,48 @@
             text-decoration: underline;
         }
 
+        .export-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-menu-options {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            z-index: 1000;
+            min-width: 230px;
+            padding: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+        }
+
+        .export-menu:hover .export-menu-options,
+        .export-menu:focus-within .export-menu-options {
+            display: block;
+        }
+
+        .export-menu-options button {
+            display: block;
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 6px;
+            background: white;
+            color: var(--text-dark);
+            text-align: right;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .export-menu-options button:hover {
+            background: #f1f5f9;
+        }
+
+
         .btn-sm {
             padding: 5px 12px;
             font-size: 0.8rem;
@@ -757,12 +799,24 @@
                             <i class="fas fa-times-circle"></i>
                         </button>
                     </div>
-                    <button class="btn btn-custom-excel" onclick="exportFormattedCustomExcel()">
-                        <i class="fas fa-file-export"></i> MDM
-                    </button>
-                    <button class="btn btn-excel" onclick="exportSecondCustomExcel()">
-                        <i class="fas fa-file-excel"></i> HES
-                    </button>
+                    <div class="export-menu">
+                        <button class="btn btn-custom-excel" type="button">
+                            <i class="fas fa-file-export"></i> MDM <i class="fas fa-caret-down"></i>
+                        </button>
+                        <div class="export-menu-options">
+                            <button type="button" onclick="exportFormattedCustomExcel(false)">MDM: مع الخلايا الفارغة</button>
+                            <button type="button" onclick="exportFormattedCustomExcel(true)">MDM: بدون خلايا فارغة</button>
+                        </div>
+                    </div>
+                    <div class="export-menu">
+                        <button class="btn btn-excel" type="button">
+                            <i class="fas fa-file-excel"></i> HES <i class="fas fa-caret-down"></i>
+                        </button>
+                        <div class="export-menu-options">
+                            <button type="button" onclick="exportSecondCustomExcel(false)">HES: مع الخلايا الفارغة</button>
+                            <button type="button" onclick="exportSecondCustomExcel(true)">HES: بدون خلايا فارغة</button>
+                        </div>
+                    </div>
                     <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير
                         الجدول Excel</button>
                     <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط
@@ -1042,7 +1096,7 @@
             const simVal = String(rec.sims || rec.sim || rec.sim_number || rec.sim_no || '').trim();
 
             const meterTypeRaw = String(rec.meter_type || rec.meterType || rec.type || '').trim().toUpperCase();
-            const meterTypeVal = (meterTypeRaw === 'A3' || meterTypeRaw === 'A5') ? 'S' : 'D';
+            const meterTypeVal = meterTypeRaw ? ((meterTypeRaw === 'A3' || meterTypeRaw === 'A5') ? 'S' : 'D') : '';
 
             return {
                 "operator": "",
@@ -1064,40 +1118,62 @@
             };
         }
 
-        window.exportFormattedCustomExcel = function () {
+        function getCompleteExportRows(records) {
+            const sourceColumns = visibleColumns.length > 0 ? visibleColumns : allColumns;
+            return records.filter(record => sourceColumns.every(column => {
+                const value = getRecordValue(record, column);
+                return value !== '';
+            }));
+        }
+
+        window.exportFormattedCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
             if (!dataToExport || dataToExport.length === 0) {
                 alert("لا توجد بيانات لتصديرها.");
                 return;
             }
 
-            const formattedData = dataToExport.map(rec => transformRecordToExcelFormat(rec));
-            const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: exactExcelHeaders });
+            const sourceData = withoutEmptyCells ? getCompleteExportRows(dataToExport) : dataToExport;
+            if (withoutEmptyCells && sourceData.length === 0) {
+                alert("لا توجد سجلات مكتملة في المعاينة الحالية للتصدير.");
+                return;
+            }
+
+            const exportData = sourceData.map(rec => transformRecordToExcelFormat(rec));
+            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: exactExcelHeaders });
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
             
-            const count = dataToExport.length;
+            const count = exportData.length;
             const dateStr = getFormattedDateString();
             const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
-            XLSX.writeFile(workbook, `MDM${dateSuffix}-${count}-${dateStr}.xlsx`);
+            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
+            XLSX.writeFile(workbook, `MDM${modeSuffix}${dateSuffix}-${count}-${dateStr}.xlsx`);
         };
 
-        window.exportSecondCustomExcel = function () {
+        window.exportSecondCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
             if (!dataToExport || dataToExport.length === 0) {
                 alert("لا توجد بيانات لتصديرها.");
                 return;
             }
 
-            const formattedData = dataToExport.map(rec => transformRecordToSecondExcelFormat(rec));
-            const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: secondExcelHeaders });
+            const sourceData = withoutEmptyCells ? getCompleteExportRows(dataToExport) : dataToExport;
+            if (withoutEmptyCells && sourceData.length === 0) {
+                alert("لا توجد سجلات مكتملة في المعاينة الحالية للتصدير.");
+                return;
+            }
+
+            const exportData = sourceData.map(rec => transformRecordToSecondExcelFormat(rec));
+            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: secondExcelHeaders });
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
             
-            const count = dataToExport.length;
+            const count = exportData.length;
             const dateStr = getFormattedDateString();
             const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
-            XLSX.writeFile(workbook, `HES${dateSuffix}-${count}-${dateStr}.xlsx`);
+            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
+            XLSX.writeFile(workbook, `HES${modeSuffix}${dateSuffix}-${count}-${dateStr}.xlsx`);
         };
 
         // Helper function to get data based on current filter state
@@ -1116,7 +1192,7 @@
             let val = record[colKey];
             if (colKey === 'sector' && val && sectorNames[val]) val = sectorNames[val];
             if (colKey === 'district' && val && districtNames[val]) val = districtNames[val];
-            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : 'N/A';
+            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
         }
 
         function extractRecordType(record) {
@@ -1137,7 +1213,7 @@
         }
 
         function formatToDDMMYYYY(dateStr) {
-            if (!dateStr || dateStr === 'N/A') return 'N/A';
+            if (!dateStr) return '';
             if (!isNaN(dateStr) && dateStr.toString().length === 13) {
                 const date = new Date(Number(dateStr));
                 const day = String(date.getDate()).padStart(2, '0');
@@ -1157,7 +1233,7 @@
         }
 
         function parseToTimestamp(dateStr) {
-            if (!dateStr || dateStr === 'N/A') return null;
+            if (!dateStr) return null;
             if (!isNaN(dateStr) && dateStr.toString().length === 13) {
                 return Number(dateStr);
             }
@@ -1613,7 +1689,7 @@
                     const allKeys = Object.keys(record);
                     for (const key of allKeys) {
                         const val = getRecordValue(record, key);
-                        if (val !== 'N/A' && val.toLowerCase().includes(globalSearchTerm)) {
+                        if (val && val.toLowerCase().includes(globalSearchTerm)) {
                             found = true;
                             break;
                         }
@@ -1691,8 +1767,7 @@
                     if (val.length > 50) {
                         val = val.substring(0, 50) + '...';
                     }
-                    html +=
-                        `<td title="${getRecordValue(record, col)}">${val === 'N/A' ? '<span class="na">N/A</span>' : val}</td>`;
+                    html += `<td title="${getRecordValue(record, col)}">${val}</td>`;
                 });
 
                 html += `</tr>`;
@@ -1750,7 +1825,7 @@
                 const uniqueValues = new Set();
                 allRecordsList.forEach(rec => {
                     const val = getRecordValue(rec, colKey);
-                    if (val !== 'N/A') uniqueValues.add(val);
+                    if (val) uniqueValues.add(val);
                 });
 
                 const sortedValues = Array.from(uniqueValues).sort();
