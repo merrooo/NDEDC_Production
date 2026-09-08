@@ -326,6 +326,57 @@
       font-weight: bold;
       border-radius: 4px;
     }
+
+    .missing-engineering-panel {
+      margin-bottom: 18px;
+    }
+
+    .missing-engineering-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .missing-engineering-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .missing-engineering-groups {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .missing-engineering-group {
+      min-width: 0;
+    }
+
+    .missing-engineering-group label {
+      margin-bottom: 6px;
+    }
+
+    .missing-engineering-text {
+      width: 100%;
+      min-height: 110px;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fffbeb;
+      color: var(--text);
+      font-family: inherit;
+      resize: vertical;
+      direction: rtl;
+    }
+
+    @media (max-width: 700px) {
+      .missing-engineering-groups {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -362,6 +413,10 @@
           <input type="text" id="searchInput" class="search-box" placeholder="بحث سريع..." onkeyup="filterTableText()">
           <button class="export-btn" onclick="exportCurrentTableExcel()">تصدير جدول المعاينة (Excel)</button>
         </div>
+      </div>
+
+      <div class="missing-engineering-panel">
+        <div id="missingEngineeringGroups" class="missing-engineering-groups"></div>
       </div>
 
       <!-- Dynamic Column Exclude/Include Panel -->
@@ -549,7 +604,68 @@
       });
 
       renderStatsCards();
+      updateMissingEngineeringText();
       filterAndRenderTable('ALL');
+    }
+
+    function updateMissingEngineeringText() {
+      const missingRows = globalData.filter(r => r._errCount > 0);
+      const groups = new Map();
+
+      globalData.forEach(r => {
+        const sector = String(r._data['القطاع'] || '').trim() || 'قطاع غير محدد';
+        if (!groups.has(sector)) groups.set(sector, []);
+      });
+
+      missingRows.forEach(r => {
+        const sector = String(r._data['القطاع'] || '').trim() || 'قطاع غير محدد';
+        const serialNum = String(r._data['SerialNum'] || '').trim() || 'غير محدد';
+        const engineering = String(r._data['الهندسة'] || '').trim() || 'غير محددة';
+        const missingColumns = Object.keys(r._errors).join('، ');
+        const line = `SerialNum: ${serialNum} | الهندسة: ${engineering} | البيانات المفقودة: ${missingColumns}`;
+
+        if (!groups.has(sector)) groups.set(sector, []);
+        groups.get(sector).push(line);
+      });
+
+      const groupsContainer = document.getElementById('missingEngineeringGroups');
+      groupsContainer.innerHTML = '';
+
+      [...groups.entries()].forEach(([sector, lines], index) => {
+        const group = document.createElement('div');
+        group.className = 'missing-engineering-group';
+
+        const actions = document.createElement('div');
+        actions.className = 'missing-engineering-actions';
+
+        const copyButton = document.createElement('button');
+        copyButton.className = 'secondary-btn';
+        copyButton.innerText = 'نسخ القائمة';
+        copyButton.onclick = () => copyMissingEngineering(index);
+
+        const textArea = document.createElement('textarea');
+        textArea.id = `missingEngineeringText${index}`;
+        textArea.className = 'missing-engineering-text';
+        textArea.readOnly = true;
+        textArea.value = [`القطاع: ${sector}`, '', ...lines].join('\n');
+        textArea.placeholder = 'لا توجد بيانات مفقودة لهذا القطاع';
+
+        actions.appendChild(copyButton);
+        group.appendChild(actions);
+        group.appendChild(textArea);
+        groupsContainer.appendChild(group);
+      });
+
+      if (groups.size === 0) {
+        groupsContainer.innerText = 'لا توجد هندسة لديها بيانات مفقودة';
+      }
+    }
+
+    function copyMissingEngineering(index) {
+      const textArea = document.getElementById(`missingEngineeringText${index}`);
+      textArea.select();
+      textArea.setSelectionRange(0, textArea.value.length);
+      navigator.clipboard.writeText(textArea.value);
     }
 
     function renderStatsCards() {
@@ -571,16 +687,16 @@
         </div>
     `;
 
-      for (let col in RULES) {
-        let failCount = globalData.filter(r => r._errors[col]).length;
-        html += `
+          for (let col in RULES) {
+          let failCount = globalData.filter(r => r._errors[col]).length;
+          html += `
             <div class="stat-card ${activeFilter === col ? 'active' : ''}" onclick="filterAndRenderTable('${col}')">
-                <div class="stat-title">${col}</div>
-                <div class="stat-count ${failCount > 0 ? 'warning-text' : 'success-text'}">${failCount}</div>
-                <div class="stat-sub">مخالفة للشرط</div>
+              <div class="stat-title">${col}</div>
+              <div class="stat-count ${failCount > 0 ? 'warning-text' : 'success-text'}">${failCount}</div>
+              <div class="stat-sub">مخالفة للشرط</div>
             </div>
-        `;
-      }
+          `;
+          }
 
       statsContainer.innerHTML = html;
     }
