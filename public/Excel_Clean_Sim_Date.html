@@ -4,15 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Data Toolkit · SIM & Date Cleaner</title>
-    <!-- SheetJS (xlsx.full.min.js) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Font Awesome icons -->
+    <title>Excel Data Toolkit · Sequence & Cleaner</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
@@ -26,59 +26,68 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --success: #10b981;
+            --shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
         }
 
         body {
             font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: var(--bg);
+            background: var(--bg);
             color: var(--text-main);
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
+            min-height: 100vh;
         }
 
-        .card {
-            background: var(--card);
-            max-width: 1300px;
+        .app-container {
+            max-width: 1400px;
             width: 100%;
+            background: var(--card);
             border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow);
             border: 1px solid var(--border);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        .header {
-            padding: 24px;
+        /* ----- HEADER ----- */
+        .app-header {
+            padding: 20px 28px;
             background: #fff;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
         }
 
-        .header-title h1 {
-            margin: 0;
-            font-size: 1.6rem;
+        .app-header h1 {
+            font-size: 1.5rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .header-title p {
-            margin: 6px 0 0;
+        .app-header h1 i {
+            color: var(--primary);
+        }
+
+        .app-header .sub {
+            font-size: 0.85rem;
             color: var(--text-muted);
-            font-size: 0.95rem;
+            font-weight: 400;
+            margin-left: 6px;
         }
 
         .home-btn {
             background: #f1f5f9;
             color: var(--text-main);
             border: 1px solid var(--border);
-            padding: 10px 16px;
+            padding: 9px 18px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
@@ -87,6 +96,7 @@
             gap: 8px;
             transition: all 0.2s;
             text-decoration: none;
+            font-size: 0.9rem;
         }
 
         .home-btn:hover {
@@ -94,50 +104,16 @@
             color: var(--primary);
         }
 
-        /* Tool Tabs */
-        .tab-bar {
-            display: flex;
-            background: #f1f5f9;
-            border-bottom: 1px solid var(--border);
-            padding: 0 24px;
-        }
-
-        .tab-btn {
-            padding: 14px 20px;
-            border: none;
-            background: none;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: auto;
-        }
-
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background: #ffffff;
-        }
-
-        .content {
-            padding: 24px;
-        }
-
-        /* Upload area */
+        /* ----- UPLOAD AREA ----- */
         .upload-area {
             border: 2px dashed var(--border);
             border-radius: 12px;
-            padding: 40px 20px;
+            padding: 28px 20px;
             text-align: center;
             transition: all 0.2s ease;
             background: #fafcfa;
             cursor: pointer;
-            margin-bottom: 20px;
+            margin: 20px 24px 12px 24px;
         }
 
         .upload-area:hover {
@@ -146,9 +122,9 @@
         }
 
         .upload-area i {
-            font-size: 42px;
+            font-size: 34px;
             color: var(--primary);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .upload-label {
@@ -156,7 +132,7 @@
             color: var(--primary);
             display: inline-block;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         #fileInput {
@@ -164,131 +140,267 @@
         }
 
         .file-preview {
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            margin-top: 15px;
-            font-size: 0.9rem;
+            margin-top: 12px;
+            font-size: 0.85rem;
             flex-wrap: wrap;
+        }
+
+        .file-preview.visible {
+            display: flex;
         }
 
         .badge {
             background: #e2e8f0;
-            padding: 4px 12px;
+            padding: 3px 14px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
         }
 
-        /* Controls */
-        .control-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+        /* ----- TAB BAR ----- */
+        .tab-bar {
+            display: flex;
             background: #f1f5f9;
-            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            padding: 13px 22px;
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #e8ecf0;
+        }
+
+        /* ----- CONTENT ----- */
+        .tab-content {
+            padding: 20px 24px 0 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0.5;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ----- CONTROLS PANEL ----- */
+        .controls-panel {
+            background: #f8fafc;
             border-radius: 12px;
-            margin-bottom: 20px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px 18px;
             align-items: end;
+        }
+
+        .controls-panel .full-width {
+            grid-column: 1 / -1;
         }
 
         .control-group label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
-        select,
-        button {
+        .control-group select,
+        .control-group input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border-radius: 8px;
             border: 1px solid var(--border);
             font-size: 0.9rem;
             background: white;
+            transition: border 0.2s;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 124, 65, 0.1);
         }
 
         .btn-group {
             display: flex;
             gap: 10px;
-            grid-column: 1 / -1;
-            margin-top: 6px;
             flex-wrap: wrap;
+            grid-column: 1 / -1;
+            margin-top: 4px;
         }
 
-        .convert-btn {
+        .btn {
+            padding: 10px 22px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
             background: var(--accent);
             color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
         }
-
-        .convert-btn:hover {
+        .btn-primary:hover {
             background: #4338ca;
         }
 
-        .export-btn {
+        .btn-success {
             background: var(--primary);
             color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
         }
-
-        .export-btn:hover {
+        .btn-success:hover {
             background: var(--primary-hover);
         }
 
-        .reset-btn {
+        .btn-danger {
             background: white;
             color: #ef4444;
             border: 1px solid #ef4444;
-            cursor: pointer;
-            font-weight: 600;
         }
-
-        .reset-btn:hover {
+        .btn-danger:hover {
             background: #fee2e2;
         }
 
-        /* Table */
+        .btn-outline {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        /* ----- MODE HINT (date cleaner sub-mode) ----- */
+        .mode-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 6px 0 2px 0;
+        }
+
+        .mode-hint strong {
+            color: var(--text-main);
+        }
+
+        /* ----- CONVERTED TAGS ----- */
+        .converted-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .tag {
+            background: #dcfce7;
+            color: #166534;
+            padding: 3px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* ----- TABLE ----- */
         .table-wrapper {
-            overflow-x: auto;
-            max-height: 450px;
+            overflow: auto;
+            max-height: 420px;
             border: 1px solid var(--border);
             border-radius: 12px;
+            margin-top: 6px;
+            background: white;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
 
         th {
             position: sticky;
             top: 0;
             background: #f8fafc;
-            padding: 12px 10px;
+            padding: 10px 10px;
             text-align: left;
             border-bottom: 2px solid var(--border);
             z-index: 2;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         td {
-            padding: 10px 10px;
+            padding: 8px 10px;
             border-bottom: 1px solid var(--border);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        tr:hover {
-            background-color: #f8fafc;
+        tr:hover td {
+            background-color: #fafbfc;
         }
 
         .converted-col {
@@ -297,401 +409,306 @@
             color: #0b5e2e;
         }
 
-        .converted-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .tag {
-            background: #dcfce7;
-            color: #166534;
-            padding: 4px 14px;
-            border-radius: 20px;
+        .preview-info {
             font-size: 0.75rem;
-            font-weight: 500;
+            color: var(--text-muted);
+            padding: 8px 0 4px 0;
         }
 
-        .status-msg {
-            margin: 15px 0;
-            padding: 12px 16px;
+        /* ----- STATUS / LOG ----- */
+        .status-bar {
+            margin: 8px 0 14px 0;
+            padding: 10px 16px;
             border-radius: 8px;
             font-size: 0.9rem;
             background: #e0f2fe;
             color: #0369a1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
         }
 
-        .error-msg {
+        .status-bar.error {
             background: #fee2e2;
             color: #b91c1c;
         }
 
-        .primary-icon {
-            color: var(--primary);
+        .status-bar.success {
+            background: #dcfce7;
+            color: #166534;
         }
 
-        .is-hidden {
-            display: none;
+        .status-bar .fa-spinner {
+            animation: spin 0.9s linear infinite;
         }
 
-        .converted-columns-list {
-            margin-bottom: 16px;
-        }
-
-        .preview-info {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 10px;
-        }
-
-        @media (max-width: 700px) {
-            .control-bar {
-                grid-template-columns: 1fr;
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
+        }
 
+        /* ----- RESPONSIVE ----- */
+        @media (max-width: 760px) {
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 16px 18px;
+            }
+            .app-header h1 {
+                font-size: 1.2rem;
+            }
+            .tab-bar {
+                padding: 0 12px;
+                overflow-x: auto;
+            }
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+            .controls-panel {
+                grid-template-columns: 1fr 1fr;
+                padding: 14px;
+                gap: 10px;
+            }
             .btn-group {
                 flex-direction: column;
             }
+            .btn {
+                justify-content: center;
+            }
+            .upload-area {
+                margin: 12px 12px 8px 12px;
+                padding: 20px 12px;
+            }
+            .tab-content {
+                padding: 12px 12px 0 12px;
+            }
+        }
 
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
+        @media (max-width: 480px) {
+            .controls-panel {
+                grid-template-columns: 1fr;
+            }
+            .app-header h1 .sub {
+                display: block;
+                margin-left: 0;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <div class="header">
-            <div class="header-title">
-                <h1><i class="fas fa-file-excel primary-icon"></i> Excel Data Cleaning Toolkit</h1>
-                <p>Clean SIM numbers (fix 8.92E+18 scientific notation) or format/swap date columns in bulk.</p>
-            </div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <h1>
+                <i class="fas fa-file-excel"></i> Excel Data Toolkit
+                <span class="sub">Sequence · SIM Clean · Date Convert</span>
+            </h1>
             <a href="Control_Excel.html" class="home-btn" id="homeBtn">
                 <i class="fas fa-home"></i> Home
             </a>
+        </header>
+
+        <!-- UPLOAD -->
+        <div class="upload-area" id="uploadArea">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <div class="upload-label">📂 Click or Drag Excel File Here (.xlsx, .xls, .csv)</div>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .xlsm, .csv">
+            <div class="file-preview" id="filePreview">
+                <b id="fileNameSpan"></b>
+                <span class="badge" id="rowCountBadge"></span>
+                <span class="badge" id="sizeBadge"></span>
+            </div>
         </div>
 
+        <!-- TAB BAR -->
         <div class="tab-bar">
-            <button class="tab-btn active" id="simTabBtn" onclick="switchMode('sim')">
-                <i class="fas fa-sim-card"></i> SIM Number Cleaner
-            </button>
-            <button class="tab-btn" id="dateTabBtn" onclick="switchMode('date')">
-                <i class="fas fa-calendar-alt"></i> Date Converter & Swapper
-            </button>
+            <button class="tab-btn active" data-tab="seq"><i class="fas fa-sort-numeric-up"></i> Sequence Generator</button>
+            <button class="tab-btn" data-tab="clean"><i class="fas fa-broom"></i> Data Cleaner</button>
         </div>
 
-        <div class="content">
-            <!-- File Upload -->
-            <div class="upload-area" id="uploadArea">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <div class="upload-label">📂 Click or Drag Excel File Here (.xlsx, .xls, .csv)</div>
-                <input type="file" id="fileInput" accept=".xlsx, .xls, .xlsm, .csv">
-                <div id="filePreview" class="file-preview is-hidden">
-                    <b id="fileNameSpan"></b>
-                    <span class="badge" id="rowCountBadge"></span>
-                    <span class="badge" id="sizeBadge"></span>
+        <!-- TAB CONTENT -->
+        <div class="tab-content">
+
+            <!-- ============ SEQUENCE GENERATOR TAB ============ -->
+            <div class="tab-pane active" id="pane-seq">
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <label><i class="fas fa-columns"></i> Target Column</label>
+                        <select id="seqColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-play"></i> Start Value</label>
+                        <input type="text" id="seqStart" placeholder="e.g. 8920040112411098548">
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-sort-amount-up"></i> Count / Step</label>
+                        <input type="number" id="seqCount" placeholder="100" min="1" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-arrows-alt-h"></i> Mode</label>
+                        <select id="seqMode">
+                            <option value="append">Append New Rows (bottom)</option>
+                            <option value="replace">Overwrite Existing (top-down)</option>
+                        </select>
+                    </div>
+                    <div class="btn-group">
+                        <button id="seqRunBtn" class="btn btn-primary" disabled><i class="fas fa-play"></i> Run Sequence</button>
+                        <button id="seqResetBtn" class="btn btn-outline"><i class="fas fa-undo-alt"></i> Reset Data</button>
+                    </div>
                 </div>
+                <div class="mode-hint"><strong>↯</strong> Replace mode updates existing rows; Append adds new rows at the bottom with sequence values.</div>
             </div>
 
-            <!-- Controls Panel -->
-            <div id="controlsPanel" class="is-hidden">
-                <div class="control-bar">
+            <!-- ============ DATA CLEANER TAB ============ -->
+            <div class="tab-pane" id="pane-clean">
+                <div class="controls-panel">
                     <div class="control-group">
-                        <label><i class="fas fa-columns"></i> Select Target Column</label>
-                        <select id="columnSelect"></select>
+                        <label><i class="fas fa-columns"></i> Target Column</label>
+                        <select id="cleanColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
                     </div>
-
-                    <!-- Date Format Control (Shown only in Date mode) -->
-                    <div class="control-group is-hidden" id="dateFormatGroup">
-                        <label><i class="fas fa-calendar"></i> Operation / Output Format</label>
+                    <div class="control-group">
+                        <label><i class="fas fa-tools"></i> Operation</label>
+                        <select id="cleanOperation">
+                            <option value="sim">📱 Clean SIM (fix 8.92E+18)</option>
+                            <option value="date_swap">🔄 Swap Day ↔ Month (DD/MM ⇄ MM/DD)</option>
+                            <option value="date_format">📅 Format Date</option>
+                        </select>
+                    </div>
+                    <div class="control-group" id="dateFormatGroup" style="display:none;">
+                        <label><i class="fas fa-calendar"></i> Output Format</label>
                         <select id="dateFormatSelect">
-                            <option value="SWAP_DAY_MONTH">🔄 Swap Day & Month (DD/MM ↔ MM/DD)</option>
                             <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
                             <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
                             <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
                             <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
                         </select>
                     </div>
-
                     <div class="btn-group">
-                        <button id="convertBtn" class="convert-btn"><i class="fas fa-check"></i> Apply Cleaning</button>
-                        <button id="exportBtn" class="export-btn"><i class="fas fa-file-download"></i> Export Excel</button>
-                        <button id="resetBtn" class="reset-btn"><i class="fas fa-undo-alt"></i> Reset All</button>
+                        <button id="cleanApplyBtn" class="btn btn-success" disabled><i class="fas fa-check"></i> Apply Cleaning</button>
+                        <button id="cleanResetBtn" class="btn btn-outline"><i class="fas fa-undo-alt"></i> Reset Data</button>
                     </div>
                 </div>
-
-                <div id="convertedColumnsList" class="is-hidden converted-columns-list">
-                    <small><b>Modified columns:</b></small>
-                    <div id="convertedTags" class="converted-tags"></div>
-                </div>
+                <div class="mode-hint" id="cleanHint"><strong>📱</strong> SIM Cleaner: expands scientific notation (e.g. 8.92E+18 → 8920040112411098548) and removes non‑digits.</div>
             </div>
 
-            <div id="infoMessage" class="status-msg"><i class="fas fa-info-circle"></i> Waiting for file upload...</div>
+            <!-- STATUS BAR -->
+            <div class="status-bar" id="statusBar">
+                <i class="fas fa-info-circle"></i>
+                <span id="statusText">Upload a file to begin.</span>
+            </div>
 
-            <!-- Table Preview -->
-            <div id="tableContainer" class="is-hidden">
+            <!-- CONVERTED TAGS (for cleaner) -->
+            <div id="convertedColumnsList" style="display:none; margin-bottom:10px;">
+                <small><b>Modified columns:</b></small>
+                <div id="convertedTags" class="converted-tags"></div>
+            </div>
+
+            <!-- TABLE PREVIEW -->
+            <div id="tableContainer" style="display:none;">
                 <div class="table-wrapper">
                     <table id="dataTable">
                         <thead id="tableHead"></thead>
                         <tbody id="tableBody"></tbody>
                     </table>
                 </div>
-                <div id="previewInfo" class="preview-info"></div>
+                <div class="preview-info" id="previewInfo"></div>
             </div>
-        </div>
-    </div>
+
+            <!-- spacer -->
+            <div style="height:12px;"></div>
+
+        </div><!-- /tab-content -->
+    </div><!-- /app-container -->
 
     <script>
-        let currentMode = 'sim'; // 'sim' or 'date'
+        // ============================================================
+        //  GLOBAL STATE
+        // ============================================================
         let headers = [];
-        let masterData = [];          
-        let originalDataBackup = [];  
-        let convertedColumns = new Map(); // colIndex -> type string
+        let masterData = []; // 2D array
+        let originalDataBackup = []; // for reset
+
+        // Track which columns have been modified by the cleaner
+        let convertedColumns = new Map(); // colIndex -> label
+
         let originalFileName = "data";
 
-        // DOM Elements
-        const fileInput = document.getElementById('fileInput');
-        const columnSelect = document.getElementById('columnSelect');
-        const infoMsg = document.getElementById('infoMessage');
-        const tableHead = document.getElementById('tableHead');
-        const tableBody = document.getElementById('tableBody');
-        const controlsPanel = document.getElementById('controlsPanel');
-        const tableContainer = document.getElementById('tableContainer');
-        const uploadArea = document.getElementById('uploadArea');
-        const convertBtn = document.getElementById('convertBtn');
-        const exportBtn = document.getElementById('exportBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const dateFormatGroup = document.getElementById('dateFormatGroup');
-        const dateFormatSelect = document.getElementById('dateFormatSelect');
-        const filePreview = document.getElementById('filePreview');
-        const fileNameSpan = document.getElementById('fileNameSpan');
-        const rowCountBadge = document.getElementById('rowCountBadge');
-        const sizeBadge = document.getElementById('sizeBadge');
-        const convertedTags = document.getElementById('convertedTags');
-        const convertedColumnsList = document.getElementById('convertedColumnsList');
+        // DOM refs
+        const $ = id => document.getElementById(id);
+        const fileInput = $('fileInput');
+        const uploadArea = $('uploadArea');
+        const filePreview = $('filePreview');
+        const fileNameSpan = $('fileNameSpan');
+        const rowCountBadge = $('rowCountBadge');
+        const sizeBadge = $('sizeBadge');
+        const statusBar = $('statusBar');
+        const statusText = $('statusText');
+        const tableHead = $('tableHead');
+        const tableBody = $('tableBody');
+        const tableContainer = $('tableContainer');
+        const previewInfo = $('previewInfo');
+        const convertedTags = $('convertedTags');
+        const convertedColumnsList = $('convertedColumnsList');
 
-        function switchMode(mode) {
-            currentMode = mode;
-            document.getElementById('simTabBtn').classList.toggle('active', mode === 'sim');
-            document.getElementById('dateTabBtn').classList.toggle('active', mode === 'date');
-            dateFormatGroup.style.display = mode === 'date' ? 'block' : 'none';
-        }
+        // Sequence elements
+        const seqColumnSelect = $('seqColumnSelect');
+        const seqStart = $('seqStart');
+        const seqCount = $('seqCount');
+        const seqMode = $('seqMode');
+        const seqRunBtn = $('seqRunBtn');
+        const seqResetBtn = $('seqResetBtn');
 
-        // --- SIM Processing Logic ---
-        function cleanSIMNumber(val) {
-            if (val === null || val === undefined) return "";
-            let str = String(val).trim();
-            
-            // Expand Scientific Notation (e.g., 8.92002E+18)
-            if (/e/i.test(str)) {
-                let [mantissa, exponent] = str.toLowerCase().split('e');
-                let exp = parseInt(exponent, 10);
-                let [integer, decimal = ''] = mantissa.replace(/[^0-9.]/g, '').split('.');
-                let combined = integer + decimal;
-                let trailingZeros = exp - decimal.length;
-                
-                if (trailingZeros > 0) {
-                    combined += '0'.repeat(trailingZeros);
-                } else if (trailingZeros < 0) {
-                    combined = combined.slice(0, trailingZeros);
-                }
-                str = combined;
-            }
-            return str.replace(/[^0-9]/g, '');
-        }
+        // Cleaner elements
+        const cleanColumnSelect = $('cleanColumnSelect');
+        const cleanOperation = $('cleanOperation');
+        const dateFormatGroup = $('dateFormatGroup');
+        const dateFormatSelect = $('dateFormatSelect');
+        const cleanApplyBtn = $('cleanApplyBtn');
+        const cleanResetBtn = $('cleanResetBtn');
+        const cleanHint = $('cleanHint');
 
-        // --- Date Processing Logic ---
-        function excelSerialToDate(serial) {
-            let num = Number(serial);
-            if (isNaN(num) || num < 1) return null;
-            return new Date((num - 25569) * 86400000);
-        }
+        // Tabs
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const panes = {
+            seq: $('pane-seq'),
+            clean: $('pane-clean')
+        };
+        let activeTab = 'seq';
 
-        function formatDate(date, format) {
-            if (!date || isNaN(date.getTime())) return null;
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
-            if (format === "MM/DD/YYYY") return `${m}/${d}/${y}`;
-            if (format === "YYYY/MM/DD") return `${y}/${m}/${d}`;
-            if (format === "DD-MM-YYYY") return `${d}-${m}-${y}`;
-            return `${d}/${m}/${y}`;
-        }
-
-        function swapDayMonth(val) {
-            if (val === null || val === undefined || val === '') return '';
-
-            // Handle Excel serial numbers
-            const num = Number(val);
-            if (!isNaN(num) && num > 1000 && num < 100000) {
-                const d = excelSerialToDate(num);
-                if (d) {
-                    const swapped = new Date(d.getFullYear(), d.getDate() - 1, d.getMonth() + 1);
-                    return formatDate(swapped, "DD/MM/YYYY");
-                }
-            }
-
-            const s = String(val).trim();
-            if (s === '') return '';
-
-            // Match YYYY-MM-DD or YYYY/MM/DD -> swap MM and DD
-            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-            if (m) {
-                const yr = parseInt(m[1]);
-                const swappedMonth = parseInt(m[3]);
-                const swappedDay = parseInt(m[2]);
-                const d = new Date(yr, swappedMonth - 1, swappedDay);
-                if (!isNaN(d.getTime())) return formatDate(d, "DD/MM/YYYY");
-            }
-
-            // Match DD-MM-YYYY or MM-DD-YYYY -> swap DD and MM
-            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
-            if (m) {
-                let yr = parseInt(m[3]);
-                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
-                const swappedMonth = parseInt(m[1]);
-                const swappedDay = parseInt(m[2]);
-                const d = new Date(yr, swappedMonth - 1, swappedDay);
-                if (!isNaN(d.getTime())) return formatDate(d, "DD/MM/YYYY");
-            }
-
-            // Fallback for standard date parsing
-            if (isNaN(Number(s))) {
-                const parsed = new Date(s);
-                if (!isNaN(parsed.getTime())) {
-                    const swapped = new Date(parsed.getFullYear(), parsed.getDate() - 1, parsed.getMonth() + 1);
-                    return formatDate(swapped, "DD/MM/YYYY");
-                }
-            }
-
-            return s;
-        }
-
-        function parseDateValue(val, format) {
-            if (val === null || val === undefined || val === '') return '';
-
-            if (format === 'SWAP_DAY_MONTH') {
-                return swapDayMonth(val);
-            }
-
-            // Handle Excel serial numbers (passed as numbers or numeric strings)
-            const num = Number(val);
-            if (!isNaN(num) && num > 1000 && num < 100000) {
-                const d = excelSerialToDate(num);
-                if (d) return formatDate(d, format);
-            }
-
-            const s = String(val).trim();
-            if (s === '') return '';
-
-            // Match YYYY-MM-DD or YYYY/MM/DD
-            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-            if (m) {
-                const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
-                if (!isNaN(d.getTime())) return formatDate(d, format);
-            }
-
-            // Match DD-MM-YYYY or MM-DD-YYYY
-            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
-            if (m) {
-                let yr = parseInt(m[3]);
-                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
-                const d = new Date(yr, parseInt(m[2]) - 1, parseInt(m[1]));
-                if (!isNaN(d.getTime())) return formatDate(d, format);
-            }
-
-            // Standard date string fallback (skips numeric strings)
-            if (isNaN(Number(s))) {
-                const parsed = new Date(s);
-                if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
-            }
-
-            return s;
-        }
-
-        // --- UI Rendering ---
-        function updateUI() {
-            columnSelect.innerHTML = headers.map((h, i) =>
-                `<option value="${i}">${h} ${convertedColumns.has(i) ? '✓' : ''}</option>`
-            ).join('');
-
-            convertedTags.innerHTML = '';
-            convertedColumns.forEach((fmt, idx) => {
-                const span = document.createElement('span');
-                span.className = 'tag';
-                span.textContent = `${headers[idx]} (${fmt})`;
-                convertedTags.appendChild(span);
+        // ============================================================
+        //  TAB SWITCHING
+        // ============================================================
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.keys(panes).forEach(key => {
+                    panes[key].classList.toggle('active', key === tab);
+                });
+                activeTab = tab;
+                // update cleaner hint
+                updateCleanerHint();
+                // re-render table to show converted styles if any
+                if (headers.length) renderTable();
             });
-            convertedColumnsList.style.display = convertedColumns.size ? 'block' : 'none';
-            renderTable();
-        }
+        });
 
-        function renderTable() {
-            const preview = masterData.slice(0, 15);
-            tableHead.innerHTML = `<tr>${headers.map((h, i) =>
-                `<th class="${convertedColumns.has(i) ? 'converted-col' : ''}">${h}</th>`).join('')}</tr>`;
-
-            tableBody.innerHTML = preview.map(row =>
-                `<tr>${row.map((cell, i) =>
-                    `<td class="${convertedColumns.has(i) ? 'converted-col' : ''}">${cell}</td>`
-                ).join('')}</tr>`
-            ).join('');
-
-            tableContainer.style.display = "block";
-            document.getElementById('previewInfo').textContent = `Showing first ${preview.length} of ${masterData.length} rows.`;
-        }
-
-        // --- File Reader ---
-        function handleFile(file) {
-            if (!file) return;
-            originalFileName = file.name.split('.')[0] || 'cleaned_data';
-            fileNameSpan.textContent = file.name;
-            sizeBadge.textContent = (file.size / 1024).toFixed(1) + " KB";
-            filePreview.style.display = "flex";
-
-            const reader = new FileReader();
-            reader.onload = function (evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    // Pass raw: true so Excel serial numbers stay numeric
-                    const workbook = XLSX.read(data, { 
-                        type: 'array',
-                        cellText: false,
-                        cellDates: false,
-                        raw: true 
-                    });
-                    
-                    const ws = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
-
-                    if (rows.length === 0) {
-                        infoMsg.textContent = "⚠️ File is empty.";
-                        infoMsg.classList.add('error-msg');
-                        return;
-                    }
-                    headers = rows[0] || [];
-                    masterData = rows.slice(1).map(r => [...r]);
-                    originalDataBackup = masterData.map(r => [...r]);
-                    convertedColumns.clear();
-
-                    rowCountBadge.textContent = masterData.length + " rows";
-                    controlsPanel.style.display = "block";
-                    updateUI();
-                    infoMsg.textContent = "✅ File loaded. Select a column and target tool, then click 'Apply Cleaning'.";
-                    infoMsg.classList.remove('error-msg');
-                } catch (err) {
-                    infoMsg.textContent = "❌ Error reading file: " + err.message;
-                    infoMsg.classList.add('error-msg');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // --- Controls Event Handlers ---
+        // ============================================================
+        //  UPLOAD / FILE HANDLING
+        // ============================================================
         uploadArea.onclick = () => fileInput.click();
+
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
@@ -706,77 +723,461 @@
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = 'var(--border)';
-            if (e.target.files.length) handleFile(e.target.files[0]);
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
         });
 
-        convertBtn.onclick = function () {
-            if (!masterData.length || !headers.length) return;
-            const idx = parseInt(columnSelect.value);
-            if (isNaN(idx) || idx < 0 || idx >= headers.length) return;
+        function handleFile(file) {
+            if (!file) return;
+            originalFileName = file.name.split('.')[0] || 'cleaned_data';
+            fileNameSpan.textContent = file.name;
+            sizeBadge.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            filePreview.classList.add('visible');
 
-            let modCount = 0;
-            if (currentMode === 'sim') {
-                masterData.forEach(row => {
-                    const original = row[idx];
-                    const cleaned = cleanSIMNumber(original);
-                    if (original !== cleaned) {
-                        row[idx] = cleaned;
-                        modCount++;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {
+                        type: 'array',
+                        cellText: false,
+                        cellDates: false,
+                        raw: true
+                    });
+                    const ws = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+                    if (rows.length === 0) {
+                        setStatus('⚠️ File is empty.', 'error');
+                        return;
                     }
-                });
-                convertedColumns.set(idx, 'SIM Cleaned');
-                infoMsg.textContent = `✅ Processed column "${headers[idx]}" as SIM numbers (${modCount} cells modified).`;
+                    headers = rows[0] || [];
+                    masterData = rows.slice(1).map(r => [...r]);
+                    originalDataBackup = masterData.map(r => [...r]);
+                    convertedColumns.clear();
+
+                    rowCountBadge.textContent = masterData.length + ' rows';
+                    setStatus('✅ File loaded. Use the tabs above to process your data.', 'success');
+
+                    // Enable controls
+                    enableControls(true);
+                    updateColumnSelects();
+                    renderTable();
+                    tableContainer.style.display = 'block';
+                    convertedColumnsList.style.display = 'none';
+                    updateCleanerHint();
+
+                } catch (err) {
+                    setStatus('❌ Error reading file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ============================================================
+        //  UI HELPERS
+        // ============================================================
+        function setStatus(msg, type = 'info') {
+            statusText.textContent = msg;
+            statusBar.className = 'status-bar';
+            if (type === 'error') statusBar.classList.add('error');
+            else if (type === 'success') statusBar.classList.add('success');
+            // reset icon
+            const icon = statusBar.querySelector('i');
+            icon.className = type === 'error' ? 'fas fa-exclamation-circle' :
+                type === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle';
+        }
+
+        function enableControls(enabled) {
+            const s = !enabled;
+            seqColumnSelect.disabled = s;
+            seqRunBtn.disabled = s;
+            cleanColumnSelect.disabled = s;
+            cleanApplyBtn.disabled = s;
+            // if no data, also disable reset buttons effectively
+        }
+
+        function updateColumnSelects() {
+            const opts = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            seqColumnSelect.innerHTML = opts;
+            cleanColumnSelect.innerHTML = opts;
+            if (headers.length) {
+                seqColumnSelect.disabled = false;
+                cleanColumnSelect.disabled = false;
+                seqRunBtn.disabled = false;
+                cleanApplyBtn.disabled = false;
+            }
+        }
+
+        function renderTable() {
+            if (!headers.length || !masterData.length) {
+                tableContainer.style.display = 'none';
+                return;
+            }
+            const preview = masterData.slice(0, 20);
+            const isCleanTab = activeTab === 'clean';
+
+            tableHead.innerHTML = `<tr>${headers.map((h, i) =>
+                `<th class="${isCleanTab && convertedColumns.has(i) ? 'converted-col' : ''}">${h}</th>`
+            ).join('')}</tr>`;
+
+            tableBody.innerHTML = preview.map(row =>
+                `<tr>${row.map((cell, i) =>
+                    `<td class="${isCleanTab && convertedColumns.has(i) ? 'converted-col' : ''}">${cell !== undefined && cell !== null ? cell : ''}</td>`
+                ).join('')}</tr>`
+            ).join('');
+
+            tableContainer.style.display = 'block';
+            previewInfo.textContent = `Showing first ${preview.length} of ${masterData.length} rows.`;
+        }
+
+        function updateCleanerHint() {
+            const op = cleanOperation.value;
+            const hints = {
+                'sim': '<strong>📱</strong> SIM Cleaner: expands scientific notation (e.g. 8.92E+18 → 8920040112411098548) and removes non‑digits.',
+                'date_swap': '<strong>🔄</strong> Swap Day ↔ Month: turns DD/MM/YYYY into MM/DD/YYYY and vice‑versa. Handles Excel serial numbers too.',
+                'date_format': '<strong>📅</strong> Date Formatter: converts dates from various formats to your chosen output format.'
+            };
+            cleanHint.innerHTML = hints[op] || hints.sim;
+            dateFormatGroup.style.display = op === 'date_format' ? 'block' : 'none';
+        }
+
+        function updateConvertedTags() {
+            convertedTags.innerHTML = '';
+            convertedColumns.forEach((label, idx) => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = `${headers[idx] || 'col'+idx} (${label})`;
+                convertedTags.appendChild(span);
+            });
+            convertedColumnsList.style.display = convertedColumns.size ? 'block' : 'none';
+        }
+
+        // ============================================================
+        //  SEQUENCE GENERATOR LOGIC
+        // ============================================================
+        seqRunBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+            const colIdx = parseInt(seqColumnSelect.value);
+            if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                setStatus('⚠️ Please select a valid target column.', 'error');
+                return;
+            }
+            const startRaw = seqStart.value.trim();
+            if (!startRaw) {
+                setStatus('⚠️ Please enter a starting number.', 'error');
+                return;
+            }
+            const count = parseInt(seqCount.value) || 0;
+            if (count <= 0 && seqMode.value === 'append') {
+                setStatus('⚠️ Please enter a valid count for Append mode.', 'error');
+                return;
+            }
+
+            let currentVal;
+            try {
+                // detect bigint vs float
+                if (startRaw.includes('.') || startRaw.toLowerCase().includes('e')) {
+                    currentVal = parseFloat(startRaw);
+                    if (isNaN(currentVal)) throw new Error('invalid');
+                } else {
+                    currentVal = BigInt(startRaw);
+                }
+            } catch (_) {
+                setStatus('⚠️ Invalid number format. Use digits only (or decimal for floats).', 'error');
+                return;
+            }
+
+            const mode = seqMode.value;
+            let modified = 0;
+
+            if (mode === 'replace') {
+                const limit = count > 0 ? Math.min(count, masterData.length) : masterData.length;
+                for (let i = 0; i < limit; i++) {
+                    masterData[i][colIdx] = String(currentVal);
+                    currentVal = typeof currentVal === 'bigint' ? currentVal + 1n : currentVal + 1;
+                    modified++;
+                }
+                setStatus(`✅ Replaced ${modified} rows in column "${headers[colIdx]}".`, 'success');
             } else {
+                // append
+                for (let i = 0; i < count; i++) {
+                    const newRow = new Array(headers.length).fill('');
+                    newRow[colIdx] = String(currentVal);
+                    masterData.push(newRow);
+                    currentVal = typeof currentVal === 'bigint' ? currentVal + 1n : currentVal + 1;
+                    modified++;
+                }
+                setStatus(`✅ Appended ${modified} new rows with sequence values.`, 'success');
+            }
+
+            // Update backup? We keep original backup separate; user can reset via reset button
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            // re-enable selects if needed
+        });
+
+        seqResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
+            }
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            convertedColumns.clear();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
+
+        // ============================================================
+        //  DATA CLEANER LOGIC
+        // ============================================================
+        // --- SIM cleaning ---
+        function cleanSIMNumber(val) {
+            if (val === null || val === undefined) return '';
+            let str = String(val).trim();
+            if (/e/i.test(str)) {
+                let [mantissa, exponent] = str.toLowerCase().split('e');
+                let exp = parseInt(exponent, 10);
+                let [integer, decimal = ''] = mantissa.replace(/[^0-9.]/g, '').split('.');
+                let combined = integer + decimal;
+                let trailingZeros = exp - decimal.length;
+                if (trailingZeros > 0) combined += '0'.repeat(trailingZeros);
+                else if (trailingZeros < 0) combined = combined.slice(0, trailingZeros);
+                str = combined;
+            }
+            return str.replace(/[^0-9]/g, '');
+        }
+
+        // --- Date helpers ---
+        function excelSerialToDate(serial) {
+            let num = Number(serial);
+            if (isNaN(num) || num < 1) return null;
+            return new Date((num - 25569) * 86400000);
+        }
+
+        function formatDate(date, format) {
+            if (!date || isNaN(date.getTime())) return null;
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            if (format === 'MM/DD/YYYY') return `${m}/${d}/${y}`;
+            if (format === 'YYYY/MM/DD') return `${y}/${m}/${d}`;
+            if (format === 'DD-MM-YYYY') return `${d}-${m}-${y}`;
+            return `${d}/${m}/${y}`;
+        }
+
+        function swapDayMonth(val) {
+            if (val === null || val === undefined || val === '') return '';
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) {
+                    const swapped = new Date(d.getFullYear(), d.getDate() - 1, d.getMonth() + 1);
+                    return formatDate(swapped, 'DD/MM/YYYY');
+                }
+            }
+            const s = String(val).trim();
+            if (s === '') return '';
+            // YYYY-MM-DD or YYYY/MM/DD
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const yr = parseInt(m[1]);
+                const swappedMonth = parseInt(m[3]);
+                const swappedDay = parseInt(m[2]);
+                const d = new Date(yr, swappedMonth - 1, swappedDay);
+                if (!isNaN(d.getTime())) return formatDate(d, 'DD/MM/YYYY');
+            }
+            // DD-MM-YYYY or MM-DD-YYYY
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (m) {
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const swappedMonth = parseInt(m[1]);
+                const swappedDay = parseInt(m[2]);
+                const d = new Date(yr, swappedMonth - 1, swappedDay);
+                if (!isNaN(d.getTime())) return formatDate(d, 'DD/MM/YYYY');
+            }
+            // fallback
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) {
+                    const swapped = new Date(parsed.getFullYear(), parsed.getDate() - 1, parsed.getMonth() + 1);
+                    return formatDate(swapped, 'DD/MM/YYYY');
+                }
+            }
+            return s;
+        }
+
+        function parseDateValue(val, format) {
+            if (val === null || val === undefined || val === '') return '';
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) return formatDate(d, format);
+            }
+            const s = String(val).trim();
+            if (s === '') return '';
+            // YYYY-MM-DD or YYYY/MM/DD
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+                if (!isNaN(d.getTime())) return formatDate(d, format);
+            }
+            // DD-MM-YYYY or MM-DD-YYYY
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (m) {
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const d = new Date(yr, parseInt(m[2]) - 1, parseInt(m[1]));
+                if (!isNaN(d.getTime())) return formatDate(d, format);
+            }
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
+            }
+            return s;
+        }
+
+        // --- Cleaner Apply ---
+        cleanApplyBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+            const colIdx = parseInt(cleanColumnSelect.value);
+            if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                setStatus('⚠️ Please select a valid target column.', 'error');
+                return;
+            }
+
+            const op = cleanOperation.value;
+            let modCount = 0;
+            let label = '';
+
+            if (op === 'sim') {
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const cleaned = cleanSIMNumber(orig);
+                    if (orig !== cleaned) { row[colIdx] = cleaned;
+                        modCount++; }
+                });
+                label = 'SIM Cleaned';
+                convertedColumns.set(colIdx, label);
+                setStatus(`✅ SIM cleaned column "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+            } else if (op === 'date_swap') {
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const swapped = swapDayMonth(orig);
+                    if (orig !== swapped) { row[colIdx] = swapped;
+                        modCount++; }
+                });
+                label = 'Day/Month Swapped';
+                convertedColumns.set(colIdx, label);
+                setStatus(`✅ Day/Month swapped in "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+            } else if (op === 'date_format') {
                 const fmt = dateFormatSelect.value;
                 masterData.forEach(row => {
-                    const original = row[idx];
-                    const formatted = parseDateValue(original, fmt);
-                    if (original !== formatted) {
-                        row[idx] = formatted;
-                        modCount++;
-                    }
+                    const orig = row[colIdx];
+                    const formatted = parseDateValue(orig, fmt);
+                    if (orig !== formatted) { row[colIdx] = formatted;
+                        modCount++; }
                 });
-                const label = fmt === 'SWAP_DAY_MONTH' ? 'Day/Month Swapped' : fmt;
-                convertedColumns.set(idx, label);
-                infoMsg.textContent = `✅ Applied date conversion (${label}) on "${headers[idx]}" (${modCount} cells modified).`;
+                label = fmt;
+                convertedColumns.set(colIdx, label);
+                setStatus(`✅ Date formatted (${fmt}) in "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
             }
-            infoMsg.classList.remove('error-msg');
-            updateUI();
-        };
 
-        resetBtn.onclick = function () {
-            if (!originalDataBackup.length) return;
-            if (confirm("Revert all column changes to original values?")) {
-                masterData = originalDataBackup.map(r => [...r]);
-                convertedColumns.clear();
-                updateUI();
-                infoMsg.textContent = "↩️ All values reverted to original.";
-                infoMsg.classList.remove('error-msg');
+            renderTable();
+            updateConvertedTags();
+            rowCountBadge.textContent = masterData.length + ' rows';
+        });
+
+        cleanResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
             }
-        };
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            convertedColumns.clear();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
 
-        exportBtn.onclick = function () {
-            if (!masterData.length || !headers.length) return;
-            const ws = XLSX.utils.aoa_to_sheet([headers, ...masterData]);
+        // --- Cleaner operation change ---
+        cleanOperation.addEventListener('change', updateCleanerHint);
 
-            // Ensure cells under SIM cleaned columns stay formatted strictly as text (@) in Excel
-            convertedColumns.forEach((label, colIndex) => {
-                if (label === 'SIM Cleaned') {
-                    for (let r = 1; r <= masterData.length; r++) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: r, c: colIndex });
-                        if (ws[cellAddress]) {
-                            ws[cellAddress].z = '@';
+        // ============================================================
+        //  EXPORT (shared, accessible from either tab)
+        // ============================================================
+        // Add an export button in the header or status bar? Let's add a small export button next to the home button.
+        // We'll inject it into the header.
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'home-btn';
+        exportBtn.innerHTML = '<i class="fas fa-file-download"></i> Export Excel';
+        exportBtn.style.marginLeft = 'auto';
+        exportBtn.addEventListener('click', exportExcel);
+        // Insert after home button
+        const homeBtn = document.getElementById('homeBtn');
+        homeBtn.parentNode.insertBefore(exportBtn, homeBtn.nextSibling);
+
+        function exportExcel() {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data to export.', 'error');
+                return;
+            }
+            try {
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...masterData]);
+                // For SIM cleaned columns, force text format
+                convertedColumns.forEach((label, colIdx) => {
+                    if (label === 'SIM Cleaned') {
+                        for (let r = 1; r <= masterData.length; r++) {
+                            const addr = XLSX.utils.encode_cell({ r: r, c: colIdx });
+                            if (ws[addr]) ws[addr].z = '@';
                         }
                     }
-                }
-            });
+                });
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Processed_Data');
+                XLSX.writeFile(wb, `${originalFileName}_processed.xlsx`);
+                setStatus(`✅ Exported as ${originalFileName}_processed.xlsx`, 'success');
+            } catch (err) {
+                setStatus('❌ Export failed: ' + err.message, 'error');
+            }
+        }
 
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Processed_Data");
-            XLSX.writeFile(wb, `${originalFileName}_cleaned.xlsx`);
-            infoMsg.textContent = `✅ Exported successfully as ${originalFileName}_cleaned.xlsx`;
-        };
+        // ============================================================
+        //  INIT
+        // ============================================================
+        // Show initial state
+        setStatus('📂 Upload a file to begin.', 'info');
+        updateCleanerHint();
+
+        // If the user switches to the cleaner tab, update tags
+        // Also re-render on tab switch to show converted styling
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (headers.length) renderTable();
+                    if (activeTab === 'clean') updateConvertedTags();
+                    else convertedColumnsList.style.display = 'none';
+                }, 50);
+            });
+        });
+
+        // Also update tags when cleaner applies
+        // already handled in cleanApplyBtn
+
+        console.log('✅ Excel Data Toolkit ready.');
     </script>
+
 </body>
 
 </html>

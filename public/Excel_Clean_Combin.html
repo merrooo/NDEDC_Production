@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Excel Data Pipeline Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <style>
+        /* (same styles as before – no changes) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+            padding: 32px;
+            max-width: 1100px;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+        }
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .upload-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .upload-area h3 {
+            color: #1e293b;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .upload-area p {
+            color: #64748b;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        #fileInput {
+            display: none;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            height: 38px;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        .btn-success {
+            background: #059669;
+        }
+        .btn-success:hover {
+            background: #047857;
+        }
+        .btn-primary-action {
+            background: #0284c7;
+        }
+        .btn-primary-action:hover {
+            background: #0369a1;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-warning {
+            background: #d97706;
+            color: #fff;
+        }
+        .btn-warning:hover {
+            background: #b45309;
+        }
+        .info-box {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+        .info-box.show {
+            display: block;
+        }
+        .info-box .stats {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .info-box .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .info-box .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-box .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 2px;
+        }
+        .workflow-card {
+            margin-top: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .workflow-header {
+            background: #f8fafc;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .workflow-body {
+            padding: 20px;
+        }
+        .step-panel {
+            background: #fafafa;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .step-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+        .step-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .controls-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .control-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+        }
+        select.dropdown,
+        input.dropdown {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            font-size: 13px;
+            color: #0f172a;
+            outline: none;
+            height: 38px;
+            min-width: 140px;
+        }
+        select.dropdown:focus,
+        input.dropdown:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        .checkbox-group-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #ffffff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            width: 100%;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+        .table-wrapper {
+            margin-top: 20px;
+            max-height: 420px;
+            overflow: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            display: none;
+        }
+        .table-wrapper.show {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 600;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 2px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        table th.highlight-col {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        table th.k-digits-col {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+        }
+        table td.highlight-col {
+            background: #eff6ff;
+            font-weight: 600;
+        }
+        table td.k-digits-cell {
+            background: #fffbeb;
+            font-weight: 600;
+        }
+        table td.k-digits-ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        table td.k-digits-ko {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        table tr:hover td {
+            background: #f8fafc;
+        }
+        .sheet-list {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .sheet-tag {
+            background: #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #334155;
+        }
+        .sheet-tag .count {
+            background: #2563eb;
+            color: white;
+            border-radius: 10px;
+            padding: 0 6px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        .footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        .modal-box h3 {
+            margin-bottom: 16px;
+        }
+        .modal-box pre {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .modal-box .close-btn {
+            margin-top: 16px;
+        }
+        /* --- NEW SEARCH STYLES --- */
+        .search-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+            background: #f8fafc;
+            padding: 10px 18px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+            margin: 12px 0 16px 0;
+        }
+        .search-area input {
+            flex: 2 1 260px;
+            padding: 8px 16px;
+            border: 1px solid #d1d9e6;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            background: #fafcff;
+            transition: 0.15s;
+            min-width: 180px;
+        }
+        .search-area input:focus {
+            outline: 2px solid #2563eb;
+            border-color: transparent;
+        }
+        .search-area .search-hint {
+            color: #475569;
+            font-size: 0.85rem;
+            font-weight: 400;
+            background: #f1f5f9;
+            padding: 4px 14px;
+            border-radius: 30px;
+        }
+        .search-stats {
+            font-weight: 500;
+            background: #eef2ff;
+            padding: 2px 14px;
+            border-radius: 30px;
+            color: #1e4b8f;
+        }
+        .highlight {
+            background: #fef08a;
+            padding: 0 2px;
+            border-radius: 4px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+            }
+            .header-bar h1 {
+                font-size: 18px;
+            }
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            select.dropdown,
+            input.dropdown {
+                width: 100%;
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header-bar">
+            <h1>📊 Data Processing & Validation Pipeline</h1>
+            <button class="btn btn-secondary" id="homeBtn">🏠 Reset Workspace</button>
+        </div>
+        <p class="subtitle">Standardized data transformation workflow: Pad digits, correct prefixes, and audit final outputs.</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Select or drag & drop target Excel sheet</h3>
+            <p>Supports .xlsx and .xls file formats</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <button class="btn btn-secondary" id="browseBtn" style="margin-top:12px;">Browse Computer</button>
+        </div>
+
+        <div class="info-box" id="infoBox">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Source File</span>
+                    <span class="stat-value" id="fileName">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Workbook Sheets</span>
+                    <span class="stat-value" id="sheetCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Loaded Rows</span>
+                    <span class="stat-value" id="rowCount">0</span>
+                </div>
+            </div>
+            <div class="sheet-list" id="sheetList"></div>
+        </div>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span>⚙️ Sheet Utilities (Optional Initial Preparation)</span>
+            </div>
+            <div class="workflow-body">
+                <div class="controls-row">
+                    <div class="control-group">
+                        <label for="columnSelect">Utility Target Column</label>
+                        <select id="columnSelect" class="dropdown" disabled>
+                            <option value="ALL">-- Entire Table --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" id="combineBtn" disabled>🔗 Merge All Sheets</button>
+                    <button class="btn btn-secondary" id="fillDownBtn" disabled>⬇️ Fill Down</button>
+                    <button class="btn btn-secondary" id="fillUpBtn" disabled>⬆️ Fill Up</button>
+                    <button class="btn btn-warning" id="analyzeDecimalBtn" disabled>🔢 Analyze Decimal Places</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span>🚀 Automated Processing Pipeline</span>
+                <button class="btn btn-success" id="downloadBtn" disabled>💾 Export Processed Excel</button>
+            </div>
+            <div class="workflow-body">
+
+                <div class="control-group" style="margin-bottom: 20px;">
+                    <label for="pipelineColumnSelect" style="font-size: 12px; color: #0284c7;">1. Select Pipeline Primary Column</label>
+                    <select id="pipelineColumnSelect" class="dropdown" style="max-width: 320px; font-weight: 600;" disabled>
+                        <option value="">-- Choose Target Processing Column --</option>
+                    </select>
+                </div>
+
+                <div class="step-panel">
+                    <span class="step-badge">Phase 1</span>
+                    <div class="step-title">🔢 Digit Padding Execution</div>
+                    <div class="controls-row">
+                        <div class="control-group">
+                            <label for="padPrefixInput">Target Pattern Format</label>
+                            <input type="text" id="padPrefixInput" class="dropdown" value="KXXXXX" placeholder="e.g. KXXXXX" style="width: 140px;" />
+                        </div>
+                        <button class="btn btn-primary-action" id="padDigitsBtn" disabled>Run Step 1 (Pad Digits)</button>
+                    </div>
+                </div>
+
+                <div class="step-panel">
+                    <span class="step-badge">Phase 2</span>
+                    <div class="step-title">🔤 Code Prefix Auto-Correction</div>
+                    <div class="controls-row">
+                        <p style="font-size: 12px; color: #64748b; width: 100%;">
+                            Standardizes token syntax: Normalizes <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">NDC</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">KSH</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DKH</code>, and <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DMT</code>.
+                        </p>
+                        <button class="btn btn-primary-action" id="fixCodesBtn" disabled>Run Step 2 (Fix Token Syntax)</button>
+                        <button class="btn btn-success" id="runPipelineBtn" disabled>⚡ Execute Step 1 & Step 2 Sequentially</button>
+                    </div>
+                </div>
+
+                <div class="step-panel" style="margin-bottom: 0;">
+                    <span class="step-badge" style="background:#fed7aa; color:#9a3412;">Phase 3: Audit</span>
+                    <div class="step-title">🔍 Post-Process Quality Filter</div>
+                    <div class="control-group" style="width: 100%; margin-bottom: 12px;">
+                        <label>Select Allowed Rule Patterns to Validate</label>
+                        <div class="checkbox-group-container">
+                            <label class="checkbox-item"><input type="checkbox" class="pattern-checkbox" value="NORMAL_TRF" disabled> NORMAL TRF</label>
+                            <label class="checkbox-item"><input type="checkbox" class="pattern-checkbox" value="PRIVAT_TRF" disabled> PRIVAT TRF</label>
+                            <label class="checkbox-item"><input type="checkbox" class="pattern-checkbox" value="PMT_TRF" disabled> PMT TRF</label>
+                            <label class="checkbox-item"><input type="checkbox" class="pattern-checkbox" value="DP" disabled> DP</label>
+                            <label class="checkbox-item"><input type="checkbox" class="pattern-checkbox" value="SUBSTATION" disabled> SUBSTATION</label>
+                        </div>
+                    </div>
+                    <div class="controls-row">
+                        <button class="btn btn-danger" id="filterNonMatchBtn" disabled>⚠️ Filter Non-Matching / Invalid Rows</button>
+                        <button class="btn btn-secondary" id="resetFilterBtn" disabled>🔄 Reset View to Full Dataset</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- NEW: Search bar (SIM/Meter number) -->
+        <div class="search-area" id="searchArea">
+            <input type="text" id="searchInput" placeholder="🔍 Search by meter number, SIM, or any value ..." />
+            <span class="search-hint">🔎 searches all columns</span>
+            <span class="search-stats" id="searchStats">0 rows</span>
+            <button class="btn btn-secondary" id="clearSearchBtn" style="padding:4px 16px; height:32px;">✕ Clear</button>
+        </div>
+
+        <div class="table-wrapper" id="tableWrapper">
+            <table id="previewTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Client-side enterprise processing engine — No sensitive workbook data is uploaded off local device.
+        </div>
+    </div>
+
+    <!-- Modal for Decimal Analysis -->
+    <div class="modal-overlay" id="decimalModal">
+        <div class="modal-box">
+            <h3>📊 Decimal Places Analysis</h3>
+            <div id="decimalReport"></div>
+            <button class="btn btn-secondary close-btn" id="closeModalBtn">Close</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM Elements
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const homeBtn = document.getElementById('homeBtn');
+            const fileName = document.getElementById('fileName');
+            const sheetCount = document.getElementById('sheetCount');
+            const rowCount = document.getElementById('rowCount');
+            const sheetList = document.getElementById('sheetList');
+            const infoBox = document.getElementById('infoBox');
+
+            const columnSelect = document.getElementById('columnSelect');
+            const pipelineColumnSelect = document.getElementById('pipelineColumnSelect');
+
+            const padPrefixInput = document.getElementById('padPrefixInput');
+            const padDigitsBtn = document.getElementById('padDigitsBtn');
+
+            const fixCodesBtn = document.getElementById('fixCodesBtn');
+            const runPipelineBtn = document.getElementById('runPipelineBtn');
+
+            const patternCheckboxes = document.querySelectorAll('.pattern-checkbox');
+            const filterNonMatchBtn = document.getElementById('filterNonMatchBtn');
+            const resetFilterBtn = document.getElementById('resetFilterBtn');
+
+            const combineBtn = document.getElementById('combineBtn');
+            const fillDownBtn = document.getElementById('fillDownBtn');
+            const fillUpBtn = document.getElementById('fillUpBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const tableWrapper = document.getElementById('tableWrapper');
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+
+            const analyzeDecimalBtn = document.getElementById('analyzeDecimalBtn');
+            const decimalModal = document.getElementById('decimalModal');
+            const decimalReport = document.getElementById('decimalReport');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            // NEW: search elements
+            const searchInput = document.getElementById('searchInput');
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+            const searchStats = document.getElementById('searchStats');
+
+            let workbookData = null;
+            let activeData = null;          // full dataset (including header)
+            let filteredData = null;        // dataset after search filter
+            let originalFileName = '';
+            let currentSearchQuery = '';
+
+            // Helper: clean a cell value (remove extra chars and extract first number)
+            function cleanCoordinateValue(val) {
+                if (val === null || val === undefined) return null;
+                let str = String(val);
+                str = str.replace(/_x000D_/g, '').replace(/<br\s*\/?>/gi, '').replace(/\r\n/g, '').replace(/\n/g, '').trim();
+                const match = str.match(/^[+-]?\d*\.?\d+/);
+                if (match) {
+                    return parseFloat(match[0]);
+                }
+                return null;
+            }
+
+            // Analyze decimal places for a given column index
+            function analyzeDecimalPlaces(colIdx) {
+                if (!activeData || activeData.length <= 1) {
+                    alert('No data loaded.');
+                    return;
+                }
+                const decimals = [];
+                let validCount = 0;
+                let invalidCount = 0;
+                for (let r = 1; r < activeData.length; r++) {
+                    const val = activeData[r][colIdx];
+                    const cleaned = cleanCoordinateValue(val);
+                    if (cleaned !== null && !isNaN(cleaned)) {
+                        const strNum = String(cleaned);
+                        const parts = strNum.split('.');
+                        const decDigits = parts.length > 1 ? parts[1].length : 0;
+                        decimals.push(decDigits);
+                        validCount++;
+                    } else {
+                        invalidCount++;
+                    }
+                }
+                if (decimals.length === 0) {
+                    alert('No valid numeric values found in this column.');
+                    return;
+                }
+                const min = Math.min(...decimals);
+                const max = Math.max(...decimals);
+                const sum = decimals.reduce((a, b) => a + b, 0);
+                const avg = (sum / decimals.length).toFixed(2);
+                const dist = {};
+                decimals.forEach(d => { dist[d] = (dist[d] || 0) + 1; });
+                const sortedKeys = Object.keys(dist).sort((a, b) => a - b);
+                let distText = sortedKeys.map(k => `${k} digit(s): ${dist[k]} row(s)`).join('\n');
+
+                const report = `
+                    <p><strong>Column:</strong> ${activeData[0][colIdx] || 'Column ' + (colIdx+1)}</p>
+                    <p><strong>Valid numeric rows:</strong> ${validCount}</p>
+                    <p><strong>Invalid / non‑numeric rows:</strong> ${invalidCount}</p>
+                    <p><strong>Min decimal digits:</strong> ${min}</p>
+                    <p><strong>Max decimal digits:</strong> ${max}</p>
+                    <p><strong>Average decimal digits:</strong> ${avg}</p>
+                    <p><strong>Distribution:</strong></p>
+                    <pre>${distText}</pre>
+                `;
+                decimalReport.innerHTML = report;
+                decimalModal.classList.add('active');
+            }
+
+            analyzeDecimalBtn.addEventListener('click', function() {
+                const target = columnSelect.value;
+                if (!activeData || activeData.length <= 1) {
+                    alert('Please load data first.');
+                    return;
+                }
+                if (target === 'ALL') {
+                    alert('Please select a specific column for decimal analysis.');
+                    return;
+                }
+                const colIdx = parseInt(target, 10);
+                analyzeDecimalPlaces(colIdx);
+            });
+
+            closeModalBtn.addEventListener('click', function() {
+                decimalModal.classList.remove('active');
+            });
+            decimalModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+
+            // ----- K-Digits extraction (FIXED) -----
+            function extractKDigitsInfo(str) {
+                if (!str || typeof str !== 'string') return [];
+                const regex = /(?<![A-Za-z])K(\d+)/g;
+                const results = [];
+                let m;
+                while ((m = regex.exec(str)) !== null) {
+                    const digits = m[1]; // raw digits including leading zeros
+                    results.push({
+                        full: 'K' + digits,
+                        digits: digits,
+                        count: digits.length // raw length, NOT stripped zeros
+                    });
+                }
+                return results;
+            }
+
+            // ----- renderPreview with K Digits column AND search highlighting -----
+            function renderPreview(data) {
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tableWrapper.classList.remove('show');
+                    searchStats.textContent = '0 rows';
+                    return;
+                }
+                tableWrapper.classList.add('show');
+
+                const pipelineColIdx = pipelineColumnSelect.value !== '' ? parseInt(pipelineColumnSelect.value, 10) : null;
+                const utilityColIdx = columnSelect.value !== 'ALL' ? parseInt(columnSelect.value, 10) : null;
+                const headerRow = data[0] || [];
+
+                // Determine target digit count from pattern (default 5)
+                let targetDigits = 5;
+                const pattern = padPrefixInput.value.trim();
+                // FIX: use non‑greedy +? to capture the prefix correctly (e.g. "K" from "KXXXXX")
+                const match = pattern.match(/^([A-Za-z]+?)(X+)$/i);
+                if (match) {
+                    targetDigits = match[2].length;
+                }
+
+                // Build header
+                const headRow = document.createElement('tr');
+                for (let i = 0; i < headerRow.length; i++) {
+                    const th = document.createElement('th');
+                    th.textContent = headerRow[i] || `Column ${i + 1}`;
+                    if (i === pipelineColIdx) {
+                        th.classList.add('highlight-col');
+                    } else if (i === utilityColIdx) {
+                        th.classList.add('highlight-col');
+                    }
+                    headRow.appendChild(th);
+                }
+                // Add K Digits header if pipeline column is selected
+                if (pipelineColIdx !== null) {
+                    const th = document.createElement('th');
+                    th.textContent = 'K Digits';
+                    th.classList.add('k-digits-col');
+                    headRow.appendChild(th);
+                }
+                tableHead.appendChild(headRow);
+
+                // Build body
+                const maxRows = Math.min(data.length, 101); // keep limit to avoid performance issues
+                const query = currentSearchQuery.trim().toLowerCase();
+                const hasQuery = query.length > 0;
+                let visibleCount = 0;
+
+                for (let r = 1; r < maxRows; r++) {
+                    const row = data[r] || [];
+                    // If search query active, check if any cell matches
+                    if (hasQuery) {
+                        let match = false;
+                        for (let c = 0; c < row.length; c++) {
+                            const cellVal = row[c] !== undefined && row[c] !== null ? String(row[c]) : '';
+                            if (cellVal.toLowerCase().includes(query)) { match = true; break; }
+                        }
+                        if (!match) continue; // skip this row
+                    }
+                    visibleCount++;
+
+                    const tr = document.createElement('tr');
+                    for (let c = 0; c < headerRow.length; c++) {
+                        const td = document.createElement('td');
+                        let cellText = row[c] !== undefined && row[c] !== null ? String(row[c]) : '';
+                        if (hasQuery) {
+                            // Highlight matches
+                            const lower = cellText.toLowerCase();
+                            let idx = lower.indexOf(query);
+                            if (idx !== -1) {
+                                const before = cellText.substring(0, idx);
+                                const matchText = cellText.substring(idx, idx + query.length);
+                                const after = cellText.substring(idx + query.length);
+                                td.innerHTML = escHtml(before) + `<span class="highlight">${escHtml(matchText)}</span>` + escHtml(after);
+                            } else {
+                                td.textContent = cellText;
+                            }
+                        } else {
+                            td.textContent = cellText;
+                        }
+                        if (c === pipelineColIdx || c === utilityColIdx) {
+                            td.classList.add('highlight-col');
+                        }
+                        tr.appendChild(td);
+                    }
+                    // Add K Digits cell if pipeline column is selected
+                    if (pipelineColIdx !== null) {
+                        const td = document.createElement('td');
+                        const cellVal = row[pipelineColIdx];
+                        const strVal = cellVal !== undefined && cellVal !== null ? String(cellVal) : '';
+                        const kInfos = extractKDigitsInfo(strVal);
+                        if (kInfos.length === 0) {
+                            td.textContent = '—';
+                            td.classList.add('k-digits-cell');
+                        } else {
+                            const counts = kInfos.map(info => info.count);
+                            const allSame = counts.every(v => v === counts[0]);
+                            let displayText;
+                            if (allSame) {
+                                displayText = counts[0].toString();
+                            } else {
+                                displayText = counts.join(',');
+                            }
+                            td.textContent = displayText;
+                            td.classList.add('k-digits-cell');
+                            const hasMismatch = kInfos.some(info => info.count !== targetDigits);
+                            if (hasMismatch) {
+                                td.classList.add('k-digits-ko');
+                            } else {
+                                td.classList.add('k-digits-ok');
+                            }
+                        }
+                        tr.appendChild(td);
+                    }
+                    tableBody.appendChild(tr);
+                }
+
+                // Update row count and search stats
+                const totalRows = data.length > 0 ? data.length - 1 : 0;
+                rowCount.textContent = totalRows;
+                searchStats.textContent = hasQuery ? `${visibleCount} matching rows` : `${totalRows} rows`;
+
+                // If search is active and no rows match, show a message
+                if (hasQuery && visibleCount === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    const colCount = headerRow.length + (pipelineColIdx !== null ? 1 : 0);
+                    td.colSpan = colCount || 1;
+                    td.textContent = 'No rows match your search.';
+                    td.style.textAlign = 'center';
+                    td.style.color = '#94a3b8';
+                    td.style.fontStyle = 'italic';
+                    td.style.padding = '30px';
+                    tr.appendChild(td);
+                    tableBody.appendChild(tr);
+                }
+
+                // If more rows exist beyond the limit, show a note (but we already cap at 101)
+                // but we won't show the "and more" because we already cap at 101.
+                // Instead, we can display a note if data has more rows than shown.
+                if (data.length > 101) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    const colCount = headerRow.length + (pipelineColIdx !== null ? 1 : 0);
+                    td.colSpan = colCount || 1;
+                    td.textContent = `... and ${data.length - 101} more rows (search may not show all)`;
+                    td.style.textAlign = 'center';
+                    td.style.color = '#94a3b8';
+                    td.style.fontStyle = 'italic';
+                    tr.appendChild(td);
+                    tableBody.appendChild(tr);
+                }
+            }
+
+            // escape HTML for highlighting
+            function escHtml(str) {
+                if (!str) return '';
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // --- Existing functions ---
+            function formatCellValue(val) {
+                if (val === null || val === undefined) return '';
+                if (val instanceof Date) return val.toLocaleDateString() + ' ' + val.toLocaleTimeString();
+                return String(val);
+            }
+
+            function isEmpty(val) {
+                return val === null || val === undefined || String(val).trim() === '';
+            }
+
+            function getSheetData(workbook, sheetName) {
+                const sheet = workbook.Sheets[sheetName];
+                if (!sheet) return [];
+                return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            }
+
+            function populateColumnDropdown(headers) {
+                columnSelect.innerHTML = '<option value="ALL">-- Entire Table --</option>';
+                pipelineColumnSelect.innerHTML = '<option value="">-- Choose Target Processing Column --</option>';
+
+                if (!headers) return;
+
+                headers.forEach((header, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    opt.textContent = header ? `${header} (Col ${index + 1})` : `Column ${index + 1}`;
+                    columnSelect.appendChild(opt);
+                    pipelineColumnSelect.appendChild(opt.cloneNode(true));
+                });
+
+                columnSelect.disabled = false;
+                pipelineColumnSelect.disabled = false;
+                patternCheckboxes.forEach(cb => cb.disabled = false);
+                filterNonMatchBtn.disabled = false;
+                resetFilterBtn.disabled = false;
+                analyzeDecimalBtn.disabled = false;
+            }
+
+            function updatePipelineControlsState() {
+                const hasCol = pipelineColumnSelect.value !== '';
+                padDigitsBtn.disabled = !hasCol;
+                fixCodesBtn.disabled = !hasCol;
+                runPipelineBtn.disabled = !hasCol;
+            }
+
+            // ========== SIMPLIFIED & RELIABLE PADDING (using replace) ==========
+            function padCodeDigits(value, customPattern) {
+                if (!value || typeof value !== 'string' || !customPattern) return value;
+
+                // FIX: use non‑greedy +? to capture the prefix correctly (e.g. "K" from "KXXXXX")
+                const match = customPattern.trim().match(/^([A-Za-z]+?)(X+)$/i);
+                if (!match) return value;
+
+                const prefix = match[1];
+                const targetLength = match[2].length;
+
+                // Build a regex that matches the prefix followed by digits (case-sensitive)
+                const regex = new RegExp('(?<![A-Za-z])(' + prefix + ')(\\d+)', 'g');
+
+                // Use replace with a callback to pad the digits
+                const result = value.replace(regex, function(match, p1, p2) {
+                    let digitPart = p2;
+                    // Enforce exactly targetLength digits: if longer, take rightmost; if shorter, pad left
+                    if (digitPart.length > targetLength) {
+                        digitPart = digitPart.slice(-targetLength);  // keep last N digits
+                    } else {
+                        digitPart = digitPart.padStart(targetLength, '0');
+                    }
+                    return p1 + digitPart;
+                });
+
+                return result;
+            }
+            // ===============================================================
+
+            function executePadding() {
+                const colIdxStr = pipelineColumnSelect.value;
+                const customPattern = padPrefixInput.value.trim();
+                if (colIdxStr === '' || !customPattern) return false;
+
+                const colIdx = parseInt(colIdxStr, 10);
+                let changedRows = 0;
+                let firstChange = null;
+
+                for (let r = 1; r < activeData.length; r++) {
+                    if (activeData[r][colIdx] !== undefined && activeData[r][colIdx] !== null) {
+                        const original = String(activeData[r][colIdx]);
+                        const padded = padCodeDigits(original, customPattern);
+                        if (padded !== original) {
+                            activeData[r][colIdx] = padded;
+                            changedRows++;
+                            if (firstChange === null) firstChange = { row: r, old: original, new: padded };
+                            console.log(`Row ${r}: "${original}" → "${padded}"`);
+                        }
+                    }
+                }
+
+                if (firstChange) {
+                    console.log(`First changed row ${firstChange.row}: "${firstChange.old}" → "${firstChange.new}"`);
+                }
+                console.log(`Padding changed ${changedRows} rows.`);
+                return changedRows > 0;
+            }
+
+            function fixCodeTokens(str) {
+                if (!str || typeof str !== 'string') return str;
+                let result = str;
+                if (!/^\s*NDC[-_\s]/i.test(result)) {
+                    if (/^\s*(nd|nc|dc)[-_\s]/i.test(result)) {
+                        result = result.replace(/^\s*(nd|nc|dc)(?=[-_\s])/i, 'NDC');
+                    } else if (!/^\s*NDC/i.test(result)) {
+                        result = 'NDC-' + result.replace(/^[-_\s]+/, '');
+                    }
+                }
+                result = result.replace(/(^|[-_\s])(ndc|nd|nc|dc)(?=[-_\s]|$)/gi, '$1NDC');
+                result = result.replace(/(^|[-_\s])(ksh|ks|sh|kh)(?=[-_\s]|$)/gi, '$1KSH');
+                result = result.replace(/(^|[-_\s])(dkh|dk|dh)(?=[-_\s]|$)/gi, '$1DKH');
+                result = result.replace(/(^|[-_\s])(dmt|dm|dt)(?=[-_\s]|$)/gi, '$1DMT');
+                return result;
+            }
+
+            function executeCodeFix() {
+                const colIdxStr = pipelineColumnSelect.value;
+                if (colIdxStr === '') return false;
+                const colIdx = parseInt(colIdxStr, 10);
+                let changedRows = 0;
+                for (let r = 1; r < activeData.length; r++) {
+                    if (activeData[r][colIdx] !== undefined && activeData[r][colIdx] !== null) {
+                        const original = String(activeData[r][colIdx]);
+                        const fixed = fixCodeTokens(original);
+                        if (fixed !== original) {
+                            activeData[r][colIdx] = fixed;
+                            changedRows++;
+                            console.log(`Row ${r}: "${original}" → "${fixed}"`);
+                        }
+                    }
+                }
+                console.log(`Code fix changed ${changedRows} rows.`);
+                return changedRows > 0;
+            }
+
+            function handleStep1() {
+                if (!activeData || activeData.length <= 1) {
+                    alert('Please load data first.');
+                    return;
+                }
+                const colIdxStr = pipelineColumnSelect.value;
+                if (colIdxStr === '') {
+                    alert('Please select a Pipeline Primary Column first.');
+                    return;
+                }
+                const colIdx = parseInt(colIdxStr, 10);
+                const pattern = padPrefixInput.value.trim();
+                if (!pattern) {
+                    alert('Please enter a valid pattern, e.g. KXXXXX');
+                    return;
+                }
+                // Use non‑greedy to validate pattern
+                const match = pattern.match(/^([A-Za-z]+?)(X+)$/i);
+                if (!match) {
+                    alert('Invalid pattern. Use format like "KXXXXX" (letters + X\'s).');
+                    return;
+                }
+                const targetLen = match[2].length;
+
+                // Count rows that need padding (where digit length != targetLen)
+                let needFixCount = 0;
+                const regex = /(?<![A-Za-z])K(\d+)/g;
+                for (let r = 1; r < activeData.length; r++) {
+                    const val = activeData[r][colIdx];
+                    if (val && typeof val === 'string') {
+                        let m;
+                        let needsFix = false;
+                        regex.lastIndex = 0;
+                        while ((m = regex.exec(val)) !== null) {
+                            const digits = m[1];
+                            if (digits.length !== targetLen) {
+                                needsFix = true;
+                                break;
+                            }
+                        }
+                        if (needsFix) needFixCount++;
+                    }
+                }
+
+                if (needFixCount === 0) {
+                    alert('ℹ️ All K‑codes already have exactly the correct digit length.');
+                    return;
+                }
+
+                const changed = executePadding();
+                if (changed) {
+                    // Clear search after modification?
+                    // We'll keep the search as is, but re-render with activeData.
+                    // We'll keep the search query, but filteredData will be re-evaluated.
+                    applySearch(); // re-apply search on the updated data
+                    // Show a sample of the first changed row
+                    let sampleMsg = '';
+                    for (let r = 1; r < activeData.length; r++) {
+                        const val = activeData[r][colIdx];
+                        if (val && typeof val === 'string') {
+                            const kInfos = extractKDigitsInfo(val);
+                            if (kInfos.length > 0) {
+                                sampleMsg = `\nExample: Row ${r} → "${val}" (K Digits: ${kInfos.map(i=>i.count).join(',')})`;
+                                break;
+                            }
+                        }
+                    }
+                    alert(`✅ Step 1 Complete: Normalised ${needFixCount} row(s) to exactly ${targetLen} digits.${sampleMsg}\nCheck the "K Digits" column – it should now show the new digit count.`);
+                } else {
+                    alert('ℹ️ No changes were made.');
+                }
+            }
+
+            function handleStep2() {
+                if (!activeData || activeData.length <= 1) return;
+                if (executeCodeFix()) {
+                    applySearch();
+                    alert('✅ Step 2 Complete: Code Token Auto-Correction Applied.');
+                } else {
+                    alert('ℹ️ No changes made – all tokens are already correct.');
+                }
+            }
+
+            function handleSequentialPipeline() {
+                if (!activeData || activeData.length <= 1) return;
+                const padded = executePadding();
+                const fixed = executeCodeFix();
+                if (padded || fixed) {
+                    applySearch();
+                    alert('🚀 Success: Both steps executed!');
+                } else {
+                    alert('ℹ️ No changes were made.');
+                }
+            }
+
+            function getRegexStringForKey(key) {
+                switch (key) {
+                    case "NORMAL_TRF":
+                        return "^NDC-(DKH|DMT|KSH)-\\d{2}-K\\d{5}$";
+                    case "PRIVAT_TRF":
+                        return "^NDC-(DKH|DMT|KSH)-\\d{2}-K\\d{5}-P$";
+                    case "PMT_TRF":
+                        return "^NDC-(DKH|DMT|KSH)-\\d{2}-PMT\\d{4}$";
+                    case "DP":
+                        return "^NDC-(DKH|DMT|KSH)-DP\\d{3}-C\\d{2}$";
+                    case "SUBSTATION":
+                        return "^NDC-(DKH|DMT|KSH)-SS\\d{2}-TR\\d{2}-C\\d{2}$";
+                    default:
+                        return null;
+                }
+            }
+
+            function handleFilterNonMatches() {
+                if (!activeData || activeData.length <= 1) return;
+                const targetColIndex = pipelineColumnSelect.value;
+                if (targetColIndex === '') {
+                    alert('Please select a Target Column above.');
+                    return;
+                }
+                const selectedKeys = Array.from(patternCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+                if (selectedKeys.length === 0) {
+                    alert('Please check at least one pattern rule checkbox.');
+                    return;
+                }
+                const patternStrings = selectedKeys.map(getRegexStringForKey).filter(Boolean);
+                const combinedRegex = new RegExp('(' + patternStrings.join('|') + ')', 'i');
+                const colIdx = parseInt(targetColIndex, 10);
+                const filtered = [activeData[0]];
+                for (let r = 1; r < activeData.length; r++) {
+                    const cellValue = String(activeData[r][colIdx] || '').trim();
+                    if (!combinedRegex.test(cellValue)) {
+                        filtered.push(activeData[r]);
+                    }
+                }
+                activeData = filtered; // replace activeData with filtered view
+                applySearch(); // re-apply search on the filtered data
+                alert(`🔍 Inspection Filter Applied: Showing ${filtered.length - 1} non-matching row(s).`);
+            }
+
+            function updateInfo(workbook) {
+                const sheetNames = workbook.SheetNames;
+                sheetCount.textContent = sheetNames.length;
+                sheetList.innerHTML = '';
+                for (const name of sheetNames) {
+                    const data = getSheetData(workbook, name);
+                    const tag = document.createElement('span');
+                    tag.className = 'sheet-tag';
+                    tag.innerHTML = `${name} <span class="count">${Math.max(0, data.length - 1)} rows</span>`;
+                    sheetList.appendChild(tag);
+                }
+                infoBox.classList.add('show');
+                combineBtn.disabled = false;
+                fillDownBtn.disabled = false;
+                fillUpBtn.disabled = false;
+                downloadBtn.disabled = false;
+            }
+
+            function resetToHome() {
+                workbookData = null;
+                activeData = null;
+                filteredData = null;
+                originalFileName = '';
+                fileInput.value = '';
+                fileName.textContent = '—';
+                sheetCount.textContent = '0';
+                rowCount.textContent = '0';
+                sheetList.innerHTML = '';
+                infoBox.classList.remove('show');
+                columnSelect.innerHTML = '<option value="ALL">-- Entire Table --</option>';
+                columnSelect.disabled = true;
+                pipelineColumnSelect.innerHTML = '<option value="">-- Choose Target Processing Column --</option>';
+                pipelineColumnSelect.disabled = true;
+                padDigitsBtn.disabled = true;
+                fixCodesBtn.disabled = true;
+                runPipelineBtn.disabled = true;
+                patternCheckboxes.forEach(cb => { cb.disabled = true;
+                    cb.checked = false; });
+                filterNonMatchBtn.disabled = true;
+                resetFilterBtn.disabled = true;
+                combineBtn.disabled = true;
+                fillDownBtn.disabled = true;
+                fillUpBtn.disabled = true;
+                downloadBtn.disabled = true;
+                analyzeDecimalBtn.disabled = true;
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '';
+                tableWrapper.classList.remove('show');
+                decimalModal.classList.remove('active');
+                searchInput.value = '';
+                currentSearchQuery = '';
+                searchStats.textContent = '0 rows';
+            }
+
+            function processFile(file) {
+                originalFileName = file.name;
+                fileName.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        workbookData = XLSX.read(data, { type: 'array' });
+                        updateInfo(workbookData);
+                        const firstSheet = workbookData.SheetNames[0];
+                        activeData = getSheetData(workbookData, firstSheet);
+                        populateColumnDropdown(activeData[0]);
+                        // Clear search and re-render
+                        searchInput.value = '';
+                        currentSearchQuery = '';
+                        applySearch(); // will render with activeData
+                    } catch (err) {
+                        alert('Error reading file: ' + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            function performFill(direction) {
+                if (!activeData || activeData.length <= 1) return;
+                const targetColIndex = columnSelect.value;
+                const startCol = targetColIndex === 'ALL' ? 0 : parseInt(targetColIndex, 10);
+                const endCol = targetColIndex === 'ALL' ? activeData[0].length - 1 : startCol;
+                for (let c = startCol; c <= endCol; c++) {
+                    if (direction === 'down') {
+                        let lastValue = '';
+                        for (let r = 1; r < activeData.length; r++) {
+                            if (!isEmpty(activeData[r][c])) lastValue = activeData[r][c];
+                            else if (!isEmpty(lastValue)) activeData[r][c] = lastValue;
+                        }
+                    } else {
+                        let lastValue = '';
+                        for (let r = activeData.length - 1; r >= 1; r--) {
+                            if (!isEmpty(activeData[r][c])) lastValue = activeData[r][c];
+                            else if (!isEmpty(lastValue)) activeData[r][c] = lastValue;
+                        }
+                    }
+                }
+                applySearch(); // re-render with search applied
+            }
+
+            // ----- SEARCH FUNCTION -----
+            function applySearch() {
+                if (!activeData || activeData.length === 0) {
+                    renderPreview(activeData);
+                    return;
+                }
+                const query = searchInput.value.trim().toLowerCase();
+                currentSearchQuery = query;
+                if (query === '') {
+                    // No search: show all data
+                    renderPreview(activeData);
+                } else {
+                    // Filter: only keep rows where any cell contains query
+                    const filtered = [activeData[0]]; // keep header
+                    for (let r = 1; r < activeData.length; r++) {
+                        const row = activeData[r];
+                        let match = false;
+                        for (let c = 0; c < row.length; c++) {
+                            const cellVal = row[c] !== undefined && row[c] !== null ? String(row[c]) : '';
+                            if (cellVal.toLowerCase().includes(query)) {
+                                match = true;
+                                break;
+                            }
+                        }
+                        if (match) filtered.push(row);
+                    }
+                    renderPreview(filtered);
+                }
+            }
+
+            // Event listeners
+            homeBtn.addEventListener('click', resetToHome);
+            browseBtn.addEventListener('click', (e) => { e.stopPropagation();
+                fileInput.click(); });
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) processFile(this.files[0]);
+                this.value = '';
+            });
+            pipelineColumnSelect.addEventListener('change', () => {
+                updatePipelineControlsState();
+                if (activeData) applySearch();
+            });
+            columnSelect.addEventListener('change', () => { if (activeData) applySearch(); });
+            uploadArea.addEventListener('dragover', function(e) { e.preventDefault();
+                this.classList.add('dragover'); });
+            uploadArea.addEventListener('dragleave', function(e) { e.preventDefault();
+                this.classList.remove('dragover'); });
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+            });
+            padDigitsBtn.addEventListener('click', handleStep1);
+            fixCodesBtn.addEventListener('click', handleStep2);
+            runPipelineBtn.addEventListener('click', handleSequentialPipeline);
+            filterNonMatchBtn.addEventListener('click', handleFilterNonMatches);
+            resetFilterBtn.addEventListener('click', () => {
+                // Reset to full dataset (reload from original? We'll need to keep original copy)
+                // We'll just re-fetch from workbookData? But we have activeData.
+                // For simplicity, we'll re-load from the original workbookData (if available)
+                if (workbookData) {
+                    const firstSheet = workbookData.SheetNames[0];
+                    activeData = getSheetData(workbookData, firstSheet);
+                    populateColumnDropdown(activeData[0]);
+                    searchInput.value = '';
+                    currentSearchQuery = '';
+                    applySearch();
+                    alert('🔄 Reset to full dataset.');
+                }
+            });
+            fillDownBtn.addEventListener('click', () => performFill('down'));
+            fillUpBtn.addEventListener('click', () => performFill('up'));
+            downloadBtn.addEventListener('click', () => {
+                if (!activeData || activeData.length === 0) return;
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(activeData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Processed_Output');
+                const baseName = originalFileName.replace(/\.[^.]+$/, '') || 'excel_data';
+                XLSX.writeFile(wb, `${baseName}_pipeline_processed.xlsx`);
+            });
+
+            // NEW: search events
+            searchInput.addEventListener('input', applySearch);
+            clearSearchBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                applySearch();
+            });
+
+            console.log('✅ K Digits column now counts raw digits (including leading zeros).');
+            console.log('✅ Padding now forces exactly target length – pads or truncates from the left.');
+            console.log('✅ Pattern parsing fixed with non‑greedy regex.');
+            console.log('✅ Search by SIM/meter number added – searches all columns.');
+        })();
+    </script>
+
+</body>
+
+</html>
