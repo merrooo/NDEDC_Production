@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام إدارة البيانات </title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         :root {
             --primary: #2563eb;
@@ -816,7 +821,7 @@
             <div class="header-actions">
                 <span id="syncStatus" class="sync-status loading">⏳ جاري الاتصال...</span>
                 <span id="sessionTimer" class="session-timer">⏱️ 5:00</span>
-                 <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
+                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
                     <i class="fas fa-arrow-right"></i> رجوع
                 </a>
             </div>
@@ -854,11 +859,11 @@
 
     </div>
 
-    <!-- Modal for Add/Edit -->
+    <!-- Modal for Edit -->
     <div class="modal-overlay" id="dataModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modalTitle">إضافة سجل جديد</h3>
+                <h3 id="modalTitle">تعديل سجل</h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody"></div>
@@ -892,7 +897,7 @@
         // ==================== SESSION TIMER (5 minutes) ====================
         let sessionTimeout = null;
         let sessionTimerInterval = null;
-        let sessionTimeLeft = 300; // 5 minutes in seconds
+        let sessionTimeLeft = 300; 
 
         function resetSessionTimer() {
             sessionTimeLeft = 300;
@@ -928,13 +933,11 @@
             }
         }
 
-        // Reset timer on user activity
         document.addEventListener('click', resetSessionTimer);
         document.addEventListener('keydown', resetSessionTimer);
         document.addEventListener('mousemove', resetSessionTimer);
         document.addEventListener('scroll', resetSessionTimer);
 
-        // Start timer
         startSessionTimer();
 
         // ==================== LOAD REFERENCE DATABASES ====================
@@ -1094,7 +1097,7 @@
             });
         }
 
-        // ==================== RENDER LAYOUT ONCE ====================
+        // ==================== RENDER LAYOUT ====================
         function renderDatabaseLayout() {
             const container = document.getElementById('contentArea');
             const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
@@ -1128,7 +1131,7 @@
                     <span style="font-size:0.75rem;color:var(--secondary);font-weight:normal;margin-right:8px;">
                         (${totalRecords} سجل)
                     </span>
-                    <button class="btn btn-primary btn-sm" onclick="openAddModal()" style="margin-right:auto;">
+                    <button class="btn btn-primary btn-sm" onclick="openAddModalSwal()" style="margin-right:auto;">
                         <i class="fas fa-plus"></i> إضافة جديد
                     </button>
                 </div>
@@ -1171,6 +1174,73 @@
             container.innerHTML = html;
             setupUploadListeners();
         }
+
+        // ==================== SWEETALERT2 ADD FUNCTION ====================
+        window.openAddModalSwal = async function () {
+            if (!currentDbName) {
+                Swal.fire('تنبيه', 'يرجى اختيار قاعدة بيانات أولاً', 'warning');
+                return;
+            }
+
+            let fields = currentFields.length > 0 ? currentFields : ['field1', 'field2'];
+
+            const formHtml = fields.map(field => `
+                <div style="text-align: right; margin-bottom: 10px;">
+                    <label style="font-weight: bold; font-size: 0.85rem;">${field}:</label>
+                    <input id="swal_field_${field}" class="swal2-input" placeholder="أدخل ${field}" style="margin: 5px 0; width: 100%;">
+                </div>
+            `).join('');
+
+            const { value: formValues } = await Swal.fire({
+                title: `إضافة سجل جديد (${currentDbName})`,
+                html: formHtml,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-save"></i> حفظ',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    const data = {};
+                    fields.forEach(field => {
+                        const val = document.getElementById(`swal_field_${field}`).value;
+                        data[field] = val.trim();
+                    });
+
+                    if (!data[fields[0]]) {
+                        Swal.showValidationMessage(`الحقل "${fields[0]}" مطلوب`);
+                        return false;
+                    }
+                    return data;
+                }
+            });
+
+            if (formValues) {
+                Swal.fire({
+                    title: 'جاري الحفظ...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const collectionRef = ref(db, `reference_data/${currentDbName}`);
+                const newRef = push(collectionRef);
+
+                set(newRef, formValues)
+                    .then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحفظ!',
+                            text: 'تمت إضافة السجل بنجاح إلى قاعدة البيانات',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        refreshData();
+                        resetSessionTimer();
+                    })
+                    .catch(err => {
+                        Swal.fire('خطأ', `فشل الحفظ: ${err.message}`, 'error');
+                    });
+            }
+        };
 
         // ==================== FAST IN-MEMORY FILTER & TABLE RENDER ====================
         function applyFilterAndRenderTable() {
@@ -1233,7 +1303,6 @@
             resetSessionTimer();
         }
 
-        // ==================== SEARCH WITH DEBOUNCE ====================
         window.onSearch = function () {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => {
@@ -1323,7 +1392,7 @@
             return html;
         }
 
-        // ==================== SHOW UPLOAD ANY CONTENT ====================
+        // ==================== UPLOAD ANY CONTENT ====================
         window.showUploadAnyContent = function () {
             const container = document.getElementById('contentArea');
 
@@ -1384,7 +1453,6 @@
             }
         }
 
-        // ==================== HANDLE FILE UPLOADS ====================
         window.handleAnyFileUpload = function (input) {
             const file = input.files[0];
             if (!file) return;
@@ -1463,8 +1531,7 @@
             resetSessionTimer();
         };
 
-        // ==================== OPTIMIZED SAVE FUNCTIONS ====================
-
+        // ==================== SAVE FUNCTIONS ====================
         window.saveToDatabaseOptimized = function () {
             if (isUploading) return;
             if (!anyUploadData || anyUploadData.length === 0) {
@@ -1826,42 +1893,7 @@
             }
         };
 
-        // ==================== MODAL FUNCTIONS ====================
-        window.openAddModal = function () {
-            modalMode = 'add';
-            modalEditKey = '';
-            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
-            document.getElementById('modalTitle').textContent = `إضافة سجل جديد - ${displayName}`;
-
-            let fields = currentFields;
-            if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
-
-            let html = '';
-            fields.forEach(field => {
-                html += `
-                <div class="form-group">
-                    <label>${field}</label>
-                    <input type="text" id="modal_field_${field}" placeholder="أدخل ${field}" value="">
-                </div>
-            `;
-            });
-
-            html += `
-            <div class="form-actions">
-                <button class="btn btn-success" onclick="saveModalData()">
-                    <i class="fas fa-save"></i> حفظ
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    <i class="fas fa-times"></i> إلغاء
-                </button>
-            </div>
-        `;
-
-            document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('dataModal').classList.add('active');
-            resetSessionTimer();
-        };
-
+        // ==================== MODAL EDIT FUNCTIONS ====================
         window.openEditModal = function (key) {
             const record = currentDbData[key];
             if (!record) {
@@ -1942,37 +1974,19 @@
             }
 
             updateSyncStatus(true);
-            const collectionRef = ref(db, `reference_data/${currentDbName}`);
-
-            if (modalMode === 'add') {
-                const newRef = push(collectionRef);
-                set(newRef, data)
-                    .then(() => {
-                        updateSyncStatus(false);
-                        showStatus(`✅ تم إضافة السجل بنجاح!`, 'success');
-                        closeModal();
-                        refreshData();
-                        resetSessionTimer();
-                    })
-                    .catch((err) => {
-                        updateSyncStatus(false);
-                        showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    });
-            } else {
-                const recordRef = ref(db, `reference_data/${currentDbName}/${modalEditKey}`);
-                set(recordRef, data)
-                    .then(() => {
-                        updateSyncStatus(false);
-                        showStatus(`✅ تم تحديث السجل بنجاح!`, 'success');
-                        closeModal();
-                        refreshData();
-                        resetSessionTimer();
-                    })
-                    .catch((err) => {
-                        updateSyncStatus(false);
-                        showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    });
-            }
+            const recordRef = ref(db, `reference_data/${currentDbName}/${modalEditKey}`);
+            set(recordRef, data)
+                .then(() => {
+                    updateSyncStatus(false);
+                    showStatus(`✅ تم تحديث السجل بنجاح!`, 'success');
+                    closeModal();
+                    refreshData();
+                    resetSessionTimer();
+                })
+                .catch((err) => {
+                    updateSyncStatus(false);
+                    showStatus(`❌ خطأ: ${err.message}`, 'error');
+                });
         };
 
         document.getElementById('dataModal').addEventListener('click', function (e) {
@@ -2049,7 +2063,7 @@
         window.clearSubSearch = clearSubSearch;
         window.refreshData = refreshData;
         window.exportToExcel = exportToExcel;
-        window.openAddModal = openAddModal;
+        window.openAddModalSwal = openAddModalSwal;
         window.openEditModal = openEditModal;
         window.saveModalData = saveModalData;
         window.closeModal = closeModal;
