@@ -571,7 +571,7 @@
                     <div class="step-title">🔤 Code Prefix Auto-Correction</div>
                     <div class="controls-row">
                         <p style="font-size: 12px; color: #64748b; width: 100%;">
-                            Standardizes token syntax: Normalizes <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">NDC</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">KSH</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DKH</code>, and <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DMT</code>.
+                            Standardizes token syntax: Normalizes <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">NDC</code>, auto-detects governorates (<code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DKH</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">KSH</code>, <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DMT</code>), fixes <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">DP</code> hyphens, removes redundant numeric blocks, and formats <code style="background:#e2e8f0; padding:2px 4px; border-radius:3px;">C</code> tokens.
                         </p>
                         <button class="btn btn-primary-action" id="fixCodesBtn" disabled>Run Step 2 (Fix Token Syntax)</button>
                         <button class="btn btn-success" id="runPipelineBtn" disabled>⚡ Execute Step 1 & Step 2 Sequentially</button>
@@ -798,7 +798,6 @@
                 // Determine target digit count from pattern (default 5)
                 let targetDigits = 5;
                 const pattern = padPrefixInput.value.trim();
-                // FIX: use non‑greedy +? to capture the prefix correctly (e.g. "K" from "KXXXXX")
                 const match = pattern.match(/^([A-Za-z]+?)(X+)$/i);
                 if (match) {
                     targetDigits = match[2].length;
@@ -905,7 +904,6 @@
                 rowCount.textContent = totalRows;
                 searchStats.textContent = hasQuery ? `${visibleCount} matching rows` : `${totalRows} rows`;
 
-                // If search is active and no rows match, show a message
                 if (hasQuery && visibleCount === 0) {
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
@@ -920,9 +918,6 @@
                     tableBody.appendChild(tr);
                 }
 
-                // If more rows exist beyond the limit, show a note (but we already cap at 101)
-                // but we won't show the "and more" because we already cap at 101.
-                // Instead, we can display a note if data has more rows than shown.
                 if (data.length > 101) {
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
@@ -993,22 +988,18 @@
             function padCodeDigits(value, customPattern) {
                 if (!value || typeof value !== 'string' || !customPattern) return value;
 
-                // FIX: use non‑greedy +? to capture the prefix correctly (e.g. "K" from "KXXXXX")
                 const match = customPattern.trim().match(/^([A-Za-z]+?)(X+)$/i);
                 if (!match) return value;
 
                 const prefix = match[1];
                 const targetLength = match[2].length;
 
-                // Build a regex that matches the prefix followed by digits (case-sensitive)
                 const regex = new RegExp('(?<![A-Za-z])(' + prefix + ')(\\d+)', 'g');
 
-                // Use replace with a callback to pad the digits
                 const result = value.replace(regex, function(match, p1, p2) {
                     let digitPart = p2;
-                    // Enforce exactly targetLength digits: if longer, take rightmost; if shorter, pad left
                     if (digitPart.length > targetLength) {
-                        digitPart = digitPart.slice(-targetLength);  // keep last N digits
+                        digitPart = digitPart.slice(-targetLength);
                     } else {
                         digitPart = digitPart.padStart(targetLength, '0');
                     }
@@ -1017,7 +1008,6 @@
 
                 return result;
             }
-            // ===============================================================
 
             function executePadding() {
                 const colIdxStr = pipelineColumnSelect.value;
@@ -1048,32 +1038,94 @@
                 return changedRows > 0;
             }
 
-            function fixCodeTokens(str) {
+            // ========== UPGRADED CODE FIX IMPLEMENTATION ==========
+            function fixCodeTokens(str, rowData, headers) {
                 if (!str || typeof str !== 'string') return str;
-                let result = str;
-                if (!/^\s*NDC[-_\s]/i.test(result)) {
-                    if (/^\s*(nd|nc|dc)[-_\s]/i.test(result)) {
-                        result = result.replace(/^\s*(nd|nc|dc)(?=[-_\s])/i, 'NDC');
-                    } else if (!/^\s*NDC/i.test(result)) {
-                        result = 'NDC-' + result.replace(/^[-_\s]+/, '');
+                let code = str.trim();
+                if (!code) return str;
+
+                // 1. Remove all spaces
+                code = code.replace(/\s+/g, '');
+
+                // 2. Fix hyphen inside DP if written as DP-174 -> DP174
+                code = code.replace(/DP-(\d+)/gi, 'DP$1');
+
+                // 3. Standardize prefix ND- -> NDC-
+                if (/^ND-/i.test(code)) {
+                    code = 'NDC-' + code.substring(3);
+                }
+
+                // Split components by hyphen
+                let parts = code.split('-');
+                let newParts = [];
+
+                for (let i = 0; i < parts.length; i++) {
+                    let part = parts[i];
+                    if (!part) continue;
+
+                    // Remove standalone redundant numeric segments (e.g., '39' in 'NDC-39-DP186-C11')
+                    if (/^\d+$/.test(part)) {
+                        continue;
+                    }
+
+                    // Standardize 'C' component (e.g., C014 -> C14, keep C09 as 2 digits)
+                    if (/^C\d+$/i.test(part)) {
+                        let cNum = part.substring(1);
+                        if (cNum.length > 2 && cNum.startsWith('0')) {
+                            cNum = cNum.replace(/^0+/, '');
+                            if (!cNum) cNum = '0';
+                            if (cNum.length === 1) cNum = '0' + cNum;
+                        }
+                        part = 'C' + cNum;
+                    }
+
+                    newParts.push(part);
+                }
+
+                // Determine proper governorate code based on keta3 / handsa column context if present
+                let keta3Val = '';
+                let handsaVal = '';
+                if (headers && rowData) {
+                    const kIdx = headers.findIndex(h => String(h).trim().toLowerCase() === 'keta3');
+                    const hIdx = headers.findIndex(h => String(h).trim().toLowerCase() === 'handsa');
+                    if (kIdx !== -1 && rowData[kIdx] !== undefined) keta3Val = String(rowData[kIdx]);
+                    if (hIdx !== -1 && rowData[hIdx] !== undefined) handsaVal = String(rowData[hIdx]);
+                }
+
+                let govCode = null;
+                const textToCheck = `${keta3Val} ${handsaVal}`;
+                if (textToCheck.includes('كفر الشيخ')) {
+                    govCode = 'KSH';
+                } else if (textToCheck.includes('دمياط')) {
+                    govCode = 'DMT';
+                } else if (/الدقهلية|الدقهليه|جنوب|شمال|المنصوره|ميت غمر|طلخا|بلقاس|دكرنس|جمصه|المنزله|شربين/.test(textToCheck)) {
+                    govCode = 'DKH';
+                }
+
+                // Reconstruct code ensuring format: NDC-[GOV]-DPXXX-CXX
+                if (newParts.length > 0 && newParts[0].toUpperCase() === 'NDC') {
+                    newParts[0] = 'NDC';
+                    if (newParts.length > 1 && ['DKH', 'KSH', 'DMT'].includes(newParts[1].toUpperCase())) {
+                        newParts[1] = newParts[1].toUpperCase();
+                    } else if (govCode) {
+                        newParts.splice(1, 0, govCode);
                     }
                 }
-                result = result.replace(/(^|[-_\s])(ndc|nd|nc|dc)(?=[-_\s]|$)/gi, '$1NDC');
-                result = result.replace(/(^|[-_\s])(ksh|ks|sh|kh)(?=[-_\s]|$)/gi, '$1KSH');
-                result = result.replace(/(^|[-_\s])(dkh|dk|dh)(?=[-_\s]|$)/gi, '$1DKH');
-                result = result.replace(/(^|[-_\s])(dmt|dm|dt)(?=[-_\s]|$)/gi, '$1DMT');
-                return result;
+
+                return newParts.join('-');
             }
 
             function executeCodeFix() {
                 const colIdxStr = pipelineColumnSelect.value;
                 if (colIdxStr === '') return false;
                 const colIdx = parseInt(colIdxStr, 10);
+                const headers = activeData[0] || [];
                 let changedRows = 0;
+
                 for (let r = 1; r < activeData.length; r++) {
                     if (activeData[r][colIdx] !== undefined && activeData[r][colIdx] !== null) {
                         const original = String(activeData[r][colIdx]);
-                        const fixed = fixCodeTokens(original);
+                        const fixed = fixCodeTokens(original, activeData[r], headers);
                         if (fixed !== original) {
                             activeData[r][colIdx] = fixed;
                             changedRows++;
@@ -1101,7 +1153,6 @@
                     alert('Please enter a valid pattern, e.g. KXXXXX');
                     return;
                 }
-                // Use non‑greedy to validate pattern
                 const match = pattern.match(/^([A-Za-z]+?)(X+)$/i);
                 if (!match) {
                     alert('Invalid pattern. Use format like "KXXXXX" (letters + X\'s).');
@@ -1109,7 +1160,6 @@
                 }
                 const targetLen = match[2].length;
 
-                // Count rows that need padding (where digit length != targetLen)
                 let needFixCount = 0;
                 const regex = /(?<![A-Za-z])K(\d+)/g;
                 for (let r = 1; r < activeData.length; r++) {
@@ -1136,11 +1186,7 @@
 
                 const changed = executePadding();
                 if (changed) {
-                    // Clear search after modification?
-                    // We'll keep the search as is, but re-render with activeData.
-                    // We'll keep the search query, but filteredData will be re-evaluated.
-                    applySearch(); // re-apply search on the updated data
-                    // Show a sample of the first changed row
+                    applySearch();
                     let sampleMsg = '';
                     for (let r = 1; r < activeData.length; r++) {
                         const val = activeData[r][colIdx];
@@ -1221,8 +1267,8 @@
                         filtered.push(activeData[r]);
                     }
                 }
-                activeData = filtered; // replace activeData with filtered view
-                applySearch(); // re-apply search on the filtered data
+                activeData = filtered;
+                applySearch();
                 alert(`🔍 Inspection Filter Applied: Showing ${filtered.length - 1} non-matching row(s).`);
             }
 
@@ -1292,10 +1338,9 @@
                         const firstSheet = workbookData.SheetNames[0];
                         activeData = getSheetData(workbookData, firstSheet);
                         populateColumnDropdown(activeData[0]);
-                        // Clear search and re-render
                         searchInput.value = '';
                         currentSearchQuery = '';
-                        applySearch(); // will render with activeData
+                        applySearch();
                     } catch (err) {
                         alert('Error reading file: ' + err.message);
                     }
@@ -1323,7 +1368,7 @@
                         }
                     }
                 }
-                applySearch(); // re-render with search applied
+                applySearch();
             }
 
             // ----- SEARCH FUNCTION -----
@@ -1335,11 +1380,9 @@
                 const query = searchInput.value.trim().toLowerCase();
                 currentSearchQuery = query;
                 if (query === '') {
-                    // No search: show all data
                     renderPreview(activeData);
                 } else {
-                    // Filter: only keep rows where any cell contains query
-                    const filtered = [activeData[0]]; // keep header
+                    const filtered = [activeData[0]];
                     for (let r = 1; r < activeData.length; r++) {
                         const row = activeData[r];
                         let match = false;
@@ -1384,9 +1427,6 @@
             runPipelineBtn.addEventListener('click', handleSequentialPipeline);
             filterNonMatchBtn.addEventListener('click', handleFilterNonMatches);
             resetFilterBtn.addEventListener('click', () => {
-                // Reset to full dataset (reload from original? We'll need to keep original copy)
-                // We'll just re-fetch from workbookData? But we have activeData.
-                // For simplicity, we'll re-load from the original workbookData (if available)
                 if (workbookData) {
                     const firstSheet = workbookData.SheetNames[0];
                     activeData = getSheetData(workbookData, firstSheet);
@@ -1415,13 +1455,10 @@
                 applySearch();
             });
 
-            console.log('✅ K Digits column now counts raw digits (including leading zeros).');
-            console.log('✅ Padding now forces exactly target length – pads or truncates from the left.');
-            console.log('✅ Pattern parsing fixed with non‑greedy regex.');
-            console.log('✅ Search by SIM/meter number added – searches all columns.');
+            console.log('✅ Step 2 Auto-Correction logic now embeds all DP/governorate formatting rules.');
         })();
     </script>
 
 </body>
 
-</html>
+</html>y
