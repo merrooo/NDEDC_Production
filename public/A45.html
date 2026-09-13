@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -756,6 +757,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -801,7 +803,8 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label>facility <span class="required-marker">*</span></label>
-                            <input type="text" id="facility" list="transformersList" placeholder="اختر أو أدخل اسم المحول">
+                            <input type="text" id="facility" list="transformersList"
+                                placeholder="اختر أو أدخل اسم المحول">
                             <datalist id="transformersList"></datalist>
                         </div>
                         <div class="form-group">
@@ -874,7 +877,8 @@
                         </div>
                         <div class="form-group">
                             <label>feeder_outgoing</label>
-                            <input type="text" id="feeder_outgoing" list="outgoingList" placeholder="مغذي الخروج" disabled>
+                            <input type="text" id="feeder_outgoing" list="outgoingList" placeholder="مغذي الخروج"
+                                disabled>
                             <datalist id="outgoingList"></datalist>
                         </div>
                     </div>
@@ -900,7 +904,7 @@
                         <input type="text" id="meter_voltage" placeholder="جهد العداد" value="380">
                     </div>
                     <div class="form-group">
-                            <label for="installDatePicker">install_date</label>
+                        <label for="installDatePicker">install_date</label>
                         <div class="date-picker-wrapper">
                             <input type="date" id="installDatePicker" dir="ltr" title="تاريخ التركيب">
                             <i class="fas fa-calendar-alt date-icon"></i>
@@ -924,8 +928,10 @@
             </div>
 
             <div class="form-actions">
-                <button class="btn btn-primary" id="addSingleBtn" disabled><i class="fas fa-plus-circle"></i> حفظ السجل</button>
-                <button class="btn btn-secondary cancel-edit-button" id="cancelEditBtn"><i class="fas fa-times"></i> إلغاء التعديل</button>
+                <button class="btn btn-primary" id="addSingleBtn" disabled><i class="fas fa-plus-circle"></i> حفظ
+                    السجل</button>
+                <button class="btn btn-secondary cancel-edit-button" id="cancelEditBtn"><i class="fas fa-times"></i>
+                    إلغاء التعديل</button>
             </div>
         </div>
 
@@ -936,8 +942,10 @@
                     <span id="recordsCount" class="records-count">0 سجل</span>
                 </div>
                 <div class="action-btns">
-                    <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-                    <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط</button>
+                    <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i>
+                        Excel</button>
+                    <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة
+                        ضبط</button>
                 </div>
             </div>
             <div class="table-container" id="tableContainer">
@@ -981,7 +989,7 @@
 
         if (!keta3_id || !handsa_code) {
             const defaultKeta3 = "1";
-            const defaultHandsa = "101";
+            const defaultHandsa = "1";
             console.warn("No keta3/handsa in URL, using defaults:", defaultKeta3, defaultHandsa);
             keta3_id = defaultKeta3;
             handsa_code = defaultHandsa;
@@ -991,6 +999,10 @@
 
         const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
         const ALLOWED_TYPES = ['A4', 'A5'];
+
+        // Global State Initializations (Set early to avoid reference bugs)
+        let sectorName = '', districtName = '';
+        let currentHandsaCode = norm(handsa_code);
 
         function formatDate(d) {
             if (!d || isNaN(d)) return '';
@@ -1077,23 +1089,23 @@
         }
 
         const sectorNames = {
-            '1': 'قطاع دمياط', '2': 'قطاع شمال الدقهلية', '3': 'قطاع جنوب الدقهلية', '4': 'قطاع كفر الشيخ'
+            '1': 'قطاع دمياط',
+            '2': 'قطاع كفر الشيخ',
+            '3': 'قطاع شمال الدقهلية',
+            '4': 'قطاع جنوب الدقهلية'
         };
         const districtNames = {
-            '101': 'هندسة شمال دمياط', '102': 'هندسة جنوب دمياط', '103': 'هندسة عزبة البرج', '104': 'هندسة كفر سعد',
-            '105': 'هندسة كفر البطيخ', '106': 'هندسة راس البر', '107': 'هندسة دمياط الجديدة', '108': 'هندسة الزرقا',
-            '109': 'هندسة فارسكور', '110': 'هندسة الروضة', '111': 'هندسة الشعراء', '201': 'هندسة مدينة شربين',
-            '202': 'هندسة قري شربين', '203': 'هندسة دكرنس', '204': 'هندسة جمصة', '205': 'هندسة قري بلقاس',
-            '206': 'هندسة مدينة بلقاس', '207': 'هندسة الستاموني', '208': 'هندسة بني عبيد', '209': 'هندسة منية النصر',
-            '210': 'هندسة ميت سلسيل', '211': 'هندسة الجمالية', '212': 'هندسة قري المنزلة', '213': 'هندسة مدينة المنزلة',
-            '214': 'هندسة المطرية', '301': 'هندسة شرق المنصورة', '302': 'هندسة غرب المنصورة', '303': 'هندسة طلخا',
-            '304': 'هندسة نبروه', '305': 'هندسة قري المنصورة 1', '306': 'هندسة قري المنصورة 2', '307': 'هندسة اجا',
-            '308': 'هندسة مدينة السنبلاوين', '309': 'هندسة قري السنبلاوين', '310': 'هندسة تمي الامديد', '311': 'هندسة مدينة ميت غمر',
-            '312': 'هندسة قري ميت غمر', '313': 'هندسة كوم النور', '401': 'هندسة مدينة كفر الشيخ', '402': 'هندسة غرب كفر الشيخ',
-            '403': 'هندسة شرق كفر الشيخ', '404': 'هندسة قلين', '405': 'هندسة قرى سيدي سالم', '406': 'هندسة مدينة سيدي سالم',
-            '407': 'هندسة الرياض', '408': 'هندسة مدينة دسوق', '409': 'هندسة قرى شمال دسوق', '410': 'هندسة قرى جنوب دسوق',
-            '411': 'هندسة فوه', '412': 'هندسة مطوبس', '413': 'هندسة مدينة الحامول', '414': 'هندسة قرى الحامول',
-            '415': 'هندسة بيلا', '416': 'هندسة بلطيم', '417': 'هندسة برج البرلس'
+            '1': 'هندسة شمال دمياط', '2': 'هندسة جنوب دمياط', '3': 'هندسة الشعراء', '4': 'هندسة عزبة البرج', '5': 'هندسة دمياط الجديدة',
+            '6': 'هندسة فارسكور', '7': 'هندسة الروضة', '8': 'هندسة كفر سعد', '9': 'هندسة كفر البطيخ', '10': 'هندسة رأس البر', '11': 'هندسة الزرقا',
+            '12': 'هندسة مدينة كفر الشيخ', '13': 'هندسة قرى شرق كفر الشيخ', '14': 'هندسة قرى غرب كفر الشيخ', '15': 'هندسة مدينة دسوق',
+            '16': 'هندسة قرى شمال دسوق', '17': 'هندسة قرى جنوب دسوق', '19': 'هندسة قرى الحامول', '20': 'هندسة بلطيم', '21': 'هندسة الرياض',
+            '22': 'هندسة بيلا', '23': 'هندسة قلين', '24': 'هندسة فوه', '25': 'هندسة مطوبس', '26': 'هندسة مدينة سيدي سالم',
+            '27': 'هندسة قرى سيدي سالم', '28': 'هندسة برج البرلس', '29': 'هندسة المطرية', '30': 'هندسة مدينة المنزلة', '31': 'هندسة قرى المنزلة',
+            '32': 'هندسة الجمالية', '33': 'هندسة ميت سلسيل', '34': 'هندسة منية النصر', '35': 'هندسة دكرنس', '36': 'هندسة بني عبيد',
+            '37': 'هندسة مدينة شربين', '38': 'هندسة قرى شربين', '39': 'هندسة جمصة', '40': 'هندسة الستاموني', '41': 'هندسة مدينة بلقاس',
+            '42': 'هندسة قرى بلقاس', '43': 'هندسة شرق المنصورة', '44': 'هندسة غرب المنصورة', '45': 'هندسة طلخا', '46': 'هندسة نبروه',
+            '47': 'هندسة أجا', '48': 'هندسة مدينة ميت غمر', '49': 'هندسة قرى ميت غمر', '50': 'هندسة مدينة السنبلاوين', '51': 'هندسة قرى السنبلاوين',
+            '52': 'هندسة تمي الأمديد', '53': 'هندسة قرى المنصورة 1', '54': 'هندسة قرى المنصورة 2', '55': 'هندسة كوم النور'
         };
 
         // Data stores
@@ -1108,8 +1120,6 @@
         let existingMeters = new Set();
         let existingSims = new Set();
 
-        let sectorName = '', districtName = '', currentHandsaCode = '';
-
         // Table state
         let activeColumnFilters = {};
         let filteredKeysList = [];
@@ -1117,7 +1127,6 @@
         const PAGE_SIZE = 10;
         let columnSearchTerms = {};
 
-        // Table Columns - matching Excel headers exactly
         const COLUMNS = [
             { key: 'meter_number', label: 'meter_number' },
             { key: 'sim_number', label: 'sim_number' },
@@ -1142,7 +1151,6 @@
 
         function getRecordValue(record, col) {
             let val;
-            // Use exact Excel header names as keys
             if (col.key === 'meter_number') val = record["meter_number"] || '';
             else if (col.key === 'sim_number') val = record["sim_number"] || '';
             else if (col.key === 'facility') val = record["facility"] || '';
@@ -1198,12 +1206,12 @@
         ['click', 'keydown', 'mousemove', 'touchstart', 'scroll'].forEach(event => {
             document.addEventListener(event, resetTimerOnActivity);
         });
-        window.logout = function() {
+        window.logout = function () {
             clearInterval(countdownInterval);
             clearTimeout(sessionTimeout);
-            window.location.href = "login.html";
+            window.location.href = "login_Smart.html";
         };
-        window.goBack = function() {
+        window.goBack = function () {
             const kId = document.getElementById('keta3_id').value || keta3_id;
             const hCode = document.getElementById('handsa_code').value || handsa_code;
             if (kId && hCode) {
@@ -1215,15 +1223,19 @@
 
         function showStatus(message, type = 'info') {
             const div = document.getElementById('statusMessage');
-            div.textContent = message;
-            div.className = type;
+            if (div) {
+                div.textContent = message;
+                div.className = type;
+            }
             resetSessionTimer();
         }
 
         function updateSyncStatus(isLoading = false) {
             const status = document.getElementById('syncStatus');
-            status.textContent = isLoading ? '⏳ جاري الاتصال...' : '✅ متصل';
-            status.className = `sync-status ${isLoading ? 'loading' : ''}`;
+            if (status) {
+                status.textContent = isLoading ? '⏳ جاري الاتصال...' : '✅ متصل';
+                status.className = `sync-status ${isLoading ? 'loading' : ''}`;
+            }
         }
 
         function validateStationCode(code) {
@@ -1239,7 +1251,6 @@
             return regex.test(clean);
         }
 
-        // Feed Source Change Handler
         function handleFeedSourceChange() {
             const feedSourceVal = document.getElementById('feedSource').value;
             const isDP = feedSourceVal === 'dp';
@@ -1254,8 +1265,7 @@
 
             if (!feedSourceVal) {
                 [feeder, feederCode, dp, subName, subCode, feederOutgoing].forEach(el => {
-                    el.value = '';
-                    el.disabled = true;
+                    if (el) { el.value = ''; el.disabled = true; }
                 });
             } else if (isDP) {
                 feeder.disabled = false;
@@ -1283,14 +1293,13 @@
 
         document.getElementById('feedSource').addEventListener('change', handleFeedSourceChange);
 
-        // UI Helpers
         function updateDateDisplay(date) {
             if (date && !isNaN(date.getTime())) {
                 document.getElementById('dateDisplay').textContent = `التاريخ: ${formatDate(date)}`;
             }
         }
 
-        document.getElementById('installDatePicker').addEventListener('change', function() {
+        document.getElementById('installDatePicker').addEventListener('change', function () {
             const val = this.value;
             if (val) {
                 const parts = val.split('-');
@@ -1303,8 +1312,7 @@
             }
         });
 
-        // Update facility_type based on meter_type
-        document.getElementById('meter_type').addEventListener('change', function() {
+        document.getElementById('meter_type').addEventListener('change', function () {
             const val = this.value;
             if (val === 'A5') {
                 document.getElementById('facility_type').value = 'Transformer-P';
@@ -1313,7 +1321,6 @@
             }
         });
 
-        // Data Loading
         async function authenticateAndInit() {
             updateSyncStatus(true);
             try {
@@ -1321,7 +1328,7 @@
                 const snapshot = await get(authRef);
                 if (!snapshot.exists()) {
                     alert("الهندسة المحددة غير موجودة أو غير مصرح بها.");
-                    window.location.href = "login.html";
+                    window.location.href = "login_Smart.html";
                     return;
                 }
                 sectorName = sectorNames[keta3_id] || `القطاع ${keta3_id}`;
@@ -1361,7 +1368,7 @@
         }
 
         async function fetchStationsDropdown() {
-            const subSnap = await get(ref(db, 'reference_data/sub_codes'));
+            const subSnap = await get(ref(db, 'reference_data/sub_code'));
             rawStations = [];
             stationCodesByName = {};
             if (subSnap.exists()) {
@@ -1408,7 +1415,7 @@
         }
 
         async function fetchPanelsDropdown() {
-            const dpSnap = await get(ref(db, 'reference_data/dp_codes'));
+            const dpSnap = await get(ref(db, 'reference_data/dp_cell_code'));
             rawPanels = [];
             panelsMap = {};
             if (dpSnap.exists()) {
@@ -1449,7 +1456,7 @@
         }
 
         async function fetchFeedersDropdown() {
-            const cellsSnap = await get(ref(db, 'reference_data/cell_codes'));
+            const cellsSnap = await get(ref(db, 'reference_data/dp_cell_code'));
             rawFeeders = [];
             feedersMap = {};
             feedersReverseMap = {};
@@ -1458,8 +1465,8 @@
                 const list = Array.isArray(data) ? data : Object.values(data);
                 list.forEach(item => {
                     if (item && matchesHandsa(item)) {
-                        const name = norm(item.cell_out || item.cell || item["اسم المغذي"] || '');
-                        const code = norm(item.cell_out_code || item.cell_code || item["كود المغذي"] || '');
+                        const name = norm(item.facility || item.cell || item["اسم المغذي"] || '');
+                        const code = norm(item.facility_code || item.cell_code || item["كود المغذي"] || '');
                         const mahataCode = norm(item.sub_code || item.mahata_code || '');
                         if (name) {
                             rawFeeders.push({ name, code, mahataCode, raw: item });
@@ -1500,7 +1507,7 @@
         }
 
         async function fetchTransformersDropdown() {
-            const trfSnap = await get(ref(db, 'reference_data/trf_codes'));
+            const trfSnap = await get(ref(db, 'reference_data/trf_code'));
             const nameDatalist = document.getElementById('transformersList');
             const codeDatalist = document.getElementById('transCodeList');
             nameDatalist.innerHTML = '';
@@ -1513,7 +1520,7 @@
                 const list = Array.isArray(data) ? data : Object.values(data);
                 list.forEach(item => {
                     if (item && matchesHandsa(item)) {
-                        const name = norm(item.trf || item["اسم المحول"] || '');
+                        const name = norm(item.trf_name || item["اسم المحول"] || '');
                         const code = norm(item.trf_code || item["كود المحول"] || '');
                         if (name) {
                             transformersMap[name] = code;
@@ -1580,7 +1587,6 @@
             });
         }
 
-        // Linked dropdowns
         function updateStationCodesDropdown(stationName) {
             const datalist = document.getElementById('stationCodeList');
             const input = document.getElementById('sub_code');
@@ -1596,7 +1602,7 @@
             }
         }
 
-        document.getElementById('sub_name').addEventListener('input', function(e) {
+        document.getElementById('sub_name').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             updateStationCodesDropdown(val);
             const stCode = norm(document.getElementById('sub_code').value);
@@ -1605,7 +1611,7 @@
             checkValidation();
         });
 
-        document.getElementById('sub_code').addEventListener('input', function(e) {
+        document.getElementById('sub_code').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             let foundName = '';
             for (const [name, codes] of Object.entries(stationCodesByName)) {
@@ -1627,7 +1633,7 @@
             checkValidation();
         });
 
-        document.getElementById('dp').addEventListener('input', function(e) {
+        document.getElementById('dp').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             const foundPanel = rawPanels.find(p => p.name === val);
             if (foundPanel) {
@@ -1637,35 +1643,36 @@
             renderFeedersList(norm(document.getElementById('dp').value), norm(document.getElementById('sub_code').value));
         });
 
-        document.getElementById('feeder').addEventListener('input', function(e) {
+        document.getElementById('feeder').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             if (feedersMap[val]) document.getElementById('feeder_code').value = feedersMap[val];
             else if (!document.getElementById('feeder_code').dataset.userEdited) document.getElementById('feeder_code').value = '';
         });
 
-        document.getElementById('feeder_code').addEventListener('input', function(e) {
+        document.getElementById('feeder_code').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             if (feedersReverseMap[val]) document.getElementById('feeder').value = feedersReverseMap[val];
         });
 
-        document.getElementById('facility').addEventListener('input', function(e) {
+        document.getElementById('facility').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             if (transformersMap[val]) document.getElementById('facility_code').value = transformersMap[val];
             else if (!document.getElementById('facility_code').dataset.userEdited) document.getElementById('facility_code').value = '';
         });
 
-        document.getElementById('facility_code').addEventListener('input', function(e) {
+        document.getElementById('facility_code').addEventListener('input', function (e) {
             const val = norm(e.target.value);
             if (transformersReverseMap[val]) document.getElementById('facility').value = transformersReverseMap[val];
         });
 
         ['facility_code', 'feeder_code', 'sub_code'].forEach(id => {
             const el = document.getElementById(id);
-            el.addEventListener('focus', function() { this.dataset.userEdited = 'true'; });
-            el.addEventListener('blur', function() { setTimeout(() => { delete this.dataset.userEdited; }, 300); });
+            if (el) {
+                el.addEventListener('focus', function () { this.dataset.userEdited = 'true'; });
+                el.addEventListener('blur', function () { setTimeout(() => { delete this.dataset.userEdited; }, 300); });
+            }
         });
 
-        // Table functions
         function loadRecords() {
             const recordsRef = ref(db, `sectors/${keta3_id}/districts/${handsa_code}/manual_entries`);
             onValue(recordsRef, (snapshot) => {
@@ -1797,7 +1804,7 @@
             document.getElementById('btnNext').disabled = (currentPage >= totalPages);
         }
 
-        window.changePage = function(delta) {
+        window.changePage = function (delta) {
             const totalPages = Math.ceil(filteredKeysList.length / PAGE_SIZE) || 1;
             if (currentPage + delta >= 1 && currentPage + delta <= totalPages) {
                 currentPage += delta;
@@ -1805,8 +1812,7 @@
             }
         };
 
-        // Filter Popover
-        window.toggleFilterPopover = function(event, colKey) {
+        window.toggleFilterPopover = function (event, colKey) {
             event.stopPropagation();
             const popover = document.getElementById('filterPopover');
             const button = event.currentTarget;
@@ -1868,7 +1874,7 @@
             }, 100);
         };
 
-        window.onColumnSearch = function(colKey, value) {
+        window.onColumnSearch = function (colKey, value) {
             if (value && value.trim() !== '') {
                 columnSearchTerms[colKey] = value.trim();
             } else {
@@ -1890,7 +1896,7 @@
             applyFilters();
         };
 
-        window.applyDateFilter = function(colKey) {
+        window.applyDateFilter = function (colKey) {
             const fromRGB = document.getElementById('dateFromPicker').value;
             const toRGB = document.getElementById('dateToPicker').value;
             let from = '', to = '';
@@ -1905,13 +1911,13 @@
             applyFilters();
         };
 
-        window.clearDateFilter = function(colKey) {
+        window.clearDateFilter = function (colKey) {
             delete activeColumnFilters[colKey];
             document.getElementById('filterPopover').classList.remove('show');
             applyFilters();
         };
 
-        window.onCheckboxChange = function(colKey) {
+        window.onCheckboxChange = function (colKey) {
             const popover = document.getElementById('filterPopover');
             const checkboxes = popover.querySelectorAll('input[type="checkbox"]:not(.hidden)');
             const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
@@ -1923,21 +1929,21 @@
             applyFilters();
         };
 
-        window.selectAllColumn = function(colKey, selectAll) {
+        window.selectAllColumn = function (colKey, selectAll) {
             const popover = document.getElementById('filterPopover');
             const checkboxes = popover.querySelectorAll('input[type="checkbox"]:not(.hidden)');
             checkboxes.forEach(cb => cb.checked = selectAll);
             window.onCheckboxChange(colKey);
         };
 
-        window.resetAllFilters = function() {
+        window.resetAllFilters = function () {
             activeColumnFilters = {};
             columnSearchTerms = {};
             applyFilters();
             showStatus("تم إعادة ضبط جميع الفلاتر", "info");
         };
 
-        window.exportToExcel = function() {
+        window.exportToExcel = function () {
             if (filteredKeysList.length === 0) {
                 alert("لا توجد بيانات لتصديرها.");
                 return;
@@ -1963,8 +1969,7 @@
             }
         };
 
-        // Edit, Delete
-        window.editRecord = function(key) {
+        window.editRecord = function (key) {
             const record = allRecords[key];
             if (!record) return;
 
@@ -1984,12 +1989,10 @@
             }
 
             document.getElementById('facility_type').value = record["facility_type"] || (typeVal === 'A5' ? 'Transformer-P' : 'Transformer');
-            
-            const hasFeeder = record["feeder"] && record["feeder"] !== '';
-            const hasDp = record["dp"] && record["dp"] !== '';
+
             const hasSubName = record["sub_name"] && record["sub_name"] !== '';
             const hasSubCode = record["sub_code"] && record["sub_code"] !== '';
-            
+
             let feedSourceVal = 'dp';
             if (hasSubName || hasSubCode) {
                 feedSourceVal = 'station';
@@ -2034,7 +2037,7 @@
             applyFilters();
         };
 
-        window.cancelEdit = function() {
+        window.cancelEdit = function () {
             editingKey = null;
             document.getElementById('editingKey').value = '';
             document.getElementById('addSingleBtn').innerHTML = '<i class="fas fa-plus-circle"></i> حفظ السجل';
@@ -2049,7 +2052,7 @@
             checkValidation();
         };
 
-        window.deleteRecord = function(key) {
+        window.deleteRecord = function (key) {
             if (!confirm(`هل أنت متأكد من حذف السجل رقم ${key}؟`)) return;
             const kId = norm(document.getElementById('keta3_id').value);
             const hCode = norm(document.getElementById('handsa_code').value);
@@ -2198,7 +2201,6 @@
             document.getElementById('addSingleBtn').disabled = hasError || !feedSourceVal;
         }
 
-        // Event listeners for validation
         document.getElementById('meter_number').addEventListener('input', checkValidation);
         document.getElementById('sim_number').addEventListener('input', checkValidation);
         document.getElementById('facility_code').addEventListener('input', checkValidation);
@@ -2212,8 +2214,7 @@
             }
         });
 
-        // Save Record - using exact Excel header names as keys ONLY
-        document.getElementById('addSingleBtn').addEventListener('click', function() {
+        document.getElementById('addSingleBtn').addEventListener('click', function () {
             const kId = norm(document.getElementById('keta3_id').value);
             const hCode = norm(document.getElementById('handsa_code').value);
             const meterNum = norm(document.getElementById('meter_number').value);
@@ -2262,7 +2263,6 @@
                 return;
             }
 
-            // Database keys must match Excel headers exactly - ONLY these keys
             const recordData = {
                 "meter_number": meterNum,
                 "sim_number": simNum,
@@ -2285,7 +2285,6 @@
                 "handsa_code": hCode
             };
 
-            // If station source, we need to map station fields to Excel columns
             if (feedSourceVal === 'station') {
                 recordData["feeder"] = feederOutgoing;
                 recordData["feeder_code"] = subCode;
@@ -2320,11 +2319,10 @@
 
         document.getElementById('cancelEditBtn').addEventListener('click', () => window.cancelEdit());
 
-        // Init
+        // Initialization
         console.log("Initializing A45 with keta3_id:", keta3_id, "handsa_code:", handsa_code);
         document.getElementById('keta3_id').value = keta3_id;
         document.getElementById('handsa_code').value = handsa_code;
-        currentHandsaCode = norm(handsa_code);
         const today = new Date();
         document.getElementById('installDatePicker').value = today.toISOString().split('T')[0];
         document.getElementById('install_date').value = formatDate(today);
@@ -2335,4 +2333,5 @@
         checkValidation();
     </script>
 </body>
+
 </html>
