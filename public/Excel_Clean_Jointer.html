@@ -20,6 +20,7 @@
             --success-green: #059669;
             --purple-accent: #7c3aed;
             --orange-accent: #ea580c;
+            --indigo-accent: #4f46e5;
         }
 
         body {
@@ -92,6 +93,21 @@
 
         .btn-word-add:hover {
             background-color: #c2410c;
+            transform: translateY(-2px);
+        }
+
+        .btn-transform {
+            background-color: #4f46e5;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-transform:hover {
+            background-color: #4338ca;
             transform: translateY(-2px);
         }
 
@@ -185,9 +201,38 @@
             </div>
         </div>
 
+        <!-- CARD: TRANSFORM CODE PATTERN (e.g., -D077- to -DP077-) -->
+        <div class="card mb-4">
+            <h5 class="fw-bold mb-3"><i class="fas fa-exchange-alt me-2" style="color:#4f46e5;"></i> Transform Code Pattern (e.g., -D077- &rarr; -DP077-)</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label-custom">Select Target Column</label>
+                    <select id="transformColumnSelect" class="form-select" disabled>
+                        <option value="">-- Choose Column --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-custom">Target Segment / Prefix</label>
+                    <input type="text" id="targetPrefix" class="form-control" value="D" placeholder="e.g., D">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-custom">Insert Letter/Code</label>
+                    <input type="text" id="insertLetter" class="form-control" value="P" placeholder="e.g., P">
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-transform w-100" id="applyTransformBtn" onclick="transformCodePattern()" disabled>
+                        <i class="fas fa-sync-alt me-2"></i> Apply Code Transformation
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 text-muted" style="font-size: 0.85rem;">
+                Converts formats like <code>NDC-KSH-D077-C12</code> to <code>NDC-KSH-DP077-C12</code> by inserting specified characters after segment hyphen boundaries.
+            </div>
+        </div>
+
         <!-- CARD: ADD WORD TO COLUMN -->
         <div class="card mb-4">
-            <h5 class="fw-bold mb-3"><i class="fas fa-i-cursor me-2" style="color:#ea580c;"></i> Add Word to Cell Content <span class="badge bg-warning text-dark ms-2"></span></h5>
+            <h5 class="fw-bold mb-3"><i class="fas fa-i-cursor me-2" style="color:#ea580c;"></i> Add Word to Cell Content</h5>
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label-custom">Select Column to Update</label>
@@ -249,22 +294,34 @@
             return superClean(val);
         }
 
-        function updateWordColumnDropdown() {
-            const select = document.getElementById('wordColumnSelect');
+        function updateDropdowns() {
+            const wordSelect = document.getElementById('wordColumnSelect');
+            const transformSelect = document.getElementById('transformColumnSelect');
+            
             if (!excelData.length) {
-                select.innerHTML = '<option value="">-- No Data --</option>';
-                select.disabled = true;
+                wordSelect.innerHTML = '<option value="">-- No Data --</option>';
+                wordSelect.disabled = true;
+                transformSelect.innerHTML = '<option value="">-- No Data --</option>';
+                transformSelect.disabled = true;
                 document.getElementById('applyWordBtn').disabled = true;
+                document.getElementById('applyTransformBtn').disabled = true;
                 return;
             }
+            
             const headers = Object.keys(excelData[0]);
-            select.innerHTML = '<option value="">-- Choose Column --</option>';
+            let optionsHTML = '<option value="">-- Choose Column --</option>';
             headers.forEach(h => {
-                select.innerHTML += `<option value="${h.replace(/"/g, '&quot;')}">${h}</option>`;
+                optionsHTML += `<option value="${h.replace(/"/g, '&quot;')}">${h}</option>`;
             });
-            select.disabled = false;
+            
+            wordSelect.innerHTML = optionsHTML;
+            wordSelect.disabled = false;
+            
+            transformSelect.innerHTML = optionsHTML;
+            transformSelect.disabled = false;
             
             updateApplyButtonState();
+            updateTransformButtonState();
         }
 
         function renderTable(data) {
@@ -345,7 +402,7 @@
                     
                     refreshJoinSelects();
                     document.getElementById('processBtn').disabled = false;
-                    updateWordColumnDropdown();
+                    updateDropdowns();
                     renderTable(excelData);
                     document.getElementById('exportBtn').disabled = false;
                 } else {
@@ -391,8 +448,47 @@
 
             renderTable(excelData);
             refreshJoinSelects();
-            updateWordColumnDropdown();
+            updateDropdowns();
             alert(`Join complete! Column "${targetTxt}" created/updated.`);
+        }
+
+        function transformCodePattern() {
+            if (!excelData.length) {
+                alert("Please load an Excel file first.");
+                return;
+            }
+
+            const selectedColumn = document.getElementById('transformColumnSelect').value;
+            const prefix = document.getElementById('targetPrefix').value.trim();
+            const insertChar = document.getElementById('insertLetter').value.trim();
+
+            if (!selectedColumn) {
+                alert("Please select a column to transform.");
+                return;
+            }
+
+            if (!prefix || !insertChar) {
+                alert("Please enter both target prefix and insert character.");
+                return;
+            }
+
+            const regex = new RegExp(`(-${prefix})(\\d+)`, 'g');
+            let modifiedCount = 0;
+
+            excelData = excelData.map(row => {
+                let val = getCellValue(row, selectedColumn);
+                if (val && regex.test(val)) {
+                    row[selectedColumn] = val.replace(regex, `$1${insertChar}$2`);
+                    modifiedCount++;
+                }
+                return row;
+            });
+
+            renderTable(excelData);
+            refreshJoinSelects();
+            updateDropdowns();
+
+            alert(`Transformation applied successfully! Updated ${modifiedCount} cell(s) in column "${selectedColumn}".`);
         }
 
         function addWordToColumn() {
@@ -453,7 +549,7 @@
             
             renderTable(excelData);
             refreshJoinSelects();
-            updateWordColumnDropdown();
+            updateDropdowns();
             
             let positionText = positionLeft ? "LEFT" : "RIGHT";
             let details = `Added "${wordToInsert}" to the ${positionText} of ${modifiedCount} non-empty cells.`;
@@ -493,9 +589,20 @@
                 applyBtn.disabled = true;
             }
         }
+
+        function updateTransformButtonState() {
+            const transformBtn = document.getElementById('applyTransformBtn');
+            const columnSelect = document.getElementById('transformColumnSelect');
+            if (columnSelect.value && excelData.length) {
+                transformBtn.disabled = false;
+            } else {
+                transformBtn.disabled = true;
+            }
+        }
         
         document.getElementById('wordColumnSelect').addEventListener('change', updateApplyButtonState);
         document.getElementById('wordToAdd').addEventListener('input', updateApplyButtonState);
+        document.getElementById('transformColumnSelect').addEventListener('change', updateTransformButtonState);
         document.getElementById('exportBtn').disabled = true;
     </script>
 </body>

@@ -20,6 +20,8 @@
             --slate-dark: #1e293b;
             --accent-purple: #7c3aed;
             --accent-purple-hover: #6d28d9;
+            --accent-orange: #ea580c;
+            --accent-orange-hover: #c2410c;
         }
 
         * {
@@ -169,6 +171,23 @@
 
         .action-btn-purple:hover {
             background: var(--accent-purple-hover);
+        }
+
+        .action-btn-orange {
+            background: var(--accent-orange);
+            color: white;
+            border: none;
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .action-btn-orange:hover {
+            background: var(--accent-orange-hover);
         }
 
         /* HISTORY LOG TAGS CONTAINER */
@@ -375,13 +394,16 @@
                     <option value="">Choose data column</option>
                 </select>
 
-                <div class="feature-title" style="margin-top:15px;"><span>🏷️</span> 2. Filter String Removal</div>
+                <div class="feature-title" style="margin-top:15px;"><span>⚡</span> 2. Formatting & Space Removal</div>
+                <button id="stripSpacesBtn" class="action-btn-orange" style="width:100%; margin-bottom:15px;">⚡ Remove All Spaces</button>
+
+                <div class="feature-title"><span>🏷️</span> 3. Filter String Removal</div>
                 <div class="input-group-compact">
                     <input type="text" id="wordInput" class="compact-input" placeholder="Type word to strip..." dir="auto">
                     <button id="addWordBtn" class="small-btn">Run Strip</button>
                 </div>
 
-                <div class="feature-title" style="margin-top:15px;"><span>💥</span> 3. Range Wiping Controls</div>
+                <div class="feature-title" style="margin-top:15px;"><span>💥</span> 4. Range Wiping Controls</div>
                 <input type="text" id="contextWordInput" class="compact-input" placeholder="Type anchor string..." dir="auto">
                 <div class="action-button-grid">
                     <button id="removeNextBtn" class="action-btn-purple">💥 Word + After</button>
@@ -446,6 +468,7 @@
         const contextWordInput = document.getElementById("contextWordInput");
         const removeNextBtn = document.getElementById("removeNextBtn");
         const removeBeforeBtn = document.getElementById("removeBeforeBtn");
+        const stripSpacesBtn = document.getElementById("stripSpacesBtn");
         const tagContainer = document.getElementById("tagContainer");
         const exportMainBtn = document.getElementById("exportMainBtn");
         const tableHeader = document.getElementById("tableHeader");
@@ -488,36 +511,46 @@
                 addLog("Mutation blocked: No active target column selected.", "error");
                 return;
             }
-            if (!targetValue) return;
 
-            const escapedTarget = targetValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            let regex;
-
-            if (mode === 'next') {
-                regex = new RegExp('(' + escapedTarget + ')' + '.*$', 'g');
-            } else if (mode === 'before') {
-                regex = new RegExp('^.*' + '(' + escapedTarget + ')', 'g');
+            if (mode === 'stripSpaces') {
+                currentGridData.forEach(row => {
+                    if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
+                        row[selectedColumn] = String(row[selectedColumn]).replace(/\s+/g, '');
+                    }
+                });
+                historyLogs.push(`Cleaned [Col: ${selectedColumn}] stripped all spaces`);
             } else {
-                regex = new RegExp(escapedTarget, 'g');
+                if (!targetValue) return;
+
+                const escapedTarget = targetValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                let regex;
+
+                if (mode === 'next') {
+                    regex = new RegExp('(' + escapedTarget + ')' + '.*$', 'g');
+                } else if (mode === 'before') {
+                    regex = new RegExp('^.*' + '(' + escapedTarget + ')', 'g');
+                } else {
+                    regex = new RegExp(escapedTarget, 'g');
+                }
+
+                currentGridData.forEach(row => {
+                    if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
+                        let textStr = String(row[selectedColumn]).trim();
+                        if (mode === 'next') {
+                            textStr = textStr.replace(regex, '$1');
+                        } else if (mode === 'before') {
+                            textStr = textStr.replace(regex, '$1');
+                        } else {
+                            textStr = textStr.replace(regex, '');
+                        }
+                        row[selectedColumn] = textStr.replace(/^-+|-+$/g, '').trim();
+                    }
+                });
+
+                historyLogs.push(`Cleaned [Col: ${selectedColumn}] using search string "${targetValue}" (${mode.toUpperCase()})`);
             }
 
-            currentGridData.forEach(row => {
-                if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
-                    let textStr = String(row[selectedColumn]).trim();
-                    if (mode === 'next') {
-                        textStr = textStr.replace(regex, '$1');
-                    } else if (mode === 'before') {
-                        textStr = textStr.replace(regex, '$1');
-                    } else {
-                        textStr = textStr.replace(regex, '');
-                    }
-                    row[selectedColumn] = textStr.replace(/^-+|-+$/g, '').trim();
-                }
-            });
-
-            historyLogs.push(`Cleaned [Col: ${selectedColumn}] using search string "${targetValue}" (${mode.toUpperCase()})`);
             renderHistoryLedger();
-            
             renderMainTable();
             addLog(`Permanently modified column "${selectedColumn}" contents.`, "success");
         }
@@ -572,6 +605,10 @@
         }
 
         // Action Subscriptions
+        stripSpacesBtn.addEventListener("click", () => {
+            executeDataMutation("", "stripSpaces");
+        });
+
         addWordBtn.addEventListener("click", () => {
             executeDataMutation(wordInput.value.trim(), 'exact');
             wordInput.value = '';
