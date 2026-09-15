@@ -560,7 +560,6 @@
             background: #f1f5f9;
         }
 
-
         .btn-sm {
             padding: 5px 12px;
             font-size: 0.8rem;
@@ -800,6 +799,20 @@
                             <i class="fas fa-times-circle"></i>
                         </button>
                     </div>
+
+                    <!-- COMBINED EXPORT BUTTON (MDM + HES) -->
+                    <div class="export-menu">
+                        <button class="btn btn-primary" type="button">
+                            <i class="fas fa-file-export"></i> MDM + HES <i class="fas fa-caret-down"></i>
+                        </button>
+                        <div class="export-menu-options">
+                            <button type="button" onclick="exportCombinedCustomExcel(false)">MDM + HES: مع الخلايا
+                                الفارغة</button>
+                            <button type="button" onclick="exportCombinedCustomExcel(true)">MDM + HES: بدون خلايا
+                                فارغة</button>
+                        </div>
+                    </div>
+
                     <div class="export-menu">
                         <button class="btn btn-custom-excel" type="button">
                             <i class="fas fa-file-export"></i> MDM <i class="fas fa-caret-down"></i>
@@ -1093,6 +1106,16 @@
             "اسم الكشك الموصل بيه العميل", "اسم المغذي الموصل بيه العميل"
         ];
 
+        // NEW: Combined headers matching the provided Excel template
+        const combinedExcelHeaders = [
+            "M", "Dials", "Sims", "IMSI", "com", "القدرة", "رقم العداد", "كود الشركة", "نوع العداد", "شركة العدادات",
+            "اسم الكشك الموصل بيه العميل", "اسم المغذي الموصل بيه العميل", "Serial Num", "LogicalName", "Badge Number",
+            "Manufacturer", "Model", "EEHC Unified code", "VIP Customer (Y/N)", "Facililty Description", "Disco",
+            "Disco Section", "Disco Branch فرع", "منطقة", "Losses Area", "Device function",
+            "Distribution Facility (EEHC unified code)", "Installation Date", "ADDRESS1", "ADDRESS2", "ADDRESS3",
+            "ADDRESS4", "Latitude", "Longitude"
+        ];
+
         let allRecordsList = [];
         let filteredData = [];
         let allColumns = [];
@@ -1104,7 +1127,7 @@
         let sectorSummaryCalculatedData = [];
         let summary2CalculatedData = [];
         let targetSummaryCalculatedData = [];
-        let selectedDateFilter = 'all'; // 'all' or specific date string
+        let selectedDateFilter = 'all';
 
         function getFormattedDateString() {
             const now = new Date();
@@ -1158,8 +1181,8 @@
             return {
                 "operator": "",
                 "dials": "",
-                "sims": simVal,
-                "imsi": "",
+                "sims": "",
+                "imsi": simVal,
                 "com": "شمال الدلتا",
                 "كود المشترك": "",
                 "اسم المشترك": rec.facility || rec.facility_name || rec['Facililty Description'] || '',
@@ -1175,6 +1198,55 @@
             };
         }
 
+        function transformRecordToCombinedExcelFormat(rec, index) {
+            const meterNum = rec.meter_number || rec.meterNum || rec.meterNo || rec.meter_no || rec.meter || rec.SerialNum || '';
+            const simVal = String(rec.sims || rec.sim || rec.sim_number || rec.sim_no || '').trim();
+            const meterTypeRaw = String(rec.meter_type || rec.meterType || rec.type || '').trim().toUpperCase();
+
+            const hesMeterType = meterTypeRaw ? ((meterTypeRaw === 'A3' || meterTypeRaw === 'A5') ? 'S' : 'D') : '';
+            const vip = (meterTypeRaw === 'A5' || meterTypeRaw === 'A3') ? "Y" : "N";
+
+            // Get ADDRESS1 value
+            const address1 = rec.address || rec.ADDRESS1 || '';
+
+            return {
+                "M": index,
+                "Dials": "",
+                "Sims": "",
+                "IMSI": simVal,
+                "com": "شركة شمال الدلتا",
+                "القدرة": rec.facility_capacity || rec.capacity || '',
+                "رقم العداد": meterNum,
+                "كود الشركة": "8",
+                "نوع العداد": hesMeterType,
+                "شركة العدادات": "ESMC",
+                "اسم الكشك الموصل بيه العميل": rec.facility || rec.facility_name || rec['Facililty Description'] || '',
+                "اسم المغذي الموصل بيه العميل": rec.feeder || rec.feeder_name || rec.feeder_code || rec['Distribution Facility'] || '',
+                "Serial Num": meterNum,
+                "LogicalName": meterNum ? `CLE25103${meterNum}` : '',
+                "Badge Number": "50/2024/2025",
+                "Manufacturer": "ESMC",
+                "Model": "CL730d22H",
+                "EEHC Unified code": rec.facility_code || rec.facilityCode || rec.code || rec['EEHC Unified code'] || '',
+                "VIP Customer (Y/N)": vip,
+                "Facililty Description": rec.facility || rec.facility_name || rec.name || rec['Facililty Description'] || '',
+                "Disco": "NDEDC",
+                "Disco Section": sectorNames[rec.keta3 || rec.sector] || rec.keta3 || rec.sector || rec['Disco Section'] || '',
+                "Disco Branch فرع": districtNames[rec.handsa || rec.district] || rec.handsa || rec.district || rec['Disco Branch فرع'] || '',
+                "منطقة": address1,   // <-- Now same as ADDRESS1
+                "Losses Area": rec.dp || rec['Losses Area'] || '',
+                "Device function": rec.facility_type || rec.facilityType || rec['Device function'] || '',
+                "Distribution Facility (EEHC unified code)": rec.feeder_code || rec.feederCode || rec['Distribution Facility'] || '',
+                "Installation Date": rec.install_date || rec.installDate || rec.date || rec['Installation Date'] || '',
+                "ADDRESS1": address1,
+                "ADDRESS2": rec.ADDRESS2 || '',
+                "ADDRESS3": rec.ADDRESS3 || '',
+                "ADDRESS4": rec.ADDRESS4 || '',
+                "Latitude": rec.lat || rec.latitude || rec['Latitude(y)'] || '',
+                "Longitude": rec.lng || rec.longitude || rec['Longitude(x)'] || ''
+            };
+        }
+
         function getCompleteExportRows(records) {
             const sourceColumns = visibleColumns.length > 0 ? visibleColumns : allColumns;
             return records.filter(record => sourceColumns.every(column => {
@@ -1182,6 +1254,33 @@
                 return value !== '';
             }));
         }
+
+        window.exportCombinedCustomExcel = function (withoutEmptyCells = false) {
+            const dataToExport = getDataForExport();
+            if (!dataToExport || dataToExport.length === 0) {
+                alert("لا توجد بيانات لتصديرها.");
+                return;
+            }
+
+            const sourceData = withoutEmptyCells ? getCompleteExportRows(dataToExport) : dataToExport;
+            if (withoutEmptyCells && sourceData.length === 0) {
+                alert("لا توجد سجلات مكتملة في المعاينة الحالية للتصدير.");
+                return;
+            }
+
+            // Pass index for M column
+            const exportData = sourceData.map((rec, index) => transformRecordToCombinedExcelFormat(rec, index + 1));
+            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: combinedExcelHeaders });
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "MDM_HES");
+
+            const count = exportData.length;
+            const dateStr = getFormattedDateString();
+            const dateSuffix = selectedDateFilter !== 'all' ? `_${selectedDateFilter}` : '';
+            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
+
+            XLSX.writeFile(workbook, `MDM_HES_Combined${modeSuffix}${dateSuffix}-${count}-${dateStr}.xlsx`);
+        };
 
         window.exportFormattedCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
@@ -1233,7 +1332,6 @@
             XLSX.writeFile(workbook, `HES${modeSuffix}${dateSuffix}-${count}-${dateStr}.xlsx`);
         };
 
-        // Helper function to get data based on current filter state
         function getDataForExport() {
             const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || selectedDateFilter !== 'all';
             const allColumnsSelected = visibleColumns.length === allColumns.length;
@@ -1360,7 +1458,6 @@
             filterAndRenderTable();
         };
 
-        // Populate date dropdown with distinct upload_date values
         function populateDateDropdown() {
             const dates = new Set();
             allRecordsList.forEach(rec => {
@@ -1370,7 +1467,6 @@
             });
 
             const select = document.getElementById('dateFilterSelect');
-            // Keep the "all" option
             select.innerHTML = '<option value="all">جميع التواريخ</option>';
 
             const sortedDates = Array.from(dates).sort();
@@ -1381,7 +1477,6 @@
                 select.appendChild(option);
             });
 
-            // Restore selected value if it exists
             if (selectedDateFilter !== 'all' && sortedDates.includes(selectedDateFilter)) {
                 select.value = selectedDateFilter;
             } else {
@@ -1390,7 +1485,6 @@
             }
         }
 
-        // Apply date filter from dropdown
         window.applyDateFilterFromDropdown = function () {
             const select = document.getElementById('dateFilterSelect');
             selectedDateFilter = select.value;
@@ -1398,7 +1492,6 @@
             filterAndRenderTable();
         };
 
-        // Clear date filter
         window.clearDateFilter = function () {
             const select = document.getElementById('dateFilterSelect');
             select.value = 'all';
@@ -1407,7 +1500,6 @@
             filterAndRenderTable();
         };
 
-        // Update the date filter badge
         function updateDateFilterBadge() {
             const badge = document.getElementById('dateFilterBadge');
             const display = document.getElementById('selectedDateDisplay');
@@ -1732,7 +1824,6 @@
 
         window.filterAndRenderTable = function () {
             filteredData = allRecordsList.filter(record => {
-                // Date filter
                 if (selectedDateFilter !== 'all') {
                     const recordDate = record.upload_date;
                     if (!recordDate || recordDate !== selectedDateFilter) {
@@ -1740,7 +1831,6 @@
                     }
                 }
 
-                // Search filter
                 if (globalSearchTerm) {
                     let found = false;
                     const allKeys = Object.keys(record);
@@ -1754,7 +1844,6 @@
                     if (!found) return false;
                 }
 
-                // Column filters
                 for (const colKey of Object.keys(activeColumnFilters)) {
                     const filter = activeColumnFilters[colKey];
                     if (filter && filter.type === 'date') {
@@ -2182,7 +2271,6 @@
         window.loadAllData = loadAllData;
         loadAllData();
 
-        // Session Timer (5 minutes)
         let sessionTimeout = null;
         let sessionTimerInterval = null;
         let sessionTimeLeft = 300;
