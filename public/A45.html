@@ -938,9 +938,7 @@
         <!-- Table -->
         <div class="card">
             <div class="table-controls">
-                <div>
-                    <span id="recordsCount" class="records-count">0 سجل</span>
-                </div>
+                <div><span id="recordsCount" class="records-count">0 سجل</span></div>
                 <div class="action-btns">
                     <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i>
                         Excel</button>
@@ -1000,9 +998,8 @@
         document.getElementById('keta3_code').value = keta3_code;
         document.getElementById('handsa_code').value = handsa_code;
 
-        const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
 
-        /* ===== أول قيمة غير فارغة من القائمة ===== */
         const pick = (...vals) => {
             for (const v of vals) {
                 const s = norm(v);
@@ -1090,16 +1087,20 @@
             return null;
         }
 
-        /* ===== استخراج كود الهندسة من أي عنصر ===== */
+        // ✅ FIX 1: Robust handsa_code extraction from any Firebase record.
         function getItemHandsaCode(item) {
             if (!item || typeof item !== 'object') return '';
-            return norm(
-                item["handsa-code"] ?? item["handsa_code"] ?? item["handsaCode"] ??
-                item["كود الهندسة"] ?? item["handsa"] ?? item["code"] ?? ""
-            );
+            const candidates = [
+                item["handsa_code"], item["handsa-code"], item["handsaCode"],
+                item["handsa"], item["كود الهندسة"], item["code"]
+            ];
+            for (const c of candidates) {
+                const s = norm(c);
+                if (s !== '') return s;
+            }
+            return '';
         }
 
-        /* مطابقة متسامحة (العنصر بدون كود هندسة يُعتبر عاماً) */
         function matchesHandsa(item) {
             if (!item || typeof item !== 'object') return false;
             const itemCode = getItemHandsaCode(item);
@@ -1107,7 +1108,6 @@
             return itemCode === String(currentHandsaCode).trim();
         }
 
-        /* مطابقة صارمة (يجب أن يحتوي العنصر على كود الهندسة مطابق تماماً) */
         function matchesHandsaStrict(item) {
             if (!item || typeof item !== 'object') return false;
             const itemCode = getItemHandsaCode(item);
@@ -1134,8 +1134,6 @@
             '47': 'هندسة أجا', '48': 'هندسة مدينة ميت غمر', '49': 'هندسة قرى ميت غمر', '50': 'هندسة مدينة السنبلاوين', '51': 'هندسة قرى السنبلاوين',
             '52': 'هندسة تمي الأمديد', '53': 'هندسة قرى المنصورة 1', '54': 'هندسة قرى المنصورة 2', '55': 'هندسة كوم النور'
         };
-
-        // Data stores
         let rawTransformers = [], rawFeeders = [], rawPanels = [], rawStations = [], rawOutgoing = [];
         let rawDpFeeders = [], rawStationFeeders = [];
         let transformersMap = {}, transformersReverseMap = {}, transformersDataMap = {};
@@ -1148,7 +1146,6 @@
         let existingMeters = new Set();
         let existingSims = new Set();
 
-        // Table state
         let activeColumnFilters = {};
         let filteredKeysList = [];
         let currentPage = 1;
@@ -1202,7 +1199,6 @@
             return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : 'N/A';
         }
 
-        // Session Timer
         let sessionTimeout, remainingSeconds = 300, countdownInterval;
 
         function resetSessionTimer() {
@@ -1251,10 +1247,7 @@
 
         function showStatus(message, type = 'info') {
             const div = document.getElementById('statusMessage');
-            if (div) {
-                div.textContent = message;
-                div.className = type;
-            }
+            if (div) { div.textContent = message; div.className = type; }
             resetSessionTimer();
         }
 
@@ -1279,47 +1272,6 @@
             return regex.test(clean);
         }
 
-        /* =========================================================
-           تعبئة حقل المغذي تلقائياً من trf_code_extra → cell_name
-           (فقط إذا كان الحقل مفعّلاً وفارغاً)
-           ========================================================= */
-        function applyFeederFallbackFromTransformer() {
-            const feederInput = document.getElementById('feeder');
-            if (!feederInput || feederInput.disabled) return;
-            if (norm(feederInput.value) !== '') return; // فيه قيمة بالفعل
-
-            const feedSourceVal = document.getElementById('feedSource').value;
-            if (!feedSourceVal) return;
-
-            const trfName = norm(document.getElementById('facility').value);
-            const trfCode = norm(document.getElementById('facility_code').value);
-            const details = transformersDataMap[trfCode] || transformersDataMap[trfName];
-            if (!details) return;
-
-            const cellName = norm(details.cellName || '');
-            if (!cellName) return;
-
-            feederInput.value = cellName;
-            feederInput.classList.add('valid');
-
-            const codeInput = document.getElementById('feeder_code');
-            if (codeInput && norm(codeInput.value) === '') {
-                const fCode = feedersMap[cellName] || '';
-                if (fCode) {
-                    codeInput.value = fCode;
-                    codeInput.classList.add('valid');
-                }
-            }
-        }
-
-        /* =========================================================
-           🔀 تغيير مصدر التغذية (dp / station)
-           📥 يقرأ: #feedSource
-           📤 يفعّل/يعطّل ويُفرّغ الحقول:
-               - dp    : مفعّل فقط عند dp
-               - feeder / feeder_code : مفعّلة فقط عند dp
-               - sub_name / sub_code / feeder_outgoing : مفعّلة فقط عند station
-           ========================================================= */
         function handleFeedSourceChange() {
             const feedSourceVal = document.getElementById('feedSource').value;
 
@@ -1330,21 +1282,14 @@
             const subCode = document.getElementById('sub_code');
             const feederOutgoing = document.getElementById('feeder_outgoing');
 
-            // مساعد: تفريغ الحقل + تعطيله + إزالة حالات التحقق
             const clearAndDisable = (el) => {
                 if (!el) return;
                 el.value = '';
                 el.disabled = true;
                 el.classList.remove('valid', 'duplicate');
             };
+            const enable = (el) => { if (el) el.disabled = false; };
 
-            // مساعد: تفعيل الحقل
-            const enable = (el) => {
-                if (!el) return;
-                el.disabled = false;
-            };
-
-            // 1) لا يوجد اختيار → عطّل كل شيء
             if (!feedSourceVal) {
                 [feeder, feederCode, dp, subName, subCode, feederOutgoing].forEach(clearAndDisable);
                 renderFeedersList();
@@ -1354,23 +1299,19 @@
             }
 
             if (feedSourceVal === 'dp') {
-                // 🔵 لوحة التوزيع: dp + feeder + feeder_code مفعّلة
                 enable(dp);
                 enable(feeder);
                 enable(feederCode);
-
-                // حقول المحطة معطّلة
                 clearAndDisable(subName);
                 clearAndDisable(subCode);
                 clearAndDisable(feederOutgoing);
 
+                // ✅ FIX 2: Re-populate the panels datalist when switching to DP mode
+                renderPanelsList();
             } else if (feedSourceVal === 'station') {
-                // 🟢 محطة المحولات: dp + feeder + feeder_code معطّلة بالكامل
                 clearAndDisable(dp);
                 clearAndDisable(feeder);
                 clearAndDisable(feederCode);
-
-                // حقول المحطة مفعّلة
                 enable(subName);
                 enable(subCode);
                 enable(feederOutgoing);
@@ -1378,7 +1319,6 @@
 
             renderFeedersList();
             renderOutgoingList();
-            applyFeederFallbackFromTransformer();
             checkValidation();
         }
 
@@ -1405,11 +1345,8 @@
 
         document.getElementById('meter_type').addEventListener('change', function () {
             const val = this.value;
-            if (val === 'A5') {
-                document.getElementById('facility_type').value = 'Transformer-P';
-            } else {
-                document.getElementById('facility_type').value = 'Transformer';
-            }
+            if (val === 'A5') document.getElementById('facility_type').value = 'Transformer-P';
+            else document.getElementById('facility_type').value = 'Transformer';
         });
 
         async function authenticateAndInit() {
@@ -1466,6 +1403,16 @@
             }
         }
 
+        // ✅ FIX 3: Helper that tries reference_data/dp_cell_code then dp_cell_code
+        async function readDpCellCodeSnapshot() {
+            let snap = await get(ref(db, 'reference_data/dp_cell_code'));
+            if (!snap.exists()) {
+                console.warn("reference_data/dp_cell_code empty, trying /dp_cell_code");
+                snap = await get(ref(db, 'dp_cell_code'));
+            }
+            return snap;
+        }
+
         function renderStationsList() {
             const datalist = document.getElementById('stationsList');
             if (!datalist) return;
@@ -1486,6 +1433,7 @@
         async function fetchStationsDropdown() {
             try {
                 let subSnap = await get(ref(db, 'reference_data/sub_code'));
+                if (!subSnap.exists()) subSnap = await get(ref(db, 'sub_code'));
 
                 rawStations = [];
                 stationCodesByName = {};
@@ -1500,11 +1448,9 @@
                             const name = norm(item.sub_name || item.sub || item.station_name || item["اسم المحطة"] || '');
                             const code = norm(item.sub_code || item.station_code || item["كود المحطة"] || '');
                             const cell = norm(item.cell_out || item.feeder_outgoing || item["مغذي الخروج"] || '');
-
                             if (name) {
                                 if (!stationCodesByName[name]) stationCodesByName[name] = new Set();
                                 if (!stationFeedersByName[name]) stationFeedersByName[name] = new Set();
-
                                 if (code) stationCodesByName[name].add(code);
                                 if (cell) stationFeedersByName[name].add(cell);
                             }
@@ -1516,7 +1462,6 @@
                         if (item) {
                             const name = norm(item.sub_name || item.sub || item.station_name || item["اسم المحطة"] || '');
                             const code = norm(item.sub_code || item.station_code || item["كود المحطة"] || '');
-
                             if (name && matchesHandsa(item) && !seenNames.has(name)) {
                                 seenNames.add(name);
                                 rawStations.push({ name, code, raw: item });
@@ -1531,7 +1476,6 @@
 
                 renderStationsList();
                 renderStationCodesList();
-
             } catch (err) {
                 console.error("Error fetching station dropdown:", err);
             }
@@ -1539,7 +1483,8 @@
 
         async function fetchOutgoingDropdown() {
             try {
-                const subSnap = await get(ref(db, 'reference_data/sub_code'));
+                let subSnap = await get(ref(db, 'reference_data/sub_code'));
+                if (!subSnap.exists()) subSnap = await get(ref(db, 'sub_code'));
                 rawOutgoing = [];
                 if (subSnap.exists()) {
                     const data = subSnap.val();
@@ -1561,7 +1506,6 @@
             const datalist = document.getElementById('stationCodeList');
             if (!datalist) return;
             datalist.innerHTML = '';
-
             const seenCodes = new Set();
             Object.values(stationCodesByName).flat().forEach(code => {
                 if (code && !seenCodes.has(code)) {
@@ -1573,47 +1517,53 @@
             });
         }
 
-        /* =========================================================
-           لوحات التوزيع — تحميل حسب كود الهندسة فقط (مطابقة صارمة)
-           ========================================================= */
+        // ✅ FIX 4: fetchPanelsDropdown - read from dual path + use dp_code
         async function fetchPanelsDropdown() {
-            const dpSnap = await get(ref(db, 'reference_data/dp_cell_code'));
-            rawPanels = [];
-            panelsMap = {};
+            try {
+                const dpSnap = await readDpCellCodeSnapshot();
+                rawPanels = [];
+                panelsMap = {};
 
-            if (dpSnap.exists()) {
-                const data = dpSnap.val();
-                const list = Array.isArray(data) ? data : Object.values(data);
+                if (dpSnap.exists()) {
+                    const data = dpSnap.val();
+                    const list = Array.isArray(data) ? data : Object.values(data);
+                    list.forEach(item => {
+                        if (!item) return;
+                        if (!matchesHandsaStrict(item)) return;
 
-                list.forEach(item => {
-                    if (!item) return;
-                    // ✅ فلترة صارمة: لازم يكون فيه كود هندسة مطابق تماماً للهندسة الحالية
-                    if (!matchesHandsaStrict(item)) return;
+                        const name = norm(item.dp || item["اسم لوحة التوزيع"] || '');
+                        // ✅ Use dp_code primarily (panel code), fall back to facility_code
+                        const code = norm(item.dp_code || item["كود لوحة التوزيع"] || item.facility_code || '');
+                        const mahataCode = norm(item.sub_code || item.mahata_code || '');
+                        const mahataName = norm(item.sub || item.sub_name || item.mahata_name || '');
 
-                    const name = norm(item.dp || item["اسم لوحة التوزيع"] || '');
-                    const code = norm(item.facility_code || item["كود لوحة التوزيع"] || '');
-                    const mahataCode = norm(item.sub_code || item.mahata_code || '');
-                    const mahataName = norm(item.sub || item.sub_name || item.mahata_name || '');
+                        if (name) {
+                            rawPanels.push({ name, code, mahataCode, mahataName, raw: item });
+                            panelsMap[name] = code;
+                        }
+                    });
+                }
 
-                    if (name) {
-                        rawPanels.push({ name, code, mahataCode, mahataName, raw: item });
-                        panelsMap[name] = code;
-                    }
-                });
-            }
-
-            const debugElem = document.getElementById('panelDebug');
-            if (debugElem) {
-                debugElem.textContent = `تم تحميل ${rawPanels.length} لوحة توزيع (هندسة ${currentHandsaCode})`;
+                const debugElem = document.getElementById('panelDebug');
+                if (debugElem) {
+                    debugElem.textContent = `تم تحميل ${rawPanels.length} لوحة توزيع (هندسة ${currentHandsaCode})`;
+                }
+                renderPanelsList();
+            } catch (err) {
+                console.error("Error fetching panels:", err);
+                const debugElem = document.getElementById('panelDebug');
+                if (debugElem) debugElem.textContent = "خطأ في تحميل اللوحات: " + err.message;
             }
         }
 
         function renderPanelsList(filterMahataCode = '', filterMahataName = '') {
             const datalist = document.getElementById('panelsList');
+            if (!datalist) return;
             datalist.innerHTML = '';
             const filtered = rawPanels.filter(p => {
                 if (!filterMahataCode && !filterMahataName) return true;
-                return (filterMahataCode && p.mahataCode === filterMahataCode) || (filterMahataName && p.mahataName === filterMahataName);
+                return (filterMahataCode && p.mahataCode === filterMahataCode) ||
+                    (filterMahataName && p.mahataName === filterMahataName);
             });
             const seen = new Set();
             filtered.forEach(p => {
@@ -1626,23 +1576,29 @@
             });
         }
 
+        // ✅ FIX 5: fetchFeedersDropdown - read from dual path, robust mapping
         async function fetchFeedersDropdown() {
-            const cellsSnap = await get(ref(db, 'reference_data/dp_cell_code'));
-            rawFeeders = [];
-            rawDpFeeders = [];
-            rawStationFeeders = [];
-            feedersMap = {};
-            feedersReverseMap = {};
-            if (cellsSnap.exists()) {
-                const data = cellsSnap.val();
-                const list = Array.isArray(data) ? data : Object.values(data);
-                list.forEach(item => {
-                    if (item && matchesHandsa(item)) {
+            try {
+                const cellsSnap = await readDpCellCodeSnapshot();
+                rawFeeders = [];
+                rawDpFeeders = [];
+                rawStationFeeders = [];
+                feedersMap = {};
+                feedersReverseMap = {};
+
+                if (cellsSnap.exists()) {
+                    const data = cellsSnap.val();
+                    const list = Array.isArray(data) ? data : Object.values(data);
+                    list.forEach(item => {
+                        if (!item) return;
+                        if (!matchesHandsa(item)) return;
+
                         const name = norm(item.cell_out || item.cell || item["اسم المغذي"] || '');
                         const code = norm(item.facility_code || item.cell_code || item["كود المغذي"] || '');
                         const dpName = norm(item.dp || item["اسم لوحة التوزيع"] || '');
                         const subCode = norm(item.sub_code || item.mahata_code || '');
                         const subName = norm(item.sub || item.sub_name || item.mahata_name || '');
+
                         if (name) {
                             const feederObj = { name, code, dpName, subCode, subName, raw: item };
                             rawFeeders.push(feederObj);
@@ -1651,15 +1607,21 @@
                             feedersMap[name] = code;
                             if (code) feedersReverseMap[code] = name;
                         }
-                    }
-                });
+                    });
+                }
+
+                console.log(`[Feeders] Loaded ${rawFeeders.length} total, ${rawDpFeeders.length} with DP, ${rawStationFeeders.length} with station (handsa ${currentHandsaCode})`);
+            } catch (err) {
+                console.error("Error fetching feeders:", err);
             }
         }
 
+        // ✅ FIX 6: renderFeedersList with debug info
         function renderFeedersList() {
             const feedSourceVal = document.getElementById('feedSource').value;
             const nameDatalist = document.getElementById('feedersList');
             const codeDatalist = document.getElementById('feederCodeList');
+            if (!nameDatalist || !codeDatalist) return;
 
             nameDatalist.innerHTML = '';
             codeDatalist.innerHTML = '';
@@ -1710,6 +1672,8 @@
 
             feedersMap = feedersMapLocal;
             feedersReverseMap = feedersReverseMapLocal;
+
+            console.log(`[renderFeedersList] mode=${feedSourceVal || 'none'} → ${seenNames.size} names, ${seenCodes.size} codes`);
         }
 
         async function fetchTransformersDropdown() {
@@ -1731,21 +1695,15 @@
             const trfList = trfSnap.exists() ? (Array.isArray(trfSnap.val()) ? trfSnap.val() : Object.values(trfSnap.val())) : [];
             const extraList = extraSnap.exists() ? (Array.isArray(extraSnap.val()) ? extraSnap.val() : Object.values(extraSnap.val())) : [];
 
-            // Helper: extract name candidates from an item
             const nameOf = (it) => {
                 if (!it) return [];
-                return [
-                    it.trf_name, it.cell_name, it.cellName, it["اسم المحول"], it.name, it.trf
-                ].map(norm).filter(Boolean);
+                return [it.trf_name, it.cell_name, it.cellName, it["اسم المحول"], it.name, it.trf].map(norm).filter(Boolean);
             };
             const codeOf = (it) => {
                 if (!it) return [];
-                return [
-                    it.trf_code, it.facility_code, it.cell_code, it.cellCode, it.cell, it["كود المحول"], it.code
-                ].map(norm).filter(Boolean);
+                return [it.trf_code, it.facility_code, it.cell_code, it.cellCode, it.cell, it["كود المحول"], it.code].map(norm).filter(Boolean);
             };
 
-            // Build extra lookups by every name and code variant
             const extraByName = {};
             const extraByCode = {};
             extraList.forEach(item => {
@@ -1754,7 +1712,6 @@
                 codeOf(item).forEach(c => { if (!extraByCode[c]) extraByCode[c] = item; });
             });
 
-            // Build merged list, but for each trf item, try to find matching extra item
             const combinedList = [];
             const usedExtra = new Set();
 
@@ -1769,58 +1726,39 @@
                 combinedList.push({ item: trfItem, fallback: extraItem || {} });
             });
 
-            // Also add extra items that weren't matched (as their own entries)
             extraList.forEach(extraItem => {
                 if (!extraItem || usedExtra.has(extraItem)) return;
                 combinedList.push({ item: extraItem, fallback: extraItem });
             });
 
-            // Helper: pick capacity from an object
             const pickCapacity = (obj) => {
                 if (!obj) return '';
-                return pick(
-                    obj.trf_capacity, obj.facility_capacity, obj.capacity, obj.trf_cap, obj.kva,
-                    obj["سعة المحول"], obj["السعة"], obj["سعة"], obj.capacity_kva, obj.cap,
-                    obj.transformer_capacity, obj.trfCapacity
-                );
+                return pick(obj.trf_capacity, obj.facility_capacity, obj.capacity, obj.trf_cap, obj.kva, obj["سعة المحول"], obj["السعة"], obj["سعة"], obj.capacity_kva, obj.cap, obj.transformer_capacity, obj.trfCapacity);
             };
-
             const pickAddress = (obj) => {
                 if (!obj) return '';
-                return pick(
-                    obj.trf_adress, obj.trf_address, obj.address, obj.adress, obj.trf_adr,
-                    obj["عنوان المحول"], obj["العنوان"], obj["عنوان"], obj.location, obj.trfLocation
-                );
+                return pick(obj.trf_adress, obj.trf_address, obj.address, obj.adress, obj.trf_adr, obj["عنوان المحول"], obj["العنوان"], obj["عنوان"], obj.location, obj.trfLocation);
             };
-
             const pickCellName = (obj) => {
                 if (!obj) return '';
-                return pick(
-                    obj.cell_name, obj.cellName, obj.feeder, obj.feeder_name
-                );
+                return pick(obj.cell_name, obj.cellName, obj.feeder, obj.feeder_name);
             };
 
             combinedList.forEach(({ item, fallback }) => {
                 if (!item || !matchesHandsa(item)) return;
-
                 const name = pick(...nameOf(item));
                 const code = pick(...codeOf(item));
                 if (!name) return;
 
-                // Try capacity from item first, then from fallback
                 const capacity = pickCapacity(item) || pickCapacity(fallback);
                 const adress = pickAddress(item) || pickAddress(fallback);
                 const cellName = pickCellName(item) || pickCellName(fallback);
                 const lat = pick(item.lat, item.latitude, fallback.lat, fallback.latitude);
                 const lng = pick(item.lng, item.longitude, fallback.lng, fallback.longitude);
 
-                const details = {
-                    name, code, capacity, lat, lng, adress, cellName,
-                    raw: { ...fallback, ...item }
-                };
+                const details = { name, code, capacity, lat, lng, adress, cellName, raw: { ...fallback, ...item } };
 
                 if (transformersDataMap[name]) {
-                    // Already exists; merge missing fields
                     const existing = transformersDataMap[name];
                     if (!existing.capacity && capacity) existing.capacity = capacity;
                     if (!existing.adress && adress) existing.adress = adress;
@@ -1849,7 +1787,6 @@
             });
         }
 
-
         async function fetchSimsDropdown() {
             const simSnap = await get(ref(db, 'reference_data/sim'));
             const datalist = document.getElementById('simList');
@@ -1869,13 +1806,20 @@
             }
         }
 
+        // ✅ FIX 7: renderOutgoingList must NOT clear feederCodeList when in DP mode
         function renderOutgoingList() {
             const outgoingList = document.getElementById('outgoingList');
             const feederCodeList = document.getElementById('feederCodeList');
             if (!outgoingList) return;
 
+            const feedSourceVal = document.getElementById('feedSource').value;
+            const isDpMode = (feedSourceVal === 'dp');
+
             outgoingList.innerHTML = '';
-            if (feederCodeList) feederCodeList.innerHTML = '';
+            // In DP mode, feederCodeList belongs to renderFeedersList() — do not touch it!
+            if (!isDpMode && feederCodeList) feederCodeList.innerHTML = '';
+
+            if (isDpMode) return; // nothing to load for outgoing in DP mode
 
             const currentStationName = norm(document.getElementById('sub_name')?.value || '');
             const currentStationCode = norm(document.getElementById('sub_code')?.value || '');
@@ -1885,7 +1829,6 @@
 
             rawOutgoing.forEach(item => {
                 const raw = item.raw || item;
-
                 const itemSubName = norm(raw.sub_name || raw.sub || raw.station_name || '');
                 const itemSubCode = norm(String(raw.sub_code || raw.station_code || ''));
 
@@ -1903,7 +1846,6 @@
                         opt.value = feederName;
                         outgoingList.appendChild(opt);
                     }
-
                     if (feederCode && !seenCodes.has(feederCode)) {
                         seenCodes.add(feederCode);
                         if (feederCodeList) {
@@ -1968,11 +1910,10 @@
             const val = norm(e.target.value);
             const foundPanel = rawPanels.find(p => p.name === val);
             if (foundPanel) {
-                if (foundPanel.mahataName) document.getElementById('sub_name').value = foundPanel.mahataName;
-                if (foundPanel.mahataCode) document.getElementById('sub_code').value = foundPanel.mahataCode;
+                if (foundPanel.mahataName && !document.getElementById('sub_name').disabled) document.getElementById('sub_name').value = foundPanel.mahataName;
+                if (foundPanel.mahataCode && !document.getElementById('sub_code').disabled) document.getElementById('sub_code').value = foundPanel.mahataCode;
             }
             renderFeedersList();
-            applyFeederFallbackFromTransformer();
             checkValidation();
         });
 
@@ -2001,8 +1942,6 @@
             } else if (!document.getElementById('facility_code').dataset.userEdited) {
                 document.getElementById('facility_code').value = '';
             }
-            // ✅ تعبئة المغذي من cell_name إذا كان مفعّلاً وفارغاً
-            applyFeederFallbackFromTransformer();
             checkValidation();
         });
 
@@ -2018,7 +1957,6 @@
                     document.getElementById('address').value = details.adress;
                 }
             }
-            applyFeederFallbackFromTransformer();
             checkValidation();
         });
 
@@ -2232,22 +2170,16 @@
         };
 
         window.onColumnSearch = function (colKey, value) {
-            if (value && value.trim() !== '') {
-                columnSearchTerms[colKey] = value.trim();
-            } else {
-                delete columnSearchTerms[colKey];
-            }
+            if (value && value.trim() !== '') columnSearchTerms[colKey] = value.trim();
+            else delete columnSearchTerms[colKey];
             const popover = document.getElementById('filterPopover');
             if (popover && popover.dataset.colKey === colKey) {
                 const searchLower = value.toLowerCase();
                 const options = popover.querySelectorAll('.filter-option');
                 options.forEach(opt => {
                     const val = opt.dataset.value || '';
-                    if (searchLower && !val.toLowerCase().includes(searchLower)) {
-                        opt.classList.add('hidden');
-                    } else {
-                        opt.classList.remove('hidden');
-                    }
+                    if (searchLower && !val.toLowerCase().includes(searchLower)) opt.classList.add('hidden');
+                    else opt.classList.remove('hidden');
                 });
             }
             applyFilters();
@@ -2259,11 +2191,8 @@
             let from = '', to = '';
             if (fromRGB) { const p = fromRGB.split('-'); from = `${p[2]}/${p[1]}/${p[0]}`; }
             if (toRGB) { const p = toRGB.split('-'); to = `${p[2]}/${p[1]}/${p[0]}`; }
-            if (fromRGB || toRGB) {
-                activeColumnFilters[colKey] = { from, to, fromRGB, toRGB };
-            } else {
-                delete activeColumnFilters[colKey];
-            }
+            if (fromRGB || toRGB) activeColumnFilters[colKey] = { from, to, fromRGB, toRGB };
+            else delete activeColumnFilters[colKey];
             document.getElementById('filterPopover').classList.remove('show');
             applyFilters();
         };
@@ -2278,11 +2207,8 @@
             const popover = document.getElementById('filterPopover');
             const checkboxes = popover.querySelectorAll('input[type="checkbox"]:not(.hidden)');
             const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            if (selected.length > 0) {
-                activeColumnFilters[colKey] = selected;
-            } else {
-                delete activeColumnFilters[colKey];
-            }
+            if (selected.length > 0) activeColumnFilters[colKey] = selected;
+            else delete activeColumnFilters[colKey];
             applyFilters();
         };
 
@@ -2301,10 +2227,7 @@
         };
 
         window.exportToExcel = function () {
-            if (filteredKeysList.length === 0) {
-                alert("لا توجد بيانات لتصديرها.");
-                return;
-            }
+            if (filteredKeysList.length === 0) { alert("لا توجد بيانات لتصديرها."); return; }
             const exportData = filteredKeysList.map((key) => {
                 const record = allRecords[key];
                 const rowObj = {};
@@ -2351,9 +2274,7 @@
             const hasSubCode = record["sub_code"] && record["sub_code"] !== '';
 
             let feedSourceVal = 'dp';
-            if (hasSubName || hasSubCode) {
-                feedSourceVal = 'station';
-            }
+            if (hasSubName || hasSubCode) feedSourceVal = 'station';
             document.getElementById('feedSource').value = feedSourceVal;
             handleFeedSourceChange();
 
@@ -2515,13 +2436,8 @@
                 simWarn.classList.remove('show');
             }
 
-            if (!facility || !facilityCode) {
-                isValid = false;
-            }
-
-            if (!feedSourceVal) {
-                isValid = false;
-            }
+            if (!facility || !facilityCode) isValid = false;
+            if (!feedSourceVal) isValid = false;
 
             const stCodeInput = document.getElementById('sub_code');
             const stWarn = document.getElementById('stationCodeWarning');
@@ -2551,86 +2467,66 @@
         }
 
         ['meter_number', 'sim_number', 'facility', 'facility_code', 'sub_code', 'feeder_code'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('input', checkValidation);
+            const element = document.getElementById(id);
+            if (element) element.addEventListener('input', checkValidation);
         });
 
         document.getElementById('addSingleBtn').addEventListener('click', async function () {
-            // ✅ محاولة تعبئة المغذي من cell_name قبل الحفظ
-            applyFeederFallbackFromTransformer();
-
-            const meter_number = norm(document.getElementById('meter_number').value);
-            const sim_number = norm(document.getElementById('sim_number').value);
-            const facility = norm(document.getElementById('facility').value);
-            const facility_code = norm(document.getElementById('facility_code').value);
-            const facility_capacity = norm(document.getElementById('facility_capacity').value);
-            const facility_type = norm(document.getElementById('facility_type').value);
-            const meter_type = norm(document.getElementById('meter_type').value);
-            const feedSource = norm(document.getElementById('feedSource').value);
-            const feeder = norm(document.getElementById('feeder').value);
-            const feeder_code = norm(document.getElementById('feeder_code').value);
-            const dp = norm(document.getElementById('dp').value);
-            const sub_name = norm(document.getElementById('sub_name').value);
-            const sub_code = norm(document.getElementById('sub_code').value);
-            const feeder_outgoing = norm(document.getElementById('feeder_outgoing').value);
-            const meter_voltage = norm(document.getElementById('meter_voltage').value);
-            const install_date = norm(document.getElementById('install_date').value);
-            const lat = norm(document.getElementById('lat').value);
-            const lng = norm(document.getElementById('lng').value);
-            const address = norm(document.getElementById('address').value);
-
             const kId = norm(document.getElementById('keta3_code').value);
             const hCode = norm(document.getElementById('handsa_code').value);
+            const editKeyVal = document.getElementById('editingKey').value;
 
             const recordData = {
-                meter_number,
-                sim_number,
-                facility,
-                facility_code,
-                facility_capacity,
-                facility_type,
-                meter_type,
-                feedSource,
-                feeder,
-                feeder_code,
-                dp,
-                sub_name,
-                sub_code,
-                feeder_outgoing,
-                meter_voltage,
-                install_date,
-                lat,
-                lng,
-                address,
+                meter_number: norm(document.getElementById('meter_number').value),
+                sim_number: norm(document.getElementById('sim_number').value),
+                meter_type: document.getElementById('meter_type').value,
+                meter_voltage: norm(document.getElementById('meter_voltage').value),
+                install_date: document.getElementById('install_date').value,
+                facility: norm(document.getElementById('facility').value),
+                facility_code: norm(document.getElementById('facility_code').value),
+                facility_capacity: norm(document.getElementById('facility_capacity').value),
+                facility_type: document.getElementById('facility_type').value,
+                feedSource: document.getElementById('feedSource').value,
+                sub_name: norm(document.getElementById('sub_name').value),
+                sub_code: norm(document.getElementById('sub_code').value),
+                dp: norm(document.getElementById('dp').value),
+                feeder: norm(document.getElementById('feeder').value),
+                feeder_code: norm(document.getElementById('feeder_code').value),
+                feeder_outgoing: norm(document.getElementById('feeder_outgoing').value),
+                lat: norm(document.getElementById('lat').value),
+                lng: norm(document.getElementById('lng').value),
+                address: norm(document.getElementById('address').value),
                 keta3_code: kId,
-                handsa_code: hCode,
-                keta3: sectorName,
-                handsa: districtName,
-                updatedAt: new Date().toISOString()
+                handsa_code: hCode
             };
-
-            const key = editingKey || meter_number;
-            const targetRef = ref(db, `sectors/${kId}/districts/${hCode}/manual_entries/${key}`);
 
             showStatus("جاري حفظ البيانات...", "info");
             updateSyncStatus(true);
 
             try {
-                await set(targetRef, recordData);
-                showStatus(editingKey ? "تم تحديث السجل بنجاح!" : "تم إضافة السجل بنجاح!", "success");
-                updateSyncStatus(false);
-                cancelEdit();
+                let targetKey = editKeyVal;
+                if (!targetKey) targetKey = Date.now().toString();
+
+                const recordRef = ref(db, `sectors/${kId}/districts/${hCode}/manual_entries/${targetKey}`);
+                await set(recordRef, recordData);
+
+                showStatus(editKeyVal ? "تم تحديث السجل بنجاح!" : "تم حفظ السجل الجديد بنجاح!", "success");
+                if (editKeyVal) cancelEdit();
+                else { clearForm(); checkValidation(); }
             } catch (err) {
                 console.error("Save error:", err);
-                showStatus("خطأ في حفظ البيانات: " + err.message, "error");
+                showStatus("خطأ في حفظ السجل: " + err.message, "error");
+            } finally {
                 updateSyncStatus(false);
             }
         });
 
         document.addEventListener('click', function (e) {
             const popover = document.getElementById('filterPopover');
-            if (popover && popover.classList.contains('show') && !popover.contains(e.target) && !e.target.closest('.filter-btn')) {
-                popover.classList.remove('show');
+            if (popover && popover.classList.contains('show')) {
+                if (!popover.contains(e.target) && !e.target.closest('.filter-btn')) {
+                    popover.classList.remove('show');
+                }
             }
         });
 
