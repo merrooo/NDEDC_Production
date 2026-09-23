@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Column Unique Counter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' } } } }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.03); border-radius: 9999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .totals-row { background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%); border-top: 2px solid #0ea5e9; }
+        .dark .totals-row { background: linear-gradient(90deg, #082f49 0%, #0c4a6e 100%); border-top: 2px solid #0ea5e9; }
+        .totals-row td { font-weight: 700 !important; }
+
+        .pivot-col-header { position: relative; padding-right: 20px; }
+        .pivot-col-header .remove-pivot-btn {
+            position: absolute; top: 4px; right: 2px; width: 16px; height: 16px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 9999px; background: rgba(239, 68, 68, 0.1); color: #ef4444;
+            opacity: 0; transition: opacity 0.15s ease; cursor: pointer;
+        }
+        .pivot-col-header:hover .remove-pivot-btn { opacity: 1; }
+        .pivot-col-header .remove-pivot-btn:hover { background: #ef4444; color: white; }
+
+        .removed-pivot-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+            background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+            border-radius: 9999px; font-size: 10px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s ease;
+        }
+        .removed-pivot-badge:hover { background: #fee2e2; border-color: #fca5a5; }
+        .dark .removed-pivot-badge { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+        .dark .removed-pivot-badge:hover { background: #7f1d1d; }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-brand-500/10 text-brand-600 dark:text-brand-500 rounded-xl">
+                    <i data-lucide="layers" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Multi-Column Unique Counter</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Hierarchical & Grouped Frequency Analyzer</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button id="themeToggleBtn" title="Toggle Theme"
+                    class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+
+                <button id="returnHomeBtn" title="Return to Home"
+                    class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
+                    <i data-lucide="home" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+                    <span>Home</span>
+                </button>
+
+                <button id="uploadNewBtn"
+                    class="hidden px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition items-center space-x-1.5 shadow-sm">
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                    <span>Upload New File</span>
+                </button>
+
+                <button id="resetAppBtn"
+                    class="hidden px-3.5 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/30 dark:hover:border-red-800 text-slate-600 dark:text-slate-300 transition items-center space-x-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+            <div id="alertBanner" class="hidden p-4 rounded-xl border text-sm flex items-start space-x-3 transition-all">
+                <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                <span id="alertMessage" class="flex-1"></span>
+                <button onclick="hideAlert()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+
+        <section id="uploadSection" class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div id="dropzone"
+                class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 bg-white dark:bg-slate-800/50 rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition shadow-sm hover:shadow-md group">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.tsv,.json,.txt" class="hidden" />
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 flex items-center justify-center group-hover:scale-110 transition duration-300">
+                    <i data-lucide="file-spreadsheets" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-lg font-semibold mb-1">Upload Data File</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                    Drag & drop or click to browse. Supports Excel (.xlsx, .xls), CSV, TSV, JSON.
+                </p>
+            </div>
+        </section>
+
+        <section id="workspaceSection" class="hidden flex h-[calc(100vh-4rem)]">
+            <aside class="w-80 flex-shrink-0 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col h-full">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="font-semibold text-sm flex items-center space-x-2">
+                        <i data-lucide="git-merge" class="w-4 h-4 text-brand-500"></i>
+                        <span>Grouping Hierarchy</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Click columns to add/remove levels</p>
+                </div>
+
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg flex-shrink-0">
+                            <i data-lucide="file-badge" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h4 id="fileName" class="font-semibold text-xs truncate">data.xlsx</h4>
+                            <p id="fileMeta" class="text-[10px] text-slate-500 dark:text-slate-400">Parsed 0 rows</p>
+                        </div>
+                    </div>
+                    <div id="sheetSelectorContainer" class="hidden mt-2">
+                        <select id="sheetSelect"
+                            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-[11px] font-medium outline-none focus:ring-2 focus:ring-brand-500"></select>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Active Hierarchy</p>
+                            <button id="clearHierarchyBtn" class="text-[10px] text-slate-400 hover:text-red-500 flex items-center space-x-0.5">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                        <div id="hierarchyContainer" class="space-y-1.5"></div>
+                    </div>
+
+                    <div>
+                        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Columns</p>
+                        <div id="availableColumnsContainer" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Parsing Rules</p>
+                    <label class="flex items-center justify-between cursor-pointer text-[11px]">
+                        <span class="text-slate-600 dark:text-slate-300">Trim Whitespace</span>
+                        <input type="checkbox" id="trimWhitespaceToggle" checked class="w-3.5 h-3.5 rounded text-brand-600 focus:ring-brand-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer text-[11px]">
+                        <span class="text-slate-600 dark:text-slate-300">Ignore Letter Case</span>
+                        <input type="checkbox" id="ignoreCaseToggle" class="w-3.5 h-3.5 rounded text-brand-600 focus:ring-brand-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer text-[11px]">
+                        <span class="text-slate-600 dark:text-slate-300">Include Blanks</span>
+                        <input type="checkbox" id="includeBlanksToggle" checked class="w-3.5 h-3.5 rounded text-brand-600 focus:ring-brand-500">
+                    </label>
+                </div>
+            </aside>
+
+            <div class="flex-1 flex flex-col h-full overflow-hidden">
+                <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 flex-1">
+                        <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                            <button id="viewTreeBtn" class="px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 shadow-sm text-slate-800 dark:text-slate-100 flex items-center space-x-1.5 transition">
+                                <i data-lucide="network" class="w-3.5 h-3.5"></i><span>Tree</span>
+                            </button>
+                            <button id="viewFlatBtn" class="px-3 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 flex items-center space-x-1.5 transition">
+                                <i data-lucide="table-2" class="w-3.5 h-3.5"></i><span>Flat Matrix</span>
+                            </button>
+                        </div>
+
+                        <div id="flatPivotControls" class="hidden items-center gap-2 flex-wrap">
+                            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pivot:</span>
+                            <select id="horizontalPivotSelect"
+                                class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-[11px] font-medium outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="">— None —</option>
+                            </select>
+                            <div id="removedPivotsContainer" class="flex items-center gap-1 flex-wrap"></div>
+                        </div>
+
+                        <div class="relative flex-1 max-w-xs">
+                            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="filterInput" placeholder="Filter values..."
+                                class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <div id="treeExpandCollapseGroup" class="flex items-center space-x-1">
+                            <button id="expandAllBtn" class="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition">Expand</button>
+                            <button id="collapseAllBtn" class="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition">Collapse</button>
+                        </div>
+                        <button id="exportCsvBtn"
+                            class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-semibold flex items-center space-x-1 transition">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>CSV</span>
+                        </button>
+                        <button id="exportExcelBtn"
+                            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold flex items-center space-x-1 transition shadow-sm">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i><span>Excel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="emptyState" class="flex-1 flex items-center justify-center p-8">
+                    <div class="text-center space-y-3 max-w-md">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-brand-50 dark:bg-brand-950/30 text-brand-500 flex items-center justify-center">
+                            <i data-lucide="mouse-pointer-click" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="font-semibold text-sm text-slate-700 dark:text-slate-200">No hierarchy selected</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Choose grouping columns from the left sidebar. Prefer columns with fewer unique values.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="treeViewContainer" class="hidden flex-1 overflow-y-auto overflow-x-auto custom-scrollbar p-4"></div>
+
+                <div id="flatViewContainer" class="hidden flex-1 overflow-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead id="flatTableHead"
+                            class="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider sticky top-0 z-10 backdrop-blur"></thead>
+                        <tbody id="flatTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+
+                <div class="p-2.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between text-[11px] text-slate-500">
+                    <span id="hierarchySummaryText">No hierarchy selected</span>
+                    <span class="flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <span>Ready</span>
+                    </span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- State ---
+        let currentWorkbook = null;
+        let rawDataSet = [];
+        let columnNames = [];
+        let activeHierarchy = [];
+        let activeViewMode = 'tree';
+        let currentFilter = '';
+        let treeExpandedState = new Map();
+        let horizontalPivotIndex = -1;
+        let removedPivotValues = new Map();
+        let processedTreeData = null;
+        let processedFlatData = [];
+        let processedFlatAggregated = [];
+
+        // --- DOM ---
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const workspaceSection = document.getElementById('workspaceSection');
+        const fileNameEl = document.getElementById('fileName');
+        const fileMetaEl = document.getElementById('fileMeta');
+        const sheetSelectorContainer = document.getElementById('sheetSelectorContainer');
+        const sheetSelect = document.getElementById('sheetSelect');
+        const resetAppBtn = document.getElementById('resetAppBtn');
+        const returnHomeBtn = document.getElementById('returnHomeBtn');
+        const uploadNewBtn = document.getElementById('uploadNewBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const availableColumnsContainer = document.getElementById('availableColumnsContainer');
+        const hierarchyContainer = document.getElementById('hierarchyContainer');
+        const clearHierarchyBtn = document.getElementById('clearHierarchyBtn');
+        const trimWhitespaceToggle = document.getElementById('trimWhitespaceToggle');
+        const ignoreCaseToggle = document.getElementById('ignoreCaseToggle');
+        const includeBlanksToggle = document.getElementById('includeBlanksToggle');
+        const viewTreeBtn = document.getElementById('viewTreeBtn');
+        const viewFlatBtn = document.getElementById('viewFlatBtn');
+        const treeExpandCollapseGroup = document.getElementById('treeExpandCollapseGroup');
+        const expandAllBtn = document.getElementById('expandAllBtn');
+        const collapseAllBtn = document.getElementById('collapseAllBtn');
+        const filterInput = document.getElementById('filterInput');
+        const treeViewContainer = document.getElementById('treeViewContainer');
+        const flatViewContainer = document.getElementById('flatViewContainer');
+        const emptyState = document.getElementById('emptyState');
+        const flatTableHead = document.getElementById('flatTableHead');
+        const flatTableBody = document.getElementById('flatTableBody');
+        const hierarchySummaryText = document.getElementById('hierarchySummaryText');
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const alertBanner = document.getElementById('alertBanner');
+        const alertMessage = document.getElementById('alertMessage');
+        const flatPivotControls = document.getElementById('flatPivotControls');
+        const horizontalPivotSelect = document.getElementById('horizontalPivotSelect');
+        const removedPivotsContainer = document.getElementById('removedPivotsContainer');
+
+        lucide.createIcons();
+
+        // --- Theme & Nav ---
+        themeToggleBtn.addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+        returnHomeBtn.addEventListener('click', () => window.location.href = 'Control_Excel.html');
+        resetAppBtn.addEventListener('click', resetApp);
+        uploadNewBtn.addEventListener('click', () => fileInput.click());
+
+        // --- File Upload ---
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-brand-500', 'bg-brand-50/50'); });
+        ['dragleave', 'dragend'].forEach(t => dropzone.addEventListener(t, () => dropzone.classList.remove('border-brand-500', 'bg-brand-50/50')));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-brand-500', 'bg-brand-50/50');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+        function handleFile(file) {
+            hideAlert();
+            const ext = file.name.split('.').pop().toLowerCase();
+            fileNameEl.textContent = file.name;
+            const reader = new FileReader();
+
+            if (ext === 'xlsx' || ext === 'xls') {
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        currentWorkbook = XLSX.read(data, { type: 'array' });
+                        sheetSelect.innerHTML = '';
+                        currentWorkbook.SheetNames.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name; opt.textContent = name;
+                            sheetSelect.appendChild(opt);
+                        });
+                        sheetSelectorContainer.classList.remove('hidden');
+                        loadExcelSheet(currentWorkbook.SheetNames[0]);
+                    } catch (err) { showAlert("Excel error: " + err.message, "error"); }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'json') {
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        const arr = Array.isArray(json) ? json : [json];
+                        if (arr.length > 0 && typeof arr[0] === 'object') {
+                            rawDataSet = arr;
+                            columnNames = Object.keys(arr[0]);
+                            activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
+                            sheetSelectorContainer.classList.add('hidden');
+                            setupWorkspace();
+                        } else { showAlert("JSON must be an array of objects.", "error"); }
+                    } catch (err) { showAlert("Invalid JSON.", "error"); }
+                };
+                reader.readAsText(file);
+            } else {
+                Papa.parse(file, {
+                    header: true, skipEmptyLines: true,
+                    complete: (results) => {
+                        if (results.data && results.data.length > 0) {
+                            rawDataSet = results.data;
+                            columnNames = results.meta.fields || Object.keys(results.data[0]);
+                            activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
+                            sheetSelectorContainer.classList.add('hidden');
+                            setupWorkspace();
+                        } else { showAlert("No valid data rows found.", "error"); }
+                    },
+                    error: (err) => showAlert("CSV error: " + err.message, "error")
+                });
+            }
+        }
+
+        sheetSelect.addEventListener('change', (e) => { if (currentWorkbook) loadExcelSheet(e.target.value); });
+
+        function loadExcelSheet(sheetName) {
+            const ws = currentWorkbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+            if (json.length > 0) {
+                rawDataSet = json;
+                columnNames = Object.keys(json[0]);
+                activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
+                setupWorkspace();
+            } else { showAlert("Sheet is empty.", "error"); }
+        }
+
+        function setupWorkspace() {
+            fileMetaEl.textContent = `Parsed ${rawDataSet.length.toLocaleString()} rows`;
+            uploadSection.classList.add('hidden');
+            workspaceSection.classList.remove('hidden');
+            workspaceSection.classList.add('flex');
+            uploadNewBtn.classList.remove('hidden'); uploadNewBtn.classList.add('flex');
+            resetAppBtn.classList.remove('hidden'); resetAppBtn.classList.add('flex');
+            renderHierarchyControls();
+            updatePivotSelect();
+            recalculateAndRender();
+        }
+
+        function resetApp() {
+            rawDataSet = []; columnNames = []; activeHierarchy = [];
+            currentWorkbook = null; treeExpandedState.clear();
+            horizontalPivotIndex = -1; removedPivotValues.clear();
+            uploadSection.classList.remove('hidden');
+            workspaceSection.classList.add('hidden'); workspaceSection.classList.remove('flex');
+            uploadNewBtn.classList.add('hidden'); uploadNewBtn.classList.remove('flex');
+            resetAppBtn.classList.add('hidden'); resetAppBtn.classList.remove('flex');
+            fileInput.value = ''; hideAlert();
+        }
+
+        // --- Sidebar ---
+        function renderHierarchyControls() {
+            availableColumnsContainer.innerHTML = '';
+            columnNames.forEach(col => {
+                const isSelected = activeHierarchy.includes(col);
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left px-3 py-2 text-xs rounded-lg font-medium transition flex items-center justify-between border ${isSelected
+                    ? 'bg-brand-50 dark:bg-brand-950/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-400'}`;
+                btn.innerHTML = `<span class="truncate">${escapeHtml(col)}</span>
+                    <i data-lucide="${isSelected ? 'check-circle' : 'circle'}" class="w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-brand-500' : 'text-slate-300 dark:text-slate-600'}"></i>`;
+                btn.addEventListener('click', () => toggleColumnInHierarchy(col));
+                availableColumnsContainer.appendChild(btn);
+            });
+
+            hierarchyContainer.innerHTML = '';
+            if (activeHierarchy.length === 0) {
+                hierarchyContainer.innerHTML = `<div class="text-[11px] text-slate-400 italic px-3 py-4 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">No levels added.</div>`;
+            } else {
+                activeHierarchy.forEach((col, idx) => {
+                    const tag = document.createElement('div');
+                    tag.className = "flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg px-2.5 py-2 text-xs font-medium space-x-2";
+                    tag.innerHTML = `
+                        <span class="w-5 h-5 rounded-full bg-brand-500 text-white font-bold text-[10px] flex items-center justify-center flex-shrink-0">${idx + 1}</span>
+                        <span class="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1">${escapeHtml(col)}</span>
+                        <button onclick="removeHierarchyColumn(${idx})" class="text-slate-400 hover:text-red-500 transition flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>`;
+                    hierarchyContainer.appendChild(tag);
+                });
+            }
+            lucide.createIcons();
+            updatePivotSelect();
+        }
+
+        function toggleColumnInHierarchy(col) {
+            const idx = activeHierarchy.indexOf(col);
+            if (idx > -1) {
+                activeHierarchy.splice(idx, 1);
+                if (horizontalPivotIndex >= activeHierarchy.length) horizontalPivotIndex = activeHierarchy.length > 0 ? activeHierarchy.length - 1 : -1;
+            } else activeHierarchy.push(col);
+            renderHierarchyControls(); recalculateAndRender();
+        }
+
+        function removeHierarchyColumn(index) {
+            activeHierarchy.splice(index, 1);
+            if (horizontalPivotIndex >= activeHierarchy.length) horizontalPivotIndex = activeHierarchy.length > 0 ? activeHierarchy.length - 1 : -1;
+            renderHierarchyControls(); recalculateAndRender();
+        }
+
+        clearHierarchyBtn.addEventListener('click', () => {
+            activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
+            renderHierarchyControls(); recalculateAndRender();
+        });
+
+        [trimWhitespaceToggle, ignoreCaseToggle, includeBlanksToggle].forEach(el => el.addEventListener('change', recalculateAndRender));
+
+        // --- Pivot Select ---
+        function updatePivotSelect() {
+            if (!horizontalPivotSelect) return;
+            const currentVal = horizontalPivotSelect.value;
+            horizontalPivotSelect.innerHTML = '<option value="">— None —</option>';
+            activeHierarchy.forEach((col, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx; opt.textContent = `${idx + 1}. ${col}`;
+                horizontalPivotSelect.appendChild(opt);
+            });
+            if (currentVal !== '' && parseInt(currentVal) < activeHierarchy.length) {
+                horizontalPivotSelect.value = currentVal;
+                horizontalPivotIndex = parseInt(currentVal, 10);
+            } else if (horizontalPivotIndex >= activeHierarchy.length) {
+                horizontalPivotIndex = -1; horizontalPivotSelect.value = '';
+            } else if (horizontalPivotIndex >= 0) {
+                horizontalPivotSelect.value = String(horizontalPivotIndex);
+            }
+            renderRemovedPivotsBadges();
+        }
+
+        horizontalPivotSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            horizontalPivotIndex = val === '' ? -1 : parseInt(val, 10);
+            renderRemovedPivotsBadges(); recalculateAndRender();
+        });
+
+        // --- Removed Pivots Badges ---
+        function renderRemovedPivotsBadges() {
+            removedPivotsContainer.innerHTML = '';
+            if (horizontalPivotIndex < 0 || horizontalPivotIndex >= activeHierarchy.length) return;
+            const pivotColName = activeHierarchy[horizontalPivotIndex];
+            const removedSet = removedPivotValues.get(pivotColName);
+            if (!removedSet || removedSet.size === 0) return;
+            removedSet.forEach(val => {
+                const badge = document.createElement('span');
+                badge.className = 'removed-pivot-badge';
+                const shortVal = val.length > 16 ? val.slice(0, 14) + '…' : val;
+                badge.title = `Click to restore "${val}"`;
+                badge.innerHTML = `<i data-lucide="eye-off" class="w-3 h-3"></i><span>${escapeHtml(shortVal)}</span><i data-lucide="rotate-ccw" class="w-2.5 h-2.5"></i>`;
+                badge.addEventListener('click', () => restorePivotValue(pivotColName, val));
+                removedPivotsContainer.appendChild(badge);
+            });
+            lucide.createIcons();
+        }
+
+        function restorePivotValue(colName, val) {
+            const set = removedPivotValues.get(colName);
+            if (set) { set.delete(val); if (set.size === 0) removedPivotValues.delete(colName); }
+            renderRemovedPivotsBadges(); recalculateAndRender();
+        }
+
+        window.removePivotValue = function (val) {
+            const pivotColName = activeHierarchy[horizontalPivotIndex];
+            if (!pivotColName) return;
+            if (!removedPivotValues.has(pivotColName)) removedPivotValues.set(pivotColName, new Set());
+            removedPivotValues.get(pivotColName).add(val);
+            renderRemovedPivotsBadges(); recalculateAndRender();
+        };
+
+        // --- Processing ---
+        function recalculateAndRender() {
+            if (activeHierarchy.length === 0) {
+                emptyState.classList.remove('hidden');
+                treeViewContainer.classList.add('hidden');
+                flatViewContainer.classList.add('hidden');
+                emptyState.classList.add('flex');
+                hierarchySummaryText.textContent = 'No hierarchy selected';
+                return;
+            }
+            emptyState.classList.add('hidden'); emptyState.classList.remove('flex');
+
+            const isTrim = trimWhitespaceToggle.checked;
+            const isIgnoreCase = ignoreCaseToggle.checked;
+            const includeBlanks = includeBlanksToggle.checked;
+
+            const rootNode = { name: "Total", count: 0, children: new Map(), level: 0 };
+            processedFlatData = [];
+
+            rawDataSet.forEach(row => {
+                let keys = []; let skipRow = false;
+                for (let col of activeHierarchy) {
+                    let rawVal = row[col];
+                    if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
+                        if (!includeBlanks) { skipRow = true; break; }
+                        else keys.push('(Blank)');
+                    } else {
+                        let val = String(rawVal);
+                        if (isTrim) val = val.trim();
+                        if (isIgnoreCase) val = val.toLowerCase();
+                        keys.push(val);
+                    }
+                }
+                if (skipRow) return;
+                rootNode.count++;
+                let currentNode = rootNode;
+                keys.forEach((key, idx) => {
+                    if (!currentNode.children.has(key)) {
+                        currentNode.children.set(key, {
+                            name: key, count: 0, children: new Map(),
+                            level: idx + 1, columnName: activeHierarchy[idx],
+                            path: keys.slice(0, idx + 1).join(' /// ')
+                        });
+                    }
+                    currentNode = currentNode.children.get(key);
+                    currentNode.count++;
+                });
+                processedFlatData.push({ keys, keyString: keys.join(' | ') });
+            });
+
+            processedTreeData = rootNode;
+            generateFlatAggregations();
+            renderCurrentView();
+        }
+
+        function generateFlatAggregations() {
+            const flatMap = new Map();
+            processedFlatData.forEach(item => {
+                const k = item.keyString;
+                if (!flatMap.has(k)) flatMap.set(k, { keys: item.keys, count: 0 });
+                flatMap.get(k).count++;
+            });
+            processedFlatAggregated = Array.from(flatMap.values()).sort((a, b) => b.count - a.count);
+        }
+
+        function renderCurrentView() {
+            if (activeViewMode === 'tree') {
+                treeViewContainer.classList.remove('hidden');
+                flatViewContainer.classList.add('hidden');
+                treeExpandCollapseGroup.classList.remove('hidden');
+                flatPivotControls.classList.add('hidden'); flatPivotControls.classList.remove('flex');
+                renderTreeView();
+            } else {
+                treeViewContainer.classList.add('hidden');
+                flatViewContainer.classList.remove('hidden');
+                treeExpandCollapseGroup.classList.add('hidden');
+                flatPivotControls.classList.remove('hidden'); flatPivotControls.classList.add('flex');
+                renderFlatView();
+            }
+            const summary = processedFlatAggregated.length;
+            const totalRows = processedTreeData ? processedTreeData.count : 0;
+            hierarchySummaryText.textContent = `${summary.toLocaleString()} unique combinations across ${totalRows.toLocaleString()} valid rows`;
+        }
+
+        // --- Tree ---
+        function renderTreeView() {
+            treeViewContainer.innerHTML = '';
+            if (!processedTreeData || processedTreeData.count === 0) {
+                treeViewContainer.innerHTML = `<div class="py-8 text-center text-slate-400">No records match.</div>`;
+                return;
+            }
+            const filterLower = currentFilter.toLowerCase();
+            function buildNodeHtml(node) {
+                let html = '';
+                const childrenArray = Array.from(node.children.values()).sort((a, b) => b.count - a.count);
+                childrenArray.forEach(child => {
+                    const matchesFilter = !currentFilter || child.path.toLowerCase().includes(filterLower);
+                    const isExpanded = treeExpandedState.has(child.path) ? treeExpandedState.get(child.path) : (child.level === 1);
+                    const hasChildren = child.children.size > 0;
+                    if (matchesFilter || filterHasChildMatch(child, filterLower)) {
+                        const paddingLeft = (child.level - 1) * 24;
+                        html += `
+                            <div class="tree-node border-b border-slate-100 dark:border-slate-800/60 py-2.5 px-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                                <div class="flex items-center justify-between" style="padding-left: ${paddingLeft}px">
+                                    <div class="flex items-center space-x-2 flex-1 truncate pr-4">
+                                        ${hasChildren ? `<button onclick="toggleNode('${escapeHtml(child.path)}')" class="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 transition"><i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3.5 h-3.5"></i></button>` : '<span class="w-5"></span>'}
+                                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">${escapeHtml(child.columnName)}:</span>
+                                        <span class="font-semibold text-xs text-slate-900 dark:text-slate-100 truncate" title="${escapeHtml(child.name)}">${escapeHtml(child.name)}</span>
+                                        ${hasChildren ? `<span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded-full font-medium">${child.children.size.toLocaleString()}</span>` : ''}
+                                    </div>
+                                    <div class="text-right flex items-center space-x-3">
+                                        <div>
+                                            <span class="font-bold text-xs text-brand-600 dark:text-brand-400">${child.count.toLocaleString()}</span>
+                                            <span class="text-[10px] text-slate-400 block">Count</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        if (hasChildren && isExpanded) html += buildNodeHtml(child);
+                    }
+                });
+                return html;
+            }
+            treeViewContainer.innerHTML = buildNodeHtml(processedTreeData);
+            lucide.createIcons();
+        }
+
+        function filterHasChildMatch(node, filterText) {
+            for (let child of node.children.values()) {
+                if (child.path.toLowerCase().includes(filterText) || filterHasChildMatch(child, filterText)) return true;
+            }
+            return false;
+        }
+
+        window.toggleNode = function (path) {
+            const current = treeExpandedState.has(path) ? treeExpandedState.get(path) : true;
+            treeExpandedState.set(path, !current);
+            renderTreeView();
+        };
+
+        expandAllBtn.addEventListener('click', () => { setAllNodesExpanded(processedTreeData, true); renderTreeView(); });
+        collapseAllBtn.addEventListener('click', () => { setAllNodesExpanded(processedTreeData, false); renderTreeView(); });
+        function setAllNodesExpanded(node, state) {
+            if (!node) return;
+            node.children.forEach(child => { treeExpandedState.set(child.path, state); setAllNodesExpanded(child, state); });
+        }
+
+        function getColumnUniqueBreakdown(col) {
+            const isTrim = trimWhitespaceToggle.checked;
+            const isIgnoreCase = ignoreCaseToggle.checked;
+            const includeBlanks = includeBlanksToggle.checked;
+            const counts = new Map();
+            rawDataSet.forEach(row => {
+                let rawVal = row[col];
+                if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
+                    if (includeBlanks) counts.set('(Blank)', (counts.get('(Blank)') || 0) + 1);
+                } else {
+                    let val = String(rawVal);
+                    if (isTrim) val = val.trim();
+                    if (isIgnoreCase) val = val.toLowerCase();
+                    counts.set(val, (counts.get(val) || 0) + 1);
+                }
+            });
+            return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+        }
+
+        // --- Flat Matrix ---
+        function renderFlatView() {
+            flatTableHead.innerHTML = '';
+            flatTableBody.innerHTML = '';
+
+            const doHorizontalPivot = horizontalPivotIndex >= 0 && horizontalPivotIndex < activeHierarchy.length;
+
+            if (doHorizontalPivot) {
+                const pivotColName = activeHierarchy[horizontalPivotIndex];
+                const otherCols = activeHierarchy.filter((_, idx) => idx !== horizontalPivotIndex);
+                const allPivotValues = getColumnUniqueBreakdown(pivotColName).map(([val]) => val);
+                const removedSet = removedPivotValues.get(pivotColName) || new Set();
+                const pivotUniqueValues = allPivotValues.filter(val => !removedSet.has(val));
+
+                let headerHtml = `<th class="py-3 px-4 w-12 text-center">#</th>`;
+                otherCols.forEach(col => {
+                    headerHtml += `<th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 select-none" onclick="toggleColumnHeaderExpand('${escapeHtml(col)}')">
+                        <div class="flex items-center space-x-1"><span>${escapeHtml(col)}</span><i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i></div></th>`;
+                });
+                pivotUniqueValues.forEach(val => {
+                    const shortVal = val.length > 16 ? val.slice(0, 14) + '…' : val;
+                    headerHtml += `<th class="py-3 px-2 text-center font-mono text-[10px] max-w-[110px] pivot-col-header" title="${escapeHtml(val)}">
+                        <span class="block truncate">${escapeHtml(shortVal)}</span>
+                        <button class="remove-pivot-btn" onclick="event.stopPropagation(); removePivotValue('${escapeHtml(val).replace(/'/g, "\\'")}')" title="Hide column">
+                            <i data-lucide="x" class="w-2.5 h-2.5"></i></button></th>`;
+                });
+                headerHtml += `<th class="py-3 px-4 text-right">Total</th>`;
+                flatTableHead.innerHTML = `<tr>${headerHtml}</tr>`;
+
+                const rowMap = new Map();
+                const isTrim = trimWhitespaceToggle.checked;
+                const isIgnoreCase = ignoreCaseToggle.checked;
+                const includeBlanks = includeBlanksToggle.checked;
+
+                rawDataSet.forEach(row => {
+                    let keysAll = []; let skipRow = false;
+                    for (let col of activeHierarchy) {
+                        let rawVal = row[col];
+                        if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
+                            if (!includeBlanks) { skipRow = true; break; }
+                            else keysAll.push('(Blank)');
+                        } else {
+                            let val = String(rawVal);
+                            if (isTrim) val = val.trim();
+                            if (isIgnoreCase) val = val.toLowerCase();
+                            keysAll.push(val);
+                        }
+                    }
+                    if (skipRow) return;
+                    const otherKeys = keysAll.filter((_, idx) => idx !== horizontalPivotIndex);
+                    const pivotKey = keysAll[horizontalPivotIndex];
+                    const rowKey = otherKeys.join('|||');
+                    if (!rowMap.has(rowKey)) rowMap.set(rowKey, { otherKeys, pivotCounts: new Map(), total: 0 });
+                    const entry = rowMap.get(rowKey);
+                    entry.pivotCounts.set(pivotKey, (entry.pivotCounts.get(pivotKey) || 0) + 1);
+                    entry.total += 1;
+                });
+
+                let aggregatedRows = Array.from(rowMap.values());
+                if (currentFilter) {
+                    const filterLower = currentFilter.toLowerCase();
+                    aggregatedRows = aggregatedRows.filter(entry => {
+                        const combined = entry.otherKeys.join(' ').toLowerCase() + ' ' + Array.from(entry.pivotCounts.keys()).join(' ').toLowerCase();
+                        return combined.includes(filterLower);
+                    });
+                }
+                aggregatedRows.sort((a, b) => b.total - a.total);
+
+                if (aggregatedRows.length === 0) {
+                    flatTableBody.innerHTML = `<tr><td colspan="${otherCols.length + pivotUniqueValues.length + 2}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
+                    lucide.createIcons(); return;
+                }
+
+                const pivotTotals = new Map();
+                let grandTotal = 0;
+                aggregatedRows.forEach(entry => {
+                    let visibleRowTotal = 0;
+                    pivotUniqueValues.forEach(val => {
+                        const cnt = entry.pivotCounts.get(val) || 0;
+                        pivotTotals.set(val, (pivotTotals.get(val) || 0) + cnt);
+                        visibleRowTotal += cnt;
+                    });
+                    entry.visibleTotal = visibleRowTotal;
+                    grandTotal += visibleRowTotal;
+                });
+
+                aggregatedRows.forEach((entry, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition";
+                    let cells = `<td class="py-2.5 px-4 text-center text-slate-400">${idx + 1}</td>`;
+                    entry.otherKeys.forEach(val => {
+                        cells += `<td class="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+                    });
+                    pivotUniqueValues.forEach(val => {
+                        const cnt = entry.pivotCounts.get(val) || 0;
+                        cells += `<td class="py-2.5 px-2 text-center font-mono text-xs ${cnt > 0 ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-slate-300 dark:text-slate-600'}">${cnt.toLocaleString()}</td>`;
+                    });
+                    cells += `<td class="py-2.5 px-4 font-bold text-right text-brand-600 dark:text-brand-400">${entry.visibleTotal.toLocaleString()}</td>`;
+                    tr.innerHTML = cells;
+                    flatTableBody.appendChild(tr);
+                });
+
+                const trTotals = document.createElement('tr');
+                trTotals.className = "totals-row";
+                let totalsCells = `<td class="py-3 px-4 text-center">
+                    <span class="inline-flex items-center space-x-1 text-brand-700 dark:text-brand-300">
+                        <i data-lucide="sigma" class="w-3.5 h-3.5"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Totals</span>
+                    </span></td>`;
+                totalsCells += `<td colspan="${otherCols.length}" class="py-3 px-4 text-left text-[11px] text-brand-700 dark:text-brand-300 font-semibold">
+                    Grand Total (${aggregatedRows.length} ${aggregatedRows.length === 1 ? 'row' : 'rows'})</td>`;
+                pivotUniqueValues.forEach(val => {
+                    const total = pivotTotals.get(val) || 0;
+                    totalsCells += `<td class="py-3 px-2 text-center font-mono text-xs ${total > 0 ? 'text-brand-700 dark:text-brand-300' : 'text-slate-400'}">${total.toLocaleString()}</td>`;
+                });
+                totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-brand-700 dark:text-brand-300">${grandTotal.toLocaleString()}</td>`;
+                trTotals.innerHTML = totalsCells;
+                flatTableBody.appendChild(trTotals);
+            } else {
+                let headerHtml = `<th class="py-3 px-4 w-12 text-center">#</th>`;
+                activeHierarchy.forEach(col => headerHtml += `<th class="py-3 px-4">${escapeHtml(col)}</th>`);
+                headerHtml += `<th class="py-3 px-4 text-right">Frequency Count</th>`;
+                flatTableHead.innerHTML = `<tr>${headerHtml}</tr>`;
+
+                const filtered = processedFlatAggregated.filter(item => !currentFilter || item.keyString.toLowerCase().includes(currentFilter.toLowerCase()));
+                if (filtered.length === 0) {
+                    flatTableBody.innerHTML = `<tr><td colspan="${activeHierarchy.length + 2}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
+                    lucide.createIcons(); return;
+                }
+
+                let grandTotal = 0;
+                filtered.forEach((item, idx) => {
+                    grandTotal += item.count;
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition";
+                    let keysCells = item.keys.map(k => `<td class="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title="${escapeHtml(k)}">${escapeHtml(k)}</td>`).join('');
+                    tr.innerHTML = `<td class="py-2.5 px-4 text-center text-slate-400">${idx + 1}</td>${keysCells}
+                        <td class="py-2.5 px-4 font-bold text-right text-brand-600 dark:text-brand-400">${item.count.toLocaleString()}</td>`;
+                    flatTableBody.appendChild(tr);
+                });
+
+                const trTotals = document.createElement('tr');
+                trTotals.className = "totals-row";
+                let totalsCells = `<td class="py-3 px-4 text-center">
+                    <span class="inline-flex items-center space-x-1 text-brand-700 dark:text-brand-300">
+                        <i data-lucide="sigma" class="w-3.5 h-3.5"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Totals</span>
+                    </span></td>`;
+                totalsCells += `<td colspan="${activeHierarchy.length}" class="py-3 px-4 text-left text-[11px] text-brand-700 dark:text-brand-300 font-semibold">
+                    ${filtered.length.toLocaleString()} unique ${filtered.length === 1 ? 'combination' : 'combinations'}</td>`;
+                totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-brand-700 dark:text-brand-300">${grandTotal.toLocaleString()}</td>`;
+                trTotals.innerHTML = totalsCells;
+                flatTableBody.appendChild(trTotals);
+            }
+            lucide.createIcons();
+        }
+
+        window.toggleColumnHeaderExpand = function (colName) {
+            if (horizontalPivotIndex >= 0 && horizontalPivotIndex < activeHierarchy.length) return;
+            const existing = document.getElementById(`unique-expand-${colName}`);
+            if (existing) { existing.remove(); return; }
+            const uniques = getColumnUniqueBreakdown(colName);
+            const tr = document.createElement('tr');
+            tr.id = `unique-expand-${colName}`;
+            tr.className = "bg-brand-50/50 dark:bg-brand-950/20 border-b-2 border-brand-200 dark:border-brand-800";
+            const badges = uniques.map(([val, cnt]) => `
+                <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-brand-200 dark:border-brand-800/60 shadow-sm font-medium text-slate-800 dark:text-slate-200 text-[10px]" title="${escapeHtml(val)}: ${cnt.toLocaleString()}">
+                    <span class="truncate max-w-[80px]">${escapeHtml(val)}</span>
+                    <span class="text-[9px] font-bold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/60 px-1 rounded">${cnt.toLocaleString()}</span>
+                </span>`).join('');
+            tr.innerHTML = `<td colspan="${activeHierarchy.length + 2}" class="py-3 px-4">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 pt-0.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">${escapeHtml(colName)}</span>
+                        <span class="text-[10px] text-slate-400 ml-1">(${uniques.length} unique)</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto custom-scrollbar">
+                        ${badges || '<span class="text-slate-400 italic text-[11px]">No values</span>'}
+                    </div>
+                </div></td>`;
+            flatTableBody.appendChild(tr);
+            lucide.createIcons();
+        };
+
+        // --- View Switchers ---
+        viewTreeBtn.addEventListener('click', () => {
+            activeViewMode = 'tree';
+            viewTreeBtn.className = "px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 shadow-sm text-slate-800 dark:text-slate-100 flex items-center space-x-1.5 transition";
+            viewFlatBtn.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 flex items-center space-x-1.5 transition";
+            renderCurrentView();
+        });
+        viewFlatBtn.addEventListener('click', () => {
+            activeViewMode = 'flat';
+            viewFlatBtn.className = "px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 shadow-sm text-slate-800 dark:text-slate-100 flex items-center space-x-1.5 transition";
+            viewTreeBtn.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 flex items-center space-x-1.5 transition";
+            renderCurrentView();
+        });
+
+        filterInput.addEventListener('input', (e) => { currentFilter = e.target.value; renderCurrentView(); });
+
+        // --- Export ---
+        function getExportData() {
+            if (activeHierarchy.length === 0) return { rows: [], headers: [] };
+            const exportRows = [];
+            const filterLower = currentFilter.toLowerCase();
+            const doHorizontalPivot = horizontalPivotIndex >= 0 && horizontalPivotIndex < activeHierarchy.length && activeViewMode === 'flat';
+
+            if (doHorizontalPivot) {
+                const pivotColName = activeHierarchy[horizontalPivotIndex];
+                const otherCols = activeHierarchy.filter((_, idx) => idx !== horizontalPivotIndex);
+                const allPivotValues = getColumnUniqueBreakdown(pivotColName).map(([val]) => val);
+                const removedSet = removedPivotValues.get(pivotColName) || new Set();
+                const pivotUniqueValues = allPivotValues.filter(val => !removedSet.has(val));
+                const isTrim = trimWhitespaceToggle.checked;
+                const isIgnoreCase = ignoreCaseToggle.checked;
+                const includeBlanks = includeBlanksToggle.checked;
+                const rowMap = new Map();
+
+                rawDataSet.forEach(row => {
+                    let keysAll = []; let skipRow = false;
+                    for (let col of activeHierarchy) {
+                        let rawVal = row[col];
+                        if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
+                            if (!includeBlanks) { skipRow = true; break; }
+                            else keysAll.push('(Blank)');
+                        } else {
+                            let val = String(rawVal);
+                            if (isTrim) val = val.trim();
+                            if (isIgnoreCase) val = val.toLowerCase();
+                            keysAll.push(val);
+                        }
+                    }
+                    if (skipRow) return;
+                    const otherKeys = keysAll.filter((_, idx) => idx !== horizontalPivotIndex);
+                    const pivotKey = keysAll[horizontalPivotIndex];
+                    const rowKey = otherKeys.join('|||');
+                    if (!rowMap.has(rowKey)) rowMap.set(rowKey, { otherKeys, pivotCounts: new Map(), total: 0 });
+                    const entry = rowMap.get(rowKey);
+                    entry.pivotCounts.set(pivotKey, (entry.pivotCounts.get(pivotKey) || 0) + 1);
+                    entry.total += 1;
+                });
+
+                let aggregatedRows = Array.from(rowMap.values());
+                if (currentFilter) {
+                    aggregatedRows = aggregatedRows.filter(entry => {
+                        const combined = entry.otherKeys.join(' ').toLowerCase() + ' ' + Array.from(entry.pivotCounts.keys()).join(' ').toLowerCase();
+                        return combined.includes(filterLower);
+                    });
+                }
+                aggregatedRows.sort((a, b) => b.total - a.total);
+
+                const pivotTotals = new Map();
+                let grandTotal = 0;
+                aggregatedRows.forEach(entry => {
+                    let visibleRowTotal = 0;
+                    pivotUniqueValues.forEach(val => {
+                        const cnt = entry.pivotCounts.get(val) || 0;
+                        pivotTotals.set(val, (pivotTotals.get(val) || 0) + cnt);
+                        visibleRowTotal += cnt;
+                    });
+                    entry.visibleTotal = visibleRowTotal;
+                    grandTotal += visibleRowTotal;
+                });
+
+                aggregatedRows.forEach(entry => {
+                    const rowObj = {};
+                    otherCols.forEach((col, i) => { rowObj[col] = entry.otherKeys[i]; });
+                    pivotUniqueValues.forEach(val => { rowObj[`${pivotColName} = ${val}`] = entry.pivotCounts.get(val) || 0; });
+                    rowObj["Total"] = entry.visibleTotal;
+                    exportRows.push(rowObj);
+                });
+
+                const totalsRowObj = {};
+                otherCols.forEach((col, i) => { totalsRowObj[col] = i === 0 ? 'TOTALS' : ''; });
+                pivotUniqueValues.forEach(val => { totalsRowObj[`${pivotColName} = ${val}`] = pivotTotals.get(val) || 0; });
+                totalsRowObj["Total"] = grandTotal;
+                exportRows.push(totalsRowObj);
+
+                const headers = [...otherCols, ...pivotUniqueValues.map(v => `${pivotColName} = ${v}`), "Total"];
+                return { rows: exportRows, headers };
+            }
+
+            if (activeViewMode === 'flat') {
+                const filtered = processedFlatAggregated.filter(item => !currentFilter || item.keyString.toLowerCase().includes(filterLower));
+                let grandTotal = 0;
+                filtered.forEach(item => {
+                    grandTotal += item.count;
+                    const rowObj = {};
+                    activeHierarchy.forEach((col, idx) => { rowObj[col] = item.keys[idx]; });
+                    rowObj["Frequency Count"] = item.count;
+                    exportRows.push(rowObj);
+                });
+                const totalsRowObj = {};
+                activeHierarchy.forEach((col, i) => { totalsRowObj[col] = i === 0 ? 'TOTALS' : ''; });
+                totalsRowObj["Frequency Count"] = grandTotal;
+                exportRows.push(totalsRowObj);
+                return { rows: exportRows, headers: [...activeHierarchy, "Frequency Count"] };
+            } else {
+                function traverse(node, parentVals = {}) {
+                    if (!node) return;
+                    const children = Array.from(node.children.values()).sort((a, b) => b.count - a.count);
+                    children.forEach(child => {
+                        const matchesFilter = !currentFilter || child.path.toLowerCase().includes(filterLower);
+                        const isExpanded = treeExpandedState.has(child.path) ? treeExpandedState.get(child.path) : (child.level === 1);
+                        if (matchesFilter || filterHasChildMatch(child, filterLower)) {
+                            const currentVals = { ...parentVals, [child.columnName]: child.name };
+                            if (child.children.size === 0 || !isExpanded) {
+                                const rowObj = {};
+                                activeHierarchy.forEach(col => { rowObj[col] = currentVals[col] !== undefined ? currentVals[col] : ""; });
+                                rowObj["Frequency Count"] = child.count;
+                                exportRows.push(rowObj);
+                            } else traverse(child, currentVals);
+                        }
+                    });
+                }
+                traverse(processedTreeData);
+                const totalRows = exportRows.reduce((sum, r) => sum + (r["Frequency Count"] || 0), 0);
+                const totalsRowObj = {};
+                activeHierarchy.forEach((col, i) => { totalsRowObj[col] = i === 0 ? 'TOTALS' : ''; });
+                totalsRowObj["Frequency Count"] = totalRows;
+                exportRows.push(totalsRowObj);
+                return { rows: exportRows, headers: [...activeHierarchy, "Frequency Count"] };
+            }
+        }
+
+        exportCsvBtn.addEventListener('click', () => {
+            const { rows, headers } = getExportData();
+            if (rows.length === 0) { showAlert("No data to export.", "error"); return; }
+            let csv = "data:text/csv;charset=utf-8," + headers.map(h => `"${h}"`).join(',') + "\n";
+            rows.forEach(row => {
+                csv += headers.map(h => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(',') + "\n";
+            });
+            const link = document.createElement("a");
+            link.href = encodeURI(csv);
+            link.download = `hierarchy_${activeHierarchy.join('_')}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        });
+
+        exportExcelBtn.addEventListener('click', () => {
+            const { rows, headers } = getExportData();
+            if (rows.length === 0) { showAlert("No data to export.", "error"); return; }
+            const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+            ws['!cols'] = headers.map(h => ({ wch: Math.min(Math.max(h.length + 3, 12), 40) }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Counts");
+            XLSX.writeFile(wb, `hierarchy_${activeHierarchy.join('_')}.xlsx`);
+        });
+
+        // --- Alert ---
+        function showAlert(msg, type = 'info') {
+            alertMessage.textContent = msg;
+            alertBanner.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200');
+            alertBanner.classList.add(...(type === 'error'
+                ? ['bg-red-50', 'text-red-700', 'border-red-200']
+                : ['bg-blue-50', 'text-blue-700', 'border-blue-200']));
+        }
+        function hideAlert() { alertBanner.classList.add('hidden'); }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
