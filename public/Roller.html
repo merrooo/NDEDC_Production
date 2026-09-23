@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حساب البكرات</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Roboto, system-ui, sans-serif;
+        }
+
+        body {
+            background: #f3f5f9;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -8px rgba(0, 20, 30, 0.2);
+            padding: 28px 30px 30px;
+            max-width: 950px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* ===== Home button - top left, small, blue ===== */
+        .home-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: #1e88e5;
+            color: #ffffff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 6px rgba(30, 136, 229, 0.35);
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        .home-btn:hover {
+            background: #1565c0;
+            transform: translateY(-1px);
+        }
+
+        .home-btn:active {
+            transform: translateY(0);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 22px;
+            color: #0b2b3c;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        th {
+            text-align: right;
+            padding: 14px 16px;
+            background: #eef3f8;
+            color: #1d4c64;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #cddde9;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e3eaf0;
+            vertical-align: middle;
+            text-align: right;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #12303e;
+            font-size: 1rem;
+        }
+
+        .unit {
+            color: #527a8f;
+            font-size: 0.9rem;
+            margin-right: 6px;
+        }
+
+        /* INPUT - no fill, editable */
+        .input-cell {
+            background: transparent;
+            border: 1px solid #cfdbe6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0b2b3c;
+            width: 150px;
+            outline: none;
+            text-align: right;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .input-cell:focus {
+            border-color: #4a90c2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 194, 0.15);
+        }
+
+        .input-cell:hover {
+            border-color: #9bb8cd;
+        }
+
+        /* RESULT - yellow fill */
+        .result-cell {
+            background: #fff9c4;
+            font-weight: 600;
+            color: #6b5300;
+            padding: 8px 14px;
+            border-radius: 8px;
+            display: inline-block;
+            border: 1px solid #f0e68c;
+            min-width: 120px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .result-cell:empty::before {
+            content: "—";
+            color: #c9b96b;
+        }
+
+        /* FINAL - default empty, no fill */
+        .final-box {
+            display: inline-block;
+            min-width: 100px;
+            text-align: center;
+            padding: 9px 26px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            background: transparent;
+            border: 1px dashed #d0dae3;
+            color: #aab8c4;
+            transition: all 0.2s;
+        }
+
+        /* PASS - white background + green text */
+        .final-box.pass {
+            background: #ffffff;
+            border: 1px solid #b9dfc9;
+            color: #1b7a3e;
+        }
+
+        /* FAIL - red background + dark red text */
+        .final-box.fail {
+            background: #ffcdd2;
+            border: 1px solid #ef9a9a;
+            color: #8b1a1a;
+        }
+
+        .btn {
+            background: #eef3f8;
+            border: 1px solid #c8dae8;
+            color: #1d4c64;
+            padding: 10px 22px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 18px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn:hover {
+            background: #dce7f0;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 20px 16px;
+            }
+
+            td,
+            th {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .input-cell {
+                width: 110px;
+            }
+
+            .home-btn {
+                top: 12px;
+                left: 12px;
+                padding: 5px 12px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <!-- Home button - top left, small, blue -->
+        <a class="home-btn" href="index.html">🏠 الرئيسية</a>
+
+        <h1>حساب البكرات</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>البيان</th>
+                    <th>القيمة</th>
+                    <th>الوحدة</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- ================= INPUTS ================= -->
+                <tr>
+                    <td class="label">العرض ( لا يزيد عن 7.9 سم )</td>
+                    <td><input type="number" step="0.01" class="input-cell" id="b2"></td>
+                    <td><span class="unit">سم</span></td>
+                </tr>
+                <tr>
+                    <td class="label">طول البكرة الفعلي</td>
+                    <td><input type="number" step="0.01" class="input-cell" id="b3"></td>
+                    <td><span class="unit">متر</span></td>
+                </tr>
+                <tr>
+                    <td class="label">طول البكرة القياسي</td>
+                    <td><input type="number" step="0.01" class="input-cell" id="b4" value="30"></td>
+                    <td><span class="unit">متر</span></td>
+                </tr>
+                <tr>
+                    <td class="label">عدد البكرات الموردة</td>
+                    <td><input type="number" step="1" class="input-cell" id="b5"></td>
+                    <td><span class="unit">بكرة</span></td>
+                </tr>
+
+                <!-- ================= RESULTS (yellow) ================= -->
+                <tr>
+                    <td class="label">الحيود فى البكرة</td>
+                    <td><span class="result-cell" id="b6"></span></td>
+                    <td><span class="unit">سم</span></td>
+                </tr>
+                <tr>
+                    <td class="label">اجمالي البكرات الموردة بالمتر</td>
+                    <td><span class="result-cell" id="b7"></span></td>
+                    <td><span class="unit">متر</span></td>
+                </tr>
+                <tr>
+                    <td class="label">المتبقي بكرات بالمتر</td>
+                    <td><span class="result-cell" id="b8"></span></td>
+                    <td><span class="unit">متر</span></td>
+                </tr>
+                <tr>
+                    <td class="label">المطلوب توريد البكرات بالمتر</td>
+                    <td><span class="result-cell" id="b9"></span></td>
+                    <td><span class="unit">متر</span></td>
+                </tr>
+                <tr>
+                    <td class="label">عدد البكرات المطلوب توريدها</td>
+                    <td><span class="result-cell" id="b10"></span></td>
+                    <td><span class="unit">بكرة</span></td>
+                </tr>
+
+                <!-- ================= FINAL PASS/FAIL ================= -->
+                <tr>
+                    <td class="label">نتيجة فحص العرض</td>
+                    <td colspan="2"><span class="final-box" id="b12"></span></td>
+                </tr>
+                <tr>
+                    <td class="label">نتيجة فحص الطول</td>
+                    <td colspan="2"><span class="final-box" id="b13"></span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button class="btn" id="reset">↺ استرجاع القيم الافتراضية</button>
+    </div>
+
+    <script>
+        (function () {
+            const DEFAULTS = { b2: '', b3: '', b4: 30, b5: '' };
+            const TOLERANCE_RATIO = 0.03;   // 3%
+
+            const $ = id => document.getElementById(id);
+            const b2 = $('b2'), b3 = $('b3'), b4 = $('b4'), b5 = $('b5');
+
+            const fmt = (n, d = 2) =>
+                !isFinite(n) ? '—' : n.toLocaleString('en-US', {
+                    minimumFractionDigits: d, maximumFractionDigits: d
+                });
+
+            function calculate() {
+                const B2 = parseFloat(b2.value);
+                const B3 = parseFloat(b3.value);
+                const B4 = parseFloat(b4.value);
+                const B5 = parseFloat(b5.value);
+
+                const allFilled =
+                    !isNaN(B2) && !isNaN(B3) && !isNaN(B4) && !isNaN(B5);
+
+                // ---- الحسابات ----
+                // ✅ الحيود فى البكرة = طول البكرة القياسي − طول البكرة الفعلي
+                const B6  = allFilled ? (B4 - B3) : NaN;
+                const B7  = allFilled ? (B5 * B3) : NaN;        // اجمالي المورد بالمتر
+                const B8  = allFilled ? (B6 * B5) : NaN;        // المتبقي بكرات بالمتر
+                const B9  = allFilled ? (B7 - B8) : NaN;        // المطلوب توريد البكرات بالمتر
+
+                // ✅ عدد البكرات المطلوب توريدها = المتبقي بكرات بالمتر ÷ الطول القياسي
+                const B10 = (allFilled && B4 !== 0) ? (B8 / B4) : NaN;
+
+                // ---- عرض النتائج (أصفر) ----
+                $('b6').textContent  = isNaN(B6)  ? '' : B6.toFixed(2);
+                $('b7').textContent  = isNaN(B7)  ? '' : fmt(B7);
+                $('b8').textContent  = isNaN(B8)  ? '' : fmt(B8);
+                $('b9').textContent  = isNaN(B9)  ? '' : fmt(B9);
+                $('b10').textContent = isNaN(B10) ? '' : fmt(B10, 2);
+
+                // ---- فحص العرض (يظهر فورًا بمجرد كتابة العرض) ----
+                if (!isNaN(B2)) {
+                    const failWidth = B2 > 7.9;
+                    $('b12').textContent = failWidth ? 'فشل' : 'ناجح';
+                    $('b12').className = 'final-box ' + (failWidth ? 'fail' : 'pass');
+                } else {
+                    $('b12').className = 'final-box';
+                    $('b12').textContent = '';
+                }
+
+                // ---- فحص الطول ----
+                if (!isNaN(B3) && !isNaN(B4)) {
+                    const tolerance = B4 * TOLERANCE_RATIO;
+                    const diff = Math.abs(B4 - B3);
+                    const failLength = diff > tolerance;
+                    $('b13').textContent = failLength ? 'فشل' : 'ناجح';
+                    $('b13').className = 'final-box ' + (failLength ? 'fail' : 'pass');
+                } else {
+                    $('b13').className = 'final-box';
+                    $('b13').textContent = '';
+                }
+            }
+
+            [b2, b3, b4, b5].forEach(el => {
+                el.addEventListener('input', calculate);
+                el.addEventListener('change', calculate);
+            });
+
+            $('reset').addEventListener('click', () => {
+                b2.value = DEFAULTS.b2;
+                b3.value = DEFAULTS.b3;
+                b4.value = DEFAULTS.b4;
+                b5.value = DEFAULTS.b5;
+                calculate();
+            });
+
+            calculate();
+        })();
+    </script>
+</body>
+
+</html>
