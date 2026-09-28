@@ -54,6 +54,7 @@
             padding: 24px 20px;
             border-bottom: 2px solid #eef2ff;
             background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            flex-shrink: 0;
         }
 
         .home-nav-link {
@@ -87,11 +88,13 @@
             background: #eff6ff;
             padding: 12px 20px;
             margin-top: 12px;
+            flex-shrink: 0;
         }
 
         .feature-card {
             padding: 18px 20px;
             border-bottom: 1px solid #f0f2f5;
+            flex-shrink: 0;  /* prevent squishing */
         }
 
         .feature-title {
@@ -117,6 +120,37 @@
 
         .compact-select:focus,
         .compact-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Unique values search input with icon */
+        .unique-search-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .unique-search-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .unique-search-input {
+            width: 100%;
+            padding: 9px 12px 9px 32px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .unique-search-input:focus {
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -150,13 +184,16 @@
             transform: none;
         }
 
+        /* ============================================================ */
+        /* UNIQUE VALUES LIST — now grows to fit content, no scrollbar   */
+        /* ============================================================ */
         .unique-list-compact {
-            max-height: 320px;
-            overflow-y: auto;
+            min-height: 150px;               /* decent height when empty */
             background: #f8fafc;
             border-radius: 16px;
             border: 1px solid #e2e8f0;
-            margin-top: 12px;
+            margin-top: 8px;
+            /* NO max-height, NO overflow-y: the card grows with content */
         }
 
         .unique-preview-row {
@@ -170,6 +207,10 @@
             transition: background 0.1s;
         }
 
+        .unique-preview-row:last-child {
+            border-bottom: none;
+        }
+
         .unique-preview-row:hover {
             background: #dbeafe;
         }
@@ -180,6 +221,14 @@
             border-radius: 30px;
             font-weight: 700;
             font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .unique-empty-note {
+            padding: 30px 20px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
         }
 
         /* MAIN CONTENT */
@@ -188,6 +237,7 @@
             padding: 24px 28px;
             overflow-y: auto;
             background: #f8fafc;
+            min-width: 0;  /* prevents flex overflow */
         }
 
         .toolbar-header {
@@ -359,9 +409,20 @@
                     
                     <button id="applyReplaceBtn" class="small-btn"><i class="fas fa-exchange-alt"></i> Apply Replacement</button>
                 </div>
-                <div class="feature-title" style="margin-top: 8px;"><i class="fas fa-list-ul"></i> Unique Values (click to filter & fill)</div>
+
+                <div class="feature-title" style="margin-top: 16px; justify-content: space-between;">
+                    <span><i class="fas fa-list-ul"></i> Unique Values <span style="font-weight:400; color:#64748b; font-size:11px;">(click to filter & fill)</span></span>
+                    <span id="uniqueCountBadge" style="font-size:10px; background:#eff6ff; color:#2563eb; padding:2px 8px; border-radius:20px;">0</span>
+                </div>
+
+                <!-- Search input for unique values -->
+                <div class="unique-search-wrap">
+                    <i class="fas fa-filter"></i>
+                    <input type="text" id="uniqueSearchInput" class="unique-search-input" placeholder="Search unique values...">
+                </div>
+
                 <div class="unique-list-compact" id="uniqueValuesContainer">
-                    <div style="padding: 20px; text-align:center; color:#64748b;"> Select a column to see unique values</div>
+                    <div class="unique-empty-note">Select a column to see unique values</div>
                 </div>
             </div>
 
@@ -421,6 +482,7 @@
         let masterHeaders = [];
         let activeUnifiedFilter = "";   
         let dataTableInstance = null;     
+        let uniqueSearchTerm = "";
 
         // DOM elements
         const fileUpload = document.getElementById('globalFileUpload');
@@ -441,6 +503,8 @@
         const clearFiltersBtn = document.getElementById('clearFiltersGlobalBtn');
         const rowStatsSpan = document.getElementById('rowStats');
         const logPanel = document.getElementById('liveLogPanel');
+        const uniqueSearchInput = document.getElementById('uniqueSearchInput');
+        const uniqueCountBadge = document.getElementById('uniqueCountBadge');
 
         function addLog(message, type = "info") {
             const logDiv = document.createElement('div');
@@ -510,22 +574,42 @@
         function refreshUniquePreview() {
             const col = editorColumn.value;
             if (!col || masterData.length === 0) {
-                uniqueContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#64748b;">Select a column to see unique values</div>';
+                uniqueContainer.innerHTML = '<div class="unique-empty-note">Select a column to see unique values</div>';
                 editPanel.style.display = "none";
+                uniqueCountBadge.textContent = "0";
                 return;
             }
             editPanel.style.display = "block";
+
             const valueMap = new Map();
             masterData.forEach(row => {
                 let val = normalizeValue(row[col]);
                 if (val === "") val = "(empty)";
                 valueMap.set(val, (valueMap.get(val) || 0) + 1);
             });
-            const sorted = Array.from(valueMap.entries()).sort((a, b) => b[1] - a[1]);
-            uniqueContainer.innerHTML = sorted.slice(0, 100).map(([val, cnt]) => `
+
+            let sorted = Array.from(valueMap.entries()).sort((a, b) => b[1] - a[1]);
+
+            if (uniqueSearchTerm.trim() !== "") {
+                const q = uniqueSearchTerm.trim().toLowerCase();
+                sorted = sorted.filter(([val]) => val.toLowerCase().includes(q));
+            }
+
+            const totalUniques = valueMap.size;
+            const shownCount = sorted.length;
+            uniqueCountBadge.textContent = shownCount === totalUniques 
+                ? totalUniques 
+                : `${shownCount} / ${totalUniques}`;
+
+            if (sorted.length === 0) {
+                uniqueContainer.innerHTML = `<div class="unique-empty-note">No unique values match "<b>${escapeHtml(uniqueSearchTerm)}</b>"</div>`;
+                return;
+            }
+
+            uniqueContainer.innerHTML = sorted.map(([val, cnt]) => `
                 <div class="unique-preview-row" onclick="fillAndFilter('${val.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
                     <span class="unique-preview-badge">${cnt}</span>
-                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(val)}</span>
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(val)}</span>
                     <i class="fas fa-mouse-pointer" style="color:#2563eb; font-size:11px;"></i>
                 </div>
             `).join('');
@@ -551,7 +635,6 @@
             replaceNewInput.focus();
         };
         
-        // UPDATED LOGIC: Replaces target text/word within selected column values
         function applyFindReplace() {
             const col = editorColumn.value;
             if (!col) { 
@@ -572,8 +655,6 @@
             masterData.forEach(row => {
                 if (row[col] !== undefined && row[col] !== null) {
                     let original = String(row[col]);
-
-                    // Check if the cell text includes the requested target string
                     if (original.includes(oldVal)) {
                         const updated = original.split(oldVal).join(newVal);
                         row[col] = updated;
@@ -655,6 +736,8 @@
 
                 activeUnifiedFilter = "";
                 globalSearchInput.value = "";
+                uniqueSearchTerm = "";
+                uniqueSearchInput.value = "";
 
                 if (dataTableInstance) {
                     dataTableInstance.destroy();
@@ -718,7 +801,14 @@
         });
         
         editorColumn.addEventListener('change', () => { 
+            uniqueSearchTerm = "";
+            uniqueSearchInput.value = "";
             refreshUniquePreview(); 
+        });
+
+        uniqueSearchInput.addEventListener('input', (e) => {
+            uniqueSearchTerm = e.target.value;
+            refreshUniquePreview();
         });
         
         globalSearchInput.addEventListener('input', (e) => {
