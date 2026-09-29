@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Excel Merge Suite</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --violet: #7c3aed;
+            --amber: #f59e0b;
+            --bg-main: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            padding: 2rem 0;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .app-header h2 {
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0;
+        }
+        .btn-home {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-home:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Mode Selector */
+        .mode-selector {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .mode-selector-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+            padding-left: 4px;
+        }
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.18s;
+            text-align: left;
+            font-family: inherit;
+        }
+        .mode-btn:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -4px rgba(0,0,0,0.08);
+        }
+        .mode-btn.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .mode-btn.active .mode-icon {
+            background: var(--primary);
+            color: white;
+        }
+        .mode-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            transition: 0.18s;
+        }
+        .mode-text { min-width: 0; }
+        .mode-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: block;
+            line-height: 1.2;
+        }
+        .mode-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 3px;
+            line-height: 1.3;
+        }
+        .mode-btn.active .mode-title { color: var(--primary); }
+        .mode-btn.active .mode-desc { color: #60a5fa; }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .card-header-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px solid #eef2ff;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-header-custom h5 {
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 0;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 8px;
+            border-radius: 20px;
+            background: var(--primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .step-badge.green { background: var(--success); }
+        .step-badge.violet { background: var(--violet); }
+        .step-badge.amber { background: var(--amber); }
+
+        /* Stat Boxes */
+        .stat-box {
+            background: white;
+            padding: 1.1rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            text-align: center;
+            height: 100%;
+        }
+        .stat-box .label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+        .stat-box .value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+        .stat-box .value.green { color: var(--success); }
+        .stat-box .value.red { color: var(--danger); }
+
+        /* Type Info */
+        .type-info {
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            width: 100%;
+            line-height: 1.3;
+        }
+        .type-sim {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .type-std {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid var(--border);
+        }
+
+        /* Run Button */
+        .btn-run {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.95rem 2rem;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            width: 100%;
+            transition: 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-run:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.2);
+        }
+        .btn-run:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .btn-run.green { background: var(--success); }
+        .btn-run.green:hover:not(:disabled) {
+            background: #047857;
+            box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Column Selector Box */
+        .column-selector-box {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .column-selector-box::-webkit-scrollbar { width: 6px; }
+        .column-selector-box::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .btn-toggle-all {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 6px;
+        }
+
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        /* Proximity Mode Specific */
+        .custom-range-input {
+            border: 2px solid var(--success) !important;
+            font-weight: bold;
+            background-color: #f8fff9;
+        }
+        .custom-search-input {
+            border: 2px solid var(--primary) !important;
+            font-weight: bold;
+            background-color: #f0f7ff;
+        }
+        .matched-row {
+            background-color: #d1e7dd !important;
+        }
+
+        /* Modal */
+        #fullscreenPreviewModal .modal-dialog {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+        }
+        #fullscreenPreviewModal .modal-content {
+            border-radius: 0 !important;
+            height: 100vh;
+        }
+        #fullscreenPreviewModal .modal-body {
+            padding: 0.75rem !important;
+            overflow: hidden;
+        }
+        #modalTable {
+            font-size: 0.82rem !important;
+            border-collapse: collapse !important;
+        }
+        #modalTable thead th {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            padding: 10px 14px !important;
+            border: 1px solid #334155 !important;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+        }
+        #modalTable tbody td {
+            padding: 8px 14px !important;
+            border: 1px solid var(--border) !important;
+            white-space: nowrap;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #modalTable tbody tr:nth-of-type(odd) { background-color: #ffffff !important; }
+        #modalTable tbody tr:nth-of-type(even) { background-color: #f8fafc !important; }
+        #modalTable tbody tr:hover { background-color: #f1f5f9 !important; }
+
+        /* Process Sections */
+        .process-section { display: none; }
+        .process-section.active { display: block; }
+
+        /* Swap Icon */
+        .swap-icon {
+            font-size: 2rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .swap-icon { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-4" style="max-width: 1500px;">
+
+        <!-- App Header -->
+        <div class="app-header">
+            <h2><i class="fas fa-layer-group me-2"></i>Unified Excel Merge Suite</h2>
+            <a href="Control_Excel.html" class="btn-home">
+                <i class="fas fa-home me-2"></i>Return Home
+            </a>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <div class="mode-selector-title">Choose Merge Workflow</div>
+            <div class="mode-grid">
+                <button class="mode-btn active" data-mode="smart" onclick="setMode('smart')">
+                    <div class="mode-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="mode-text">
+                        <span class="mode-title">Smart Key Merge</span>
+                        <span class="mode-desc">Merge two files by matching key columns — with direct match + Serial fallback</span>
+                    </div>
+                </button>
+                <button class="mode-btn" data-mode="proximity" onclick="setMode('proximity')">
+                    <div class="mode-icon"><i class="fas fa-crosshairs"></i></div>
+                    <div class="mode-text">
+                        <span class="mode-title">Proximity Range Merge</span>
+                        <span class="mode-desc">Match numeric keys within ± offset range — with optional focus number</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===================================================== -->
+        <!-- PROCESS 1: SMART KEY MERGE                            -->
+        <!-- ===================================================== -->
+        <div class="process-section active" id="section-smart">
+
+            <!-- Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <div class="label">Total Rows</div>
+                        <div class="value" id="smartTotalCount">0</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <div class="label">Matched</div>
+                        <div class="value green" id="smartMatchedCount">0</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <div class="label">Unmatched</div>
+                        <div class="value red" id="smartUnmatchedCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Card -->
+            <div class="card">
+                <div class="card-header-custom">
+                    <h5><i class="fas fa-cogs text-primary"></i> Configuration — Smart Key Merge</h5>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Source File -->
+                    <div class="col-md-5">
+                        <div class="p-3 border rounded-4 h-100 d-flex flex-column">
+                            <label class="fw-bold mb-2">
+                                <span class="step-badge me-2">1</span>
+                                <i class="fas fa-file-alt text-primary me-2"></i>Source File
+                            </label>
+                            <input type="file" id="smartF1" class="form-control mb-2" accept=".xlsx,.xls,.csv">
+                            <select id="smartS1" class="form-select mb-2" disabled onchange="smartUpdateTypeInfo(1)"></select>
+                            <div id="smartTi1" class="type-info d-none mb-3"></div>
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold text-muted">Output Columns:</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary btn-toggle-all me-1" onclick="toggleSelectAll('smartColsContainer1', true)">All</button>
+                                        <button class="btn btn-sm btn-outline-secondary btn-toggle-all" onclick="toggleSelectAll('smartColsContainer1', false)">None</button>
+                                    </div>
+                                </div>
+                                <div id="smartColsContainer1" class="column-selector-box">
+                                    <span class="text-muted small fst-italic">Upload source file to see columns...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Swap -->
+                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-exchange-alt swap-icon"></i>
+                    </div>
+
+                    <!-- Database File -->
+                    <div class="col-md-5">
+                        <div class="p-3 border rounded-4 h-100 d-flex flex-column">
+                            <label class="fw-bold mb-2">
+                                <span class="step-badge me-2">2</span>
+                                <i class="fas fa-database text-primary me-2"></i>Search Database
+                            </label>
+                            <input type="file" id="smartF2" class="form-control mb-2" accept=".xlsx,.xls,.csv">
+                            <select id="smartS2" class="form-select mb-2" disabled onchange="smartUpdateTypeInfo(2)"></select>
+                            <div id="smartTi2" class="type-info d-none mb-3"></div>
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold text-muted">Output Columns:</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary btn-toggle-all me-1" onclick="toggleSelectAll('smartColsContainer2', true)">All</button>
+                                        <button class="btn btn-sm btn-outline-secondary btn-toggle-all" onclick="toggleSelectAll('smartColsContainer2', false)">None</button>
+                                    </div>
+                                </div>
+                                <div id="smartColsContainer2" class="column-selector-box">
+                                    <span class="text-muted small fst-italic">Upload database file to see columns...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button class="btn-run" onclick="smartStartMerge()" id="smartRunBtn" disabled>
+                        <i class="fas fa-play-circle me-2"></i> Run Smart Key Merge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Table -->
+            <div class="table-container">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="fw-bold m-0"><i class="fas fa-table text-primary me-2"></i> Merge Results</h5>
+                </div>
+                <table id="smartResultTable" class="table table-hover w-100"></table>
+            </div>
+        </div>
+
+        <!-- ===================================================== -->
+        <!-- PROCESS 2: PROXIMITY RANGE MERGE                      -->
+        <!-- ===================================================== -->
+        <div class="process-section" id="section-proximity">
+
+            <!-- Status Log -->
+            <div id="proxStatusLog" class="alert alert-info d-none mb-4"></div>
+
+            <!-- Configuration Card -->
+            <div class="card">
+                <div class="card-header-custom">
+                    <h5><i class="fas fa-crosshairs text-success"></i> Configuration — Proximity Range Merge</h5>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <!-- Master File -->
+                    <div class="col-md-6 border-end">
+                        <h6 class="text-secondary fw-bold mb-3">
+                            <span class="step-badge me-2">1</span>Master File
+                        </h6>
+                        <input type="file" id="proxMasterFile" class="form-control mb-2" accept=".xlsx, .xls">
+                        <label class="form-label small fw-bold text-danger mb-1">Key Column</label>
+                        <select id="proxMasterCol" class="form-select mb-3" disabled>
+                            <option>-- Upload Master --</option>
+                        </select>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold m-0">Include Master Fields:</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn" onclick="proxToggleCheckboxes('master', true)">All</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn" onclick="proxToggleCheckboxes('master', false)">None</button>
+                            </div>
+                        </div>
+                        <div id="proxMasterFieldsPick" class="column-selector-box">
+                            <span class="text-muted small fst-italic">Upload master file to choose fields...</span>
+                        </div>
+                    </div>
+
+                    <!-- Search File -->
+                    <div class="col-md-6">
+                        <h6 class="text-secondary fw-bold mb-3">
+                            <span class="step-badge me-2">2</span>Search File (Lookup Source)
+                        </h6>
+                        <input type="file" id="proxSearchFile" class="form-control mb-2" accept=".xlsx, .xls">
+                        <label class="form-label small fw-bold text-danger mb-1">Key Column</label>
+                        <select id="proxSearchCol" class="form-select mb-3" disabled>
+                            <option>-- Upload Search File --</option>
+                        </select>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold m-0">Include Search Fields:</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn" onclick="proxToggleCheckboxes('search', true)">All</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm toggle-btn" onclick="proxToggleCheckboxes('search', false)">None</button>
+                            </div>
+                        </div>
+                        <div id="proxSearchFieldsPick" class="column-selector-box">
+                            <span class="text-muted small fst-italic">Upload search file to choose fields...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matching Rules -->
+                <div class="row g-3 align-items-end bg-light p-3 rounded-3 border">
+                    <div class="col-md-4 border-end">
+                        <label for="proxFocusInput" class="form-label fw-bold text-primary mb-1">
+                            <span class="step-badge me-2">3</span>Target Number Focus (Optional)
+                        </label>
+                        <input type="text" id="proxFocusInput" class="form-control custom-search-input" placeholder="e.g., 5514512323">
+                        <div class="form-text small text-muted">Only keep rows near this number</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="proxOffsetInput" class="form-label fw-bold text-success mb-1">
+                            <span class="step-badge green me-2">4</span>Proximity Allowed (±)
+                        </label>
+                        <input type="number" id="proxOffsetInput" class="form-control custom-range-input" value="5">
+                        <div class="form-text small text-muted">Positive = ± range · Negative = down only</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="proxShowStatusCols" checked>
+                            <label class="form-check-label small fw-bold" for="proxShowStatusCols">Include Meta Cols</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="button" id="proxProcessBtn" class="btn-run green" disabled>
+                            <i class="fas fa-play me-2"></i> Run Proximity Merge
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Table -->
+            <div id="proxOutputContainer" class="table-container d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="fw-bold m-0">
+                        <i class="fas fa-table text-success me-2"></i>
+                        Proximity Results (<span id="proxOutputCount">0</span> records)
+                    </h5>
+                    <button type="button" id="proxExportBtn" class="btn btn-primary fw-bold">
+                        <i class="fas fa-file-excel me-1"></i> Download Excel
+                    </button>
+                </div>
+                <div style="max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;">
+                    <table class="table table-bordered table-sm m-0" id="proxResultsTable">
+                        <thead class="table-dark sticky-top" id="proxOutputHead"></thead>
+                        <tbody id="proxOutputBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Fullscreen Modal (Shared) -->
+    <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content shadow-none border-0">
+                <div class="modal-header bg-dark text-white py-2 px-3">
+                    <h6 class="modal-title">
+                        <i class="fas fa-table me-2 text-info"></i> Full-Screen Work Area View
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <div class="table-responsive w-100 h-100">
+                        <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+                    </div>
+                </div>
+                <div class="modal-footer py-1 px-3 bg-light border-top">
+                    <span class="text-muted small me-auto">
+                        <i class="fas fa-info-circle me-1"></i> Press ESC or click Close to return.
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Close Workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        /* ============================================================
+           MODE SWITCHER
+           ============================================================ */
+        let currentMode = 'smart';
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            document.querySelectorAll('.process-section').forEach(sec => {
+                sec.classList.toggle('active', sec.id === 'section-' + mode);
+            });
+        }
+
+        /* ============================================================
+           SHARED HELPERS
+           ============================================================ */
+        function toggleSelectAll(containerId, checkState) {
+            document.querySelectorAll(`#${containerId} .column-chk`).forEach(chk => chk.checked = checkState);
+        }
+
+        function buildColumnCheckboxes(containerId, headers, prefix) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            headers.forEach(h => {
+                if (!h) return;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-check small';
+                wrapper.innerHTML = `
+                    <input class="form-check-input column-chk" type="checkbox" value="${h}" data-prefix="${prefix}" id="chk_${prefix}_${h}" checked>
+                    <label class="form-check-label text-truncate w-100" for="chk_${prefix}_${h}">${h}</label>
+                `;
+                container.appendChild(wrapper);
+            });
+        }
+
+        /* ============================================================
+           PROCESS 1: SMART KEY MERGE
+           ============================================================ */
+        let smartD1 = [], smartD2 = [];
+        let smartH1 = [], smartH2 = [];
+        let smartResult = [];
+
+        function smartCleanString(v) {
+            if (v === undefined || v === null || v === '') return '';
+            let s = String(v).trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+            if (s.toLowerCase().includes('e+') && !isNaN(Number(v))) {
+                try { return BigInt(Math.round(Number(v))).toString(); } catch (e) { return s; }
+            }
+            return s.replace(/\.0$/, '');
+        }
+
+        function smartLoad(e, target) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array', cellNF: true, cellText: true });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: '' });
+                const headers = raw[0].map(h => String(h).trim());
+
+                const data = [];
+                for (let i = 1; i < raw.length; i++) {
+                    let row = {};
+                    raw[i].forEach((cell, idx) => { row[headers[idx]] = smartCleanString(cell); });
+                    data.push(row);
+                }
+
+                const sel = document.getElementById('smartS' + target);
+                sel.innerHTML = '<option value="">-- Choose Column --</option>';
+                headers.forEach(h => { if (h) sel.innerHTML += `<option value="${h}">${h}</option>`; });
+                sel.disabled = false;
+
+                if (target === 1) {
+                    smartD1 = data; smartH1 = headers;
+                    buildColumnCheckboxes('smartColsContainer1', smartH1, '[List]');
+                } else {
+                    smartD2 = data; smartH2 = headers;
+                    buildColumnCheckboxes('smartColsContainer2', smartH2, '[DB]');
+                }
+                document.getElementById('smartRunBtn').disabled = !(smartD1.length && smartD2.length);
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        }
+
+        document.getElementById('smartF1').onchange = (e) => smartLoad(e, 1);
+        document.getElementById('smartF2').onchange = (e) => smartLoad(e, 2);
+
+        function smartUpdateTypeInfo(num) {
+            const col = document.getElementById('smartS' + num).value;
+            const data = num === 1 ? smartD1 : smartD2;
+            const box = document.getElementById('smartTi' + num);
+            if (!col || !data.length) { box.classList.add('d-none'); return; }
+
+            const sample = data.find(r => r[col])?.[col] || 'Empty';
+            const isLong = sample.length > 12 && /^\d+$/.test(sample);
+
+            box.classList.remove('d-none');
+            box.className = `type-info ${isLong ? 'type-sim' : 'type-std'}`;
+            box.innerHTML = `<i class="fas ${isLong ? 'fa-fingerprint' : 'fa-font'} me-1"></i> Detected: ${isLong ? 'SIM/Big ID' : 'Text'}<br><small>Sample: ${sample}</small>`;
+        }
+
+        function smartStartMerge() {
+            const k1 = document.getElementById('smartS1').value;
+            const k2 = document.getElementById('smartS2').value;
+            if (!k1 || !k2) return;
+
+            const selD1 = Array.from(document.querySelectorAll('#smartColsContainer1 .column-chk:checked')).map(el => el.value);
+            const selD2 = Array.from(document.querySelectorAll('#smartColsContainer2 .column-chk:checked')).map(el => el.value);
+
+            const finalD1Cols = selD1.length ? selD1 : smartH1.filter(Boolean);
+            const finalD2Cols = selD2.length ? selD2 : smartH2.filter(Boolean);
+
+            const map = new Map();
+            const fallback = new Map();
+
+            smartD2.forEach(r => {
+                if (r[k2]) map.set(r[k2], r);
+                if (r['SerialNum']) fallback.set(r['SerialNum'], r);
+            });
+
+            smartResult = smartD1.map(r => {
+                let match = map.get(r[k1]);
+                let type = 'Direct Match';
+
+                if (!match && r['SerialNum']) {
+                    match = fallback.get(r['SerialNum']);
+                    type = 'Serial Fallback';
+                }
+
+                let out = { 'Status': match ? type : '#N/A' };
+
+                finalD1Cols.forEach(k => {
+                    out[`[List] ${k}`] = r[k] !== undefined ? r[k] : '';
+                });
+
+                finalD2Cols.forEach(k => {
+                    out[`[DB] ${k}`] = match && match[k] !== undefined ? match[k] : '#N/A';
+                });
+
+                return out;
+            });
+
+            const matchedCount = smartResult.filter(r => r.Status !== '#N/A').length;
+            document.getElementById('smartTotalCount').innerText = smartResult.length;
+            document.getElementById('smartMatchedCount').innerText = matchedCount;
+            document.getElementById('smartUnmatchedCount').innerText = smartResult.length - matchedCount;
+
+            smartRenderTable(smartResult);
+        }
+
+        function smartRenderTable(data) {
+            if (!data.length) return;
+            const colsConfig = Object.keys(data[0]).map(k => ({ title: k, data: k }));
+
+            if ($.fn.DataTable.isDataTable('#smartResultTable')) $('#smartResultTable').DataTable().destroy();
+            $('#smartResultTable').empty().DataTable({
+                data: data,
+                columns: colsConfig,
+                scrollX: true,
+                paging: true,
+                pageLength: 10,
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        title: 'Smart_Merge_Results',
+                        className: 'btn btn-success btn-sm fw-bold',
+                        text: '<i class="fas fa-file-excel me-1"></i> Excel',
+                        exportOptions: { format: { body: (v) => (typeof v === 'string' && v.length > 10) ? '\u200C' + v : v } }
+                    },
+                    {
+                        text: '<i class="fas fa-expand-arrows-alt me-1"></i> Fullscreen',
+                        className: 'btn btn-primary btn-sm fw-bold',
+                        action: function () {
+                            openFullScreenPreview(colsConfig, smartResult);
+                        }
+                    }
+                ]
+            });
+        }
+
+        /* ============================================================
+           PROCESS 2: PROXIMITY RANGE MERGE
+           ============================================================ */
+        let proxMasterData = [], proxSearchData = [];
+        let proxMasterHeaders = [], proxSearchHeaders = [];
+        let proxResults = [];
+
+        document.getElementById('proxMasterFile').addEventListener('change', (e) => proxParseExcel(e, 'master'), false);
+        document.getElementById('proxSearchFile').addEventListener('change', (e) => proxParseExcel(e, 'search'), false);
+        document.getElementById('proxProcessBtn').addEventListener('click', proxExecuteRangeMerge, false);
+        document.getElementById('proxExportBtn').addEventListener('click', proxExportSelectedToExcel, false);
+
+        function proxParseExcel(e, fileType) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            proxLogStatus(`Reading ${fileType} data...`, 'info');
+            const reader = new FileReader();
+
+            reader.onload = function (evt) {
+                try {
+                    const buffer = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(buffer, { type: 'array', raw: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                    if (jsonData.length === 0) {
+                        proxLogStatus(`Error: ${fileType} sheet contains no rows.`, 'danger');
+                        return;
+                    }
+
+                    const headers = Object.keys(jsonData[0]);
+                    const dropdown = document.getElementById(fileType === 'master' ? 'proxMasterCol' : 'proxSearchCol');
+                    dropdown.innerHTML = '';
+                    headers.forEach(h => {
+                        let opt = document.createElement('option');
+                        opt.value = opt.textContent = h;
+                        dropdown.appendChild(opt);
+                    });
+                    dropdown.disabled = false;
+
+                    const checkContainer = document.getElementById(fileType === 'master' ? 'proxMasterFieldsPick' : 'proxSearchFieldsPick');
+                    checkContainer.innerHTML = '';
+                    headers.forEach((h, index) => {
+                        let div = document.createElement('div');
+                        div.className = 'form-check';
+                        div.innerHTML = `
+                            <input class="form-check-input column-chk ${fileType}-chk" type="checkbox" data-file="${fileType}" data-col="${h}" id="proxChk_${fileType}_${index}" checked>
+                            <label class="form-check-label small" for="proxChk_${fileType}_${index}">${h}</label>
+                        `;
+                        checkContainer.appendChild(div);
+                    });
+
+                    if (fileType === 'master') {
+                        proxMasterData = jsonData;
+                        proxMasterHeaders = headers;
+                    } else {
+                        proxSearchData = jsonData;
+                        proxSearchHeaders = headers;
+                    }
+
+                    proxLogStatus(`Loaded ${fileType === 'master' ? 'Master (' + proxMasterData.length + ' rows)' : 'Search (' + proxSearchData.length + ' rows)'} successfully.`, 'info');
+
+                    if (proxMasterData.length > 0 && proxSearchData.length > 0) {
+                        document.getElementById('proxProcessBtn').disabled = false;
+                        proxLogStatus('Both files loaded. Configure range and click "Run Proximity Merge".', 'success');
+                    }
+                } catch (err) {
+                    proxLogStatus(`Error parsing file: ${err.message}`, 'danger');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function proxToggleCheckboxes(fileType, checkedState) {
+            document.querySelectorAll(`.${fileType}-chk`).forEach(box => box.checked = checkedState);
+        }
+
+        function proxExecuteRangeMerge() {
+            const mKey = document.getElementById('proxMasterCol').value;
+            const sKey = document.getElementById('proxSearchCol').value;
+            const offsetInputValue = parseInt(document.getElementById('proxOffsetInput').value, 10);
+            const explicitSearchStr = document.getElementById('proxFocusInput').value.trim().replace(/[^0-9]/g, '');
+
+            if (isNaN(offsetInputValue)) {
+                alert('Please enter a valid range number.');
+                return;
+            }
+
+            let lowerBoundBigInt, upperBoundBigInt;
+            if (offsetInputValue >= 0) {
+                lowerBoundBigInt = -BigInt(offsetInputValue);
+                upperBoundBigInt = BigInt(offsetInputValue);
+            } else {
+                lowerBoundBigInt = BigInt(offsetInputValue);
+                upperBoundBigInt = 0n;
+            }
+
+            let explicitSearchNum = null;
+            if (explicitSearchStr.length > 0) {
+                try { explicitSearchNum = BigInt(explicitSearchStr); } catch (e) { alert('Invalid focus number input.'); return; }
+            }
+
+            proxLogStatus('Processing matching loops with directional offsets...', 'info');
+
+            const optimizedSearchList = proxSearchData.map(sRow => {
+                const rawStr = String(sRow[sKey] !== undefined ? sRow[sKey] : '').trim().replace(/[^0-9]/g, '');
+                let bigIntVal = null;
+                if (rawStr.length > 0) {
+                    try { bigIntVal = BigInt(rawStr); } catch (e) { bigIntVal = null; }
+                }
+                return { originalRow: sRow, numValue: bigIntVal };
+            }).filter(item => {
+                if (item.numValue === null) return false;
+                if (explicitSearchNum !== null) {
+                    const diffFromFocus = item.numValue - explicitSearchNum;
+                    return diffFromFocus >= lowerBoundBigInt && diffFromFocus <= upperBoundBigInt;
+                }
+                return true;
+            });
+
+            proxResults = proxMasterData.map(mRow => {
+                const masterRawStr = String(mRow[mKey] !== undefined ? mRow[mKey] : '').trim().replace(/[^0-9]/g, '');
+                let masterNum = null;
+                if (masterRawStr.length > 0) {
+                    try { masterNum = BigInt(masterRawStr); } catch (e) { masterNum = null; }
+                }
+
+                let matchedSearchRow = null;
+                let foundDiff = '';
+
+                if (masterNum !== null) {
+                    for (let i = 0; i < optimizedSearchList.length; i++) {
+                        const sItem = optimizedSearchList[i];
+                        const diff = sItem.numValue - masterNum;
+                        if (diff >= lowerBoundBigInt && diff <= upperBoundBigInt) {
+                            matchedSearchRow = sItem.originalRow;
+                            foundDiff = diff.toString();
+                            break;
+                        }
+                    }
+                }
+
+                if (explicitSearchNum !== null && !matchedSearchRow) return null;
+
+                let mergedObj = {
+                    _system_status: matchedSearchRow ? 'MATCHED' : 'NO_MATCH',
+                    _system_offset: matchedSearchRow ? (foundDiff >= 0 ? '+' + foundDiff : foundDiff) : ''
+                };
+
+                proxMasterHeaders.forEach(h => mergedObj['master_' + h] = mRow[h] !== undefined ? mRow[h] : '');
+                proxSearchHeaders.forEach(h => mergedObj['search_' + h] = matchedSearchRow ? (matchedSearchRow[h] !== undefined ? matchedSearchRow[h] : '') : '');
+
+                return mergedObj;
+            }).filter(item => item !== null);
+
+            proxRenderOutputView();
+        }
+
+        function proxGetSelectedColumns() {
+            let activeColumns = [];
+            if (document.getElementById('proxShowStatusCols').checked) {
+                activeColumns.push({ id: '_system_status', title: 'Merge_Status' });
+                activeColumns.push({ id: '_system_offset', title: 'Proximity_Offset' });
+            }
+            document.querySelectorAll('.column-chk:checked').forEach(chk => {
+                // Only prox checkboxes
+                if (!chk.classList.contains('master-chk') && !chk.classList.contains('search-chk')) return;
+                const fileType = chk.getAttribute('data-file');
+                const colName = chk.getAttribute('data-col');
+                activeColumns.push({ id: fileType + '_' + colName, title: colName });
+            });
+            return activeColumns;
+        }
+
+        function proxRenderOutputView() {
+            const thead = document.getElementById('proxOutputHead');
+            const tbody = document.getElementById('proxOutputBody');
+            thead.innerHTML = ''; tbody.innerHTML = '';
+
+            if (proxResults.length === 0) {
+                proxLogStatus('No matches found within that criteria threshold range.', 'warning');
+                document.getElementById('proxOutputContainer').classList.add('d-none');
+                return;
+            }
+
+            const activeCols = proxGetSelectedColumns();
+            if (activeCols.length === 0) {
+                proxLogStatus('Error: Select checkboxes to display columns.', 'danger');
+                return;
+            }
+
+            let trHead = document.createElement('tr');
+            activeCols.forEach(col => {
+                let th = document.createElement('th');
+                th.textContent = col.title;
+                trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+
+            proxResults.slice(0, 100).forEach(row => {
+                let tr = document.createElement('tr');
+                if (row['_system_status'] === 'MATCHED') tr.classList.add('matched-row');
+                activeCols.forEach(col => {
+                    let td = document.createElement('td');
+                    td.textContent = row[col.id];
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('proxOutputCount').textContent = proxResults.length;
+            document.getElementById('proxOutputContainer').classList.remove('d-none');
+            proxLogStatus('Done! Processed records based on specified directional lookup rules.', 'success');
+        }
+
+        function proxExportSelectedToExcel() {
+            if (proxResults.length === 0) return;
+            const activeCols = proxGetSelectedColumns();
+            if (activeCols.length === 0) { alert('Please check column boxes first.'); return; }
+
+            const exportedRows = proxResults.map(row => {
+                let cleanedRow = {};
+                activeCols.forEach(col => { cleanedRow[col.title] = row[col.id]; });
+                return cleanedRow;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportedRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Proximity_Outputs');
+            XLSX.writeFile(wb, 'Focused_Proximity_Output.xlsx');
+        }
+
+        function proxLogStatus(msg, type) {
+            const box = document.getElementById('proxStatusLog');
+            box.className = `alert alert-${type} mb-4`;
+            box.textContent = msg;
+            box.classList.remove('d-none');
+        }
+
+        /* ============================================================
+           SHARED FULLSCREEN MODAL
+           ============================================================ */
+        function openFullScreenPreview(columnsConfig, sourceData) {
+            if ($.fn.DataTable.isDataTable('#modalTable')) $('#modalTable').DataTable().destroy();
+            $('#modalTable').empty();
+
+            const modal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+            modal.show();
+
+            setTimeout(() => {
+                $('#modalTable').DataTable({
+                    data: sourceData,
+                    columns: columnsConfig,
+                    scrollX: true,
+                    scrollY: 'calc(100vh - 170px)',
+                    scrollCollapse: true,
+                    pageLength: 50,
+                    dom: 'frtip'
+                });
+            }, 220);
+        }
+    </script>
+</body>
+
+</html>

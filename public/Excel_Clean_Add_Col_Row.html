@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Column & Row Manager - Editable Table</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #2218e4;
+            --primary-hover: #4338ca;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #e11d48;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+            --row-height: 40px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-layout { display: flex; flex-direction: column; height: 100vh; }
+
+        /* TOP TOOLBAR */
+        .top-toolbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            z-index: 100;
+        }
+
+        .home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgb(117, 103, 240);
+            color: var(--text-dark);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            font-size: 0.72rem;
+            font-weight: 600;
+            transition: all 0.15s;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .home-btn:hover { background: #eff6ff; border-color: var(--primary); color: var(--primary); }
+        .home-btn svg { width: 12px; height: 12px; }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-right: 12px;
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .brand h1 { margin: 0; font-size: 0.9rem; font-weight: 800; white-space: nowrap; }
+
+        .action-groups {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px 3px 6px;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-group-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 4px 0 2px;
+            border-right: 1px solid var(--border);
+            margin-right: 4px;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .tb-btn {
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            padding: 5px 9px;
+            font-family: inherit;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+        .tb-btn:hover:not(:disabled) { background: white; border-color: var(--border); }
+        .tb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .tb-btn.primary { background: var(--primary); color: white; }
+        .tb-btn.primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+        .tb-btn.primary:disabled { background: #cbd5e1; border-color: #cbd5e1; }
+
+        .tb-btn.success { background: var(--success); color: white; }
+        .tb-btn.success:hover:not(:disabled) { background: #047857; border-color: #047857; }
+
+        .tb-btn.danger { background: white; color: var(--danger); border-color: #fecdd3; }
+        .tb-btn.danger:hover:not(:disabled) { background: #fff1f2; border-color: var(--danger); }
+
+        .tb-btn.info { background: white; color: var(--info); border-color: #bae6fd; }
+        .tb-btn.info:hover:not(:disabled) { background: #f0f9ff; border-color: var(--info); }
+
+        .file-label-btn {
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            font-family: inherit;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+        .file-label-btn:hover { background: #f1f5f9; border-color: var(--primary); color: var(--primary); }
+
+        .toolbar-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .badge {
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge.vscroll { background: #eff6ff; color: var(--primary); }
+
+        .badge.filter {
+            background: #fef3c7;
+            color: #92400e;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+        .badge.filter.active { display: inline-flex; }
+        .badge.filter button {
+            background: transparent;
+            color: #92400e;
+            padding: 0;
+            font-size: 0.62rem;
+            text-decoration: underline;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+        }
+
+        .badge.selection { background: #f1f5f9; color: var(--text-muted); }
+
+        .file-name-display {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* GRID AREA */
+        .grid-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            padding: 10px;
+        }
+
+        .grid-container {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.06);
+            min-height: 0;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            min-height: 0;
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            table-layout: fixed;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        thead { position: sticky; top: 0; z-index: 20; }
+
+        th {
+            background: #f1f5f9;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            border-right: 1px solid var(--border);
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 12.5px;
+            position: relative;
+            overflow: visible;
+        }
+
+        th .header-content {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .header-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            min-width: 0;
+        }
+
+        .filter-icon {
+            padding: 2px 5px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 10px;
+            line-height: 1;
+            color: var(--text-muted);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.15s;
+            font-weight: 700;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .filter-icon:hover { background: #e2e8f0; color: var(--primary); }
+        .filter-icon.filtered { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .col-resizer {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 25;
+            background: transparent;
+            user-select: none;
+        }
+        .col-resizer::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            bottom: 20%;
+            right: 3px;
+            width: 2px;
+            background: transparent;
+            border-radius: 2px;
+            transition: background 0.15s;
+        }
+        .col-resizer:hover::after,
+        .col-resizer.active::after { background: var(--primary); }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: var(--row-height);
+            line-height: calc(var(--row-height) - 20px);
+            cursor: cell;
+            position: relative;
+            user-select: none;
+            font-size: 13px;
+        }
+
+        tbody tr:hover td { background: #f8fafc; }
+
+        .checkbox-col { width: 42px; text-align: center; padding: 0; cursor: default; }
+
+        .row-num-col {
+            width: 50px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 11.5px;
+            background: #fafafa;
+            cursor: default;
+            position: relative;
+            overflow: visible;
+        }
+
+        .row-resizer {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -4px;
+            height: 8px;
+            cursor: row-resize;
+            z-index: 25;
+            background: transparent;
+            user-select: none;
+        }
+        .row-resizer::after {
+            content: '';
+            position: absolute;
+            left: 20%;
+            right: 20%;
+            bottom: 3px;
+            height: 2px;
+            background: transparent;
+            border-radius: 2px;
+            transition: background 0.15s;
+        }
+        .row-resizer:hover::after,
+        .row-resizer.active::after { background: var(--primary); }
+
+        td.selected-for-fill {
+            outline: 2px solid var(--primary);
+            outline-offset: -2px;
+            background: #eff6ff !important;
+        }
+
+        td.fill-preview {
+            background: #dbeafe !important;
+            outline: 1px dashed var(--primary);
+            outline-offset: -1px;
+        }
+
+        .fill-handle {
+            position: fixed;
+            width: 9px;
+            height: 9px;
+            background: var(--primary);
+            border: 1.5px solid white;
+            border-radius: 2px;
+            cursor: crosshair;
+            z-index: 30;
+            display: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+        .fill-handle:hover { transform: scale(1.15); }
+
+        .spacer-row td {
+            padding: 0 !important;
+            border: none !important;
+            height: 0 !important;
+            line-height: 0;
+        }
+
+        .editable-cell-input,
+        .editable-header-input {
+            width: 100%;
+            border: 2px solid var(--primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: inherit;
+            outline: none;
+            background: white;
+        }
+
+        .bottom-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: #fafafa;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 10px;
+        }
+
+        .bottom-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11.5px;
+        }
+
+        .bottom-left label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .bottom-left input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
+
+        .fill-hint { font-size: 10px; color: var(--text-muted); font-style: italic; }
+
+        /* LOG */
+        .log-section {
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 0;
+            font-family: monospace;
+            font-size: 11px;
+            flex-shrink: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+        }
+        .log-section.expanded { max-height: 90px; overflow-y: auto; padding: 6px 12px; }
+
+        .log-header {
+            background: #0f172a;
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 12px;
+            border-top: 1px solid #1e293b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .log-header:hover { background: #111d34; }
+        .log-header .arrow { transition: transform 0.2s; font-size: 10px; }
+        .log-header.expanded .arrow { transform: rotate(180deg); }
+
+        .log-entry { margin-bottom: 2px; }
+        .log-success { color: #4ade80; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+
+        /* FILTER POPUP */
+        .filter-popup {
+            position: fixed;
+            z-index: 10000;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 15px 40px rgba(15, 23, 42, 0.18);
+            width: 280px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        .filter-popup.open { display: flex; }
+
+        .filter-popup-header {
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .filter-popup-header .col-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .filter-popup-header .count {
+            background: #eff6ff;
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .filter-search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        .filter-search {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            font-family: inherit;
+        }
+        .filter-search:focus { border-color: var(--primary); }
+
+        .filter-popup-actions {
+            padding: 6px 10px;
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid var(--border);
+            background: #fafafa;
+        }
+        .filter-popup-actions button {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 12px;
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--text-dark);
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .filter-popup-actions button:hover { background: #eff6ff; border-color: var(--primary); color: var(--primary); }
+
+        .filter-popup-list { max-height: 260px; overflow-y: auto; padding: 4px 0; }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.1s;
+        }
+        .filter-item:hover { background: #f1f5f9; }
+        .filter-item input { cursor: pointer; accent-color: var(--primary); flex-shrink: 0; }
+        .filter-item .val {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+        .filter-item .val-count {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .filter-empty-note {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12.5px;
+            font-style: italic;
+        }
+
+        .filter-popup-footer {
+            padding: 8px 10px;
+            border-top: 1px solid var(--border);
+            background: #f8fafc;
+            display: flex;
+            gap: 6px;
+        }
+        .filter-popup-footer button {
+            flex: 1;
+            padding: 7px 10px;
+            font-size: 12.5px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+        }
+        .filter-apply-btn { background: var(--primary); color: white; }
+        .filter-apply-btn:hover { background: var(--primary-hover); }
+        .filter-cancel-btn { background: white; color: var(--text-dark); border: 1px solid var(--border); }
+        .filter-cancel-btn:hover { background: #f1f5f9; }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-weight: 600;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1100px) {
+            .action-group-label { display: none; }
+            .brand h1 { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+
+        <div class="top-toolbar">
+
+            <a href="Control_Excel.html" class="home-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                Return Home
+            </a>
+
+            <div class="brand">
+                <span class="icon">📐</span>
+                <h1>Table Editor</h1>
+            </div>
+
+            <div class="action-groups">
+                <div class="action-group">
+                    <span class="action-group-label">File</span>
+                    <label for="excelFile" class="file-label-btn" title="Upload Excel/CSV">📁 Upload</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <button id="exportBtn" class="tb-btn primary" disabled title="Export to Excel">💾 Export</button>
+                </div>
+
+                <div class="action-group">
+                    <span class="action-group-label">Columns</span>
+                    <button id="addColumnBtn" class="tb-btn success" disabled title="Add a new column">➕ Add</button>
+                    <button id="deleteSelectedColsBtn" class="tb-btn danger" disabled title="Delete selected columns">🗑️ Delete</button>
+                </div>
+
+                <div class="action-group">
+                    <span class="action-group-label">Rows</span>
+                    <button id="addRowBtn" class="tb-btn success" disabled title="Add a new row at the end">➕ Add</button>
+                    <button id="deleteSelectedRowsBtn" class="tb-btn danger" disabled title="Delete selected rows">🗑️ Delete</button>
+                </div>
+
+                <div class="action-group">
+                    <span class="action-group-label">Filters</span>
+                    <button id="clearAllFiltersBtn" class="tb-btn info" disabled title="Clear all active filters">🧹 Clear</button>
+                </div>
+            </div>
+
+            <div class="toolbar-info">
+                <span class="file-name-display" id="fileNameCompact" title="No file">No file</span>
+                <span class="badge filter" id="filterBadge">
+                    <span id="filterBadgeText">0 filters</span>
+                    <button onclick="clearAllFilters()">✕</button>
+                </span>
+                <span class="badge selection" id="selectionInfo" style="display:none;"></span>
+                <span class="badge vscroll" id="vscrollInfo">0 × 0</span>
+            </div>
+
+        </div>
+
+        <div class="grid-area">
+            <div class="grid-container">
+                <div class="table-wrapper" id="tableWrapper">
+                    <table id="editableTable">
+                        <colgroup id="tableColgroup"></colgroup>
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="bottom-bar">
+                    <div class="bottom-left">
+                        <label>
+                            <input type="checkbox" id="selectAllCheckbox">
+                            <span>Select All Rows</span>
+                        </label>
+                        <span class="fill-hint">💡 Drag column edge ↔ to resize · Select all cols + drag → resize ALL · Drag row number bottom ↕ to resize rows</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-header" id="logHeader" onclick="toggleLog()">
+            <span>📋 Activity Log</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="log-section" id="logSection"></div>
+
+    </div>
+
+    <div class="fill-handle" id="fillHandle"></div>
+
+    <div class="filter-popup" id="filterPopup">
+        <div class="filter-popup-header">
+            <span class="col-name" id="filterColName">Column</span>
+            <span class="count" id="filterCount">0</span>
+        </div>
+        <div class="filter-search-wrap">
+            <input type="text" class="filter-search" id="filterSearch" placeholder="🔍 Search values...">
+        </div>
+        <div class="filter-popup-actions">
+            <button type="button" id="filterSelectAllBtn">Select All</button>
+            <button type="button" id="filterClearBtn">Clear</button>
+        </div>
+        <div class="filter-popup-list" id="filterList"></div>
+        <div class="filter-popup-footer">
+            <button type="button" class="filter-apply-btn" id="filterApplyBtn">Apply</button>
+            <button type="button" class="filter-cancel-btn" id="filterCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div id="loadingText">Loading...</div>
+    </div>
+
+    <script>
+        /* ============================================================
+           CONSTANTS
+           ============================================================ */
+        let ROW_HEIGHT = 40;
+        const BUFFER_ROWS = 6;
+        const MAX_SAMPLES = 1000;
+        const VIRTUAL_THRESHOLD = 2000;
+        const MIN_COL_WIDTH = 60;
+        const MAX_COL_WIDTH = 700;
+        const MIN_ROW_HEIGHT = 24;
+        const MAX_ROW_HEIGHT = 200;
+        const FILTER_LIST_CAP = 500;
+
+        /* Padding added to measured text width */
+        const CELL_PADDING = 28;       /* cell left+right padding (10+10) + borders + safety */
+        const HEADER_EXTRA = 68;       /* header: checkbox(15) + gap(5) + filter icon(20) + gap(5) + padding(20) + safety(3) */
+
+        /* ============================================================
+           STATE
+           ============================================================ */
+        let currentGridData = [];
+        let currentHeaders = [];
+        let columnWidths = [];
+        let selectedRows = new Set();
+        let selectedCols = new Set();
+        let scrollScheduled = false;
+
+        let activeFilters = new Map();
+        let filteredRowIndices = null;
+        let uniqueCache = new Map();
+        let openFilterCol = null;
+        let pendingFilterValues = new Set();
+
+        let fillSource = null;
+        let fillDragging = false;
+        let fillTargetRow = null;
+        let fillTargetCol = null;
+        let fillDirection = null;
+        let fillStartX = 0;
+        let fillStartY = 0;
+
+        let colResize = null;
+        let rowResize = null;
+
+        /* ============================================================
+           DOM
+           ============================================================ */
+        const fileInput = document.getElementById("excelFile");
+        const fileNameSpan = document.getElementById("fileNameCompact");
+        const deleteSelectedColsBtn = document.getElementById("deleteSelectedColsBtn");
+        const addColumnBtn = document.getElementById("addColumnBtn");
+        const addRowBtn = document.getElementById("addRowBtn");
+        const deleteSelectedRowsBtn = document.getElementById("deleteSelectedRowsBtn");
+        const clearAllFiltersBtn = document.getElementById("clearAllFiltersBtn");
+        const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+        const exportBtn = document.getElementById("exportBtn");
+        const tableHeader = document.getElementById("tableHeader");
+        const tableBody = document.getElementById("tableBody");
+        const tableWrapper = document.getElementById("tableWrapper");
+        const tableColgroup = document.getElementById("tableColgroup");
+        const vscrollInfo = document.getElementById("vscrollInfo");
+        const filterBadge = document.getElementById("filterBadge");
+        const filterBadgeText = document.getElementById("filterBadgeText");
+        const selectionInfo = document.getElementById("selectionInfo");
+        const logSection = document.getElementById("logSection");
+        const logHeader = document.getElementById("logHeader");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        const loadingText = document.getElementById("loadingText");
+        const fillHandle = document.getElementById("fillHandle");
+
+        const filterPopup = document.getElementById("filterPopup");
+        const filterColName = document.getElementById("filterColName");
+        const filterCount = document.getElementById("filterCount");
+        const filterSearch = document.getElementById("filterSearch");
+        const filterList = document.getElementById("filterList");
+        const filterSelectAllBtn = document.getElementById("filterSelectAllBtn");
+        const filterClearBtn = document.getElementById("filterClearBtn");
+        const filterApplyBtn = document.getElementById("filterApplyBtn");
+        const filterCancelBtn = document.getElementById("filterCancelBtn");
+
+        /* ============================================================
+           HELPERS
+           ============================================================ */
+        function addLog(msg, type = "info") {
+            const entry = document.createElement("div");
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `> ${new Date().toLocaleTimeString()} — ${msg}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+            while (logSection.children.length > 60) {
+                logSection.removeChild(logSection.firstChild);
+            }
+        }
+
+        function toggleLog() {
+            logSection.classList.toggle('expanded');
+            logHeader.classList.toggle('expanded');
+        }
+
+        function cleanTextValue(text) {
+            if (text === null || text === undefined) return "";
+            let cleaned = String(text).trim();
+            return (cleaned.toLowerCase() === "nan") ? "" : cleaned;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[m]));
+        }
+
+        function showLoading(msg) {
+            loadingText.textContent = msg;
+            loadingOverlay.classList.add('active');
+        }
+        function hideLoading() { loadingOverlay.classList.remove('active'); }
+
+        /* ============================================================
+           DOM-BASED TEXT MEASUREMENT (reliable)
+           ============================================================ */
+        let _measureEl = null;
+        let _fontsReady = false;
+
+        function getMeasureEl() {
+            if (_measureEl) return _measureEl;
+            const el = document.createElement('span');
+            el.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;top:-99999px;left:-99999px;pointer-events:none;font-family:Inter,sans-serif;';
+            document.body.appendChild(el);
+            _measureEl = el;
+            return el;
+        }
+
+        function measureTextWidth(text, isHeader) {
+            const el = getMeasureEl();
+            if (isHeader) {
+                el.style.fontWeight = '600';
+                el.style.fontSize = '12.5px';
+            } else {
+                el.style.fontWeight = '400';
+                el.style.fontSize = '13px';
+            }
+            el.textContent = text;
+            /* Round up to nearest whole px to avoid sub-pixel rounding issues */
+            return Math.ceil(el.getBoundingClientRect().width);
+        }
+
+        /* ============================================================
+           FONT LOADING
+           ============================================================ */
+        async function ensureFontsLoaded() {
+            if (_fontsReady) return;
+            try {
+                if (document.fonts) {
+                    await Promise.all([
+                        document.fonts.load('400 13px Inter'),
+                        document.fonts.load('500 13px Inter'),
+                        document.fonts.load('600 12.5px Inter'),
+                        document.fonts.load('700 13px Inter'),
+                        document.fonts.ready
+                    ]);
+                }
+            } catch (e) {
+                /* Ignore */
+            }
+            _fontsReady = true;
+        }
+
+        /* ============================================================
+           FILTER UTILITIES
+           ============================================================ */
+        function invalidateUniqueCache(colIdx) {
+            if (colIdx !== undefined && colIdx !== null) uniqueCache.delete(colIdx);
+            else uniqueCache.clear();
+        }
+
+        function getUniqueValues(colIdx) {
+            if (uniqueCache.has(colIdx)) return uniqueCache.get(colIdx);
+            const h = currentHeaders[colIdx];
+            const counts = new Map();
+            const n = currentGridData.length;
+            for (let i = 0; i < n; i++) {
+                const v = currentGridData[i][h];
+                const key = (v === undefined || v === null) ? "" : String(v);
+                counts.set(key, (counts.get(key) || 0) + 1);
+            }
+            const values = Array.from(counts.keys()).sort((a, b) => {
+                const na = parseFloat(a), nb = parseFloat(b);
+                if (!isNaN(na) && !isNaN(nb) && a !== "" && b !== "" && /^[+-]?\d+(\.\d+)?$/.test(a) && /^[+-]?\d+(\.\d+)?$/.test(b)) return na - nb;
+                return a.localeCompare(b);
+            });
+            const result = { values, counts };
+            uniqueCache.set(colIdx, result);
+            return result;
+        }
+
+        function recomputeFilteredIndices() {
+            if (activeFilters.size === 0) {
+                filteredRowIndices = null;
+                updateFilterBadge();
+                return;
+            }
+            const n = currentGridData.length;
+            const filters = Array.from(activeFilters.entries());
+            const result = [];
+            for (let i = 0; i < n; i++) {
+                const row = currentGridData[i];
+                let pass = true;
+                for (let f = 0; f < filters.length; f++) {
+                    const [colIdx, allowed] = filters[f];
+                    const h = currentHeaders[colIdx];
+                    const v = row[h];
+                    const key = (v === undefined || v === null) ? "" : String(v);
+                    if (!allowed.has(key)) { pass = false; break; }
+                }
+                if (pass) result.push(i);
+            }
+            filteredRowIndices = result;
+            updateFilterBadge();
+        }
+
+        function getTotalVisibleRows() {
+            return filteredRowIndices === null ? currentGridData.length : filteredRowIndices.length;
+        }
+
+        function getRealRowIndex(visiblePos) {
+            return filteredRowIndices === null ? visiblePos : filteredRowIndices[visiblePos];
+        }
+
+        function updateFilterBadge() {
+            const count = activeFilters.size;
+            if (count === 0) filterBadge.classList.remove('active');
+            else {
+                filterBadge.classList.add('active');
+                filterBadgeText.textContent = `${count} filter${count > 1 ? 's' : ''}`;
+            }
+            clearAllFiltersBtn.disabled = count === 0;
+        }
+
+        function clearAllFilters() {
+            if (activeFilters.size === 0) return;
+            activeFilters.clear();
+            recomputeFilteredIndices();
+            tableWrapper.scrollTop = 0;
+            renderTable();
+            addLog("All filters cleared", "success");
+        }
+
+        /* ============================================================
+           COLUMN WIDTHS — DOM-based, reliable
+           ============================================================ */
+        function computeInitialColumnWidths() {
+            const widths = [];
+            const totalRows = currentGridData.length;
+            const step = totalRows > MAX_SAMPLES ? Math.ceil(totalRows / MAX_SAMPLES) : 1;
+
+            for (let c = 0; c < currentHeaders.length; c++) {
+                const h = currentHeaders[c];
+
+                /* Start from header width */
+                let maxPx = measureTextWidth(String(h), true) + HEADER_EXTRA;
+
+                /* Sample across the dataset */
+                for (let r = 0; r < totalRows; r += step) {
+                    const v = currentGridData[r][h];
+                    if (v === null || v === undefined) continue;
+                    const s = String(v);
+                    if (!s) continue;
+                    const w = measureTextWidth(s, false) + CELL_PADDING;
+                    if (w > maxPx) maxPx = w;
+                }
+
+                /* Also check the tail (last 30 rows) */
+                const tailStart = Math.max(0, totalRows - 30);
+                for (let r = tailStart; r < totalRows; r++) {
+                    const v = currentGridData[r][h];
+                    if (v === null || v === undefined) continue;
+                    const s = String(v);
+                    if (!s) continue;
+                    const w = measureTextWidth(s, false) + CELL_PADDING;
+                    if (w > maxPx) maxPx = w;
+                }
+
+                const px = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.ceil(maxPx)));
+                widths.push(px);
+            }
+
+            return widths;
+        }
+
+        function applyColumnWidths() {
+            let cg = `<col style="width: 42px;">`;
+            cg += `<col style="width: 50px;">`;
+            columnWidths.forEach(w => cg += `<col style="width: ${w}px;">`);
+            tableColgroup.innerHTML = cg;
+        }
+
+        function applyRowHeight() {
+            document.documentElement.style.setProperty('--row-height', ROW_HEIGHT + 'px');
+        }
+
+        /* ============================================================
+           RENDER
+           ============================================================ */
+        function renderTable() {
+            if (!currentHeaders.length) {
+                tableHeader.innerHTML = "";
+                tableBody.innerHTML = "";
+                tableColgroup.innerHTML = "";
+                updateControls(false);
+                vscrollInfo.textContent = "0 × 0";
+                return;
+            }
+            updateControls(true);
+            renderHeader();
+            applyColumnWidths();
+            renderVisibleRows();
+            updateSelectionInfo();
+        }
+
+        function renderHeader() {
+            let hHtml = `<tr>
+                <th class="checkbox-col">
+                    <input type="checkbox" id="selectAllColsCheckbox" title="Select All Columns">
+                </th>
+                <th class="row-num-col">#</th>`;
+
+            currentHeaders.forEach((h, i) => {
+                const isChecked = selectedCols.has(i);
+                const isFiltered = activeFilters.has(i);
+                hHtml += `<th data-col="${i}" title="${escapeHtml(h)}">
+                    <div class="header-content">
+                        <input type="checkbox" class="col-checkbox" data-col="${i}" ${isChecked ? 'checked' : ''}>
+                        <span class="header-title" title="Double click to rename">${escapeHtml(h)}</span>
+                        <button class="filter-icon ${isFiltered ? 'filtered' : ''}"
+                                data-col="${i}"
+                                title="${isFiltered ? 'Filter active — click to edit' : 'Click to filter'}">▼</button>
+                    </div>
+                    <div class="col-resizer" data-col="${i}" title="Drag to resize column"></div>
+                </th>`;
+            });
+            hHtml += `</tr>`;
+            tableHeader.innerHTML = hHtml;
+
+            const selectAllColsCheckbox = document.getElementById("selectAllColsCheckbox");
+            if (selectAllColsCheckbox) {
+                selectAllColsCheckbox.checked = currentHeaders.length > 0 && selectedCols.size === currentHeaders.length;
+                selectAllColsCheckbox.onchange = (e) => {
+                    if (e.target.checked) currentHeaders.forEach((_, i) => selectedCols.add(i));
+                    else selectedCols.clear();
+                    renderHeader();
+                };
+            }
+
+            tableHeader.querySelectorAll(".col-checkbox").forEach(cb => {
+                cb.onchange = (e) => {
+                    const idx = parseInt(cb.dataset.col);
+                    if (e.target.checked) selectedCols.add(idx);
+                    else selectedCols.delete(idx);
+                    updateSelectionInfo();
+                };
+            });
+
+            tableHeader.querySelectorAll('th .header-title').forEach(span => {
+                span.addEventListener('dblclick', () => {
+                    const th = span.closest('th');
+                    editHeader(parseInt(th.dataset.col));
+                });
+            });
+
+            tableHeader.querySelectorAll('.filter-icon').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const colIdx = parseInt(btn.dataset.col);
+                    if (openFilterCol === colIdx) closeFilterPopup();
+                    else openFilter(colIdx, btn);
+                });
+            });
+
+            tableHeader.querySelectorAll('.col-resizer').forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    onColResizeStart(e, parseInt(handle.dataset.col), handle);
+                });
+                handle.addEventListener('click', (e) => e.stopPropagation());
+                handle.addEventListener('dblclick', (e) => e.stopPropagation());
+            });
+        }
+
+        /* ============================================================
+           COLUMN RESIZE (with BULK support)
+           ============================================================ */
+        function onColResizeStart(e, colIdx, handleEl) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeFilterPopup();
+            deselectFill();
+
+            /* Bulk mode: all columns are selected */
+            const bulk = currentHeaders.length > 0 && selectedCols.size === currentHeaders.length;
+
+            colResize = {
+                colIdx,
+                startX: e.clientX,
+                startWidth: columnWidths[colIdx] || 100,
+                handleEl,
+                bulk
+            };
+            handleEl.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            document.addEventListener('mousemove', onColResizeMove);
+            document.addEventListener('mouseup', onColResizeEnd);
+        }
+
+        function onColResizeMove(e) {
+            if (!colResize) return;
+            const diff = e.clientX - colResize.startX;
+            let newWidth = colResize.startWidth + diff;
+            newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, newWidth));
+            newWidth = Math.round(newWidth);
+
+            if (colResize.bulk) {
+                /* Apply same width to ALL columns */
+                for (let i = 0; i < columnWidths.length; i++) {
+                    columnWidths[i] = newWidth;
+                }
+            } else {
+                columnWidths[colResize.colIdx] = newWidth;
+            }
+
+            applyColumnWidths();
+        }
+
+        function onColResizeEnd() {
+            if (!colResize) return;
+            const { colIdx, handleEl, bulk } = colResize;
+            if (handleEl) handleEl.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onColResizeMove);
+            document.removeEventListener('mouseup', onColResizeEnd);
+
+            if (bulk) {
+                addLog(`Resized ALL ${columnWidths.length} column(s) to ${columnWidths[0]}px`, "info");
+            } else {
+                addLog(`Column "${currentHeaders[colIdx]}" set to ${columnWidths[colIdx]}px`, "info");
+            }
+            colResize = null;
+        }
+
+        /* ============================================================
+           ROW RESIZE
+           ============================================================ */
+        function onRowResizeStart(e, handleEl) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeFilterPopup();
+            deselectFill();
+
+            rowResize = {
+                startY: e.clientY,
+                startHeight: ROW_HEIGHT,
+                handleEl
+            };
+            handleEl.classList.add('active');
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            document.addEventListener('mousemove', onRowResizeMove);
+            document.addEventListener('mouseup', onRowResizeEnd);
+        }
+
+        function onRowResizeMove(e) {
+            if (!rowResize) return;
+            const diff = e.clientY - rowResize.startY;
+            let newHeight = rowResize.startHeight + diff;
+            newHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, newHeight));
+            ROW_HEIGHT = Math.round(newHeight);
+            applyRowHeight();
+            renderVisibleRows();
+        }
+
+        function onRowResizeEnd() {
+            if (!rowResize) return;
+            const { handleEl } = rowResize;
+            if (handleEl) handleEl.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onRowResizeMove);
+            document.removeEventListener('mouseup', onRowResizeEnd);
+            addLog(`Row height set to ${ROW_HEIGHT}px`, "info");
+            rowResize = null;
+        }
+
+        /* ============================================================
+           FILTER POPUP
+           ============================================================ */
+        function openFilter(colIdx, anchorEl) {
+            closeFilterPopup();
+            openFilterCol = colIdx;
+            const { values, counts } = getUniqueValues(colIdx);
+            const existing = activeFilters.get(colIdx);
+            pendingFilterValues = existing ? new Set(existing) : new Set(values);
+            filterColName.textContent = currentHeaders[colIdx];
+            filterSearch.value = "";
+            filterCount.textContent = `${values.length} value${values.length !== 1 ? 's' : ''}`;
+            renderFilterList(values, counts);
+
+            const rect = anchorEl.getBoundingClientRect();
+            const popupWidth = 280;
+            const popupHeight = 460;
+            let left = rect.right - popupWidth;
+            let top = rect.bottom + 4;
+            if (left < 8) left = 8;
+            if (left + popupWidth > window.innerWidth - 8) left = window.innerWidth - popupWidth - 8;
+            if (top + popupHeight > window.innerHeight - 8) top = Math.max(8, window.innerHeight - popupHeight - 8);
+
+            filterPopup.style.left = left + 'px';
+            filterPopup.style.top = top + 'px';
+            filterPopup.classList.add('open');
+            setTimeout(() => filterSearch.focus(), 30);
+        }
+
+        function closeFilterPopup() {
+            filterPopup.classList.remove('open');
+            openFilterCol = null;
+            pendingFilterValues = new Set();
+        }
+
+        function renderFilterList(values, counts) {
+            const searchTerm = (filterSearch.value || "").trim().toLowerCase();
+            let visible = values;
+            if (searchTerm) visible = values.filter(v => v.toLowerCase().includes(searchTerm));
+            const capped = visible.slice(0, FILTER_LIST_CAP);
+
+            if (capped.length === 0) {
+                filterList.innerHTML = '<div class="filter-empty-note">No values match</div>';
+                return;
+            }
+
+            let html = "";
+            capped.forEach(v => {
+                const checked = pendingFilterValues.has(v);
+                const cnt = counts.get(v) || 0;
+                const display = v === "" ? "(empty)" : v;
+                html += `<label class="filter-item">
+                    <input type="checkbox" data-val="${escapeHtml(v)}" ${checked ? 'checked' : ''}>
+                    <span class="val" title="${escapeHtml(display)}">${escapeHtml(display)}</span>
+                    <span class="val-count">${cnt.toLocaleString()}</span>
+                </label>`;
+            });
+
+            if (visible.length > FILTER_LIST_CAP) {
+                html += `<div class="filter-empty-note">… and ${(visible.length - FILTER_LIST_CAP).toLocaleString()} more — type to narrow down</div>`;
+            }
+
+            filterList.innerHTML = html;
+            filterList.querySelectorAll('input[type=checkbox]').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    const realVal = unescapeHtml(cb.dataset.val);
+                    if (e.target.checked) pendingFilterValues.add(realVal);
+                    else pendingFilterValues.delete(realVal);
+                });
+            });
+        }
+
+        function unescapeHtml(s) {
+            return String(s)
+                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"').replace(/&#039;/g, "'");
+        }
+
+        function applyFilterFromPopup() {
+            if (openFilterCol === null) return;
+            const colIdx = openFilterCol;
+            const { values } = getUniqueValues(colIdx);
+
+            if (pendingFilterValues.size === values.length) {
+                if (activeFilters.has(colIdx)) {
+                    activeFilters.delete(colIdx);
+                    addLog(`Filter removed from "${currentHeaders[colIdx]}"`, "info");
+                }
+            } else if (pendingFilterValues.size === 0) {
+                addLog(`⚠️ No values selected — filter not applied`, "warning");
+                closeFilterPopup();
+                return;
+            } else {
+                activeFilters.set(colIdx, new Set(pendingFilterValues));
+                addLog(`Filter applied on "${currentHeaders[colIdx]}" — ${pendingFilterValues.size} value(s) kept`, "success");
+            }
+
+            recomputeFilteredIndices();
+            tableWrapper.scrollTop = 0;
+            renderTable();
+            closeFilterPopup();
+        }
+
+        filterSearch.addEventListener('input', () => {
+            if (openFilterCol === null) return;
+            const { values, counts } = getUniqueValues(openFilterCol);
+            renderFilterList(values, counts);
+        });
+
+        filterSelectAllBtn.addEventListener('click', () => {
+            if (openFilterCol === null) return;
+            const { values, counts } = getUniqueValues(openFilterCol);
+            const searchTerm = (filterSearch.value || "").trim().toLowerCase();
+            const visible = searchTerm ? values.filter(v => v.toLowerCase().includes(searchTerm)) : values;
+            visible.forEach(v => pendingFilterValues.add(v));
+            renderFilterList(values, counts);
+        });
+
+        filterClearBtn.addEventListener('click', () => {
+            if (openFilterCol === null) return;
+            const { values, counts } = getUniqueValues(openFilterCol);
+            const searchTerm = (filterSearch.value || "").trim().toLowerCase();
+            const visible = searchTerm ? values.filter(v => v.toLowerCase().includes(searchTerm)) : values;
+            visible.forEach(v => pendingFilterValues.delete(v));
+            renderFilterList(values, counts);
+        });
+
+        filterApplyBtn.addEventListener('click', applyFilterFromPopup);
+        filterCancelBtn.addEventListener('click', closeFilterPopup);
+
+        document.addEventListener('mousedown', (e) => {
+            if (!filterPopup.classList.contains('open')) return;
+            if (filterPopup.contains(e.target)) return;
+            if (e.target.classList.contains('filter-icon')) return;
+            closeFilterPopup();
+        });
+
+        tableWrapper.addEventListener('scroll', () => {
+            if (filterPopup.classList.contains('open')) closeFilterPopup();
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+            if (filterPopup.classList.contains('open')) closeFilterPopup();
+            updateFillHandlePosition();
+        });
+
+        /* ============================================================
+           RENDER ROWS
+           ============================================================ */
+        function renderVisibleRows() {
+            const totalVisible = getTotalVisibleRows();
+            const totalRaw = currentGridData.length;
+
+            if (totalVisible === 0) {
+                tableBody.innerHTML = "";
+                if (totalRaw === 0) vscrollInfo.textContent = "0 rows";
+                else vscrollInfo.textContent = `0 of ${totalRaw.toLocaleString()} (filtered)`;
+                updateFillHandlePosition();
+                return;
+            }
+
+            const useVirtual = totalVisible > VIRTUAL_THRESHOLD;
+            const totalCols = currentHeaders.length + 2;
+
+            let previewVertical = null;
+            let previewHorizontal = null;
+            if (fillDragging && fillSource) {
+                if (fillDirection === 'vertical' && fillTargetRow !== null) {
+                    previewVertical = {
+                        min: Math.min(fillSource.row, fillTargetRow),
+                        max: Math.max(fillSource.row, fillTargetRow),
+                        col: fillSource.col
+                    };
+                } else if (fillDirection === 'horizontal' && fillTargetCol !== null) {
+                    previewHorizontal = {
+                        min: Math.min(fillSource.col, fillTargetCol),
+                        max: Math.max(fillSource.col, fillTargetCol),
+                        row: fillSource.row
+                    };
+                }
+            }
+
+            let startPos = 0;
+            let endPos = totalVisible;
+            let html = "";
+
+            if (useVirtual) {
+                const scrollTop = tableWrapper.scrollTop;
+                const viewportHeight = tableWrapper.clientHeight;
+                startPos = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
+                endPos = Math.min(totalVisible, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + BUFFER_ROWS);
+
+                const topSpacerHeight = startPos * ROW_HEIGHT;
+                const bottomSpacerHeight = Math.max(0, (totalVisible - endPos) * ROW_HEIGHT);
+
+                if (topSpacerHeight > 0) {
+                    html += `<tr class="spacer-row"><td colspan="${totalCols}" style="height:${topSpacerHeight}px;"></td></tr>`;
+                }
+
+                html += buildRowsHtml(startPos, endPos, previewVertical, previewHorizontal);
+
+                if (bottomSpacerHeight > 0) {
+                    html += `<tr class="spacer-row"><td colspan="${totalCols}" style="height:${bottomSpacerHeight}px;"></td></tr>`;
+                }
+            } else {
+                html = buildRowsHtml(0, totalVisible, previewVertical, previewHorizontal);
+            }
+
+            tableBody.innerHTML = html;
+            attachBodyHandlers();
+
+            if (filteredRowIndices !== null) {
+                vscrollInfo.textContent = `${totalVisible.toLocaleString()} of ${totalRaw.toLocaleString()} rows (filtered)`;
+            } else {
+                if (useVirtual) {
+                    vscrollInfo.textContent = `Rows ${startPos + 1}–${endPos} of ${totalVisible.toLocaleString()} · ${currentHeaders.length} cols`;
+                } else {
+                    vscrollInfo.textContent = `${totalVisible.toLocaleString()} rows · ${currentHeaders.length} cols`;
+                }
+            }
+
+            updateFillHandlePosition();
+        }
+
+        function buildRowsHtml(startPos, endPos, previewVertical, previewHorizontal) {
+            let html = "";
+            const headersLen = currentHeaders.length;
+
+            for (let pos = startPos; pos < endPos; pos++) {
+                const realIdx = getRealRowIndex(pos);
+                const row = currentGridData[realIdx];
+                const isChecked = selectedRows.has(realIdx);
+
+                html += `<tr data-row="${realIdx}">`;
+                html += `<td class="checkbox-col"><input type="checkbox" class="row-checkbox" data-row="${realIdx}" ${isChecked ? 'checked' : ''}></td>`;
+                html += `<td class="row-num-col">${realIdx + 1}<div class="row-resizer" title="Drag to resize all rows"></div></td>`;
+
+                for (let c = 0; c < headersLen; c++) {
+                    const h = currentHeaders[c];
+                    const val = row[h] !== undefined && row[h] !== null ? row[h] : "";
+                    const classes = [];
+                    if (fillSource && fillSource.row === realIdx && fillSource.col === c) classes.push('selected-for-fill');
+                    if (previewVertical && previewVertical.col === c && realIdx !== fillSource.row
+                        && realIdx >= previewVertical.min && realIdx <= previewVertical.max) classes.push('fill-preview');
+                    if (previewHorizontal && previewHorizontal.row === realIdx && c !== fillSource.col
+                        && c >= previewHorizontal.min && c <= previewHorizontal.max) classes.push('fill-preview');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    html += `<td data-row="${realIdx}" data-col="${c}"${cls} title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+                }
+                html += `</tr>`;
+            }
+
+            return html;
+        }
+
+        function attachBodyHandlers() {
+            tableBody.querySelectorAll('td[data-row]').forEach(td => {
+                if (td.classList.contains('checkbox-col') || td.classList.contains('row-num-col')) return;
+                td.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    if (e.target.tagName === 'INPUT') return;
+                    selectCellForFill(parseInt(td.dataset.row), parseInt(td.dataset.col), td);
+                });
+                td.addEventListener('dblclick', () => {
+                    editCell(parseInt(td.dataset.row), parseInt(td.dataset.col));
+                });
+            });
+
+            tableBody.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.onchange = (e) => {
+                    const idx = parseInt(cb.dataset.row);
+                    if (e.target.checked) selectedRows.add(idx);
+                    else selectedRows.delete(idx);
+                    updateSelectionInfo();
+                    updateSelectAllState();
+                };
+            });
+
+            tableBody.querySelectorAll('.row-resizer').forEach(handle => {
+                handle.addEventListener('mousedown', (e) => onRowResizeStart(e, handle));
+                handle.addEventListener('dblclick', (e) => e.stopPropagation());
+            });
+        }
+
+        tableWrapper.addEventListener("scroll", () => {
+            if (scrollScheduled) return;
+            scrollScheduled = true;
+            requestAnimationFrame(() => {
+                renderVisibleRows();
+                scrollScheduled = false;
+            });
+        }, { passive: true });
+
+        /* ============================================================
+           CELL / HEADER EDITING
+           ============================================================ */
+        function editCell(rIdx, cIdx) {
+            const tr = tableBody.querySelector(`tr[data-row="${rIdx}"]`);
+            if (!tr) return;
+            const td = tr.querySelector(`td[data-col="${cIdx}"]`);
+            if (!td) return;
+
+            const oldVal = currentGridData[rIdx][currentHeaders[cIdx]] || "";
+            const input = document.createElement("input");
+            input.className = "editable-cell-input";
+            input.value = oldVal;
+            td.innerHTML = "";
+            td.appendChild(input);
+            input.focus();
+            input.select();
+
+            let saved = false;
+            const save = () => {
+                if (saved) return;
+                saved = true;
+                const newVal = cleanTextValue(input.value);
+                currentGridData[rIdx][currentHeaders[cIdx]] = newVal;
+                invalidateUniqueCache(cIdx);
+                if (activeFilters.size > 0) recomputeFilteredIndices();
+                renderVisibleRows();
+            };
+            input.onblur = save;
+            input.onkeydown = (e) => {
+                if (e.key === "Enter") save();
+                if (e.key === "Escape") { saved = true; renderVisibleRows(); }
+            };
+        }
+
+        function editHeader(cIdx) {
+            const th = tableHeader.querySelector(`th[data-col="${cIdx}"]`);
+            if (!th) return;
+            const headerTitle = th.querySelector('.header-title');
+            const oldName = currentHeaders[cIdx];
+            const input = document.createElement("input");
+            input.className = "editable-header-input";
+            input.value = oldName;
+
+            headerTitle.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let saved = false;
+            const save = () => {
+                if (saved) return;
+                saved = true;
+                let newName = cleanTextValue(input.value);
+                if (!newName || (newName !== oldName && currentHeaders.includes(newName))) newName = oldName;
+                if (newName !== oldName) {
+                    currentGridData.forEach(row => {
+                        row[newName] = row[oldName];
+                        delete row[oldName];
+                    });
+                    currentHeaders[cIdx] = newName;
+                    invalidateUniqueCache(cIdx);
+                    addLog(`Renamed column to "${newName}"`, "success");
+                }
+                renderTable();
+            };
+            input.onblur = save;
+            input.onkeydown = (e) => {
+                if (e.key === "Enter") save();
+                if (e.key === "Escape") { saved = true; renderHeader(); }
+            };
+        }
+
+        /* ============================================================
+           FILL FEATURE
+           ============================================================ */
+        function selectCellForFill(rowIdx, colIdx, td) {
+            if (fillSource && fillSource.row === rowIdx && fillSource.col === colIdx) return;
+            clearFillSelectionInDom();
+            fillSource = { row: rowIdx, col: colIdx };
+            if (td) td.classList.add('selected-for-fill');
+            updateFillHandlePosition();
+        }
+
+        function clearFillSelectionInDom() {
+            tableBody.querySelectorAll('td.selected-for-fill').forEach(td => td.classList.remove('selected-for-fill'));
+            tableBody.querySelectorAll('td.fill-preview').forEach(td => td.classList.remove('fill-preview'));
+        }
+
+        function deselectFill() {
+            fillSource = null;
+            fillDragging = false;
+            fillTargetRow = null;
+            fillTargetCol = null;
+            fillDirection = null;
+            fillHandle.style.display = 'none';
+            clearFillSelectionInDom();
+        }
+
+        function updateFillHandlePosition() {
+            if (!fillSource) {
+                fillHandle.style.display = 'none';
+                return;
+            }
+            const tr = tableBody.querySelector(`tr[data-row="${fillSource.row}"]`);
+            const td = tr ? tr.querySelector(`td[data-col="${fillSource.col}"]`) : null;
+            if (!td) {
+                fillHandle.style.display = 'none';
+                return;
+            }
+            const r = td.getBoundingClientRect();
+            fillHandle.style.display = 'block';
+            fillHandle.style.left = (r.right - 5) + 'px';
+            fillHandle.style.top = (r.bottom - 5) + 'px';
+        }
+
+        fillHandle.addEventListener('mousedown', (e) => {
+            if (!fillSource) return;
+            e.preventDefault();
+            e.stopPropagation();
+            fillDragging = true;
+            fillTargetRow = null;
+            fillTargetCol = null;
+            fillDirection = null;
+            fillStartX = e.clientX;
+            fillStartY = e.clientY;
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'crosshair';
+            document.addEventListener('mousemove', onFillDragMove);
+            document.addEventListener('mouseup', onFillDragEnd);
+        });
+
+        function getCellAtPoint(x, y) {
+            const el = document.elementFromPoint(x, y);
+            if (!el) return null;
+            const td = el.closest('td[data-row][data-col]');
+            if (!td) return null;
+            if (td.classList.contains('checkbox-col') || td.classList.contains('row-num-col')) return null;
+            return { row: parseInt(td.dataset.row), col: parseInt(td.dataset.col) };
+        }
+
+        function onFillDragMove(e) {
+            if (!fillDragging || !fillSource) return;
+            const cell = getCellAtPoint(e.clientX, e.clientY);
+            const dx = Math.abs(e.clientX - fillStartX);
+            const dy = Math.abs(e.clientY - fillStartY);
+            if (fillDirection === null && (dx > 5 || dy > 5)) {
+                fillDirection = dx > dy ? 'horizontal' : 'vertical';
+            }
+            if (fillDirection === 'vertical') {
+                if (cell) { fillTargetRow = cell.row; fillTargetCol = null; }
+            } else if (fillDirection === 'horizontal') {
+                if (cell) { fillTargetCol = cell.col; fillTargetRow = null; }
+            }
+            renderVisibleRows();
+        }
+
+        function onFillDragEnd() {
+            if (!fillDragging) return;
+            fillDragging = false;
+            document.removeEventListener('mousemove', onFillDragMove);
+            document.removeEventListener('mouseup', onFillDragEnd);
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+
+            const tRow = fillTargetRow;
+            const tCol = fillTargetCol;
+            const dir = fillDirection;
+
+            tableBody.querySelectorAll('td.fill-preview').forEach(td => td.classList.remove('fill-preview'));
+
+            if (dir === 'vertical' && tRow !== null && fillSource && tRow !== fillSource.row) {
+                applyFillVertical(tRow);
+            } else if (dir === 'horizontal' && tCol !== null && fillSource && tCol !== fillSource.col) {
+                applyFillHorizontal(tCol);
+            }
+
+            fillTargetRow = null;
+            fillTargetCol = null;
+            fillDirection = null;
+            renderVisibleRows();
+        }
+
+        function applyFillVertical(targetRow) {
+            if (!fillSource) return;
+            const h = currentHeaders[fillSource.col];
+            const value = currentGridData[fillSource.row][h];
+            const minRow = Math.min(fillSource.row, targetRow);
+            const maxRow = Math.max(fillSource.row, targetRow);
+            let count = 0;
+            for (let r = minRow; r <= maxRow; r++) {
+                if (r === fillSource.row) continue;
+                currentGridData[r][h] = value;
+                count++;
+            }
+            invalidateUniqueCache(fillSource.col);
+            if (activeFilters.size > 0) recomputeFilteredIndices();
+            const displayVal = value === "" ? "(empty)" : value;
+            addLog(`Filled ${count} cell(s) ▼ vertically with "${displayVal}"`, "success");
+        }
+
+        function applyFillHorizontal(targetCol) {
+            if (!fillSource) return;
+            const row = currentGridData[fillSource.row];
+            const value = row[currentHeaders[fillSource.col]];
+            const minCol = Math.min(fillSource.col, targetCol);
+            const maxCol = Math.max(fillSource.col, targetCol);
+            let count = 0;
+            for (let c = minCol; c <= maxCol; c++) {
+                if (c === fillSource.col) continue;
+                row[currentHeaders[c]] = value;
+                invalidateUniqueCache(c);
+                count++;
+            }
+            if (activeFilters.size > 0) recomputeFilteredIndices();
+            const displayVal = value === "" ? "(empty)" : value;
+            addLog(`Filled ${count} cell(s) ▶ horizontally with "${displayVal}"`, "success");
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !fillDragging) {
+                if (filterPopup.classList.contains('open')) return;
+                deselectFill();
+            }
+        });
+
+        /* ============================================================
+           SELECTION
+           ============================================================ */
+        function updateSelectionInfo() {
+            const parts = [];
+            if (selectedRows.size > 0) parts.push(`${selectedRows.size} row(s)`);
+            if (selectedCols.size > 0) parts.push(`${selectedCols.size} col(s)`);
+            if (parts.length) {
+                selectionInfo.textContent = `Selected: ${parts.join(" · ")}`;
+                selectionInfo.style.display = 'inline-flex';
+            } else {
+                selectionInfo.style.display = 'none';
+            }
+        }
+
+        function updateSelectAllState() {
+            if (selectAllCheckbox) {
+                const total = currentGridData.length;
+                selectAllCheckbox.checked = total > 0 && selectedRows.size === total;
+            }
+        }
+
+        /* ============================================================
+           CONTROLS
+           ============================================================ */
+        function updateControls(enabled) {
+            [deleteSelectedColsBtn, addColumnBtn, addRowBtn, deleteSelectedRowsBtn, exportBtn].forEach(btn => {
+                if (btn) btn.disabled = !enabled;
+            });
+            if (!enabled) clearAllFiltersBtn.disabled = true;
+            else clearAllFiltersBtn.disabled = activeFilters.size === 0;
+        }
+
+        /* ============================================================
+           ACTIONS
+           ============================================================ */
+        addColumnBtn.onclick = () => {
+            const name = `Col_${currentHeaders.length + 1}`;
+            currentHeaders.push(name);
+            currentGridData.forEach(r => r[name] = "");
+            columnWidths.push(120);
+            invalidateUniqueCache();
+            activeFilters.clear();
+            recomputeFilteredIndices();
+            addLog(`Added column "${name}"`, "success");
+            renderTable();
+        };
+
+        deleteSelectedColsBtn.onclick = () => {
+            if (selectedCols.size === 0) return addLog("No columns selected", "warning");
+            const indices = Array.from(selectedCols).sort((a, b) => a - b);
+            const deletedNames = indices.map(i => currentHeaders[i]);
+            const newHeaders = [];
+            const newWidths = [];
+            currentHeaders.forEach((h, i) => {
+                if (!selectedCols.has(i)) {
+                    newHeaders.push(h);
+                    newWidths.push(columnWidths[i]);
+                }
+            });
+            currentGridData = currentGridData.map(row => {
+                const nr = {};
+                newHeaders.forEach(h => nr[h] = row[h] !== undefined ? row[h] : "");
+                return nr;
+            });
+            currentHeaders = newHeaders;
+            columnWidths = newWidths;
+            selectedCols.clear();
+            invalidateUniqueCache();
+            activeFilters.clear();
+            recomputeFilteredIndices();
+            deselectFill();
+            addLog(`Deleted ${deletedNames.length} column(s)`, "danger");
+            renderTable();
+        };
+
+        addRowBtn.onclick = () => {
+            const newRow = {};
+            currentHeaders.forEach(h => newRow[h] = "");
+            currentGridData.push(newRow);
+            invalidateUniqueCache();
+            if (activeFilters.size > 0) recomputeFilteredIndices();
+            addLog("Added new row", "success");
+            tableWrapper.scrollTop = tableWrapper.scrollHeight;
+            renderVisibleRows();
+            updateSelectAllState();
+        };
+
+        deleteSelectedRowsBtn.onclick = () => {
+            if (selectedRows.size === 0) return addLog("No rows selected", "warning");
+            const before = currentGridData.length;
+            const keepMask = new Array(before).fill(true);
+            selectedRows.forEach(i => keepMask[i] = false);
+            currentGridData = currentGridData.filter((_, i) => keepMask[i]);
+            const deleted = before - currentGridData.length;
+            selectedRows.clear();
+            selectAllCheckbox.checked = false;
+            invalidateUniqueCache();
+            recomputeFilteredIndices();
+            deselectFill();
+            addLog(`Deleted ${deleted} row(s)`, "danger");
+            renderVisibleRows();
+            updateSelectionInfo();
+            updateSelectAllState();
+        };
+
+        selectAllCheckbox.onchange = (e) => {
+            if (e.target.checked) {
+                if (filteredRowIndices === null) {
+                    for (let i = 0; i < currentGridData.length; i++) selectedRows.add(i);
+                } else {
+                    filteredRowIndices.forEach(i => selectedRows.add(i));
+                }
+            } else {
+                selectedRows.clear();
+            }
+            renderVisibleRows();
+            updateSelectionInfo();
+        };
+
+        exportBtn.onclick = () => {
+            showLoading("Exporting...");
+            setTimeout(() => {
+                try {
+                    const dataToExport = filteredRowIndices === null
+                        ? currentGridData
+                        : filteredRowIndices.map(i => currentGridData[i]);
+                    const ws = XLSX.utils.json_to_sheet(dataToExport, { header: currentHeaders });
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    XLSX.writeFile(wb, "table_export.xlsx");
+                    addLog(`Exported ${dataToExport.length} row(s)`, "success");
+                } catch (err) {
+                    addLog("Export failed: " + err.message, "error");
+                }
+                hideLoading();
+            }, 50);
+        };
+
+        clearAllFiltersBtn.onclick = clearAllFilters;
+
+        /* ============================================================
+           FILE LOAD
+           ============================================================ */
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameSpan.textContent = file.name;
+            fileNameSpan.title = file.name;
+            showLoading(`Loading ${file.name}...`);
+
+            await ensureFontsLoaded();
+            /* Give the browser a frame to settle */
+            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => setTimeout(r, 40));
+
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+                if (rawRows.length === 0) {
+                    addLog("File is empty", "warning");
+                    hideLoading();
+                    return;
+                }
+
+                currentHeaders = rawRows[0].map((h, i) => {
+                    const v = cleanTextValue(h);
+                    return v || `Col_${i + 1}`;
+                });
+
+                currentGridData = [];
+                for (let r = 1; r < rawRows.length; r++) {
+                    const rowArr = rawRows[r];
+                    const rowObj = {};
+                    for (let c = 0; c < currentHeaders.length; c++) {
+                        rowObj[currentHeaders[c]] = rowArr[c] !== undefined && rowArr[c] !== null ? rowArr[c] : "";
+                    }
+                    currentGridData.push(rowObj);
+                }
+
+                selectedRows.clear();
+                selectedCols.clear();
+                selectAllCheckbox.checked = false;
+                activeFilters.clear();
+                invalidateUniqueCache();
+                filteredRowIndices = null;
+                updateFilterBadge();
+                deselectFill();
+                tableWrapper.scrollTop = 0;
+
+                columnWidths = computeInitialColumnWidths();
+                applyRowHeight();
+
+                renderTable();
+                addLog(`Loaded "${file.name}" — ${currentGridData.length.toLocaleString()} rows × ${currentHeaders.length} columns`, "success");
+            } catch (err) {
+                addLog("Error loading file: " + err.message, "error");
+                console.error(err);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        /* ============================================================
+           INIT
+           ============================================================ */
+        applyRowHeight();
+        ensureFontsLoaded();
+    </script>
+</body>
+
+</html>

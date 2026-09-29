@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Excel Merger & Updater</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <style>
+    :root {
+      --primary-blue: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-light: #f4f7fc;
+      --card-white: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    body {
+      background: var(--bg-light);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 2rem 0;
+    }
+
+    .container-custom {
+      max-width: 1400px;
+      margin: auto;
+      padding: 0 24px;
+    }
+
+    .hero-title {
+      font-weight: 800;
+      font-size: 1.6rem;
+      color: var(--text-main);
+    }
+
+    .card {
+      background: var(--card-white);
+      border: 1px solid rgba(203, 213, 225, 0.5);
+      border-radius: 20px;
+      box-shadow: 0 10px 25px -12px rgba(0, 0, 0, 0.06);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .card-header-custom {
+      background: transparent;
+      border-bottom: 2px solid #eef2ff;
+      padding: 1.1rem 1.6rem;
+      font-weight: 800;
+      font-size: 1.05rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-label {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary-blue);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .step-badge.green { background: #10b981; }
+    .step-badge.violet { background: #7c3aed; }
+    .step-badge.amber { background: #f59e0b; }
+
+    /* Stat Cards */
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 0.9rem 1.1rem;
+      border: 1px solid var(--border-color);
+      border-left: 5px solid #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px -6px rgba(0,0,0,0.05);
+      transition: 0.15s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card.green { border-left-color: #10b981; }
+    .stat-card.violet { border-left-color: #7c3aed; }
+    .stat-card.amber { border-left-color: #f59e0b; }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+    .stat-icon {
+      font-size: 26px;
+      opacity: 0.35;
+    }
+
+    /* Field Mapping */
+    .mapping-panel {
+      background: #fafcff;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+
+    .mapping-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .mapping-row:last-child { border-bottom: none; }
+    .mapping-row:hover { background: #f8fafc; }
+
+    .mapping-row label {
+      flex: 0 0 190px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mapping-row select {
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      padding: 7px 12px;
+      background: white;
+      font-size: 0.82rem;
+      outline: none;
+      transition: 0.15s;
+      font-family: inherit;
+    }
+    .mapping-row select:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .empty-mapping-note {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Buttons */
+    .btn-primary-glow {
+      background: var(--primary-blue);
+      border: none;
+      color: white;
+      font-weight: 700;
+      padding: 0.85rem 2.5rem;
+      border-radius: 40px;
+      transition: all 0.2s;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+    }
+    .btn-primary-glow:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 22px rgba(37, 99, 235, 0.35);
+    }
+    .btn-primary-glow:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-soft {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 5px 12px;
+      border-radius: 20px;
+      transition: 0.15s;
+    }
+    .btn-soft:hover { background: #e2e8f0; }
+
+    /* Interactive Result Table */
+    .table-interactive-container {
+      max-height: 550px;
+      overflow: auto;
+      border-top: 1px solid var(--border-color);
+      background: white;
+    }
+    .table-interactive {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table-interactive th,
+    .table-interactive td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+    .table-interactive th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: grab;
+      user-select: none;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .table-interactive th.dragging {
+      opacity: 0.4;
+      background: #cbd5e1;
+    }
+    .table-interactive th.drag-over {
+      border-left: 4px solid var(--primary-blue);
+    }
+    .table-interactive td.editable-cell { cursor: pointer; }
+    .table-interactive td.editable-cell:hover { background-color: #f0fdf4; }
+
+    .cell-input-inline {
+      width: 100%;
+      border: 1px solid var(--primary-blue);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .instructions-box {
+      font-size: 12.5px;
+      background: #eff6ff;
+      border-left: 4px solid var(--primary-blue);
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin: 12px 16px;
+      line-height: 1.6;
+    }
+
+    .file-status {
+      font-size: 12px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-top: 10px;
+      color: var(--text-muted);
+    }
+    .file-status.ok {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    /* Modal */
+    #fullscreenPreviewModal .modal-dialog {
+      max-width: 100vw !important;
+      width: 100vw !important;
+      margin: 0 !important;
+    }
+    #fullscreenPreviewModal .modal-content {
+      border-radius: 0 !important;
+      height: 100vh;
+    }
+
+    /* Scrollbars */
+    .mapping-panel::-webkit-scrollbar,
+    .table-interactive-container::-webkit-scrollbar { width: 7px; height: 7px; }
+    .mapping-panel::-webkit-scrollbar-thumb,
+    .table-interactive-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-custom">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+      <div>
+        <h1 class="hero-title mb-0">
+          <i class="fas fa-layer-group text-primary me-2"></i> Unified Excel Merger & Updater
+        </h1>
+        <p class="text-muted small mb-0 mt-1">Master + Sources → Field-level mapping → Intelligent merge → Editable result</p>
+      </div>
+      <div class="mt-2 mt-sm-0">
+        <button class="btn-soft" onclick="window.location.href='Control_Excel.html'">
+          <i class="fas fa-home me-1"></i> Main Page
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-6">
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Master Rows</div>
+            <div class="stat-value" id="totalCount">0</div>
+          </div>
+          <i class="fas fa-database stat-icon text-primary"></i>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-card green">
+          <div>
+            <div class="stat-label">Source Files</div>
+            <div class="stat-value" id="filesCount">0</div>
+          </div>
+          <i class="fas fa-file-excel stat-icon text-success"></i>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-card violet">
+          <div>
+            <div class="stat-label">Processed</div>
+            <div class="stat-value" id="matchedCount">0</div>
+          </div>
+          <i class="fas fa-sync-alt stat-icon text-info"></i>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-card amber">
+          <div>
+            <div class="stat-label">Columns</div>
+            <div class="stat-value" id="columnsCount">0</div>
+          </div>
+          <i class="fas fa-columns stat-icon text-warning"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1 & 2: File Configuration -->
+    <div class="card">
+      <div class="card-header-custom">
+        <span><i class="fas fa-folder-open text-primary me-2"></i> Data Sources</span>
+      </div>
+      <div class="row g-0">
+        <div class="col-md-6 p-4 border-end">
+          <div class="section-label">
+            <span class="step-badge">1</span>
+            <i class="fas fa-crown text-warning me-1"></i> Master Workbook
+          </div>
+          <input type="file" id="masterFile" class="form-control" accept=".xlsx, .xls">
+          <div class="file-status" id="masterStatus">
+            <i class="fas fa-info-circle me-1"></i> No master file loaded
+          </div>
+
+          <div class="section-label mt-3">
+            <span class="step-badge">2</span>
+            <i class="fas fa-key text-primary me-1"></i> Match Key Column
+          </div>
+          <select id="keyDropdown" class="form-select" disabled>
+            <option value="">-- Load master first --</option>
+          </select>
+          <div class="text-muted small mt-2">
+            <i class="fas fa-info-circle me-1"></i> Key used to match records across sources
+          </div>
+        </div>
+        <div class="col-md-6 p-4">
+          <div class="section-label">
+            <span class="step-badge">3</span>
+            <i class="fas fa-cloud-upload-alt text-success me-1"></i> Update Sources (multiple)
+          </div>
+          <input type="file" id="updateFiles" class="form-control" accept=".xlsx, .xls" multiple>
+          <div class="file-status" id="updateFilesStatus">
+            <i class="fas fa-info-circle me-1"></i> No source files selected
+          </div>
+          <div class="text-muted small mt-2">
+            <i class="fas fa-lightbulb me-1"></i> All source files are merged automatically by key
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Field Mapping -->
+    <div class="card">
+      <div class="card-header-custom">
+        <span>
+          <span class="step-badge amber me-2">4</span>
+          <i class="fas fa-arrows-alt-h text-primary me-1"></i> Field-Level Mapping
+        </span>
+        <div id="bulkSelectRow" style="display:none;">
+          <button class="btn-soft me-1" onclick="selectAllMapping(true)">
+            <i class="fas fa-check-double"></i> Auto-map all
+          </button>
+          <button class="btn-soft" onclick="selectAllMapping(false)">
+            <i class="fas fa-eraser"></i> Reset
+          </button>
+        </div>
+      </div>
+      <div class="p-4 pt-2">
+        <p class="text-muted small mb-3">
+          For each master field, choose which source column feeds it. Set to <b>Ignore</b> to skip that field.
+        </p>
+        <div id="mappingGridContainer" class="mapping-panel">
+          <div class="empty-mapping-note">
+            <i class="fas fa-sitemap fa-2x mb-2 d-block opacity-50"></i>
+            Load master file, select key column, and add source files to configure mapping.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Merge Strategy + Execute -->
+    <div class="card">
+      <div class="card-header-custom">
+        <span>
+          <span class="step-badge violet me-2">5</span>
+          <i class="fas fa-sliders-h text-primary me-1"></i> Merge Strategy
+        </span>
+      </div>
+      <div class="p-4">
+        <div class="btn-group w-100" role="group">
+          <input type="radio" class="btn-check" name="mergeMode" id="modeBoth" value="both" checked>
+          <label class="btn btn-outline-primary py-2 fw-semibold" for="modeBoth">
+            <i class="fas fa-list-ol me-1"></i> Update + Add New
+          </label>
+
+          <input type="radio" class="btn-check" name="mergeMode" id="modeUpdate" value="update">
+          <label class="btn btn-outline-primary py-2 fw-semibold" for="modeUpdate">
+            <i class="fas fa-sync-alt me-1"></i> Update Existing Only
+          </label>
+
+          <input type="radio" class="btn-check" name="mergeMode" id="modeNew" value="new">
+          <label class="btn btn-outline-primary py-2 fw-semibold" for="modeNew">
+            <i class="fas fa-plus-circle me-1"></i> Add New Rows Only
+          </label>
+        </div>
+
+        <div class="text-center mt-4">
+          <button id="processBtn" class="btn-primary-glow" disabled onclick="executeFullMerge()">
+            <i class="fas fa-play me-2"></i> Run Intelligent Merge
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Live Result + Interactive Editor -->
+    <div class="card">
+      <div class="card-header-custom">
+        <span>
+          <span class="step-badge green me-2">6</span>
+          <i class="fas fa-table text-primary me-1"></i> Live Result & Interactive Editor
+        </span>
+        <div class="d-flex gap-2">
+          <button class="btn-soft" onclick="openFullScreenModal()">
+            <i class="fas fa-expand me-1"></i> Fullscreen
+          </button>
+          <button class="btn btn-success btn-sm fw-bold" id="exportBtn" onclick="exportExcel()" disabled style="border-radius:20px; padding:5px 16px; font-size:0.78rem;">
+            <i class="fas fa-file-excel me-1"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="instructions-box">
+        <b><i class="fas fa-mouse me-1"></i> Controls:</b>
+        <span class="ms-2"><b>Click Cell:</b> Edit</span> ·
+        <span class="ms-2"><b>Double-Click Header:</b> Rename</span> ·
+        <span class="ms-2"><b>Right-Click Header:</b> Delete</span> ·
+        <span class="ms-2"><b>Drag Header:</b> Reorder</span> ·
+        <span class="ms-2"><b>Shift + Dbl-Click Cell:</b> Fill down</span>
+      </div>
+
+      <div id="statusMessage" class="text-muted small px-4 pb-2">Run the pipeline to show preview.</div>
+
+      <div class="table-interactive-container">
+        <table class="table-interactive" id="previewTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full Screen Modal -->
+  <div class="modal fade" id="fullscreenPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content border-0 rounded-0">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title"><i class="fas fa-expand-alt me-2"></i> Full Data Workspace</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-2">
+          <div class="table-responsive w-100 h-100">
+            <table id="modalTable" class="table table-bordered table-striped w-100 m-0"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    /* ============================================================
+       STATE
+       ============================================================ */
+    let masterData = [];               // array of row objects
+    let masterHeaders = [];            // header names
+    let sourceFilesRaw = [];           // array of arrays (per file)
+    let allSourceRowsCombined = [];    // flattened
+    let availableSourceHeaders = [];   // unique source headers
+    let currentMapping = {};           // masterField -> sourceField (empty string = ignore)
+
+    // Result
+    let tableHeaders = [];
+    let tableRows = [];
+    let draggedColIdx = null;
+
+    /* ============================================================
+       HELPERS
+       ============================================================ */
+    function cleanValue(v) {
+      if (v === undefined || v === null || v === "") return "";
+      let s = String(v).replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+      if (typeof v === 'number' && v > 1e14) return v.toFixed(0);
+      return s;
+    }
+    function cleanForMatch(v) {
+      return cleanValue(v).toLowerCase().replace(/^0+/, '');
+    }
+    function normalizeHeader(h) {
+      return String(h || "").trim().toLowerCase();
+    }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+
+    function parseExcelFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          resolve(json);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    /* ============================================================
+       MASTER FILE
+       ============================================================ */
+    document.getElementById('masterFile').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('masterStatus');
+      statusEl.className = 'file-status';
+      statusEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Reading master file...';
+
+      try {
+        masterData = await parseExcelFile(file);
+        if (masterData.length === 0) throw new Error('Master file is empty');
+
+        masterHeaders = Object.keys(masterData[0]);
+        document.getElementById('totalCount').innerText = masterData.length.toLocaleString();
+        document.getElementById('columnsCount').innerText = masterHeaders.length;
+
+        // Populate key dropdown
+        const keySel = document.getElementById('keyDropdown');
+        keySel.innerHTML = '<option value="">-- Choose Key Column --</option>';
+        masterHeaders.forEach(h => {
+          keySel.innerHTML += `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`;
+        });
+        keySel.disabled = false;
+
+        statusEl.className = 'file-status ok';
+        statusEl.innerHTML = `<i class="fas fa-check-circle me-1"></i> ${masterData.length} rows · ${masterHeaders.length} columns loaded from "${escapeHtml(file.name)}"`;
+
+        // If sources already loaded, build mapping
+        if (allSourceRowsCombined.length > 0) {
+          renderMappingInterface();
+        }
+        toggleProcessButton();
+      } catch (err) {
+        statusEl.className = 'file-status';
+        statusEl.style.background = '#fef2f2';
+        statusEl.style.color = '#991b1b';
+        statusEl.style.borderColor = '#fecaca';
+        statusEl.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i> Error: ${escapeHtml(err.message)}`;
+      }
+    };
+
+    /* Key dropdown change — refresh mapping */
+    document.getElementById('keyDropdown').onchange = () => {
+      if (allSourceRowsCombined.length > 0) {
+        renderMappingInterface();
+      }
+    };
+
+    /* ============================================================
+       SOURCE FILES
+       ============================================================ */
+    document.getElementById('updateFiles').onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      const statusEl = document.getElementById('updateFilesStatus');
+
+      if (files.length === 0) {
+        sourceFilesRaw = [];
+        allSourceRowsCombined = [];
+        availableSourceHeaders = [];
+        statusEl.className = 'file-status';
+        statusEl.innerHTML = '<i class="fas fa-info-circle me-1"></i> No source files selected';
+        document.getElementById('filesCount').innerText = '0';
+        toggleProcessButton();
+        return;
+      }
+
+      statusEl.className = 'file-status';
+      statusEl.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Reading ${files.length} file(s)...`;
+
+      sourceFilesRaw = [];
+      for (const f of files) {
+        try {
+          sourceFilesRaw.push(await parseExcelFile(f));
+        } catch (err) {
+          console.error('Error reading', f.name, err);
+        }
+      }
+
+      allSourceRowsCombined = sourceFilesRaw.flat();
+
+      // Collect all unique source headers
+      const headerSet = new Set();
+      sourceFilesRaw.forEach(rows => {
+        rows.forEach(row => Object.keys(row).forEach(k => headerSet.add(k)));
+      });
+      availableSourceHeaders = Array.from(headerSet);
+
+      document.getElementById('filesCount').innerText = files.length;
+      statusEl.className = 'file-status ok';
+      statusEl.innerHTML = `<i class="fas fa-check-circle me-1"></i> ${files.length} file(s) loaded · ${allSourceRowsCombined.length} total rows`;
+
+      // Build mapping if master + key are ready
+      if (masterData.length > 0 && document.getElementById('keyDropdown').value) {
+        renderMappingInterface();
+      }
+      toggleProcessButton();
+    };
+
+    function toggleProcessButton() {
+      const hasMaster = masterData.length > 0;
+      const hasKey = document.getElementById('keyDropdown').value !== '';
+      const hasSources = allSourceRowsCombined.length > 0;
+      document.getElementById('processBtn').disabled = !(hasMaster && hasKey && hasSources);
+    }
+
+    /* ============================================================
+       FIELD MAPPING UI
+       ============================================================ */
+    function renderMappingInterface() {
+      const container = document.getElementById('mappingGridContainer');
+      const bulkRow = document.getElementById('bulkSelectRow');
+      const keyCol = document.getElementById('keyDropdown').value;
+
+      // Save existing mapping choices before rebuilding
+      const previousMapping = { ...currentMapping };
+
+      if (!masterData.length || !keyCol || availableSourceHeaders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-mapping-note">
+            <i class="fas fa-sitemap fa-2x mb-2 d-block opacity-50"></i>
+            Load master file, select key column, and add source files to configure mapping.
+          </div>`;
+        bulkRow.style.display = 'none';
+        return;
+      }
+
+      bulkRow.style.display = 'block';
+
+      const mappableMasterFields = masterHeaders.filter(h => h !== keyCol);
+
+      if (mappableMasterFields.length === 0) {
+        container.innerHTML = '<div class="empty-mapping-note">No mappable fields (only key column exists).</div>';
+        return;
+      }
+
+      let html = '';
+      mappableMasterFields.forEach(mf => {
+        // Auto-detect matching source header
+        let autoMatch = availableSourceHeaders.find(sh =>
+          normalizeHeader(sh) === normalizeHeader(mf)
+        );
+
+        // Preserve previous choice if any
+        let selectedValue = '';
+        if (previousMapping.hasOwnProperty(mf)) {
+          selectedValue = previousMapping[mf];
+        } else if (autoMatch) {
+          selectedValue = autoMatch;
+        }
+
+        let options = '<option value="">— Ignore (no update) —</option>';
+        availableSourceHeaders.forEach(sh => {
+          const sel = (sh === selectedValue) ? ' selected' : '';
+          options += `<option value="${escapeHtml(sh)}"${sel}>${escapeHtml(sh)}</option>`;
+        });
+
+        html += `
+          <div class="mapping-row">
+            <label title="${escapeHtml(mf)}">
+              <i class="fas fa-long-arrow-alt-right me-1 text-primary"></i>
+              ${escapeHtml(mf)}
+            </label>
+            <select class="mapping-field-select" data-masterfield="${escapeHtml(mf)}">
+              ${options}
+            </select>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      attachMappingListeners();
+    }
+
+    function attachMappingListeners() {
+      currentMapping = {};
+      document.querySelectorAll('.mapping-field-select').forEach(sel => {
+        const mf = sel.getAttribute('data-masterfield');
+        if (sel.value) currentMapping[mf] = sel.value;
+
+        sel.addEventListener('change', (e) => {
+          if (e.target.value) currentMapping[mf] = e.target.value;
+          else delete currentMapping[mf];
+        });
+      });
+    }
+
+    function selectAllMapping(autoMap) {
+      document.querySelectorAll('.mapping-field-select').forEach(sel => {
+        if (autoMap) {
+          const mf = sel.getAttribute('data-masterfield');
+          const exactMatch = availableSourceHeaders.find(sh =>
+            normalizeHeader(sh) === normalizeHeader(mf)
+          );
+          if (exactMatch) {
+            sel.value = exactMatch;
+          } else {
+            // Fallback: first non-empty option
+            const firstReal = Array.from(sel.options).find(o => o.value !== '');
+            sel.value = firstReal ? firstReal.value : '';
+          }
+        } else {
+          sel.value = '';
+        }
+        sel.dispatchEvent(new Event('change'));
+      });
+    }
+
+    /* ============================================================
+       MERGE PROCESS
+       ============================================================ */
+    function executeFullMerge() {
+      const keyCol = document.getElementById('keyDropdown').value;
+      if (!keyCol) {
+        alert('Please select a key column.');
+        return;
+      }
+
+      if (Object.keys(currentMapping).length === 0) {
+        alert('Please map at least one field (or click "Auto-map all").');
+        return;
+      }
+
+      const mergeMode = document.querySelector('input[name="mergeMode"]:checked').value;
+
+      // Build source lookup by cleaned key
+      const sourceLookup = new Map();
+      const normalizedKey = normalizeHeader(keyCol);
+
+      allSourceRowsCombined.forEach(row => {
+        const sourceKeyField = Object.keys(row).find(k => normalizeHeader(k) === normalizedKey);
+        if (!sourceKeyField) return;
+        const cleanedKey = cleanForMatch(row[sourceKeyField]);
+        if (cleanedKey !== '') sourceLookup.set(cleanedKey, row);
+      });
+
+      // Build master map
+      const masterMap = new Map();
+      if (mergeMode !== 'new') {
+        masterData.forEach(row => {
+          const k = cleanForMatch(row[keyCol]);
+          if (k !== '') masterMap.set(k, { ...row });
+        });
+      } else {
+        masterData.forEach(row => {
+          const k = cleanForMatch(row[keyCol]);
+          if (k !== '') masterMap.set(k, 'EXISTS_IN_MASTER');
+        });
+      }
+
+      let updatedCount = 0;
+      let addedCount = 0;
+
+      for (const [sourceKey, sourceRow] of sourceLookup.entries()) {
+        if (sourceKey === '') continue;
+        const existing = masterMap.get(sourceKey);
+
+        if (existing && existing !== 'EXISTS_IN_MASTER') {
+          // Update existing
+          if (mergeMode === 'both' || mergeMode === 'update') {
+            let changed = false;
+            Object.entries(currentMapping).forEach(([masterField, sourceField]) => {
+              const sourceVal = sourceRow[sourceField];
+              if (sourceVal !== undefined && sourceVal !== null && String(sourceVal).trim() !== '') {
+                if (existing[masterField] !== sourceVal) {
+                  existing[masterField] = sourceVal;
+                  changed = true;
+                }
+              }
+            });
+            if (changed) {
+              masterMap.set(sourceKey, existing);
+              updatedCount++;
+            }
+          }
+        } else if (existing === 'EXISTS_IN_MASTER') {
+          // Skip: exists, mode is 'new' only
+          continue;
+        } else {
+          // Add new row
+          if (mergeMode === 'both' || mergeMode === 'new') {
+            const newRow = {};
+            masterHeaders.forEach(h => newRow[h] = '');
+
+            // Fill key
+            const sourceKeyField = Object.keys(sourceRow).find(k => normalizeHeader(k) === normalizedKey);
+            newRow[keyCol] = sourceKeyField ? sourceRow[sourceKeyField] : '';
+
+            // Fill mapped fields
+            Object.entries(currentMapping).forEach(([masterField, sourceField]) => {
+              if (sourceRow[sourceField] !== undefined) {
+                newRow[masterField] = sourceRow[sourceField];
+              }
+            });
+
+            masterMap.set(sourceKey, newRow);
+            addedCount++;
+          }
+        }
+      }
+
+      // Remove placeholder entries if mode is 'new'
+      if (mergeMode === 'new') {
+        for (const [k, v] of masterMap.entries()) {
+          if (v === 'EXISTS_IN_MASTER') masterMap.delete(k);
+        }
+      }
+
+      const finalObjects = Array.from(masterMap.values());
+      if (finalObjects.length > 0) {
+        tableHeaders = Object.keys(finalObjects[0]);
+        tableRows = finalObjects.map(obj => tableHeaders.map(h => obj[h] !== undefined ? obj[h] : ''));
+      } else {
+        tableHeaders = [];
+        tableRows = [];
+      }
+
+      // Update stats
+      document.getElementById('matchedCount').innerText = `${updatedCount} / ${addedCount}`;
+      document.getElementById('columnsCount').innerText = tableHeaders.length;
+      document.getElementById('totalCount').innerText = tableRows.length.toLocaleString();
+      document.getElementById('exportBtn').disabled = tableRows.length === 0;
+
+      // Render interactive result
+      renderInteractiveTable();
+
+      // Status message
+      const status = document.getElementById('statusMessage');
+      let modeLabel = mergeMode === 'both' ? 'Update + Add New' :
+                     mergeMode === 'update' ? 'Update Only' : 'Add New Only';
+      status.innerHTML = `<b>${modeLabel}</b> · ${updatedCount} updated · ${addedCount} added · ${tableRows.length} total rows in result.`;
+    }
+
+    /* ============================================================
+       INTERACTIVE RESULT TABLE
+       ============================================================ */
+    function renderInteractiveTable() {
+      const thead = document.getElementById('tableHead');
+      const tbody = document.getElementById('tableBody');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      if (tableRows.length === 0) {
+        thead.innerHTML = '<tr><th>No Data</th></tr>';
+        tbody.innerHTML = '<tr><td class="text-center text-muted py-4">No result after merge</td></tr>';
+        return;
+      }
+
+      // Header row
+      const trHead = document.createElement('tr');
+      tableHeaders.forEach((header, index) => {
+        const th = document.createElement('th');
+        th.textContent = header || `Column ${index + 1}`;
+        th.draggable = true;
+        th.dataset.index = index;
+
+        th.addEventListener('dragstart', handleDragStart);
+        th.addEventListener('dragover', handleDragOver);
+        th.addEventListener('dragleave', handleDragLeave);
+        th.addEventListener('drop', handleDrop);
+        th.addEventListener('dragend', handleDragEnd);
+        th.addEventListener('dblclick', () => renameHeader(index));
+        th.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          deleteColumn(index);
+        });
+
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+
+      // Data rows
+      tableRows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        tableHeaders.forEach((_, colIdx) => {
+          const td = document.createElement('td');
+          td.textContent = row[colIdx] !== undefined ? row[colIdx] : '';
+          td.className = 'editable-cell';
+
+          td.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            makeCellEditable(td, rowIndex, colIdx);
+          });
+          td.addEventListener('dblclick', (e) => {
+            if (e.shiftKey) fillDown(rowIndex, colIdx);
+          });
+
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function makeCellEditable(td, rowIndex, colIdx) {
+      const currentVal = tableRows[rowIndex][colIdx] !== undefined ? tableRows[rowIndex][colIdx] : '';
+      td.innerHTML = '';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'cell-input-inline';
+      input.value = currentVal;
+
+      function saveEdit() {
+        const updatedVal = input.value;
+        tableRows[rowIndex][colIdx] = updatedVal;
+        td.textContent = updatedVal;
+      }
+
+      input.addEventListener('blur', saveEdit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') { td.textContent = currentVal; }
+      });
+
+      td.appendChild(input);
+      input.focus();
+      input.select();
+    }
+
+    function handleDragStart(e) {
+      draggedColIdx = parseInt(e.target.dataset.index);
+      e.target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const th = e.target.closest('th');
+      if (th) th.classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+      const th = e.target.closest('th');
+      if (th) th.classList.remove('drag-over');
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetTh = e.target.closest('th');
+      if (!targetTh) return;
+      const targetColIdx = parseInt(targetTh.dataset.index);
+      if (draggedColIdx === null || draggedColIdx === targetColIdx) return;
+
+      const movedHeader = tableHeaders.splice(draggedColIdx, 1)[0];
+      tableHeaders.splice(targetColIdx, 0, movedHeader);
+
+      tableRows.forEach(row => {
+        const movedVal = row.splice(draggedColIdx, 1)[0];
+        row.splice(targetColIdx, 0, movedVal);
+      });
+
+      renderInteractiveTable();
+    }
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      document.querySelectorAll('th').forEach(th => th.classList.remove('drag-over'));
+    }
+
+    function renameHeader(index) {
+      const newName = prompt('Rename column title:', tableHeaders[index]);
+      if (newName !== null && newName.trim() !== '') {
+        tableHeaders[index] = newName.trim();
+        renderInteractiveTable();
+      }
+    }
+
+    function deleteColumn(index) {
+      if (tableHeaders.length <= 1) {
+        alert('Cannot delete the only remaining column.');
+        return;
+      }
+      if (confirm(`Delete column "${tableHeaders[index]}"?`)) {
+        tableHeaders.splice(index, 1);
+        tableRows.forEach(row => row.splice(index, 1));
+        renderInteractiveTable();
+      }
+    }
+
+    function fillDown(startRowIdx, colIdx) {
+      const valueToCopy = tableRows[startRowIdx][colIdx];
+      if (confirm(`Fill "${valueToCopy}" down to all remaining rows in this column?`)) {
+        for (let i = startRowIdx + 1; i < tableRows.length; i++) {
+          tableRows[i][colIdx] = valueToCopy;
+        }
+        renderInteractiveTable();
+      }
+    }
+
+    /* ============================================================
+       EXPORT
+       ============================================================ */
+    function exportExcel() {
+      if (tableRows.length === 0) {
+        alert('No data to export.');
+        return;
+      }
+      const exportData = [tableHeaders, ...tableRows];
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+
+      // Auto width
+      ws['!cols'] = tableHeaders.map((h, i) => {
+        let max = String(h).length;
+        for (let r = 0; r < Math.min(tableRows.length, 500); r++) {
+          const v = String(tableRows[r][i] ?? '');
+          if (v.length > max) max = v.length;
+        }
+        return { wch: Math.min(max + 3, 50) };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Merged_Data');
+      XLSX.writeFile(wb, `Merged_Master_Export_${Date.now()}.xlsx`);
+    }
+
+    /* ============================================================
+       FULLSCREEN MODAL
+       ============================================================ */
+    function openFullScreenModal() {
+      if (tableRows.length === 0) {
+        alert('No data to display.');
+        return;
+      }
+
+      const modalTable = $('#modalTable');
+      if ($.fn.DataTable.isDataTable('#modalTable')) {
+        modalTable.DataTable().destroy();
+        modalTable.empty();
+      }
+
+      const formattedData = tableRows.map(row => {
+        const obj = {};
+        tableHeaders.forEach((h, i) => obj[h] = row[i] !== undefined ? row[i] : '');
+        return obj;
+      });
+
+      const cols = tableHeaders.map(h => ({ title: h, data: h }));
+      const modal = new bootstrap.Modal(document.getElementById('fullscreenPreviewModal'));
+      modal.show();
+
+      setTimeout(() => {
+        modalTable.DataTable({
+          data: formattedData,
+          columns: cols,
+          scrollX: true,
+          scrollY: 'calc(100vh - 160px)',
+          scrollCollapse: true,
+          pageLength: 25,
+          dom: 'frtip'
+        });
+      }, 200);
+    }
+
+    /* Expose globals used by inline handlers */
+    window.selectAllMapping = selectAllMapping;
+    window.executeFullMerge = executeFullMerge;
+    window.openFullScreenModal = openFullScreenModal;
+    window.exportExcel = exportExcel;
+  </script>
+</body>
+</html>

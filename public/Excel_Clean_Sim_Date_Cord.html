@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Data Toolkit · Sequence & Cleaner</title>
+    <title>Excel Data Toolkit · Sequence & Cleaner + Slash Reverser</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -347,6 +347,79 @@
         .status-bar.error { background: #fee2e2; color: #b91c1c; }
         .status-bar.success { background: #dcfce7; color: #166534; }
 
+        /* Slash Reverser section (single & bulk) */
+        .slash-section {
+            background: #f9fbfd;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-top: 8px;
+        }
+
+        .slash-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            color: var(--text-main);
+        }
+
+        .slash-section h3 i { color: var(--accent); }
+
+        .slash-inline-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 8px 0;
+            font-size: 0.85rem;
+        }
+
+        .slash-inline-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .slash-inline-table td {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            font-family: monospace;
+        }
+
+        .slash-inline-table .result-cell {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .slash-bulk-output {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            min-height: 60px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .slash-row-flex {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .slash-row-flex .control-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
         @media (max-width: 760px) {
             .app-header { flex-direction: column; align-items: flex-start; padding: 16px 18px; }
             .app-header h1 { font-size: 1.2rem; }
@@ -357,6 +430,7 @@
             .btn { justify-content: center; }
             .upload-area { margin: 12px 12px 8px 12px; padding: 20px 12px; }
             .tab-content { padding: 12px 12px 0 12px; }
+            .slash-row-flex { flex-direction: column; }
         }
 
         @media (max-width: 480px) {
@@ -372,7 +446,7 @@
         <header class="app-header">
             <h1>
                 <i class="fas fa-file-excel"></i> Excel Data Toolkit
-                <span class="sub">Sequence · SIM Clean · Date Convert · Geo Format</span>
+                <span class="sub">Sequence · SIM Clean · Date Convert · Geo Format · Slash Reverser</span>
             </h1>
             <a href="Control_Excel.html" class="home-btn" id="homeBtn">
                 <i class="fas fa-home"></i> Home
@@ -393,6 +467,7 @@
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="seq"><i class="fas fa-sort-numeric-up"></i> Sequence Generator</button>
             <button class="tab-btn" data-tab="clean"><i class="fas fa-broom"></i> Data Cleaner</button>
+            <button class="tab-btn" data-tab="slash"><i class="fas fa-code-branch"></i> Slash Reverser</button>
         </div>
 
         <div class="tab-content">
@@ -486,6 +561,76 @@
                 <div class="mode-hint" id="cleanHint"><strong>📱</strong> SIM Cleaner: expands scientific notation (e.g. 8.92E+18 → 8920040112411098548) and removes non‑digits.</div>
             </div>
 
+            <!-- SLASH REVERSER (from check.html) + Column dropdown -->
+            <div class="tab-pane" id="pane-slash">
+
+                <!-- NEW: Apply to Excel column -->
+                <div class="controls-panel" style="grid-template-columns: 1fr 1fr auto; align-items:end;">
+                    <div class="control-group">
+                        <label><i class="fas fa-columns"></i> Excel Column</label>
+                        <select id="slashColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-arrows-alt-h"></i> Action</label>
+                        <select id="slashApplyMode">
+                            <option value="replace">Overwrite column</option>
+                            <option value="new">Write to new column</option>
+                        </select>
+                    </div>
+                    <div class="btn-group" style="grid-column: auto; margin-top: 0;">
+                        <button id="slashApplyBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-check"></i> Apply Slash Reverse
+                        </button>
+                        <button id="slashResetBtn" class="btn btn-outline">
+                            <i class="fas fa-undo-alt"></i> Reset Data
+                        </button>
+                    </div>
+                </div>
+                <div class="mode-hint" style="margin-bottom: 12px;">
+                    <strong>🔁</strong> Applies <code>split('/').reverse().join('/')</code> to every cell of the selected column.
+                    <b>Overwrite</b> replaces the cells; <b>New column</b> appends a copy with the reversed values.
+                </div>
+
+                <!-- Single test -->
+                <div class="slash-section">
+                    <h3><i class="fas fa-exchange-alt"></i> Single slash string — quick test</h3>
+                    <div class="slash-row-flex">
+                        <div class="control-group" style="flex:2;">
+                            <label for="singleInput">Input (slash delimited)</label>
+                            <input type="text" id="singleInput" value="11/25/20/63/01" oninput="processSingle()">
+                        </div>
+                    </div>
+                    <table class="slash-inline-table">
+                        <thead>
+                            <tr><th>Original</th><th>Swapped Output</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td id="singleOriginal">11/25/20/63/01</td>
+                                <td id="singleResult" class="result-cell">01/63/20/25/11</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bulk text -->
+                <div class="slash-section" style="margin-top:16px;">
+                    <h3><i class="fas fa-layer-group"></i> Bulk converter — paste lines (Excel friendly)</h3>
+                    <div class="control-group" style="margin-bottom:12px;">
+                        <label for="bulkInput">Paste multiple lines (each will be reversed)</label>
+                        <textarea id="bulkInput" rows="5" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:monospace; font-size:0.9rem; resize:vertical;" placeholder="Paste lines like:&#10;11/25/20/63/01&#10;05/12/99/04&#10;100/200/300"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="processBulk()"><i class="fas fa-sync-alt"></i> Swap All Lines</button>
+                    <div style="margin-top:14px;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px;">Converted Output:</label>
+                        <div id="bulkOutput" class="slash-bulk-output"></div>
+                    </div>
+                </div>
+                <div class="mode-hint" style="margin-top:12px;"><strong>🔁</strong> Each line is split by "/" and reversed, then joined back. Works with numbers or text.</div>
+            </div>
+
             <div class="status-bar" id="statusBar">
                 <i class="fas fa-info-circle"></i>
                 <span id="statusText">Upload a file to begin.</span>
@@ -559,8 +704,18 @@
         const cleanResetBtn = $('cleanResetBtn');
         const cleanHint = $('cleanHint');
 
+        // Slash tab controls
+        const slashColumnSelect = $('slashColumnSelect');
+        const slashApplyMode = $('slashApplyMode');
+        const slashApplyBtn = $('slashApplyBtn');
+        const slashResetBtn = $('slashResetBtn');
+
         const tabBtns = document.querySelectorAll('.tab-btn');
-        const panes = { seq: $('pane-seq'), clean: $('pane-clean') };
+        const panes = {
+            seq: $('pane-seq'),
+            clean: $('pane-clean'),
+            slash: $('pane-slash')
+        };
         let activeTab = 'seq';
 
         // ============================================================
@@ -685,6 +840,8 @@
             cleanApplyBtn.disabled = s;
             geoLatSelect.disabled = s;
             geoLngSelect.disabled = s;
+            slashColumnSelect.disabled = s;
+            slashApplyBtn.disabled = s;
         }
 
         function updateColumnSelects() {
@@ -697,6 +854,13 @@
             geoLatSelect.innerHTML = geoOpts;
             geoLngSelect.innerHTML = geoOpts;
 
+            // Slash column dropdown (no blank option — a column must be picked)
+            if (headers.length) {
+                slashColumnSelect.innerHTML = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            } else {
+                slashColumnSelect.innerHTML = `<option value="">Upload a file first</option>`;
+            }
+
             if (headers.length) {
                 seqColumnSelect.disabled = false;
                 cleanColumnSelect.disabled = false;
@@ -704,6 +868,8 @@
                 geoLngSelect.disabled = false;
                 seqRunBtn.disabled = false;
                 cleanApplyBtn.disabled = false;
+                slashColumnSelect.disabled = false;
+                slashApplyBtn.disabled = false;
             }
         }
 
@@ -714,6 +880,7 @@
             }
             const preview = masterData.slice(0, 20);
             const isCleanTab = activeTab === 'clean';
+            const isSlashTab = activeTab === 'slash';
 
             tableHead.innerHTML = `<tr>${headers.map((h, i) =>
                 `<th class="${isCleanTab && convertedColumns.has(i) ? 'converted-col' : ''}">${h}</th>`
@@ -1135,6 +1302,107 @@
         cleanOperation.addEventListener('change', updateCleanerHint);
 
         // ============================================================
+        //  SLASH REVERSER LOGIC (from check.html)
+        // ============================================================
+        function reverseSlashString(str) {
+            if (!str.trim()) return '';
+            return str.trim().split('/').reverse().join('/');
+        }
+
+        function processSingle() {
+            const input = document.getElementById('singleInput').value;
+            document.getElementById('singleOriginal').innerText = input;
+            document.getElementById('singleResult').innerText = reverseSlashString(input);
+        }
+
+        function processBulk() {
+            const rawText = document.getElementById('bulkInput').value;
+            const lines = rawText.split('\n');
+            const processedLines = lines.map(line => reverseSlashString(line));
+            document.getElementById('bulkOutput').innerText = processedLines.join('\n');
+        }
+
+        // expose functions globally for inline handlers
+        window.processSingle = processSingle;
+        window.processBulk = processBulk;
+
+        // --- NEW: Apply slash reverse to an entire Excel column ---
+        slashApplyBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+
+            const colIdx = parseInt(slashColumnSelect.value);
+            if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                setStatus('⚠️ Please select a valid column.', 'error');
+                return;
+            }
+
+            const mode = slashApplyMode.value;
+            let modCount = 0;
+
+            if (mode === 'replace') {
+                // Overwrite the selected column in place
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const reversed = reverseSlashString(String(orig ?? ''));
+                    if (String(orig) !== reversed) { row[colIdx] = reversed; modCount++; }
+                });
+                convertedColumns.set(colIdx, 'Slash Reversed');
+                setStatus(`✅ Slash reversed column "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+
+            } else {
+                // New column mode: append a new column with reversed values
+                const newHeader = `${headers[colIdx]} (reversed)`;
+                headers.push(newHeader);
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const reversed = reverseSlashString(String(orig ?? ''));
+                    row.push(reversed);
+                    if (String(orig) !== reversed) modCount++;
+                });
+                const newColIdx = headers.length - 1;
+                convertedColumns.set(newColIdx, 'Slash Reversed');
+                setStatus(`✅ Added new column "${newHeader}" with ${modCount} reversed values.`, 'success');
+            }
+
+            updateColumnSelects();
+            renderTable();
+            updateConvertedTags();
+            rowCountBadge.textContent = masterData.length + ' rows';
+        });
+
+        slashResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
+            }
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            // Also restore headers if a new column was added
+            if (headers.length > (originalDataBackup[0]?.length || 0)) {
+                // Trim headers back to original length (if new column added)
+                // We stored original headers length implicitly in originalDataBackup row length
+                const origLen = originalDataBackup[0].length;
+                headers = headers.slice(0, origLen);
+            }
+            convertedColumns.clear();
+            updateColumnSelects();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
+
+        // initialize single input on load (if present)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.getElementById('singleInput')) {
+                processSingle();
+            }
+        });
+
+        // ============================================================
         //  EXPORT (force TEXT so the dot stays in Excel)
         // ============================================================
         const exportBtn = document.createElement('button');
@@ -1154,7 +1422,7 @@
                 const ws = XLSX.utils.aoa_to_sheet([headers, ...masterData]);
 
                 convertedColumns.forEach((label, colIdx) => {
-                    if (label === 'SIM Cleaned' || label.indexOf('Geo') === 0) {
+                    if (label === 'SIM Cleaned' || label.indexOf('Geo') === 0 || label === 'Slash Reversed') {
                         for (let r = 1; r <= masterData.length; r++) {
                             const addr = XLSX.utils.encode_cell({ r: r, c: colIdx });
                             const cell = ws[addr];
@@ -1186,13 +1454,13 @@
             btn.addEventListener('click', () => {
                 setTimeout(() => {
                     if (headers.length) renderTable();
-                    if (activeTab === 'clean') updateConvertedTags();
+                    if (activeTab === 'clean' || activeTab === 'slash') updateConvertedTags();
                     else convertedColumnsList.style.display = 'none';
                 }, 50);
             });
         });
 
-        console.log('✅ Excel Data Toolkit ready.');
+        console.log('✅ Excel Data Toolkit ready (with slash reverser + column dropdown).');
     </script>
 
 </body>

@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Excel Master Toolkit | Unified Filter, Replace & Join</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .master-dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ========== SIDEBAR ========== */
+        .tool-sidebar {
+            width: 400px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 2px solid #eef2ff;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            flex-shrink: 0;
+        }
+
+        .home-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            margin-bottom: 18px;
+            border: none;
+        }
+
+        .home-nav-link:hover {
+            background: #2563eb;
+            color: white;
+            transform: translateX(-3px);
+        }
+
+        .feature-category {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 12px 20px;
+            margin-top: 12px;
+            flex-shrink: 0;
+        }
+
+        .feature-card {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f0f2f5;
+            flex-shrink: 0;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            color: #0f172a;
+        }
+
+        .feature-sub {
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            color: #334155;
+            margin-top: 12px;
+        }
+
+        .compact-select,
+        .compact-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 13px;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+            background: white;
+            outline: none;
+        }
+
+        .compact-select:focus,
+        .compact-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .compact-multiselect {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 12.5px;
+            background: white;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .compact-multiselect option {
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+
+        .compact-multiselect option:checked {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Unique values search input */
+        .unique-search-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .unique-search-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .unique-search-input {
+            width: 100%;
+            padding: 9px 12px 9px 32px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 12px;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .unique-search-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .small-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            width: 100%;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .small-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .small-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .small-btn.orange { background: #ea580c; }
+        .small-btn.orange:hover:not(:disabled) { background: #c2410c; }
+
+        .small-btn.purple { background: #7c3aed; }
+        .small-btn.purple:hover:not(:disabled) { background: #6d28d9; }
+
+        /* Unique values list */
+        .unique-list-compact {
+            min-height: 120px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            margin-top: 8px;
+        }
+
+        .unique-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e9eef3;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .unique-preview-row:last-child { border-bottom: none; }
+        .unique-preview-row:hover { background: #dbeafe; }
+
+        .unique-preview-badge {
+            background: #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .unique-empty-note {
+            padding: 30px 20px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* Radio group compact */
+        .radio-group-compact {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12.5px;
+        }
+
+        .radio-group-compact label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .radio-group-compact input[type="radio"] {
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        /* ========== MAIN CONTENT ========== */
+        .main-workspace {
+            flex: 1;
+            padding: 24px 28px;
+            overflow-y: auto;
+            background: #f8fafc;
+            min-width: 0;
+        }
+
+        .toolbar-header {
+            background: white;
+            border-radius: 24px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .upload-zone {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn-modern {
+            background: #1e293b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .upload-btn-modern:hover { background: #334155; }
+
+        .export-btn {
+            background: #10b981;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+            color: white;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .export-btn:hover:not(:disabled) { background: #047857; }
+        .export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .grid-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .grid-toolbar {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .global-search-input {
+            padding: 8px 12px 8px 34px;
+            border: 1px solid #e2e8f0;
+            border-radius: 40px;
+            width: 300px;
+            font-size: 13px;
+            outline: none;
+            transition: 0.15s;
+        }
+
+        .global-search-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .filter-status-bar {
+            background: #eef2ff;
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .clear-filter-btn {
+            background: none;
+            border: none;
+            color: #dc2626;
+            font-weight: 700;
+            text-decoration: underline;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .table-wrapper { padding: 15px; }
+
+        #unifiedDataTable {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        #unifiedDataTable thead th {
+            background: #f8fafc;
+            padding: 14px 12px;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 1.5px solid #e2e8f0;
+        }
+
+        .dataTables_filter { display: none !important; }
+
+        .log-console {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 14px 20px;
+            color: #cbd5e1;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 130px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .badge-filter-active {
+            background: #2563eb10;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 880px) {
+            .master-dashboard { flex-direction: column; }
+            .tool-sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-dashboard">
+        <!-- ========== SIDEBAR ========== -->
+        <div class="tool-sidebar">
+            <div class="sidebar-header">
+                <a href="Control_Excel.html" class="home-nav-link">
+                    <i class="fas fa-arrow-left"></i> Return to Home Page
+                </a>
+                <h4 style="font-weight: 800;"><i class="fas fa-magic text-primary"></i> Data Editor Pro</h4>
+                <p style="font-size: 11px; color: #64748b; margin-top: 4px;">Find · Replace · Join · Add Word</p>
+            </div>
+
+            <!-- ========== SECTION 1: FIND & REPLACE ========== -->
+            <div class="feature-category"><i class="fas fa-tags"></i> FIND & REPLACE</div>
+            <div class="feature-card">
+                <div class="feature-title"><i class="fas fa-columns"></i> 1. Select Column</div>
+                <select id="editorColumnSelect" class="compact-select" disabled>
+                    <option value="">— Load file first —</option>
+                </select>
+
+                <div id="editPanel" style="display: none;">
+                    <div class="feature-title">
+                        <i class="fas fa-search"></i> 2. Text to Find
+                        <span style="font-size:10px; color:#2563eb; font-weight:500;">(click value below)</span>
+                    </div>
+                    <input type="text" id="findOldInput" class="compact-input" placeholder="Word or text to replace...">
+
+                    <div class="feature-title"><i class="fas fa-pen"></i> 3. Replace With</div>
+                    <input type="text" id="replaceNewInput" class="compact-input" placeholder="New replacement word...">
+
+                    <button id="applyReplaceBtn" class="small-btn">
+                        <i class="fas fa-exchange-alt"></i> Apply Replacement
+                    </button>
+                </div>
+
+                <div class="feature-title" style="margin-top: 16px; justify-content: space-between;">
+                    <span><i class="fas fa-list-ul"></i> Unique Values</span>
+                    <span id="uniqueCountBadge" style="font-size:10px; background:#eff6ff; color:#2563eb; padding:2px 8px; border-radius:20px;">0</span>
+                </div>
+
+                <div class="unique-search-wrap">
+                    <i class="fas fa-filter"></i>
+                    <input type="text" id="uniqueSearchInput" class="unique-search-input" placeholder="Search unique values...">
+                </div>
+
+                <div class="unique-list-compact" id="uniqueValuesContainer">
+                    <div class="unique-empty-note">Select a column to see unique values</div>
+                </div>
+            </div>
+
+            <!-- ========== SECTION 2: JOIN COLUMNS ========== -->
+            <div class="feature-category"><i class="fas fa-code-branch"></i> JOIN COLUMNS</div>
+            <div class="feature-card">
+                <div class="feature-sub"><i class="fas fa-list-check"></i> Pick Columns to Join</div>
+                <select id="multiJoinCols" class="compact-multiselect" multiple size="5" disabled>
+                </select>
+                <small style="font-size: 10.5px; color: #64748b; display: block; margin-bottom: 10px;">
+                    Hold <b>Ctrl</b> / <b>Cmd</b> to select multiple.
+                </small>
+
+                <div class="feature-sub"><i class="fas fa-minus"></i> Delimiter / Separator</div>
+                <input type="text" id="joinDelimiter" class="compact-input" placeholder="e.g. - , _ or space">
+
+                <div class="feature-sub"><i class="fas fa-tag"></i> New Column Name</div>
+                <input type="text" id="targetText" class="compact-input" placeholder="Output column name...">
+
+                <button id="processBtn" class="small-btn purple" onclick="processData()" disabled>
+                    <i class="fas fa-magic"></i> Join Selected Columns
+                </button>
+            </div>
+
+            <!-- ========== SECTION 3: ADD WORD TO COLUMN ========== -->
+            <div class="feature-category"><i class="fas fa-i-cursor"></i> ADD WORD TO COLUMN</div>
+            <div class="feature-card">
+                <div class="feature-sub"><i class="fas fa-columns"></i> Target Column</div>
+                <select id="wordColumnSelect" class="compact-select" disabled>
+                    <option value="">-- Choose Column --</option>
+                </select>
+
+                <div class="feature-sub"><i class="fas fa-font"></i> Word / Text to Insert</div>
+                <input type="text" id="wordToAdd" class="compact-input" placeholder="e.g. NEW, Hello (with space)">
+
+                <div class="feature-sub"><i class="fas fa-arrows-alt-h"></i> Position</div>
+                <div class="radio-group-compact">
+                    <label>
+                        <input type="radio" name="position" id="posLeft" value="left" checked>
+                        <span><i class="fas fa-arrow-left" style="color:#2563eb;"></i> Left</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="position" id="posRight" value="right">
+                        <span><i class="fas fa-arrow-right" style="color:#2563eb;"></i> Right</span>
+                    </label>
+                </div>
+
+                <button id="applyWordBtn" class="small-btn orange" onclick="addWordToColumn()" disabled>
+                    <i class="fas fa-pen-alt"></i> Update Column In-Place
+                </button>
+            </div>
+        </div>
+
+        <!-- ========== MAIN WORKSPACE ========== -->
+        <div class="main-workspace">
+            <div class="toolbar-header">
+                <div style="font-weight: 800; font-size: 15px;">
+                    <i class="fas fa-table text-primary me-2"></i>Live Data Workspace
+                </div>
+                <div class="upload-zone">
+                    <label for="globalFileUpload" class="upload-btn-modern">
+                        <i class="fas fa-upload"></i> Upload Excel / CSV
+                    </label>
+                    <input type="file" id="globalFileUpload" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <span id="activeFileName" style="font-size:12px; color:#2563eb;">No file</span>
+                    <button id="exportMasterBtn" class="export-btn" disabled>
+                        <i class="fas fa-download"></i> Export Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- GRID -->
+            <div class="grid-card">
+                <div class="grid-toolbar">
+                    <div><i class="fas fa-search"></i> <strong>Unified Filter</strong></div>
+                    <input type="text" id="globalTextFilter" class="global-search-input"
+                        placeholder="🔍 Search across ALL columns..." disabled>
+                    <div><span id="rowStats" class="badge-filter-active">0 rows</span></div>
+                </div>
+                <div id="filterBarDynamic" class="filter-status-bar" style="display: none;">
+                    <span id="filterMessage"><i class="fas fa-filter"></i> Active filter applied</span>
+                    <button id="clearFiltersGlobalBtn" class="clear-filter-btn">Clear filter</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="unifiedDataTable" class="display" style="width:100%">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LOG -->
+            <div class="log-console" id="liveLogPanel">
+                <i class="fas fa-terminal"></i> Ready • Upload Excel to begin.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================================
+           GLOBAL STATE
+           ============================================================ */
+        let masterData = [];
+        let masterHeaders = [];
+        let activeUnifiedFilter = "";
+        let dataTableInstance = null;
+        let uniqueSearchTerm = "";
+
+        /* ============================================================
+           DOM REFERENCES
+           ============================================================ */
+        const fileUpload = document.getElementById('globalFileUpload');
+        const fileNameSpan = document.getElementById('activeFileName');
+        const editorColumn = document.getElementById('editorColumnSelect');
+        const uniqueContainer = document.getElementById('uniqueValuesContainer');
+        const editPanel = document.getElementById('editPanel');
+        const findOldInput = document.getElementById('findOldInput');
+        const replaceNewInput = document.getElementById('replaceNewInput');
+        const applyReplaceBtn = document.getElementById('applyReplaceBtn');
+        const exportBtn = document.getElementById('exportMasterBtn');
+        const globalSearchInput = document.getElementById('globalTextFilter');
+        const filterStatusDiv = document.getElementById('filterBarDynamic');
+        const filterMessageSpan = document.getElementById('filterMessage');
+        const clearFiltersBtn = document.getElementById('clearFiltersGlobalBtn');
+        const rowStatsSpan = document.getElementById('rowStats');
+        const logPanel = document.getElementById('liveLogPanel');
+        const uniqueSearchInput = document.getElementById('uniqueSearchInput');
+        const uniqueCountBadge = document.getElementById('uniqueCountBadge');
+
+        // Join
+        const multiJoinCols = document.getElementById('multiJoinCols');
+        const joinDelimiter = document.getElementById('joinDelimiter');
+        const targetText = document.getElementById('targetText');
+        const processBtn = document.getElementById('processBtn');
+
+        // Add Word
+        const wordColumnSelect = document.getElementById('wordColumnSelect');
+        const wordToAdd = document.getElementById('wordToAdd');
+        const applyWordBtn = document.getElementById('applyWordBtn');
+
+        /* ============================================================
+           HELPERS
+           ============================================================ */
+        function addLog(message, type = "info") {
+            const logDiv = document.createElement('div');
+            const color = type === 'success' ? '#4ade80' : (type === 'error' ? '#f87171' : '#94a3b8');
+            logDiv.innerHTML = `<span style="color:${color}">> ${new Date().toLocaleTimeString()} - ${message}</span>`;
+            logPanel.appendChild(logDiv);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            if (logPanel.children.length > 15) logPanel.removeChild(logPanel.children[0]);
+        }
+
+        function normalizeValue(v) {
+            if (v === null || v === undefined) return "";
+            let str = String(v).trim();
+            return (str.toLowerCase() === "nan" || str === "") ? "" : str;
+        }
+
+        function getCellValue(row, colName) {
+            if (!colName) return "";
+            let val = row[colName];
+            if (val === undefined || val === null) return "";
+            return normalizeValue(val);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        /* ============================================================
+           DATA TABLE
+           ============================================================ */
+        function refreshDataTable() {
+            if (!dataTableInstance) return;
+
+            let filteredData = [...masterData];
+
+            if (activeUnifiedFilter.trim() !== "") {
+                const query = activeUnifiedFilter.trim().toLowerCase();
+                filteredData = filteredData.filter(row => {
+                    return masterHeaders.some(header => {
+                        const cellValue = row[header] !== undefined && row[header] !== null ? String(row[header]).toLowerCase() : "";
+                        return cellValue.includes(query);
+                    });
+                });
+            }
+
+            if (activeUnifiedFilter.trim() !== "") {
+                filterStatusDiv.style.display = "flex";
+                filterMessageSpan.innerHTML = `<i class="fas fa-filter"></i> Showing ${filteredData.length} of ${masterData.length} rows matching "${activeUnifiedFilter}"`;
+            } else {
+                filterStatusDiv.style.display = "none";
+            }
+            rowStatsSpan.innerText = `${filteredData.length} rows shown`;
+
+            dataTableInstance.clear();
+            dataTableInstance.rows.add(filteredData);
+            dataTableInstance.draw();
+        }
+
+        function rebuildDataTable() {
+            if (dataTableInstance) {
+                dataTableInstance.destroy();
+                $('#unifiedDataTable').empty();
+            }
+
+            $('#unifiedDataTable').DataTable({
+                data: masterData,
+                columns: masterHeaders.map(h => ({ title: h, data: h })),
+                scrollX: true,
+                pageLength: 15,
+                language: { info: "_TOTAL_ entries" },
+                dom: 'Brtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Export Excel',
+                        className: 'btn btn-sm btn-success',
+                        title: 'Cleaned_Data',
+                        exportOptions: {
+                            format: {
+                                body: function (innerData) {
+                                    let strData = String(innerData).trim();
+                                    if (/^\d{15,}$/.test(strData)) return '\u200C' + strData;
+                                    return innerData;
+                                }
+                            }
+                        }
+                    }
+                ],
+                drawCallback: function () {
+                    rowStatsSpan.innerText = `${this.api().rows({ filter: 'applied' }).count()} rows`;
+                }
+            });
+            dataTableInstance = $('#unifiedDataTable').DataTable();
+
+            refreshDataTable();
+        }
+
+        /* ============================================================
+           SIDEBAR UPDATE
+           ============================================================ */
+        function updateSidebarComponents() {
+            if (!masterHeaders.length) {
+                editorColumn.disabled = true;
+                exportBtn.disabled = true;
+                globalSearchInput.disabled = true;
+                wordColumnSelect.disabled = true;
+                multiJoinCols.disabled = true;
+                applyWordBtn.disabled = true;
+                processBtn.disabled = true;
+                return;
+            }
+
+            editorColumn.disabled = false;
+            exportBtn.disabled = false;
+            globalSearchInput.disabled = false;
+            wordColumnSelect.disabled = false;
+            multiJoinCols.disabled = false;
+
+            const prevEditor = editorColumn.value;
+            const prevWord = wordColumnSelect.value;
+            const prevJoin = Array.from(multiJoinCols.selectedOptions).map(o => o.value);
+
+            // Column select (Find & Replace)
+            editorColumn.innerHTML = '<option value="">-- Choose column --</option>' +
+                masterHeaders.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+            if (prevEditor && masterHeaders.includes(prevEditor)) editorColumn.value = prevEditor;
+
+            // Column select (Add Word)
+            wordColumnSelect.innerHTML = '<option value="">-- Choose Column --</option>' +
+                masterHeaders.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+            if (prevWord && masterHeaders.includes(prevWord)) wordColumnSelect.value = prevWord;
+
+            // Multi-select (Join)
+            multiJoinCols.innerHTML = masterHeaders.map(h => {
+                const sel = prevJoin.includes(h) ? 'selected' : '';
+                return `<option value="${escapeHtml(h)}" ${sel}>${escapeHtml(h)}</option>`;
+            }).join('');
+
+            updateApplyButtonState();
+        }
+
+        /* ============================================================
+           UNIQUE VALUES PREVIEW
+           ============================================================ */
+        function refreshUniquePreview() {
+            const col = editorColumn.value;
+            if (!col || masterData.length === 0) {
+                uniqueContainer.innerHTML = '<div class="unique-empty-note">Select a column to see unique values</div>';
+                editPanel.style.display = "none";
+                uniqueCountBadge.textContent = "0";
+                return;
+            }
+            editPanel.style.display = "block";
+
+            const valueMap = new Map();
+            masterData.forEach(row => {
+                let val = normalizeValue(row[col]);
+                if (val === "") val = "(empty)";
+                valueMap.set(val, (valueMap.get(val) || 0) + 1);
+            });
+
+            let sorted = Array.from(valueMap.entries()).sort((a, b) => b[1] - a[1]);
+
+            if (uniqueSearchTerm.trim() !== "") {
+                const q = uniqueSearchTerm.trim().toLowerCase();
+                sorted = sorted.filter(([val]) => val.toLowerCase().includes(q));
+            }
+
+            const totalUniques = valueMap.size;
+            const shownCount = sorted.length;
+            uniqueCountBadge.textContent = shownCount === totalUniques
+                ? totalUniques
+                : `${shownCount} / ${totalUniques}`;
+
+            if (sorted.length === 0) {
+                uniqueContainer.innerHTML = `<div class="unique-empty-note">No unique values match "<b>${escapeHtml(uniqueSearchTerm)}</b>"</div>`;
+                return;
+            }
+
+            uniqueContainer.innerHTML = sorted.map(([val, cnt]) => `
+                <div class="unique-preview-row" onclick="fillAndFilter('${val.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                    <span class="unique-preview-badge">${cnt}</span>
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(val)}</span>
+                    <i class="fas fa-mouse-pointer" style="color:#2563eb; font-size:11px;"></i>
+                </div>
+            `).join('');
+        }
+
+        window.fillAndFilter = (rawVal) => {
+            let displayVal = rawVal === "(empty)" ? "" : rawVal;
+            findOldInput.value = displayVal;
+            activeUnifiedFilter = displayVal;
+            globalSearchInput.value = displayVal;
+            addLog(`📋 Filtering for target: "${displayVal}"`, "info");
+            refreshDataTable();
+            replaceNewInput.focus();
+        };
+
+        /* ============================================================
+           OPERATION 1: FIND & REPLACE
+           ============================================================ */
+        function applyFindReplace() {
+            const col = editorColumn.value;
+            if (!col) { addLog("Please select a column first", "error"); return; }
+
+            const oldVal = findOldInput.value;
+            const newVal = replaceNewInput.value;
+
+            if (!oldVal) { addLog("Enter the text or word you want to replace", "error"); return; }
+
+            let replaceCount = 0;
+
+            masterData.forEach(row => {
+                if (row[col] !== undefined && row[col] !== null) {
+                    let original = String(row[col]);
+                    if (original.includes(oldVal)) {
+                        row[col] = original.split(oldVal).join(newVal);
+                        replaceCount++;
+                    }
+                }
+            });
+
+            if (replaceCount > 0) {
+                addLog(`✅ Replaced "${oldVal}" → "${newVal}" in ${replaceCount} row(s) of "${col}"`, "success");
+                findOldInput.value = "";
+                replaceNewInput.value = "";
+                activeUnifiedFilter = "";
+                globalSearchInput.value = "";
+                refreshDataTable();
+                refreshUniquePreview();
+            } else {
+                addLog(`No occurrences of "${oldVal}" found in "${col}"`, "info");
+            }
+        }
+
+        /* ============================================================
+           OPERATION 2: JOIN COLUMNS
+           ============================================================ */
+        function processData() {
+            if (!masterData.length) { addLog("Please load an Excel file first.", "error"); return; }
+
+            const selectedCols = Array.from(multiJoinCols.selectedOptions).map(o => o.value);
+            const delimiter = joinDelimiter.value;
+            const targetTxt = targetText.value.trim();
+
+            if (selectedCols.length === 0) { addLog("Select at least one column to join.", "error"); return; }
+            if (!targetTxt) { addLog("Enter a target column name.", "error"); return; }
+
+            const existed = masterHeaders.includes(targetTxt);
+
+            if (existed) {
+                if (!confirm(`Column "${targetTxt}" already exists. Overwrite?`)) return;
+            }
+
+            masterData = masterData.map(row => {
+                const valuesToJoin = selectedCols.map(col => getCellValue(row, col));
+                row[targetTxt] = valuesToJoin.join(delimiter);
+                return row;
+            });
+
+            if (!existed) masterHeaders.push(targetTxt);
+
+            rebuildDataTable();
+            updateSidebarComponents();
+            addLog(`✅ Joined ${selectedCols.length} column(s) → "${targetTxt}"`, "success");
+        }
+
+        /* ============================================================
+           OPERATION 3: ADD WORD TO COLUMN
+           ============================================================ */
+        function addWordToColumn() {
+            if (!masterData.length) { addLog("Please load an Excel file first.", "error"); return; }
+
+            const selectedColumn = wordColumnSelect.value;
+            const wordToInsert = wordToAdd.value;
+            const positionLeft = document.getElementById('posLeft').checked;
+
+            if (!selectedColumn) { addLog("Select a column to update.", "error"); return; }
+            if (wordToInsert === "") { addLog("Enter a word or text to add.", "error"); return; }
+            if (!masterHeaders.includes(selectedColumn)) { addLog(`Column "${selectedColumn}" not found.`, "error"); return; }
+
+            let sampleOld = masterData.length > 0 ? getCellValue(masterData[0], selectedColumn) : "";
+            let sampleNew = positionLeft ? (wordToInsert + sampleOld) : (sampleOld + wordToInsert);
+
+            const confirmMsg = `Update column "${selectedColumn}" by adding:\n\n[${wordToInsert}]\n\n` +
+                `to the ${positionLeft ? 'LEFT' : 'RIGHT'} of every cell.\n\n` +
+                `Preview (first row):\nOriginal: "${sampleOld}"\nNew:      "${sampleNew}"\n\nContinue?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            let emptyCellsCount = 0;
+            let modifiedCount = 0;
+
+            masterData = masterData.map(row => {
+                let originalValue = getCellValue(row, selectedColumn);
+                let modifiedValue;
+                if (originalValue === "") {
+                    emptyCellsCount++;
+                    modifiedValue = wordToInsert;
+                } else {
+                    modifiedValue = positionLeft ? (wordToInsert + originalValue) : (originalValue + wordToInsert);
+                    modifiedCount++;
+                }
+                row[selectedColumn] = modifiedValue;
+                return row;
+            });
+
+            refreshDataTable();
+            refreshUniquePreview();
+
+            let details = `Added "${wordToInsert}" to ${positionLeft ? 'LEFT' : 'RIGHT'} of ${modifiedCount} cell(s).`;
+            if (emptyCellsCount > 0) details += ` ${emptyCellsCount} empty cell(s) filled.`;
+            addLog(`✅ ${details}`, "success");
+        }
+
+        /* ============================================================
+           FILE LOAD
+           ============================================================ */
+        async function loadExcelFile(file) {
+            if (!file) return;
+            fileNameSpan.innerText = file.name;
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (!rawRows.length) throw new Error("Empty file");
+
+                masterHeaders = rawRows[0].map(cell => normalizeValue(cell) || `Col_${Math.random().toString(36).slice(2,6)}`);
+                masterData = rawRows.slice(1).map(row => {
+                    let obj = {};
+                    masterHeaders.forEach((h, idx) => {
+                        let val = row[idx] !== undefined && row[idx] !== null ? String(row[idx]).trim() : "";
+                        obj[h] = val;
+                    });
+                    return obj;
+                });
+
+                activeUnifiedFilter = "";
+                globalSearchInput.value = "";
+                uniqueSearchTerm = "";
+                uniqueSearchInput.value = "";
+
+                rebuildDataTable();
+                updateSidebarComponents();
+                refreshUniquePreview();
+
+                addLog(`📂 Loaded "${file.name}" — ${masterData.length} rows, ${masterHeaders.length} columns`, "success");
+            } catch (err) {
+                addLog(`Error: ${err.message}`, "error");
+            }
+        }
+
+        /* ============================================================
+           EXPORT
+           ============================================================ */
+        function exportMaster() {
+            if (!masterData.length) { addLog("No data to export", "error"); return; }
+            const ws = XLSX.utils.json_to_sheet(masterData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MasterData");
+            XLSX.writeFile(wb, `excel_master_${Date.now()}.xlsx`);
+            addLog("📎 Exported current dataset with all edits applied.", "success");
+        }
+
+        /* ============================================================
+           BUTTON STATE MANAGERS
+           ============================================================ */
+        function updateApplyButtonState() {
+            const hasCol = wordColumnSelect.value && excelDataAvailable();
+            applyWordBtn.disabled = !hasCol;
+            processBtn.disabled = !masterData.length;
+        }
+
+        function excelDataAvailable() { return masterData.length > 0; }
+
+        /* ============================================================
+           EVENT LISTENERS
+           ============================================================ */
+        fileUpload.addEventListener('change', (e) => {
+            if (e.target.files[0]) loadExcelFile(e.target.files[0]);
+        });
+
+        applyReplaceBtn.addEventListener('click', applyFindReplace);
+        exportBtn.addEventListener('click', exportMaster);
+
+        editorColumn.addEventListener('change', () => {
+            uniqueSearchTerm = "";
+            uniqueSearchInput.value = "";
+            refreshUniquePreview();
+        });
+
+        uniqueSearchInput.addEventListener('input', (e) => {
+            uniqueSearchTerm = e.target.value;
+            refreshUniquePreview();
+        });
+
+        globalSearchInput.addEventListener('input', (e) => {
+            activeUnifiedFilter = e.target.value;
+            refreshDataTable();
+        });
+
+        clearFiltersBtn.addEventListener('click', () => {
+            activeUnifiedFilter = "";
+            globalSearchInput.value = "";
+            addLog("Filter cleared. Showing full dataset.", "info");
+            refreshDataTable();
+        });
+
+        wordColumnSelect.addEventListener('change', updateApplyButtonState);
+        wordToAdd.addEventListener('input', updateApplyButtonState);
+
+        addLog("⚡ Unified toolkit ready. Upload a file to begin.", "info");
+    </script>
+</body>
+
+</html>

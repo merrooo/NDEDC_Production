@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Excel Processor — Merge & Split</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --accent-success: #10b981;
+            --accent-violet: #7c3aed;
+            --accent-amber: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        .master-layout {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 420px;
+            min-width: 420px;
+            max-width: 420px;
+            background: #f1f5f9;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px;
+            gap: 12px;
+            flex-shrink: 0;
+            min-height: 0;
+        }
+
+        /* ========== APP HEADER ========== */
+        .sidebar-top {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            flex-shrink: 0;
+        }
+
+        .back-link {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .sidebar-top h2 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.3;
+        }
+        .sidebar-top p {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        /* ========== MODE SELECTOR ========== */
+        .mode-selector {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .mode-selector-title {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            padding-left: 2px;
+        }
+
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px 12px;
+            background: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: left;
+            margin-bottom: 6px;
+        }
+        .mode-btn:last-child { margin-bottom: 0; }
+
+        .mode-btn:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .mode-btn.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+            color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .mode-btn.active .mode-icon {
+            background: var(--primary);
+            color: white;
+        }
+
+        .mode-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            transition: 0.15s;
+        }
+
+        .mode-btn-text { flex: 1; min-width: 0; }
+        .mode-btn-title { display: block; line-height: 1.2; }
+        .mode-btn-desc {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        .mode-btn.active .mode-btn-desc { color: #60a5fa; }
+
+        /* ========== STEP CARD ========== */
+        .step-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+            flex-shrink: 0;
+            display: none;
+        }
+        .step-card.visible { display: block; }
+        .step-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
+        /* Highlight shared upload card */
+        .step-card.shared {
+            border: 1.5px solid var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--border-color);
+            min-width: 0;
+        }
+
+        .step-number {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .step-number.green { background: var(--accent-success); }
+        .step-number.violet { background: var(--accent-violet); }
+        .step-number.amber { background: var(--accent-amber); }
+
+        .step-title-wrap { flex: 1 1 auto; min-width: 0; }
+        .step-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .step-subtitle {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .step-body {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        /* ========== FORM ========== */
+        .compact-select, .compact-input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12.5px;
+            background: #fff;
+            outline: none;
+            font-family: inherit;
+            color: var(--text-dark);
+            transition: border-color 0.15s;
+            min-width: 0;
+        }
+        .compact-select:focus, .compact-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .compact-select:disabled, .compact-input:disabled {
+            background: #f8fafc;
+            cursor: not-allowed;
+            color: #94a3b8;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+            width: 100%;
+            text-align: center;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+
+        .btn.green { background: var(--accent-success); }
+        .btn.green:hover:not(:disabled) { background: #047857; }
+        .btn.violet { background: var(--accent-violet); }
+        .btn.violet:hover:not(:disabled) { background: #6d28d9; }
+        .btn.amber { background: var(--accent-amber); }
+        .btn.amber:hover:not(:disabled) { background: #d97706; }
+        .btn.outline {
+            background: white;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+        .btn.outline:hover:not(:disabled) { background: #eff6ff; }
+
+        /* ========== LIST ========== */
+        .list-card {
+            background: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 4px;
+        }
+        .list-card.tall { max-height: 200px; }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            font-size: 11.5px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.1s;
+            min-width: 0;
+        }
+        .checkbox-item:hover { background: #f1f5f9; }
+        .checkbox-item input {
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+            width: 14px;
+            height: 14px;
+        }
+        .checkbox-item span {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .empty-note {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 11px;
+            padding: 16px 10px;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .mini-utils {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .mini-utils button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 10.5px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0;
+            font-family: inherit;
+        }
+        .mini-utils button:hover { text-decoration: underline; }
+
+        /* ========== RADIO ========== */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #f8fafc;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 5px 4px;
+            line-height: 1.35;
+            border-radius: 6px;
+        }
+        .radio-group label:hover { background: white; }
+        .radio-group input {
+            cursor: pointer;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .radio-group .radio-desc {
+            display: block;
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        /* ========== CHECK ROW ========== */
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: background 0.1s;
+        }
+        .check-row:hover { background: #f8fafc; }
+        .check-row input {
+            accent-color: var(--primary);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        /* ========== STATUS PILL ========== */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #eff6ff;
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .status-pill.success {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        /* ========== MAIN ========== */
+        .main-content {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: #f1f5f9;
+            padding: 20px;
+            overflow: hidden;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .compact-header {
+            background: white;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            gap: 12px;
+            min-width: 0;
+        }
+        .compact-header-left { min-width: 0; flex: 1 1 auto; }
+        .compact-header h1 {
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .compact-header .subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        .file-badge {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            flex-shrink: 0;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .grid-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .grid-toolbar {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+            flex-shrink: 0;
+            gap: 12px;
+        }
+        .grid-toolbar-title {
+            font-weight: 700;
+            font-size: 12.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .grid-stats {
+            background: #eff6ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .table-wrapper {
+            overflow: auto;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        #dataTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+        #dataTable th {
+            background: #f8fafc;
+            position: sticky;
+            top: 0;
+            padding: 10px 12px;
+            border-bottom: 2px solid var(--border-color);
+            text-align: left;
+            z-index: 5;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        #dataTable td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap;
+            color: #334155;
+        }
+        #dataTable tr:hover td { background: #f8fafc; }
+
+        .log-section {
+            background: #0f172a;
+            color: #cbd5e1;
+            border-radius: 10px;
+            padding: 12px 16px;
+            height: 90px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .progress-fill {
+            background: var(--primary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Scrollbars */
+        .sidebar::-webkit-scrollbar,
+        .list-card::-webkit-scrollbar,
+        .table-wrapper::-webkit-scrollbar,
+        .log-section::-webkit-scrollbar { width: 7px; height: 7px; }
+        .sidebar::-webkit-scrollbar-track,
+        .list-card::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb,
+        .list-card::-webkit-scrollbar-thumb,
+        .table-wrapper::-webkit-scrollbar-thumb,
+        .log-section::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .list-card::-webkit-scrollbar-thumb:hover,
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @media (max-width: 900px) {
+            .master-layout { flex-direction: column; overflow: auto; }
+            .sidebar {
+                width: 100%;
+                min-width: 0;
+                max-width: none;
+                height: auto;
+                overflow: visible;
+            }
+            .main-content { overflow: visible; }
+            html, body { overflow: auto; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-layout">
+        <!-- ============== SIDEBAR ============== -->
+        <div class="sidebar">
+
+            <!-- App Header -->
+            <div class="sidebar-top">
+                <a href="Control_Excel.html" class="back-link">
+                    <span>←</span> Return Home
+                </a>
+                <h2>⚡ Excel Processor</h2>
+                <p>Pick a workflow — merge multiple files or split one file</p>
+            </div>
+
+            <!-- MODE SELECTOR -->
+            <div class="mode-selector">
+                <div class="mode-selector-title">1. Choose Workflow</div>
+
+                <button class="mode-btn active" data-mode="mergeOne" onclick="setMode('mergeOne')">
+                    <div class="mode-icon">🔗</div>
+                    <div class="mode-btn-text">
+                        <span class="mode-btn-title">Merge → One Sheet</span>
+                        <span class="mode-btn-desc">Combine files &amp; sheets into a single table</span>
+                    </div>
+                </button>
+
+                <button class="mode-btn" data-mode="mergeMulti" onclick="setMode('mergeMulti')">
+                    <div class="mode-icon">📚</div>
+                    <div class="mode-btn-text">
+                        <span class="mode-btn-title">Merge → Multi Sheets</span>
+                        <span class="mode-btn-desc">Keep output as multiple sheets</span>
+                    </div>
+                </button>
+
+                <button class="mode-btn" data-mode="split" onclick="setMode('split')">
+                    <div class="mode-icon">✂️</div>
+                    <div class="mode-btn-text">
+                        <span class="mode-btn-title">Split File</span>
+                        <span class="mode-btn-desc">Split one file by column values</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- ===================================================== -->
+            <!-- SHARED LOAD FILES CARD — visible for merge modes only -->
+            <!-- ===================================================== -->
+            <div class="step-card shared merge-only visible" data-shared="merge">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Load Files</div>
+                        <div class="step-subtitle">Shared upload for both merge modes</div>
+                    </div>
+                    <span class="status-pill" id="mergeFileStatus">Empty</span>
+                </div>
+                <div class="step-body">
+                    <label for="mergeFilesInput" class="btn outline" style="cursor:pointer;">
+                        📁 Choose File(s)
+                    </label>
+                    <input type="file" id="mergeFilesInput" accept=".xlsx, .xls, .csv" multiple style="display:none;">
+
+                    <div class="mini-utils" id="mergeFileUtils" style="display:none;">
+                        <button type="button" onclick="mergeSelectAll(true)">✓ Select All</button>
+                        <button type="button" onclick="mergeSelectAll(false)">✗ Deselect All</button>
+                    </div>
+                    <div class="list-card" id="mergeFilesList" style="display:none;"></div>
+                    <div id="mergeFilesHint" style="font-size:10.5px; color:var(--text-muted); text-align:center; line-height:1.4;">
+                        Loaded files can be used in either merge mode
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- MODE 1 SPECIFIC CARDS                        -->
+            <!-- ============================================ -->
+            <div class="step-card visible" data-mode="mergeOne">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Merge Options</div>
+                        <div class="step-subtitle">Add source tracking columns</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <label class="check-row">
+                        <input type="checkbox" id="m1AddFileName" checked>
+                        <span>Add <b>Source_File_Name</b> column</span>
+                    </label>
+                    <label class="check-row">
+                        <input type="checkbox" id="m1AddSheetName" checked>
+                        <span>Add <b>Source_Sheet_Name</b> column</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="step-card visible" data-mode="mergeOne">
+                <div class="step-header">
+                    <div class="step-number green">4</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Export</div>
+                        <div class="step-subtitle">Save single-sheet workbook</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <input type="text" id="m1FileName" class="compact-input" placeholder="Filename (optional)">
+                    <button id="m1ExportBtn" class="btn green" disabled>🚀 Export One Sheet</button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- MODE 2 SPECIFIC CARDS                        -->
+            <!-- ============================================ -->
+            <div class="step-card" data-mode="mergeMulti">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Output Structure</div>
+                        <div class="step-subtitle">How to organize sheets</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="m2Structure" value="perFile" checked>
+                            <div>
+                                <b>One sheet per file</b>
+                                <span class="radio-desc">All sheets inside each file are combined into a single output sheet</span>
+                            </div>
+                        </label>
+                        <label>
+                            <input type="radio" name="m2Structure" value="perSheet">
+                            <div>
+                                <b>Keep original sheets</b>
+                                <span class="radio-desc">Each source sheet becomes its own output sheet (files prefixed)</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="mergeMulti">
+                <div class="step-header">
+                    <div class="step-number green">4</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Export</div>
+                        <div class="step-subtitle">Save multi-sheet workbook</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <input type="text" id="m2FileName" class="compact-input" placeholder="Filename (optional)">
+                    <button id="m2ExportBtn" class="btn green" disabled>🚀 Export Multi Sheets</button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- MODE 3 (SPLIT) — HAS ITS OWN SINGLE UPLOAD   -->
+            <!-- ============================================ -->
+            <div class="step-card" data-mode="split">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Load File</div>
+                        <div class="step-subtitle">Single file to split</div>
+                    </div>
+                    <span class="status-pill" id="spFileStatus">Empty</span>
+                </div>
+                <div class="step-body">
+                    <label for="splitFile" class="btn outline" style="cursor:pointer;">📁 Choose File</label>
+                    <input type="file" id="splitFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <div id="spFileName" style="font-size:11px; color:var(--text-muted); text-align:center; word-break:break-word;">
+                        No file loaded yet
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="split">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Split Key</div>
+                        <div class="step-subtitle">Grouping column</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <select id="spSplitColumn" class="compact-select" disabled>
+                        <option value="">Upload a file first</option>
+                    </select>
+                    <div id="spSplitPreview" style="font-size:10.5px; color:var(--text-muted); text-align:center;">
+                        Values will appear in Step 5
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="split">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Output Columns</div>
+                        <div class="step-subtitle">Columns to keep</div>
+                    </div>
+                    <span class="status-pill" id="spColCount">0</span>
+                </div>
+                <div class="step-body">
+                    <div class="mini-utils">
+                        <button type="button" onclick="spToggleAllCols(true)">✓ All</button>
+                        <button type="button" onclick="spToggleAllCols(false)">✗ None</button>
+                    </div>
+                    <div class="list-card" id="spColList">
+                        <p class="empty-note">Waiting for data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="split">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Filter Values</div>
+                        <div class="step-subtitle">Values to include</div>
+                    </div>
+                    <span class="status-pill" id="spValCount">0</span>
+                </div>
+                <div class="step-body">
+                    <div class="mini-utils">
+                        <button type="button" onclick="spToggleAllVals(true)">✓ All</button>
+                        <button type="button" onclick="spToggleAllVals(false)">✗ None</button>
+                    </div>
+                    <div class="list-card tall" id="spValList">
+                        <p class="empty-note">Select a split column first</p>
+                    </div>
+                    <div style="margin-top:4px;">
+                        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px;">
+                            Export Mode
+                        </div>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="spExportMode" value="split" checked>
+                                <div>
+                                    <b>📦 Separate files (ZIP)</b>
+                                    <span class="radio-desc">One Excel file per unique value</span>
+                                </div>
+                            </label>
+                            <label>
+                                <input type="radio" name="spExportMode" value="combined">
+                                <div>
+                                    <b>📄 Combined (one file)</b>
+                                    <span class="radio-desc">All values in a single Excel file</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="split">
+                <div class="step-header">
+                    <div class="step-number green">6</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Export</div>
+                        <div class="step-subtitle">Generate split output</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <input type="text" id="spFileNameInput" class="compact-input" placeholder="Custom filename (optional)">
+                    <button id="spExportBtn" class="btn green" disabled>🚀 START EXPORT</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============== MAIN CONTENT ============== -->
+        <div class="main-content">
+            <div class="compact-header">
+                <div class="compact-header-left">
+                    <h1 id="mainTitle">📊 Data Preview</h1>
+                    <div class="subtitle" id="mainSubtitle">Load files to see preview</div>
+                </div>
+                <div class="file-badge" id="headerBadge">No file</div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-toolbar">
+                    <div class="grid-toolbar-title"><span>📋</span> Table Preview</div>
+                    <span class="grid-stats" id="gridStats">0 rows</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="progress-bar" id="progressSection" style="display:none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="log-section" id="logSection">
+                <div>> Ready. Pick a workflow above.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============ STATE ============ */
+        let currentMode = 'mergeOne';
+
+        // Preview
+        let currentGridData = [];
+        let currentHeaders = [];
+
+        // Shared merge state (used by Mode 1 & Mode 2)
+        let mergeFiles = [];               // [{ fileName, sheets: [{ name, matrix }] }]
+        let mergeChecked = new Map();      // fileName -> bool
+
+        // Split state
+        let spData = [];
+        let spHeaders = [];
+
+        /* ============ DOM ============ */
+        const logSection = document.getElementById('logSection');
+        const progressFill = document.getElementById('progressFill');
+        const headerBadge = document.getElementById('headerBadge');
+        const mainTitle = document.getElementById('mainTitle');
+        const mainSubtitle = document.getElementById('mainSubtitle');
+
+        // Shared merge upload
+        const mergeFilesInput = document.getElementById('mergeFilesInput');
+        const mergeFilesList = document.getElementById('mergeFilesList');
+        const mergeFilesUtils = document.getElementById('mergeFileUtils');
+        const mergeFilesHint = document.getElementById('mergeFilesHint');
+        const mergeFileStatus = document.getElementById('mergeFileStatus');
+
+        // Mode 1
+        const m1AddFileName = document.getElementById('m1AddFileName');
+        const m1AddSheetName = document.getElementById('m1AddSheetName');
+        const m1FileName = document.getElementById('m1FileName');
+        const m1ExportBtn = document.getElementById('m1ExportBtn');
+
+        // Mode 2
+        const m2FileName = document.getElementById('m2FileName');
+        const m2ExportBtn = document.getElementById('m2ExportBtn');
+
+        // Split
+        const spFileInput = document.getElementById('splitFile');
+        const spFileName = document.getElementById('spFileName');
+        const spSplitColumn = document.getElementById('spSplitColumn');
+        const spSplitPreview = document.getElementById('spSplitPreview');
+        const spColList = document.getElementById('spColList');
+        const spValList = document.getElementById('spValList');
+        const spColCount = document.getElementById('spColCount');
+        const spValCount = document.getElementById('spValCount');
+        const spFileNameInput = document.getElementById('spFileNameInput');
+        const spExportBtn = document.getElementById('spExportBtn');
+        const spFileStatus = document.getElementById('spFileStatus');
+
+        /* ============ UTILS ============ */
+        function addLog(msg, color = "#cbd5e1") {
+            const entry = document.createElement("div");
+            entry.style.color = color;
+            entry.textContent = `> ${msg}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+            while (logSection.children.length > 60) logSection.removeChild(logSection.firstChild);
+        }
+
+        function escHtml(s) {
+            return String(s).replace(/[&<>"']/g, m =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+        }
+
+        function setProgress(pct) {
+            document.getElementById('progressSection').style.display = pct > 0 ? 'block' : 'none';
+            progressFill.style.width = pct + '%';
+        }
+
+        /* ============ MODE SWITCHER ============ */
+        function setMode(mode) {
+            currentMode = mode;
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Shared merge upload card — visible for both merge modes
+            document.querySelectorAll('.step-card[data-shared="merge"]').forEach(card => {
+                card.classList.toggle('visible', mode === 'mergeOne' || mode === 'mergeMulti');
+            });
+
+            // Mode-specific cards
+            document.querySelectorAll('.step-card[data-mode]').forEach(card => {
+                card.classList.toggle('visible', card.dataset.mode === mode);
+            });
+
+            // Update main header
+            if (mode === 'mergeOne') {
+                mainTitle.textContent = '📊 Merge Preview — One Sheet';
+                mainSubtitle.textContent = 'All files & sheets will be combined into one table';
+            } else if (mode === 'mergeMulti') {
+                mainTitle.textContent = '📚 Merge Preview — Multi Sheets';
+                mainSubtitle.textContent = 'Files will be kept as separate sheets';
+            } else {
+                mainTitle.textContent = '✂️ Split Preview';
+                mainSubtitle.textContent = 'Split one file by column values';
+            }
+
+            // Refresh preview state
+            refreshPreviewForMode();
+        }
+
+        function refreshPreviewForMode() {
+            if (currentMode === 'split') {
+                // Split preview
+                currentHeaders = spHeaders;
+                currentGridData = spData;
+                renderTable();
+            } else {
+                // Merge preview — show first selected file's first sheet
+                const first = mergeFiles.find(f => mergeChecked.get(f.fileName));
+                if (first && first.sheets.length > 0) {
+                    const s = first.sheets[0];
+                    currentHeaders = s.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                    currentGridData = s.matrix.slice(1).map(row => {
+                        const obj = {};
+                        currentHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
+                        return obj;
+                    });
+                    renderTable();
+                } else {
+                    currentHeaders = [];
+                    currentGridData = [];
+                    renderTable();
+                }
+            }
+        }
+
+        /* ============ TABLE ============ */
+        function renderTable() {
+            const thead = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+            const stats = document.getElementById('gridStats');
+
+            if (currentHeaders.length === 0) {
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+                stats.textContent = '0 rows';
+                return;
+            }
+
+            thead.innerHTML = `<tr>${currentHeaders.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr>`;
+            const preview = currentGridData.slice(0, 100);
+            tbody.innerHTML = preview.map(row =>
+                `<tr>${currentHeaders.map(h => `<td>${escHtml(row[h] ?? '')}</td>`).join('')}</tr>`
+            ).join('');
+
+            if (currentGridData.length > 100) {
+                tbody.innerHTML += `<tr><td colspan="${currentHeaders.length}" style="text-align:center;color:#94a3b8;font-style:italic;">... and ${currentGridData.length - 100} more rows</td></tr>`;
+            }
+
+            stats.textContent = `${currentGridData.length} rows`;
+        }
+
+        /* ================================================================ */
+        /* ============ SHARED MERGE UPLOAD (Modes 1 & 2) ================= */
+        /* ================================================================ */
+        mergeFilesInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            e.target.value = '';
+            if (files.length === 0) return;
+
+            addLog(`📂 Reading ${files.length} file(s)...`);
+            setProgress(5);
+
+            mergeFiles = [];
+            mergeChecked.clear();
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                try {
+                    const buf = await file.arrayBuffer();
+                    const wb = XLSX.read(buf, { type: 'array' });
+
+                    const sheets = [];
+                    for (const sheetName of wb.SheetNames) {
+                        const matrix = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
+                        if (matrix.length === 0) continue;
+                        sheets.push({ name: sheetName, matrix });
+                    }
+
+                    if (sheets.length > 0) {
+                        mergeFiles.push({ fileName: file.name, sheets });
+                        mergeChecked.set(file.name, true);
+                    }
+                } catch (err) {
+                    addLog(`❌ Error reading ${file.name}: ${err.message}`, '#f87171');
+                }
+                setProgress(5 + ((i + 1) / files.length) * 90);
+            }
+
+            if (mergeFiles.length === 0) {
+                addLog('⚠️ No valid files loaded.', '#fbbf24');
+                setProgress(0);
+                return;
+            }
+
+            renderMergeFileList();
+            updateMergeStatus();
+            refreshPreviewForMode();
+
+            setProgress(100);
+            setTimeout(() => setProgress(0), 800);
+
+            addLog(`✅ Loaded ${mergeFiles.length} file(s). Ready for either merge mode.`, '#4ade80');
+        });
+
+        function renderMergeFileList() {
+            if (mergeFiles.length === 0) {
+                mergeFilesList.style.display = 'none';
+                mergeFilesUtils.style.display = 'none';
+                mergeFilesHint.style.display = 'block';
+                mergeFilesHint.textContent = 'Loaded files can be used in either merge mode';
+                return;
+            }
+
+            mergeFilesList.style.display = 'block';
+            mergeFilesUtils.style.display = 'flex';
+            mergeFilesHint.style.display = 'none';
+
+            mergeFilesList.innerHTML = '';
+            mergeFiles.forEach(f => {
+                const checked = mergeChecked.get(f.fileName) !== false;
+                const safeName = f.fileName.replace(/'/g, "\\'");
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+                label.innerHTML = `
+                    <input type="checkbox" ${checked ? 'checked' : ''}
+                           onchange="toggleMergeFile('${safeName}', this.checked)">
+                    <span title="${escHtml(f.fileName)}">${escHtml(f.fileName)}
+                        <small style="color:#94a3b8">(${f.sheets.length} sheet${f.sheets.length > 1 ? 's' : ''})</small>
+                    </span>
+                `;
+                mergeFilesList.appendChild(label);
+            });
+        }
+
+        function toggleMergeFile(fileName, checked) {
+            mergeChecked.set(fileName, checked);
+            updateMergeStatus();
+            refreshPreviewForMode();
+        }
+
+        function mergeSelectAll(checked) {
+            mergeFiles.forEach(f => mergeChecked.set(f.fileName, checked));
+            renderMergeFileList();
+            updateMergeStatus();
+            refreshPreviewForMode();
+        }
+
+        function updateMergeStatus() {
+            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName)).length;
+
+            if (mergeFiles.length === 0) {
+                mergeFileStatus.textContent = 'Empty';
+                mergeFileStatus.classList.remove('success');
+            } else {
+                mergeFileStatus.textContent = `${active}/${mergeFiles.length}`;
+                mergeFileStatus.classList.toggle('success', active > 0);
+            }
+
+            const anyChecked = active > 0;
+            m1ExportBtn.disabled = !anyChecked;
+            m2ExportBtn.disabled = !anyChecked;
+
+            headerBadge.textContent = mergeFiles.length > 0
+                ? `${active} of ${mergeFiles.length} file(s) selected`
+                : 'No file';
+        }
+
+        /* ============ MODE 1: EXPORT ONE SHEET ============ */
+        m1ExportBtn.addEventListener('click', () => {
+            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName));
+            if (active.length === 0) return addLog('⚠️ Select at least one file.', '#fbbf24');
+
+            addLog('🔗 Merging all selected files & sheets into one table...');
+            setProgress(20);
+
+            let masterHeader = null;
+            const allRows = [];
+            let totalRows = 0;
+
+            active.forEach(file => {
+                file.sheets.forEach(sheet => {
+                    const header = sheet.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                    if (!masterHeader) masterHeader = header;
+
+                    for (let r = 1; r < sheet.matrix.length; r++) {
+                        const rowObj = {};
+                        masterHeader.forEach((h, ci) => {
+                            rowObj[h] = sheet.matrix[r][ci] !== undefined ? sheet.matrix[r][ci] : '';
+                        });
+                        if (m1AddFileName.checked) rowObj['Source_File_Name'] = file.fileName;
+                        if (m1AddSheetName.checked) rowObj['Source_Sheet_Name'] = sheet.name;
+                        allRows.push(rowObj);
+                        totalRows++;
+                    }
+                });
+            });
+
+            if (allRows.length === 0) {
+                addLog('⚠️ No data rows found.', '#fbbf24');
+                setProgress(0);
+                return;
+            }
+
+            const finalHeaders = [...masterHeader];
+            if (m1AddFileName.checked) finalHeaders.push('Source_File_Name');
+            if (m1AddSheetName.checked) finalHeaders.push('Source_Sheet_Name');
+
+            const ws = XLSX.utils.json_to_sheet(allRows, { header: finalHeaders });
+            ws['!cols'] = finalHeaders.map(h => {
+                let max = h.length;
+                for (let i = 0; i < Math.min(allRows.length, 500); i++) {
+                    const v = String(allRows[i][h] ?? '');
+                    if (v.length > max) max = v.length;
+                }
+                return { wch: Math.min(max + 3, 50) };
+            });
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Merged_Data');
+
+            const name = (m1FileName.value.trim() || 'Merged_One_Sheet').replace(/[\\/:*?"<>|]/g, '_');
+            XLSX.writeFile(wb, `${name}.xlsx`);
+
+            setProgress(100);
+            setTimeout(() => setProgress(0), 800);
+            addLog(`✅ Exported "${name}.xlsx" with ${totalRows} rows from ${active.length} file(s).`, '#4ade80');
+        });
+
+        /* ============ MODE 2: EXPORT MULTI SHEETS ============ */
+        m2ExportBtn.addEventListener('click', () => {
+            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName));
+            if (active.length === 0) return addLog('⚠️ Select at least one file.', '#fbbf24');
+
+            setProgress(20);
+            const structure = document.querySelector('input[name="m2Structure"]:checked').value;
+            const wb = XLSX.utils.book_new();
+            const usedNames = new Set();
+
+            function safeSheetName(name) {
+                let base = String(name).replace(/[\\/?*\[\]:]/g, '_').substring(0, 28);
+                if (!base) base = 'Sheet';
+                let final = base, i = 2;
+                while (usedNames.has(final)) { final = `${base}_${i++}`; }
+                usedNames.add(final);
+                return final;
+            }
+
+            if (structure === 'perFile') {
+                active.forEach((file, idx) => {
+                    let combinedHeader = null;
+                    const combinedRows = [];
+
+                    file.sheets.forEach(sheet => {
+                        const header = sheet.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                        if (!combinedHeader) combinedHeader = header;
+                        for (let r = 1; r < sheet.matrix.length; r++) {
+                            const obj = {};
+                            combinedHeader.forEach((h, ci) => obj[h] = sheet.matrix[r][ci] ?? '');
+                            combinedRows.push(obj);
+                        }
+                    });
+
+                    if (combinedHeader && combinedRows.length > 0) {
+                        const ws = XLSX.utils.json_to_sheet(combinedRows, { header: combinedHeader });
+                        XLSX.utils.book_append_sheet(wb, ws, safeSheetName(file.fileName.replace(/\.[^.]+$/, '')));
+                    }
+                    setProgress(20 + ((idx + 1) / active.length) * 70);
+                });
+            } else {
+                active.forEach(file => {
+                    const fileBase = file.fileName.replace(/\.[^.]+$/, '');
+                    file.sheets.forEach(sheet => {
+                        const ws = XLSX.utils.aoa_to_sheet(sheet.matrix);
+                        const prefix = active.length > 1 ? `${fileBase}_` : '';
+                        XLSX.utils.book_append_sheet(wb, ws, safeSheetName(prefix + sheet.name));
+                    });
+                });
+            }
+
+            if (wb.SheetNames.length === 0) {
+                addLog('⚠️ No sheets to write.', '#fbbf24');
+                setProgress(0);
+                return;
+            }
+
+            const name = (m2FileName.value.trim() || 'Merged_Multi_Sheets').replace(/[\\/:*?"<>|]/g, '_');
+            XLSX.writeFile(wb, `${name}.xlsx`);
+
+            setProgress(100);
+            setTimeout(() => setProgress(0), 800);
+            addLog(`✅ Exported "${name}.xlsx" with ${wb.SheetNames.length} sheet(s).`, '#4ade80');
+        });
+
+        /* ================================================================ */
+        /* ============ MODE 3: SPLIT FILE (own upload) =================== */
+        /* ================================================================ */
+        spFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+
+            spFileName.textContent = file.name;
+            headerBadge.textContent = file.name;
+            addLog(`📂 Split mode: Reading ${file.name}...`);
+
+            try {
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(buf, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                if (matrix.length === 0) throw new Error('Empty sheet');
+
+                spHeaders = matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                spData = matrix.slice(1).map(row => {
+                    const obj = {};
+                    spHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
+                    return obj;
+                });
+
+                spSplitColumn.disabled = false;
+                spSplitColumn.innerHTML = '<option value="">-- Choose split key --</option>' +
+                    spHeaders.map(h => `<option value="${escHtml(h)}">${escHtml(h)}</option>`).join('');
+                spSplitPreview.textContent = 'Values will appear in Step 5';
+
+                spValList.innerHTML = '<p class="empty-note">Select a split column first</p>';
+                spValCount.textContent = '0';
+
+                renderSpColCheckboxes();
+
+                if (currentMode === 'split') {
+                    currentHeaders = spHeaders;
+                    currentGridData = spData;
+                    renderTable();
+                }
+
+                spFileStatus.textContent = '1 file';
+                spFileStatus.classList.add('success');
+                spExportBtn.disabled = false;
+
+                addLog(`✅ Loaded "${file.name}" — ${spData.length} rows, ${spHeaders.length} columns.`, '#4ade80');
+            } catch (err) {
+                addLog(`❌ Error: ${err.message}`, '#f87171');
+            }
+        });
+
+        function renderSpColCheckboxes() {
+            spColList.innerHTML = '';
+            spHeaders.forEach(h => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+                label.innerHTML = `
+                    <input type="checkbox" class="sp-col-check" value="${escHtml(h)}" checked
+                           onchange="updateSpCounts()">
+                    <span title="${escHtml(h)}">${escHtml(h)}</span>
+                `;
+                spColList.appendChild(label);
+            });
+            updateSpCounts();
+        }
+
+        spSplitColumn.addEventListener('change', () => {
+            const col = spSplitColumn.value;
+            if (!col) {
+                spValList.innerHTML = '<p class="empty-note">Select a split column first</p>';
+                spSplitPreview.textContent = 'Values will appear in Step 5';
+                updateSpCounts();
+                return;
+            }
+            const vals = [...new Set(spData.map(row => String(row[col] ?? '').trim()))]
+                .filter(v => v !== '').sort();
+
+            spValList.innerHTML = '';
+            vals.forEach(v => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+                label.innerHTML = `
+                    <input type="checkbox" class="sp-val-check" value="${escHtml(v)}" checked
+                           onchange="updateSpCounts()">
+                    <span title="${escHtml(v)}">${escHtml(v)}</span>
+                `;
+                spValList.appendChild(label);
+            });
+
+            if (vals.length === 0) {
+                spValList.innerHTML = '<p class="empty-note">No values in this column</p>';
+            }
+            spSplitPreview.textContent = `${vals.length} unique value(s) found`;
+            updateSpCounts();
+        });
+
+        function spToggleAllCols(checked) {
+            document.querySelectorAll('.sp-col-check').forEach(c => c.checked = checked);
+            updateSpCounts();
+        }
+        function spToggleAllVals(checked) {
+            document.querySelectorAll('.sp-val-check').forEach(c => c.checked = checked);
+            updateSpCounts();
+        }
+        function updateSpCounts() {
+            const colsTotal = document.querySelectorAll('.sp-col-check').length;
+            const colsChecked = document.querySelectorAll('.sp-col-check:checked').length;
+            const valsTotal = document.querySelectorAll('.sp-val-check').length;
+            const valsChecked = document.querySelectorAll('.sp-val-check:checked').length;
+
+            spColCount.textContent = colsTotal > 0 ? `${colsChecked}/${colsTotal}` : '0';
+            spValCount.textContent = valsTotal > 0 ? `${valsChecked}/${valsTotal}` : '0';
+        }
+
+        spExportBtn.addEventListener('click', async () => {
+            const splitCol = spSplitColumn.value;
+            const vals = Array.from(document.querySelectorAll('.sp-val-check:checked')).map(c => c.value);
+            const cols = Array.from(document.querySelectorAll('.sp-col-check:checked')).map(c => c.value);
+            const mode = document.querySelector('input[name="spExportMode"]:checked').value;
+            const prefix = (spFileNameInput.value.trim() || '').replace(/[\\/:*?"<>|]/g, '_');
+
+            if (!splitCol) return addLog('⚠️ Step 3: Pick a split column.', '#fbbf24');
+            if (vals.length === 0) return addLog('⚠️ Step 5: Pick at least one value.', '#fbbf24');
+            if (cols.length === 0) return addLog('⚠️ Step 4: Pick at least one column.', '#fbbf24');
+
+            setProgress(10);
+
+            function buildData(allowedVals) {
+                const allowed = new Set(allowedVals);
+                return spData
+                    .filter(row => allowed.has(String(row[splitCol] ?? '').trim()))
+                    .map(row => {
+                        const obj = {};
+                        cols.forEach(c => obj[c] = row[c]);
+                        return obj;
+                    });
+            }
+
+            try {
+                if (mode === 'combined') {
+                    const data = buildData(vals);
+                    const ws = XLSX.utils.json_to_sheet(data, { header: cols });
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+                    const name = prefix || 'Combined_Export';
+                    XLSX.writeFile(wb, `${name}.xlsx`);
+                    setProgress(100);
+                    addLog(`✅ Combined export — ${data.length} rows.`, '#4ade80');
+                } else {
+                    const zip = new JSZip();
+                    vals.forEach((v, i) => {
+                        const data = buildData([v]);
+                        const ws = XLSX.utils.json_to_sheet(data, { header: cols });
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+                        const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+                        const fileName = (prefix ? `${prefix}_${v}` : v).replace(/[\\/:*?"<>|]/g, '_');
+                        zip.file(`${fileName}.xlsx`, wbout);
+                        setProgress(10 + ((i + 1) / vals.length) * 85);
+                    });
+                    const content = await zip.generateAsync({ type: 'blob' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = (prefix ? `${prefix}_Archive` : 'Split_Export') + '.zip';
+                    link.click();
+                    setProgress(100);
+                    addLog(`✅ ZIP export — ${vals.length} file(s).`, '#4ade80');
+                }
+            } catch (err) {
+                addLog(`❌ Error: ${err.message}`, '#f87171');
+            }
+            setTimeout(() => setProgress(0), 800);
+        });
+
+        /* ============ INIT ============ */
+        setMode('mergeOne');
+        logSection.innerHTML = '';
+        addLog('⚡ Ready. Pick a workflow, then load your files.', '#4ade80');
+    </script>
+</body>
+</html>
