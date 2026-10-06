@@ -24,6 +24,22 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .top-bar h2 {
+            margin: 0;
+            color: #2c3e50;
+            border: none;
+            padding: 0;
+        }
+
         h2 {
             margin-top: 0;
             color: #2c3e50;
@@ -94,6 +110,33 @@
             background-color: #2980b9;
         }
 
+        .btn-home {
+            background-color: #6c757d;
+        }
+
+        .btn-home:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-delete {
+            background-color: #e74c3c;
+            padding: 6px 12px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-delete-all {
+            background-color: #c0392b;
+        }
+
+        .btn-delete-all:hover {
+            background-color: #a93226;
+        }
+
         button:disabled {
             background-color: #95a5a6 !important;
             cursor: not-allowed;
@@ -149,13 +192,21 @@
             margin-top: 10px;
             line-height: 1.5;
         }
+
+        .action-cell {
+            text-align: center;
+            width: 80px;
+        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <h2>تكهين التلاعبات</h2>
+        <div class="top-bar">
+            <h2>تكهين التلاعبات</h2>
+            <button class="btn-home" onclick="goHome()">🏠 Home</button>
+        </div>
 
         <div class="section">
             <h3>1. رفع الملفات</h3>
@@ -172,6 +223,7 @@
             <div class="controls-box">
                 <input type="text" id="searchInput" placeholder="Type to filter database rows below...">
                 <button id="exportBtn" class="btn-export" disabled>Export Current View to Excel</button>
+                <button id="deleteAllBtn" class="btn-delete-all" disabled>🗑 Delete All</button>
             </div>
 
             <div class="table-wrapper">
@@ -193,8 +245,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // Ensure 'update' is included alongside 'getDatabase', 'ref', and 'set'
-        import { getDatabase, ref, set, update, onValue, query, limitToFirst } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // Firebase Config
         const firebaseConfig = {
@@ -217,14 +268,20 @@
         const fileInput = document.getElementById('excelFiles');
         const uploadBtn = document.getElementById('uploadBtn');
         const exportBtn = document.getElementById('exportBtn');
+        const deleteAllBtn = document.getElementById('deleteAllBtn');
         const searchInput = document.getElementById('searchInput');
         const tableHeader = document.getElementById('tableHeader');
         const tableBody = document.getElementById('tableBody');
         const statusMessage = document.getElementById('statusMessage');
 
         let combinedParsedData = [];
-        let databaseCache = []; // Global copy of raw database entries
+        let databaseCache = []; // Array of { key, data } objects
         let currentFilteredData = []; // Keeps track of what is dynamically searched/rendered
+
+        // --- HOME NAVIGATION ---
+        window.goHome = function() {
+            window.location.href = 'Control_Excel.HTML';
+        };
 
         // --- 1. HANDLE EXCEL MULTI-FILE SELECTION ---
         fileInput.addEventListener('change', async (e) => {
@@ -251,7 +308,7 @@
 
             if (combinedParsedData.length > 0) {
                 uploadBtn.disabled = false;
-                statusMessage.innerHTML = `Ready!<br>• Files parsed: <strong>${filesProcessed}</strong><br>• Total rows to overwrite/upload: <strong>${combinedParsedData.length}</strong>`;
+                statusMessage.innerHTML = `Ready!<br>• Files parsed: <strong>${filesProcessed}</strong><br>• Total rows to add: <strong>${combinedParsedData.length}</strong>`;
                 statusMessage.style.color = "#27ae60";
             } else {
                 statusMessage.innerText = "No valid data could be parsed from the selected file(s).";
@@ -279,7 +336,7 @@
             });
         }
 
-        // --- 2. BATCH-STREAMED OVERWRITE TO FIREBASE WITH KEY SANITIZATION ---
+        // --- 2. BATCH-STREAMED APPEND TO FIREBASE (NO DELETION) ---
         uploadBtn.addEventListener('click', async () => {
             if (combinedParsedData.length === 0) return;
 
@@ -293,11 +350,10 @@
                 const BATCH_SIZE = 200;
                 let processedCount = 0;
 
-                // Step 1: Clear out old data at this path node
-                statusMessage.innerText = "Clearing previous database data...";
-                await set(dbRef, null);
+                // Generate a unique timestamp-based prefix so new rows never overwrite existing ones
+                const timestamp = Date.now();
+                const uploadId = `upload_${timestamp}`;
 
-                // Step 2: Loop and send sanitized updates sequentially
                 while (processedCount < totalRows) {
                     const chunkUpdatePayload = {};
                     const endLimit = Math.min(processedCount + BATCH_SIZE, totalRows);
@@ -308,24 +364,20 @@
                         const originalRow = combinedParsedData[i];
                         const sanitizedRow = {};
 
-                        // Sanitize every column header/key inside this row
                         Object.keys(originalRow).forEach(key => {
-                            // Firebase illegal characters: . # $ / [ ]
-                            // This regex replaces any of them with an underscore "_"
                             const cleanKey = key.replace(/[\.\#\$\/\[\]]/g, '_');
                             sanitizedRow[cleanKey] = originalRow[key];
                         });
 
                         const paddedIndex = String(i).padStart(6, '0');
-                        chunkUpdatePayload[`row_${paddedIndex}`] = sanitizedRow;
+                        chunkUpdatePayload[`${uploadId}_row_${paddedIndex}`] = sanitizedRow;
                     }
 
-                    // Push the clean chunk to Firebase
                     await update(dbRef, chunkUpdatePayload);
                     processedCount = endLimit;
                 }
 
-                statusMessage.innerText = `Success! Streamed ${totalRows} entries into Firebase safely.`;
+                statusMessage.innerText = `Success! Added ${totalRows} entries to Firebase (existing data preserved).`;
                 statusMessage.style.color = "#27ae60";
                 fileInput.value = '';
                 combinedParsedData = [];
@@ -346,22 +398,26 @@
             if (snapshot.exists()) {
                 const rawData = snapshot.val();
 
-                if (Array.isArray(rawData)) {
-                    databaseCache = rawData.filter(item => item !== null);
-                } else if (typeof rawData === 'object') {
-                    databaseCache = Object.values(rawData);
-                }
+                // Convert to array of { key, data } so we can delete individual records
+                Object.keys(rawData).forEach(key => {
+                    const item = rawData[key];
+                    if (item !== null && item !== undefined) {
+                        databaseCache.push({ key: key, data: item });
+                    }
+                });
 
                 exportBtn.disabled = (databaseCache.length === 0);
-                // Default active set is the whole database array
+                deleteAllBtn.disabled = (databaseCache.length === 0);
                 currentFilteredData = [...databaseCache];
                 renderTable(currentFilteredData);
             } else {
                 exportBtn.disabled = true;
+                deleteAllBtn.disabled = true;
                 tableBody.innerHTML = `<tr><td class="no-data">No records stored in 'Ayat_Takheen'.</td></tr>`;
             }
         }, (error) => {
             exportBtn.disabled = true;
+            deleteAllBtn.disabled = true;
             tableBody.innerHTML = `<tr><td class="no-data" style="color:red;">Read Permission Denied. Check your Database Rules.</td></tr>`;
         });
 
@@ -374,7 +430,8 @@
             }
 
             const uniqueHeaders = new Set();
-            dataArray.forEach(item => {
+            dataArray.forEach(entry => {
+                const item = entry.data;
                 if (item && typeof item === 'object') {
                     Object.keys(item).forEach(k => uniqueHeaders.add(k));
                 }
@@ -383,15 +440,20 @@
 
             let headerHtml = `<tr>`;
             headers.forEach(h => headerHtml += `<th>${h}</th>`);
-            headerHtml += `</tr>`;
+            headerHtml += `<th class="action-cell">Action</th></tr>`;
             tableHeader.innerHTML = headerHtml;
 
-            const finalTbodyHtml = dataArray.map(item => {
+            const finalTbodyHtml = dataArray.map(entry => {
+                const item = entry.data;
                 let cols = ``;
                 headers.forEach(h => {
                     let val = (item && item[h] !== undefined) ? item[h] : '';
                     cols += `<td>${typeof val === 'object' ? JSON.stringify(val) : val}</td>`;
                 });
+                // Add delete button with the row key
+                cols += `<td class="action-cell">
+                    <button class="btn-delete" onclick="deleteRow('${entry.key}')">🗑 Delete</button>
+                </td>`;
                 return `<tr>${cols}</tr>`;
             }).join('');
 
@@ -408,7 +470,8 @@
                 return;
             }
 
-            currentFilteredData = databaseCache.filter(item => {
+            currentFilteredData = databaseCache.filter(entry => {
+                const item = entry.data;
                 if (!item) return false;
                 return Object.keys(item).some(key => {
                     return String(item[key]).toLowerCase().includes(query);
@@ -418,17 +481,50 @@
             renderTable(currentFilteredData);
         });
 
-        // --- 6. EXPORT CURRENT ACTIVE DATA BACK TO EXCEL ---
+        // --- 6. DELETE INDIVIDUAL ROW ---
+        window.deleteRow = async function(rowKey) {
+            if (!confirm('Are you sure you want to delete this row?')) return;
+
+            try {
+                const rowRef = ref(database, `Ayat_Takheen/${rowKey}`);
+                await remove(rowRef);
+                statusMessage.innerText = `Row deleted successfully.`;
+                statusMessage.style.color = "#27ae60";
+            } catch (error) {
+                console.error("Delete Error:", error);
+                statusMessage.innerText = `Delete failed: ${error.message}`;
+                statusMessage.style.color = "#c0392b";
+            }
+        };
+
+        // --- 7. DELETE ALL ROWS ---
+        deleteAllBtn.addEventListener('click', async () => {
+            if (databaseCache.length === 0) return;
+            if (!confirm(`Are you sure you want to delete ALL ${databaseCache.length} rows? This cannot be undone.`)) return;
+
+            try {
+                await set(dbRef, null);
+                statusMessage.innerText = `All records deleted successfully.`;
+                statusMessage.style.color = "#27ae60";
+            } catch (error) {
+                console.error("Delete All Error:", error);
+                statusMessage.innerText = `Delete all failed: ${error.message}`;
+                statusMessage.style.color = "#c0392b";
+            }
+        });
+
+        // --- 8. EXPORT CURRENT ACTIVE DATA BACK TO EXCEL ---
         exportBtn.addEventListener('click', () => {
             if (currentFilteredData.length === 0) return;
 
-            // Generate worksheet directly out of our JSON array tracking cache
-            const worksheet = XLSX.utils.json_to_sheet(currentFilteredData);
+            // Extract only the data objects, ignore the Firebase keys
+            const exportData = currentFilteredData.map(entry => entry.data);
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
 
             XLSX.utils.book_append_sheet(workbook, worksheet, "Ayat_Takheen Data");
 
-            // Triggers instant client-side download profile
             XLSX.writeFile(workbook, "Ayat_Takheen_Export.xlsx");
         });
     </script>
