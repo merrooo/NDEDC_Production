@@ -4,882 +4,504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة البيانات </title>
+    <title>نظام إدارة البيانات</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- SweetAlert2 CSS & JS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root {
+            --bg: #f4f6fb;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #e6eaf2;
+            --text: #0f172a;
+            --muted: #64748b;
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
-            --secondary: #64748b;
+            --primary-soft: #eef3ff;
+            --sub: #8b5cf6;
+            --sub-soft: #f3f0ff;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --bg-main: #f8fafc;
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --text-dark: #0f172a;
+            --radius: 14px;
+            --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 10px 30px -18px rgba(15, 23, 42, .35);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        [hidden] { display: none !important; }
 
         body {
-            background-color: var(--bg-main);
-            color: var(--text-dark);
-            padding: 20px;
+            font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             direction: rtl;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-        }
-
-        header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            padding: 12px 20px;
-            border-radius: 14px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-right: 6px solid var(--primary);
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 12px;
-            flex-wrap: wrap;
         }
 
-        .header-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        /* ---------- Topbar ---------- */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap;
+            background: linear-gradient(135deg, #111c33, #1e293b);
+            color: #fff;
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow);
+            position: sticky; top: 6px; z-index: 50;
         }
-
-        .header-title h1 {
-            font-size: 1.1rem;
-            color: #ffffff;
-            margin-bottom: 2px;
-            font-weight: 700;
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-icon {
+            width: 36px; height: 36px; flex: none;
+            border-radius: 10px; background: var(--primary);
+            display: grid; place-items: center; font-size: 15px;
+            box-shadow: 0 6px 16px -6px var(--primary);
         }
-
-        .header-title .subtitle {
-            color: #94a3b8;
-            font-size: 0.7rem;
+        .brand h1 {
+            font-size: .95rem; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 46vw;
         }
+        .brand .sub { font-size: .72rem; color: #94a3b8; }
+        .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+        .chip {
+            font-size: .72rem; padding: 4px 11px; border-radius: 999px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            white-space: nowrap; transition: .2s;
         }
+        .chip-ok { background: rgba(16,185,129,.15); color: #6ee7b7; border-color: rgba(16,185,129,.25); }
+        .chip-loading { background: rgba(245,158,11,.15); color: #fcd34d; border-color: rgba(245,158,11,.25); }
+        .chip.warn { color: #fcd34d; border-color: rgba(245,158,11,.35); }
 
-        .btn-back {
-            background-color: #f59e0b;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            transition: background 0.2s;
-            border: none;
-            cursor: pointer;
+        /* ---------- Buttons ---------- */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: none; border-radius: 10px;
+            padding: 8px 14px; font-size: .8rem; font-weight: 600;
+            cursor: pointer; transition: .15s; font-family: inherit;
+            white-space: nowrap; line-height: 1.2;
         }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover:not(:disabled) { background: #059669; }
+        .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+        .btn-ghost:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .btn-top { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.16); }
+        .btn-top:hover { background: rgba(255,255,255,.2); }
+        .btn-sm { padding: 6px 11px; font-size: .75rem; border-radius: 9px; }
 
-        .btn-back:hover {
-            background-color: #d97706;
+        .icon-btn {
+            width: 32px; height: 32px; flex: none;
+            display: inline-grid; place-items: center;
+            border-radius: 9px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--muted);
+            cursor: pointer; transition: .15s; font-size: .72rem;
         }
+        .icon-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); background: #fef2f2; }
 
-        .sync-status {
-            padding: 3px 12px;
-            border-radius: 50px;
-            font-size: 0.7rem;
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
-            font-weight: 600;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .sync-status.loading {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fcd34d;
-            border-color: rgba(245, 158, 11, 0.2);
-        }
-
-        .session-timer {
-            color: #94a3b8;
-            font-size: 0.7rem;
-            padding: 3px 10px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .session-timer.warning {
-            color: #fcd34d;
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-
+        /* ---------- Cards ---------- */
         .card {
-            background: var(--card-bg);
-            border-radius: 10px;
-            padding: 12px 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 12px 14px;
+        }
+        .card-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .card-head h2 {
+            font-size: .88rem; font-weight: 700; color: var(--text);
+            display: flex; align-items: center; gap: 7px;
+        }
+        .card-head h2 i { color: var(--primary); }
+        .head-actions { display: flex; align-items: center; gap: 8px; }
+
+        .chip-count {
+            background: var(--primary-soft); color: var(--primary);
+            font-size: .72rem; font-weight: 700;
+            padding: 4px 11px; border-radius: 999px;
         }
 
-        .card-title {
-            font-size: 0.95rem;
-            font-weight: bold;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
+        .muted-sm { font-size: .74rem; color: var(--muted); }
 
-        .db-selector {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+        /* ---------- DB selector ---------- */
+        .db-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .db-label {
+            font-size: .78rem; font-weight: 700; color: var(--muted);
+            display: flex; align-items: center; gap: 6px; white-space: nowrap;
         }
-
-        .db-selector label {
-            font-weight: 600;
-            color: var(--secondary);
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .db-buttons-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            flex: 1;
-        }
+        .db-buttons { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
 
         .db-btn {
-            padding: 6px 12px;
-            border: 1.5px solid var(--border-color);
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-            color: var(--text-dark);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 500;
-            height: 38px;
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 6px 13px; border-radius: 999px;
+            border: 1px solid var(--border); background: var(--surface);
+            font-size: .78rem; font-weight: 600; color: #334155;
+            cursor: pointer; transition: .15s; font-family: inherit;
         }
-
-        .db-btn:hover {
-            border-color: var(--primary);
-            background: #f0f4ff;
-            color: var(--primary);
-        }
-
+        .db-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
         .db-btn.active {
-            border-color: var(--primary);
-            background: var(--primary);
-            color: white;
+            background: var(--primary); border-color: var(--primary); color: #fff;
+            box-shadow: 0 8px 18px -10px var(--primary);
         }
-
-        .db-selector .refresh-btn {
-            background: var(--bg-main);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-            color: var(--secondary);
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .db-btn .cnt {
+            font-size: .68rem; background: rgba(15,23,42,.07);
+            padding: 1px 8px; border-radius: 999px; font-weight: 700;
         }
+        .db-btn.active .cnt { background: rgba(255,255,255,.25); }
 
-        .db-selector .refresh-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: #f0f4ff;
+        /* ---------- Upload ---------- */
+        .path-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .path-row label { font-size: .78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+        .path-row input {
+            flex: 1; min-width: 200px; height: 36px;
+            padding: 0 12px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--surface-2);
+            font-size: .78rem; font-family: ui-monospace, monospace;
+            outline: none; transition: .15s; color: var(--text);
         }
+        .path-row input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px var(--primary-soft); }
 
-        .db-selector .badge-count {
-            background: var(--primary);
-            color: white;
-            padding: 2px 12px;
-            border-radius: 16px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            white-space: nowrap;
+        .upload-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .dropzone {
+            flex: 1; min-width: 220px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 18px; border: 2px dashed var(--border); border-radius: 12px;
+            color: var(--muted); font-size: .8rem; cursor: pointer;
+            transition: .15s; background: var(--surface-2); text-align: center;
         }
-
-        .upload-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            padding: 5px 0;
+        .dropzone:hover, .dropzone.over {
+            border-color: var(--primary); color: var(--primary); background: var(--primary-soft);
         }
+        .dropzone i { font-size: 20px; }
 
-        .upload-area-compact {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 2px dashed var(--border-color);
-            border-radius: 6px;
-            padding: 5px 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .upload-area-compact:hover {
-            border-color: var(--primary);
-            background: #f0f4ff;
-        }
-
-        .upload-area-compact i {
-            font-size: 16px;
-            color: var(--secondary);
-        }
-
-        .upload-area-compact span {
-            font-size: 0.75rem;
-            color: var(--secondary);
-        }
-
-        .upload-area-compact.dragover {
-            border-color: var(--primary);
-            background: #f0f4ff;
-        }
-
-        .file-input-hidden {
-            display: none;
-        }
-
-        .btn {
-            padding: 5px 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s;
-            white-space: nowrap;
-            height: 32px;
-        }
-
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background-color: #059669;
-        }
-
-        .btn-success:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background-color: #e2e8f0;
-            color: #475569;
-        }
-
-        .btn-secondary:hover {
-            background-color: #cbd5e1;
-        }
-
-        .btn-export {
-            background-color: #8b5cf6;
-            color: white;
-        }
-
-        .btn-export:hover {
-            background-color: #7c3aed;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-warning {
-            background-color: var(--warning);
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background-color: #d97706;
-        }
-
-        .btn-sm {
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            height: 26px;
-        }
-
-        .btn-load-more {
-            background-color: var(--primary);
-            color: white;
-            width: 100%;
-            justify-content: center;
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            font-size: 0.85rem;
-        }
-
-        .btn-load-more:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-load-more:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        .table-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .search-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            flex: 1;
-        }
-
-        .search-box {
-            position: relative;
-            flex: 1;
-            min-width: 120px;
-            max-width: 200px;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 5px 28px 5px 8px;
-            border: 1.5px solid var(--border-color);
-            border-radius: 6px;
-            outline: none;
-            font-size: 0.8rem;
-            height: 30px;
-        }
-
-        .search-box input:focus {
-            border-color: var(--primary);
-        }
-
-        .search-box i {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--secondary);
-            font-size: 0.7rem;
-        }
-
-        .search-box .clear-btn {
-            position: absolute;
-            left: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--secondary);
-            cursor: pointer;
-            font-size: 0.7rem;
-            display: none;
-        }
-
-        .search-box .clear-btn.visible {
-            display: block;
-        }
-
-        .stats-bar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.8rem;
-        }
-
-        .stat-item .number {
-            font-weight: 700;
-        }
-
-        .stat-item.total .number {
-            color: var(--primary);
-        }
-
-        .table-container {
-            overflow-x: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: #f1f5f9;
-            color: #334155;
-            padding: 5px 6px;
-            font-weight: 700;
-            border-bottom: 2px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        td {
-            padding: 4px 6px;
-            border-bottom: 1px solid var(--border-color);
-            color: #334155;
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        tr:hover {
-            background-color: #f8fafc;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 25px;
-            color: var(--secondary);
-            font-size: 0.9rem;
-        }
-
-        .load-more-container {
-            padding: 8px;
-            text-align: center;
-            background: #f8fafc;
-            border-top: 1px solid var(--border-color);
-        }
-
-        #statusMessage {
-            padding: 6px 14px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            display: none;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        #statusMessage.info {
-            display: block;
-            background-color: #e0f2fe;
-            color: #0369a1;
-        }
-
-        #statusMessage.success {
-            display: block;
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-
-        #statusMessage.error {
-            display: block;
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background-color: var(--border-color);
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 3px 0;
-            display: none;
-        }
-
-        .progress-bar .progress-fill {
-            height: 100%;
+        .progress { height: 5px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 10px; }
+        .progress-fill {
+            height: 100%; width: 0;
             background: linear-gradient(90deg, var(--primary), var(--success));
-            width: 0%;
-            transition: width 0.3s;
-            border-radius: 2px;
+            transition: width .25s;
         }
 
-        .upload-status {
-            font-size: 0.75rem;
-            color: var(--secondary);
+        .preview { margin-top: 10px; max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+
+        /* ---------- Toolbar / search ---------- */
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .search-group {
+            display: flex; align-items: center; gap: 10px;
+            flex: 1; min-width: 0; flex-wrap: wrap;
         }
 
-        .total-count-badge {
-            background: var(--primary);
-            color: white;
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 0.65rem;
-            font-weight: 600;
+        .search {
+            position: relative; flex: 1; min-width: 180px; max-width: 340px;
         }
-
-        .actions-cell {
-            display: flex;
-            gap: 3px;
-            flex-wrap: wrap;
+        .search > i.field-icon {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: .75rem; color: var(--muted); pointer-events: none;
         }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--secondary);
+        .search input {
+            width: 100%; height: 36px;
+            padding: 0 34px 0 34px;
+            border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface-2); font-size: .8rem;
+            outline: none; transition: .15s; font-family: inherit; color: var(--text);
         }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.3;
-        }
-
-        .empty-state h3 {
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-            color: var(--text-dark);
-        }
-
-        .empty-state p {
-            font-size: 0.9rem;
-        }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .modal-header h3 {
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.3rem;
-            cursor: pointer;
-            color: var(--secondary);
-        }
-
-        .modal-close:hover {
-            color: var(--danger);
-        }
-
-        .modal .form-group {
-            margin-bottom: 10px;
-        }
-
-        .modal .form-group label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: #334155;
-            margin-bottom: 3px;
-        }
-
-        .modal .form-group input {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1.5px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.85rem;
-            outline: none;
-        }
-
-        .modal .form-group input:focus {
+        .search input:focus {
             border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+        .search .clear {
+            position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+            border: none; background: none; cursor: pointer;
+            color: var(--muted); font-size: .8rem; padding: 4px;
+        }
+        .search .clear:hover { color: var(--danger); }
+
+        /* Sub search — visually separated / distinct accent */
+        .search.sub {
+            max-width: 320px;
+            padding-right: 12px;
+            border-right: 2px dashed var(--border); /* separator from main search */
+        }
+        .search.sub > i.field-icon { color: var(--sub); }
+        .search.sub input:focus {
+            border-color: var(--sub);
+            box-shadow: 0 0 0 3px var(--sub-soft);
+        }
+        .search.sub .badge {
+            position: absolute; top: -7px; right: 14px;
+            background: var(--sub); color: #fff;
+            font-size: .58rem; font-weight: 700;
+            padding: 1px 8px; border-radius: 999px;
+            letter-spacing: .3px; pointer-events: none;
+            box-shadow: 0 4px 10px -4px var(--sub);
         }
 
-        .modal .form-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-            justify-content: flex-end;
+        .toolbar-actions { display: flex; gap: 8px; }
+
+        /* Active-filters summary pill */
+        .filter-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: .72rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--sub-soft); color: var(--sub);
+            border: 1px solid rgba(139, 92, 246, .25);
+        }
+        .filter-pill button {
+            background: none; border: none; cursor: pointer;
+            color: var(--sub); font-size: .75rem; padding: 0 2px;
         }
 
-        .filter-section {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            width: 100%;
+        /* ---------- Table ---------- */
+        .table-wrap {
+            max-height: 62vh; overflow: auto;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--surface);
         }
-
-        .path-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 5px 0;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-
-        .path-input input {
-            flex: 1;
-            padding: 6px 10px;
-            border: 1.5px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.8rem;
-            min-width: 150px;
-            direction: ltr;
-            height: 32px;
-        }
-
-        .path-input input:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
-
-        .path-input .path-label {
-            font-weight: 600;
-            color: var(--secondary);
-            font-size: 0.8rem;
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .76rem; }
+        thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: var(--surface-2); color: #475569;
+            font-weight: 700; text-align: right;
+            padding: 9px 11px; border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
-
-        .upload-speed {
-            font-size: 0.7rem;
-            color: var(--success);
-            font-weight: 600;
+        tbody td {
+            padding: 7px 11px; border-bottom: 1px solid #f1f5f9;
+            text-align: right; max-width: 220px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: #334155;
+        }
+        tbody tr:hover { background: #f8fafc; }
+        tbody tr:last-child td { border-bottom: none; }
+        td.idx { color: #94a3b8; font-size: .7rem; width: 46px; }
+        td.actions { white-space: nowrap; width: 86px; }
+        td.actions .icon-btn { width: 28px; height: 28px; font-size: .68rem; }
+        .empty-cell, .loading-cell {
+            text-align: center; padding: 34px 12px !important;
+            color: var(--muted); font-size: .82rem;
         }
 
-        .selected-badge-hidden {
-            display: none;
+        .table-foot { display: flex; justify-content: center; padding-top: 10px; }
+
+        /* ---------- Empty state ---------- */
+        .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
+        .empty i { font-size: 40px; opacity: .25; margin-bottom: 12px; display: block; }
+        .empty h3 { font-size: 1rem; color: var(--text); margin-bottom: 4px; }
+        .empty p { font-size: .82rem; }
+
+        /* ---------- Toasts ---------- */
+        .toasts {
+            position: fixed; bottom: 16px; left: 16px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 9999;
         }
+        .toast {
+            background: #0f172a; color: #fff;
+            padding: 10px 15px; border-radius: 11px;
+            font-size: .78rem; font-weight: 600;
+            box-shadow: 0 12px 34px -12px rgba(0,0,0,.55);
+            opacity: 0; transform: translateY(10px);
+            transition: .25s; max-width: 330px;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast-success { background: #065f46; }
+        .toast-error { background: #991b1b; }
+        .toast-info { background: #1e3a8a; }
 
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                text-align: center;
-            }
+        /* ---------- Swal tweaks ---------- */
+        .swal-row { text-align: right; margin-bottom: 10px; }
+        .swal-row label { display: block; font-size: .78rem; font-weight: 700; color: #334155; margin-bottom: 4px; }
+        .swal-row input { width: 100% !important; margin: 0 !important; font-size: .82rem !important; }
 
-            .header-left {
-                justify-content: center;
-            }
-
-            .table-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .search-group {
-                flex-direction: column;
-            }
-
-            .search-box {
-                max-width: 100%;
-            }
-
-            .upload-row {
-                flex-direction: column;
-            }
-
-            .upload-area-compact {
-                width: 100%;
-            }
-
-            .modal {
-                width: 95%;
-                padding: 15px;
-            }
-
-            .db-selector {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .path-input {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        /* ---------- Responsive ---------- */
+        @media (max-width: 720px) {
+            body { padding: 8px; }
+            .brand h1 { font-size: .82rem; max-width: 60vw; }
+            .topbar { position: static; }
+            .db-bar { align-items: flex-start; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search, .search.sub { max-width: 100%; }
+            .search.sub { border-right: none; border-top: 2px dashed var(--border); padding-right: 0; padding-top: 8px; }
+            .upload-row { flex-direction: column; align-items: stretch; }
+            .dropzone { width: 100%; }
+            .table-wrap { max-height: 55vh; }
         }
     </style>
 </head>
 
 <body>
+    <div class="toasts" id="toasts"></div>
+
     <div class="container">
-        <header>
-            <div class="header-left">
-                <div class="header-icon">
-                    <i class="fas fa-database"></i>
-                </div>
-                <div class="header-title">
-                    <h1>بيانات المحولات-المحطات اللوحات-المغذيات</h1>
-                    <div class="subtitle">عرض قواعد البيانات</div>
+
+        <!-- ============ TOPBAR ============ -->
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon"><i class="fas fa-database"></i></div>
+                <div>
+                    <h1>بيانات المحولات - المحطات - اللوحات - المغذيات</h1>
+                    <span class="sub">عرض وإدارة قواعد البيانات</span>
                 </div>
             </div>
-            <div class="header-actions">
-                <span id="syncStatus" class="sync-status loading">⏳ جاري الاتصال...</span>
-                <span id="sessionTimer" class="session-timer">⏱️ 5:00</span>
-                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
+            <div class="topbar-actions">
+                <span id="syncStatus" class="chip chip-loading">جاري الاتصال…</span>
+                <span id="sessionTimer" class="chip">5:00</span>
+                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn btn-top btn-sm">
                     <i class="fas fa-arrow-right"></i> رجوع
                 </a>
             </div>
         </header>
 
-        <div id="statusMessage"></div>
-
-        <!-- Database Selector -->
-        <div class="card">
-            <div class="db-selector">
-                <label>
-                    <i class="fas fa-list-ul"></i>
-                    اختر قاعدة البيانات:
-                </label>
-                <div id="dbButtonsContainer" class="db-buttons-container">
-                    <span style="color: var(--secondary); font-size: 0.8rem;">⏳ جاري تحميل قواعد البيانات...</span>
+        <!-- ============ DB SELECTOR ============ -->
+        <section class="card">
+            <div class="db-bar">
+                <span class="db-label"><i class="fas fa-layer-group"></i> قواعد البيانات</span>
+                <div class="db-buttons" id="dbButtons">
+                    <span class="muted-sm">جاري التحميل…</span>
                 </div>
-                <span id="selectedBadge" class="badge-count selected-badge-hidden"></span>
-                <button class="refresh-btn" onclick="loadReferenceDatabases()" title="تحديث">
-                    <i class="fas fa-sync-alt"></i>
+                <button class="icon-btn" id="refreshDbs" title="تحديث القائمة">
+                    <i class="fas fa-rotate"></i>
                 </button>
             </div>
-        </div>
+        </section>
 
-        <!-- Dynamic Content Area -->
-        <div id="contentArea">
-            <div class="card">
-                <div class="empty-state">
-                    <i class="fas fa-database"></i>
-                    <h3>اختر قاعدة بيانات من الأزرار بالأعلى</h3>
-                    <p>سيتم عرض البيانات هنا بعد الاختيار</p>
+        <!-- ============ EMPTY STATE ============ -->
+        <section class="card" id="emptyCard">
+            <div class="empty">
+                <i class="fas fa-hand-pointer"></i>
+                <h3>اختر قاعدة بيانات</h3>
+                <p>سيتم عرض البيانات هنا بعد الاختيار</p>
+            </div>
+        </section>
+
+        <!-- ============ UPLOAD CARD ============ -->
+        <section class="card" id="uploadCard" hidden>
+            <div class="card-head">
+                <h2><i class="fas fa-cloud-arrow-up"></i> رفع بيانات
+                    <span class="muted-sm" id="uploadTargetName"></span>
+                </h2>
+            </div>
+
+            <div class="path-row" id="pathRow" hidden>
+                <label>📂 المسار المستهدف</label>
+                <input id="uploadAnyPath" dir="ltr" value="reference_data/new_collection">
+            </div>
+
+            <div class="upload-row">
+                <div class="dropzone" id="dropzone">
+                    <i class="fas fa-file-excel"></i>
+                    <span>اسحب ملف Excel / CSV هنا أو اضغط للاختيار</span>
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+                <button class="btn btn-success" id="saveBtn" disabled>
+                    <i class="fas fa-floppy-disk"></i> حفظ
+                </button>
+                <button class="btn btn-ghost" id="clearBtn">
+                    <i class="fas fa-rotate-left"></i> مسح
+                </button>
+            </div>
+
+            <div class="progress" id="progress" hidden>
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="muted-sm" id="uploadStatus" style="margin-top:8px"></div>
+
+            <div class="preview" id="previewWrap" hidden></div>
+        </section>
+
+        <!-- ============ DATA CARD ============ -->
+        <section class="card" id="dataCard" hidden>
+            <div class="card-head">
+                <h2><i class="fas fa-table-list"></i> <span id="dataTitle">البيانات</span></h2>
+                <div class="head-actions">
+                    <span class="chip-count" id="loadedChip">0</span>
+                    <button class="btn btn-primary btn-sm" id="addBtn">
+                        <i class="fas fa-plus"></i> إضافة
+                    </button>
                 </div>
             </div>
-        </div>
 
-    </div>
+            <!-- ===== TOOLBAR with TWO independent searches ===== -->
+            <div class="toolbar">
+                <div class="search-group">
 
-    <!-- Modal for Edit -->
-    <div class="modal-overlay" id="dataModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">تعديل سجل</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                    <!-- Main search -->
+                    <div class="search main">
+                        <i class="fas fa-magnifying-glass field-icon"></i>
+                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off">
+                        <button class="clear" id="clearSearch" hidden><i class="fas fa-xmark"></i></button>
+                    </div>
+
+                    <!-- Sub search (independent, visually separated) -->
+                    <div class="search sub">
+                        <span class="badge">فرعي</span>
+                        <i class="fas fa-filter field-icon"></i>
+                        <input id="subSearchInput" placeholder="فلتر فرعي مستقل…" autocomplete="off">
+                        <button class="clear" id="clearSubSearch" hidden><i class="fas fa-xmark"></i></button>
+                    </div>
+
+                </div>
+
+                <div class="toolbar-actions">
+                    <button class="btn btn-ghost btn-sm" id="exportBtn">
+                        <i class="fas fa-file-excel"></i> تصدير
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="reloadBtn">
+                        <i class="fas fa-rotate"></i> تحديث
+                    </button>
+                </div>
             </div>
-            <div id="modalBody"></div>
-        </div>
+
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="table-foot" id="tableFoot" hidden>
+                <button class="btn btn-ghost" id="loadMoreBtn">
+                    <i class="fas fa-chevron-down"></i> عرض المزيد
+                </button>
+            </div>
+        </section>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, get, set, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import {
+            getDatabase, ref, get, set, push, update, remove,
+            query, orderByKey, limitToLast, endAt
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Load SheetJS for Excel parsing
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-        script.onload = () => console.log('📊 SheetJS loaded');
-        document.head.appendChild(script);
-
+        /* =========================================================
+           FIREBASE
+        ========================================================= */
         const firebaseConfig = {
             apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
             authDomain: "trial-85.firebaseapp.com",
@@ -893,319 +515,651 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const DB_URL = firebaseConfig.databaseURL.replace(/\/+$/, '');
+        const ROOT = 'reference_data';
+        const PAGE_SIZE = 100;
+        const MAX_RENDER = 500;
 
-        // ==================== SESSION TIMER (5 minutes) ====================
-        let sessionTimeout = null;
-        let sessionTimerInterval = null;
-        let sessionTimeLeft = 300; 
+        /* =========================================================
+           HELPERS
+        ========================================================= */
+        const $ = id => document.getElementById(id);
 
-        function resetSessionTimer() {
-            sessionTimeLeft = 300;
-            updateTimerDisplay();
-            clearTimeout(sessionTimeout);
-            clearInterval(sessionTimerInterval);
-            startSessionTimer();
+        const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]);
+
+        function debounce(fn, wait) {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); };
         }
 
-        function startSessionTimer() {
-            sessionTimerInterval = setInterval(() => {
-                sessionTimeLeft--;
-                updateTimerDisplay();
-                if (sessionTimeLeft <= 0) {
-                    clearInterval(sessionTimerInterval);
-                    clearTimeout(sessionTimeout);
-                    window.location.href = 'login_Smart.html';
-                }
-            }, 1000);
+        function toast(msg, type = 'info', ms = 3200) {
+            const el = document.createElement('div');
+            el.className = `toast toast-${type}`;
+            el.textContent = msg;
+            $('toasts').appendChild(el);
+            requestAnimationFrame(() => el.classList.add('show'));
+            setTimeout(() => {
+                el.classList.remove('show');
+                setTimeout(() => el.remove(), 260);
+            }, ms);
         }
 
-        function updateTimerDisplay() {
-            const timerEl = document.getElementById('sessionTimer');
-            if (timerEl) {
-                const minutes = Math.floor(sessionTimeLeft / 60);
-                const seconds = sessionTimeLeft % 60;
-                timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                if (sessionTimeLeft <= 60) {
-                    timerEl.classList.add('warning');
-                } else {
-                    timerEl.classList.remove('warning');
-                }
+        function setSync(loading) {
+            const el = $('syncStatus');
+            el.textContent = loading ? 'جاري المزامنة…' : 'متصل';
+            el.className = 'chip ' + (loading ? 'chip-loading' : 'chip-ok');
+        }
+
+        /* =========================================================
+           SESSION TIMER — passive
+        ========================================================= */
+        const SESSION_MS = 5 * 60 * 1000;
+        let lastActivity = Date.now();
+        const touch = () => { lastActivity = Date.now(); };
+
+        ['click', 'keydown', 'scroll', 'touchstart', 'pointerdown'].forEach(ev =>
+            document.addEventListener(ev, touch, { passive: true })
+        );
+
+        let sessionDead = false;
+        setInterval(() => {
+            if (sessionDead) return;
+            const left = Math.max(0, SESSION_MS - (Date.now() - lastActivity));
+            const m = Math.floor(left / 60000);
+            const s = Math.floor((left % 60000) / 1000);
+            const el = $('sessionTimer');
+            el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+            el.classList.toggle('warn', left <= 60000);
+            if (left <= 0) {
+                sessionDead = true;
+                window.location.href = 'login_Smart.html';
             }
+        }, 1000);
+
+        /* =========================================================
+           LAZY LOAD SHEETJS
+        ========================================================= */
+        let xlsxPromise = null;
+        function loadXLSX() {
+            if (window.XLSX) return Promise.resolve(window.XLSX);
+            if (!xlsxPromise) {
+                xlsxPromise = new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                    s.onload = () => resolve(window.XLSX);
+                    s.onerror = () => reject(new Error('فشل تحميل مكتبة Excel'));
+                    document.head.appendChild(s);
+                });
+            }
+            return xlsxPromise;
         }
 
-        document.addEventListener('click', resetSessionTimer);
-        document.addEventListener('keydown', resetSessionTimer);
-        document.addEventListener('mousemove', resetSessionTimer);
-        document.addEventListener('scroll', resetSessionTimer);
+        /* =========================================================
+           STATE
+        ========================================================= */
+        const state = {
+            dbNames: [],
+            counts: {},
+            current: null,
+            uploadAny: false,
 
-        startSessionTimer();
+            records: new Map(),
+            order: [],
+            searchIndex: new Map(),
+            fields: [],
 
-        // ==================== LOAD REFERENCE DATABASES ====================
-        window.loadReferenceDatabases = function () {
-            const container = document.getElementById('dbButtonsContainer');
-            if (container) {
-                container.innerHTML = '<span style="color: var(--secondary); font-size: 0.8rem;">⏳ جاري التحميل...</span>';
-            }
-            updateSyncStatus(true);
+            cursor: null,
+            hasMore: false,
+            loading: false,
 
-            const dbRef = ref(db, 'reference_data');
-            get(dbRef).then((snapshot) => {
-                if (snapshot.exists()) {
-                    referenceDatabases = snapshot.val();
-                    dbNames = Object.keys(referenceDatabases).sort();
-                    populateSelector(dbNames);
-                } else {
-                    if (container) {
-                        container.innerHTML = '<span style="color: var(--secondary); font-size: 0.8rem;">-- لا توجد قواعد بيانات --</span>';
-                    }
-                    showStatus('⚠️ لا توجد قواعد بيانات في reference_data', 'info');
-                }
-                updateSyncStatus(false);
-                resetSessionTimer();
-            }).catch((err) => {
-                if (container) {
-                    container.innerHTML = '<span style="color: var(--secondary); font-size: 0.8rem;">-- خطأ في التحميل --</span>';
-                }
-                showStatus(`❌ خطأ: ${err.message}`, 'error');
-                updateSyncStatus(false);
-            });
+            /* ---- two INDEPENDENT search queries ---- */
+            searchQuery: '',        // main
+            subSearchQuery: '',     // sub (independent)
+
+            fileRows: [],
+            saving: false
         };
 
-        // ==================== POPULATE BUTTONS ====================
-        function populateSelector(names) {
-            const container = document.getElementById('dbButtonsContainer');
-            if (!container) return;
-            container.innerHTML = '';
+        /* =========================================================
+           DB LIST
+        ========================================================= */
+        async function fetchNames() {
+            const res = await fetch(`${DB_URL}/${ROOT}.json?shallow=true`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            return data ? Object.keys(data).sort() : [];
+        }
 
-            const uploadBtn = document.createElement('button');
-            uploadBtn.className = 'db-btn';
-            uploadBtn.style.borderColor = 'var(--primary)';
-            uploadBtn.style.color = 'var(--primary)';
-            uploadBtn.innerHTML = '<span class="icon">📤</span> رفع أي بيانات';
-            uploadBtn.onclick = () => selectDatabase('__upload_any__');
-            container.appendChild(uploadBtn);
+        async function fetchCount(name) {
+            try {
+                const res = await fetch(`${DB_URL}/${ROOT}/${encodeURIComponent(name)}.json?shallow=true`);
+                if (!res.ok) return;
+                const data = await res.json();
+                state.counts[name] = data ? Object.keys(data).length : 0;
+                updateCountBadge(name);
+            } catch (_) { /* silent */ }
+        }
 
-            const emojis = {
-                'cells': '🔌',
-                'dp': '🖥️',
-                'sim': '📱',
-                'sub': '🏛️',
-                'trf': '⚡',
-                'other': '📁'
+        function updateCountBadge(name) {
+            const el = document.querySelector(`.db-btn[data-db="${CSS.escape(name)}"] .cnt`);
+            if (el) el.textContent = state.counts[name];
+        }
+
+        async function preloadCounts(names) {
+            const queue = [...names];
+            const worker = async () => {
+                while (queue.length) await fetchCount(queue.shift());
             };
-
-            names.forEach(name => {
-                const prefix = name.split('_')[0] || 'other';
-                const emoji = emojis[prefix] || '📁';
-                const count = referenceDatabases[name] ? Object.keys(referenceDatabases[name]).length : 0;
-                const displayName = name.replace(/_/g, ' ');
-
-                const btn = document.createElement('button');
-                btn.className = 'db-btn';
-                btn.id = `db_btn_${name}`;
-                btn.innerHTML = `<span class="icon">${emoji}</span> ${displayName} <span class="total-count-badge">${count}</span>`;
-                btn.onclick = () => selectDatabase(name);
-                container.appendChild(btn);
-            });
+            await Promise.all([worker(), worker(), worker()]);
         }
 
-        // ==================== SELECT DATABASE ====================
-        window.selectDatabase = function (selected) {
-            document.querySelectorAll('.db-btn').forEach(b => b.classList.remove('active'));
-            if (selected !== '__upload_any__') {
-                const activeBtn = document.getElementById(`db_btn_${selected}`);
-                if (activeBtn) activeBtn.classList.add('active');
+        async function loadReferenceDatabases() {
+            $('dbButtons').innerHTML = '<span class="muted-sm">⏳ جاري التحميل…</span>';
+            setSync(true);
+            try {
+                state.dbNames = await fetchNames();
+                renderDbButtons();
+                setSync(false);
+                preloadCounts(state.dbNames);
+            } catch (err) {
+                $('dbButtons').innerHTML = '<span class="muted-sm">— تعذر تحميل القائمة —</span>';
+                toast('خطأ في تحميل القائمة: ' + err.message, 'error');
+                setSync(false);
             }
+        }
 
-            filteredKeys = [];
+        function renderDbButtons() {
+            const parts = [
+                `<button class="db-btn${state.uploadAny ? ' active' : ''}" data-db="__upload_any__">
+                    <i class="fas fa-cloud-arrow-up"></i> رفع أي بيانات
+                 </button>`
+            ];
+            for (const name of state.dbNames) {
+                const active = (!state.uploadAny && state.current === name) ? ' active' : '';
+                const cnt = state.counts[name];
+                parts.push(
+                    `<button class="db-btn${active}" data-db="${esc(name)}">
+                        <i class="fas fa-folder"></i> ${esc(name.replace(/_/g, ' '))}
+                        <span class="cnt">${cnt == null ? '…' : cnt}</span>
+                     </button>`
+                );
+            }
+            $('dbButtons').innerHTML = parts.join('');
+        }
 
-            if (!selected) {
-                document.getElementById('contentArea').innerHTML = `
-                <div class="card">
-                    <div class="empty-state">
-                        <i class="fas fa-hand-pointer"></i>
-                        <h3>اختر قاعدة بيانات من الأزرار بالأعلى</h3>
-                        <p>سيتم عرض البيانات هنا بعد الاختيار</p>
-                    </div>
-                </div>
-            `;
-                document.getElementById('selectedBadge').style.display = 'none';
-                isUploadAnyMode = false;
-                resetSessionTimer();
+        /* =========================================================
+           SELECT DATABASE
+        ========================================================= */
+        async function selectDb(name) {
+            touch();
+
+            if (name === '__upload_any__') {
+                state.uploadAny = true;
+                state.current = null;
+                renderDbButtons();
+
+                $('emptyCard').hidden = true;
+                $('uploadCard').hidden = false;
+                $('dataCard').hidden = true;
+                $('pathRow').hidden = false;
+                $('uploadTargetName').textContent = '→ مسار مخصص';
+                resetUploadUI();
                 return;
             }
 
-            if (selected === '__upload_any__') {
-                isUploadAnyMode = true;
-                document.getElementById('selectedBadge').style.display = 'inline-block';
-                document.getElementById('selectedBadge').textContent = '📤 رفع أي بيانات';
-                showUploadAnyContent();
-                resetSessionTimer();
-                return;
+            state.uploadAny = false;
+            state.current = name;
+            renderDbButtons();
+
+            $('emptyCard').hidden = true;
+            $('uploadCard').hidden = false;
+            $('dataCard').hidden = false;
+            $('pathRow').hidden = true;
+            $('uploadTargetName').textContent = '→ ' + name.replace(/_/g, ' ');
+            $('dataTitle').textContent = name.replace(/_/g, ' ');
+            resetUploadUI();
+
+            /* Reset both searches when switching DB */
+            $('searchInput').value = '';
+            $('subSearchInput').value = '';
+            state.searchQuery = '';
+            state.subSearchQuery = '';
+            $('clearSearch').hidden = true;
+            $('clearSubSearch').hidden = true;
+
+            await loadFirstPage();
+            if (state.counts[name] == null) fetchCount(name);
+        }
+
+        /* =========================================================
+           PAGINATED LOADING
+        ========================================================= */
+        function addRecord(key, rec) {
+            state.records.set(key, rec);
+            state.order.push(key);
+            state.searchIndex.set(key, buildIndex(rec));
+        }
+
+        function buildIndex(rec) {
+            if (rec == null) return '';
+            if (typeof rec !== 'object') return String(rec).toLowerCase();
+            let s = '';
+            for (const k in rec) {
+                const v = rec[k];
+                if (v != null && v !== '') s += v + ' ';
             }
+            return s.toLowerCase();
+        }
 
-            isUploadAnyMode = false;
-            currentDbName = selected;
-            currentDbPath = `reference_data/${selected}`;
+        function deriveFields() {
+            for (const key of state.order) {
+                const rec = state.records.get(key);
+                if (rec && typeof rec === 'object') {
+                    const f = Object.keys(rec);
+                    if (f.length) return f;
+                } else if (rec !== undefined) {
+                    return ['value'];
+                }
+            }
+            return [];
+        }
 
-            const badge = document.getElementById('selectedBadge');
-            badge.style.display = 'inline-block';
-            const displayName = selected.replace(/_/g, ' ');
-            badge.textContent = `📄 ${displayName}`;
+        async function loadFirstPage() {
+            if (!state.current) return;
 
-            loadDatabaseData(selected);
-            resetSessionTimer();
-        };
+            state.records.clear();
+            state.order = [];
+            state.searchIndex.clear();
+            state.fields = [];
+            state.cursor = null;
+            state.hasMore = false;
+            state.loading = true;
 
-        // ==================== LOAD DATABASE DATA ====================
-        function loadDatabaseData(dbName) {
-            const dbRef = ref(db, `reference_data/${dbName}`);
-            updateSyncStatus(true);
+            setSync(true);
+            $('tableHead').innerHTML = '';
+            $('tableBody').innerHTML =
+                `<tr><td class="loading-cell" colspan="99">⏳ جاري تحميل البيانات…</td></tr>`;
+            $('tableFoot').hidden = true;
 
-            onValue(dbRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    currentDbData = snapshot.val();
-                    currentDbKeys = Object.keys(currentDbData);
-                    totalRecords = currentDbKeys.length;
+            try {
+                const q = query(
+                    ref(db, `${ROOT}/${state.current}`),
+                    orderByKey(),
+                    limitToLast(PAGE_SIZE + 1)
+                );
+                const snap = await get(q);
 
-                    if (totalRecords > 0) {
-                        const firstKey = currentDbKeys[0];
-                        const firstRecord = currentDbData[firstKey];
-                        if (typeof firstRecord === 'object' && firstRecord !== null) {
-                            currentFields = Object.keys(firstRecord);
-                        } else {
-                            currentFields = ['value'];
-                        }
-                    } else {
-                        currentFields = [];
-                    }
+                if (!snap.exists()) {
+                    state.hasMore = false;
                 } else {
-                    currentDbData = {};
-                    currentDbKeys = [];
-                    totalRecords = 0;
-                    currentFields = [];
+                    const val = snap.val();
+                    const keys = Object.keys(val).sort();
+                    state.cursor = keys[0];
+                    state.hasMore = keys.length > PAGE_SIZE;
+                    for (let i = keys.length - 1; i >= 0; i--) {
+                        addRecord(keys[i], val[keys[i]]);
+                    }
+                    state.fields = deriveFields();
+                }
+                renderTable();
+            } catch (err) {
+                $('tableBody').innerHTML =
+                    `<tr><td class="empty-cell" colspan="99">تعذر تحميل البيانات: ${esc(err.message)}</td></tr>`;
+                toast('خطأ في التحميل: ' + err.message, 'error');
+            } finally {
+                state.loading = false;
+                setSync(false);
+            }
+        }
+
+        async function loadMore() {
+            if (state.loading || !state.hasMore || !state.current) return;
+
+            state.loading = true;
+            const btn = $('loadMoreBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.textContent = 'جاري التحميل…';
+
+            try {
+                const q = query(
+                    ref(db, `${ROOT}/${state.current}`),
+                    orderByKey(),
+                    endAt(state.cursor),
+                    limitToLast(PAGE_SIZE + 1)
+                );
+                const snap = await get(q);
+
+                if (!snap.exists()) {
+                    state.hasMore = false;
+                } else {
+                    const val = snap.val();
+                    const keys = Object.keys(val).sort();
+                    const fresh = keys.filter(k => !state.records.has(k));
+
+                    if (fresh.length === 0) {
+                        state.hasMore = false;
+                    } else {
+                        state.cursor = fresh[0];
+                        state.hasMore = fresh.length >= PAGE_SIZE;
+                        for (let i = fresh.length - 1; i >= 0; i--) {
+                            addRecord(fresh[i], val[fresh[i]]);
+                        }
+                    }
+                }
+                renderTable();
+            } catch (err) {
+                toast('خطأ: ' + err.message, 'error');
+            } finally {
+                state.loading = false;
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+
+        /* =========================================================
+           TABLE RENDER — applies BOTH searches independently
+        ========================================================= */
+        function renderTable() {
+            const head = $('tableHead');
+            const body = $('tableBody');
+            const foot = $('tableFoot');
+
+            const qMain = state.searchQuery;
+            const qSub = state.subSearchQuery;
+
+            let keys = state.order;
+
+            /* Main filter */
+            if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
+            /* Sub filter — applied on top, completely independent input */
+            if (qSub) keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+
+            const total = state.order.length;
+            const activeFilters = (qMain ? 1 : 0) + (qSub ? 1 : 0);
+
+            $('loadedChip').textContent = activeFilters
+                ? `${keys.length} / ${total}`
+                : String(total);
+
+            if (keys.length === 0) {
+                head.innerHTML = '';
+                body.innerHTML = `<tr><td class="empty-cell" colspan="99">${
+                    activeFilters ? 'لا توجد نتائج مطابقة للفلاتر' : 'لا توجد بيانات في هذه القاعدة'
+                }</td></tr>`;
+                foot.hidden = !state.hasMore;
+                return;
+            }
+
+            const fields = state.fields.length ? state.fields : deriveFields();
+            const shown = keys.slice(0, MAX_RENDER);
+
+            const h = ['<tr><th>#</th>'];
+            for (const f of fields) h.push(`<th>${esc(f)}</th>`);
+            h.push('<th></th></tr>');
+            head.innerHTML = h.join('');
+
+            const out = [];
+            for (let i = 0; i < shown.length; i++) {
+                const key = shown[i];
+                const rec = state.records.get(key);
+
+                out.push('<tr>');
+                out.push(`<td class="idx">${i + 1}</td>`);
+
+                for (const f of fields) {
+                    let v;
+                    if (rec && typeof rec === 'object') v = rec[f];
+                    else if (f === 'value') v = rec;
+                    else v = '';
+
+                    if (v === undefined || v === null) v = '';
+                    else if (typeof v === 'object') v = JSON.stringify(v);
+                    else v = String(v);
+
+                    out.push(`<td title="${esc(v)}">${esc(v)}</td>`);
                 }
 
-                displayLimit = 20;
-                renderDatabaseLayout();
-                applyFilterAndRenderTable();
-                updateSyncStatus(false);
-                resetSessionTimer();
-            }, (error) => {
-                showStatus(`خطأ: ${error.message}`, 'error');
-                updateSyncStatus(false);
-            });
+                out.push(
+                    `<td class="actions">
+                        <button class="icon-btn" data-act="edit" data-key="${esc(key)}" title="تعديل">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="icon-btn danger" data-act="del" data-key="${esc(key)}" title="حذف">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>`
+                );
+                out.push('</tr>');
+            }
+            body.innerHTML = out.join('');
+
+            foot.hidden = !state.hasMore;
         }
 
-        // ==================== RENDER LAYOUT ====================
-        function renderDatabaseLayout() {
-            const container = document.getElementById('contentArea');
-            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
+        /* =========================================================
+           SEARCH HANDLERS — two independent debounced listeners
+        ========================================================= */
+        const onMainSearch = debounce(() => {
+            state.searchQuery = $('searchInput').value.trim().toLowerCase();
+            $('clearSearch').hidden = !state.searchQuery;
+            renderTable();
+        }, 180);
 
-            let html = `
-            <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-cloud-upload-alt"></i> رفع بيانات - ${displayName}
-                </div>
-                <div class="upload-row">
-                    <div class="upload-area-compact" id="uploadArea" onclick="document.getElementById('uploadFile').click()">
-                        <i class="fas fa-file-excel"></i>
-                        <span>اسحب ملف Excel/CSV أو اضغط للتحميل</span>
-                    </div>
-                    <input type="file" id="uploadFile" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(this)">
-                    <div id="progressBar" class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                    <button class="btn btn-success" id="saveBtn" onclick="saveToDatabaseOptimized()" disabled>
-                        <i class="fas fa-save"></i> حفظ
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearPreview()">
-                        <i class="fas fa-undo"></i> مسح
-                    </button>
-                    <span id="uploadStatus" class="upload-status"></span>
-                    <span id="uploadSpeed" class="upload-speed"></span>
-                </div>
-            </div>
+        const onSubSearch = debounce(() => {
+            state.subSearchQuery = $('subSearchInput').value.trim().toLowerCase();
+            $('clearSubSearch').hidden = !state.subSearchQuery;
+            renderTable();
+        }, 180);
 
-            <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-table"></i> البيانات - ${displayName}
-                    <span style="font-size:0.75rem;color:var(--secondary);font-weight:normal;margin-right:8px;">
-                        (${totalRecords} سجل)
-                    </span>
-                    <button class="btn btn-primary btn-sm" onclick="openAddModalSwal()" style="margin-right:auto;">
-                        <i class="fas fa-plus"></i> إضافة جديد
-                    </button>
-                </div>
-                <div class="table-controls">
-                    <div class="filter-section">
-                        <div class="search-group">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="searchInput" placeholder="فلتر رئيسي..." oninput="onSearch()">
-                                <span class="clear-btn" id="clearMainBtn" onclick="clearSearch()"><i class="fas fa-times-circle"></i></span>
-                            </div>
-                            <div class="search-box">
-                                <i class="fas fa-filter"></i>
-                                <input type="text" id="subsearchInput" placeholder="فلتر فرعي..." oninput="onSearch()">
-                                <span class="clear-btn" id="clearSubBtn" onclick="clearSubSearch()"><i class="fas fa-times-circle"></i></span>
-                            </div>
-                        </div>
-                        <div class="stats-bar">
-                            <span id="recordCount" class="stat-item total">
-                                <span class="number" id="displayedNum">0</span> من <span class="number" id="filteredNum">0</span>
-                            </span>
-                            <button class="btn btn-export btn-sm" onclick="exportToExcel()">
-                                <i class="fas fa-file-excel"></i> تصدير
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="refreshData()">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="table-container" id="tableContainer"></div>
-                <div class="load-more-container" id="loadMoreContainer" style="display:none;">
-                    <button class="btn-load-more" onclick="loadMore()">
-                        <i class="fas fa-chevron-down"></i> <span id="loadMoreText">عرض المزيد</span>
-                    </button>
-                </div>
-            </div>
-        `;
-
-            container.innerHTML = html;
-            setupUploadListeners();
+        /* =========================================================
+           UPLOAD
+        ========================================================= */
+        function resetUploadUI() {
+            state.fileRows = [];
+            $('fileInput').value = '';
+            $('saveBtn').disabled = true;
+            $('uploadStatus').textContent = '';
+            $('progress').hidden = true;
+            $('progressFill').style.width = '0%';
+            $('previewWrap').hidden = true;
+            $('previewWrap').innerHTML = '';
         }
 
-        // ==================== SWEETALERT2 ADD FUNCTION ====================
-        window.openAddModalSwal = async function () {
-            if (!currentDbName) {
-                Swal.fire('تنبيه', 'يرجى اختيار قاعدة بيانات أولاً', 'warning');
+        async function handleFile(file) {
+            if (!file) return;
+            try {
+                $('uploadStatus').textContent = '⏳ جاري قراءة الملف…';
+                const XLSX = await loadXLSX();
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+                state.fileRows = rows;
+                renderPreview(rows);
+
+                if (rows.length) {
+                    $('uploadStatus').textContent = `✅ ${rows.length} سجل من "${file.name}" جاهز للحفظ`;
+                    $('saveBtn').disabled = false;
+                } else {
+                    $('uploadStatus').textContent = '⚠️ الملف لا يحتوي على بيانات';
+                    $('saveBtn').disabled = true;
+                }
+            } catch (err) {
+                $('uploadStatus').textContent = '❌ ' + err.message;
+                toast('خطأ: ' + err.message, 'error');
+            }
+        }
+
+        function renderPreview(rows) {
+            const wrap = $('previewWrap');
+            if (!rows.length) {
+                wrap.hidden = true;
                 return;
             }
 
-            let fields = currentFields.length > 0 ? currentFields : ['field1', 'field2'];
+            const fields = Object.keys(rows[0]);
+            const limit = Math.min(rows.length, 30);
+            const out = ['<table><thead><tr><th>#</th>'];
+            for (const f of fields) out.push(`<th>${esc(f)}</th>`);
+            out.push('</tr></thead><tbody>');
 
-            const formHtml = fields.map(field => `
-                <div style="text-align: right; margin-bottom: 10px;">
-                    <label style="font-weight: bold; font-size: 0.85rem;">${field}:</label>
-                    <input id="swal_field_${field}" class="swal2-input" placeholder="أدخل ${field}" style="margin: 5px 0; width: 100%;">
-                </div>
-            `).join('');
+            for (let i = 0; i < limit; i++) {
+                const r = rows[i];
+                out.push(`<tr><td class="idx">${i + 1}</td>`);
+                for (const f of fields) {
+                    let v = r[f] ?? '';
+                    if (typeof v === 'object') v = JSON.stringify(v);
+                    out.push(`<td title="${esc(v)}">${esc(v)}</td>`);
+                }
+                out.push('</tr>');
+            }
+            out.push('</tbody></table>');
+            wrap.innerHTML = out.join('');
+            wrap.hidden = false;
+        }
 
-            const { value: formValues } = await Swal.fire({
-                title: `إضافة سجل جديد (${currentDbName})`,
-                html: formHtml,
-                focusConfirm: false,
+        function compress(rows) {
+            const out = [];
+            for (const r of rows) {
+                const o = {};
+                for (const k in r) {
+                    const key = String(k).replace(/[.#$/\[\]]/g, '_').trim();
+                    if (!key) continue;
+                    let v = r[k];
+                    if (v === '' || v === null || v === undefined) continue;
+                    if (typeof v === 'string') {
+                        v = v.trim().replace(/,+$/, '');
+                        if (!v) continue;
+                    }
+                    o[key] = v;
+                }
+                if (Object.keys(o).length) out.push(o);
+            }
+            return out;
+        }
+
+        async function saveData() {
+            if (state.saving) return;
+
+            const rows = compress(state.fileRows);
+            if (!rows.length) {
+                toast('لا توجد بيانات صالحة للحفظ', 'error');
+                return;
+            }
+
+            const target = state.uploadAny
+                ? $('uploadAnyPath').value.trim().replace(/^\/+|\/+$/g, '')
+                : `${ROOT}/${state.current}`;
+
+            if (!target) {
+                toast('يرجى إدخال المسار المستهدف', 'error');
+                return;
+            }
+
+            const confirm = await Swal.fire({
+                title: 'تأكيد الحفظ',
+                html: `سيتم حفظ <b>${rows.length}</b> سجل في<br><code style="font-size:.75rem">${esc(target)}</code>`,
+                icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-save"></i> حفظ',
+                confirmButtonText: 'حفظ',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#2563eb'
+            });
+            if (!confirm.isConfirmed) return;
+
+            state.saving = true;
+            $('saveBtn').disabled = true;
+            $('progress').hidden = false;
+            $('progressFill').style.width = '15%';
+            $('uploadStatus').textContent = '⏳ جاري الحفظ…';
+            setSync(true);
+
+            const t0 = performance.now();
+
+            try {
+                const targetRef = ref(db, target);
+                const updates = {};
+                for (const r of rows) updates[push(targetRef).key] = r;
+
+                $('progressFill').style.width = '55%';
+                await update(targetRef, updates);
+
+                $('progressFill').style.width = '100%';
+
+                const secs = ((performance.now() - t0) / 1000).toFixed(1);
+                const speed = (rows.length / Math.max(0.001, (performance.now() - t0) / 1000)).toFixed(0);
+
+                toast(`✅ تم حفظ ${rows.length} سجل في ${secs} ثانية`, 'success');
+                $('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
+
+                resetUploadUI();
+
+                if (!state.uploadAny && state.current) {
+                    await loadFirstPage();
+                    fetchCount(state.current);
+                }
+            } catch (err) {
+                toast('فشل الحفظ: ' + err.message, 'error');
+                $('uploadStatus').textContent = '❌ فشل الحفظ';
+                $('saveBtn').disabled = false;
+            } finally {
+                state.saving = false;
+                setSync(false);
+                setTimeout(() => { $('progress').hidden = true; }, 700);
+            }
+        }
+
+        /* =========================================================
+           ADD / EDIT / DELETE
+        ========================================================= */
+        function currentFieldsForForm(rec) {
+            if (state.fields.length) return state.fields;
+            if (rec && typeof rec === 'object') {
+                const f = Object.keys(rec);
+                if (f.length) return f;
+            }
+            return ['value'];
+        }
+
+        function buildFormHtml(fields, rec) {
+            return fields.map((f, i) => {
+                const v = rec && rec[f] != null ? rec[f] : '';
+                return `<div class="swal-row">
+                    <label>${esc(f)}</label>
+                    <input id="swf_${i}" class="swal2-input" value="${esc(v)}" placeholder="${esc(f)}">
+                </div>`;
+            }).join('');
+        }
+
+        function collectForm(fields) {
+            const data = {};
+            fields.forEach((f, i) => {
+                const el = $(`swf_${i}`);
+                if (el) data[f] = el.value.trim();
+            });
+            return data;
+        }
+
+        async function addRecordDialog() {
+            if (!state.current) {
+                toast('اختر قاعدة بيانات أولاً', 'error');
+                return;
+            }
+            const fields = currentFieldsForForm(null);
+
+            const res = await Swal.fire({
+                title: 'إضافة سجل جديد',
+                html: buildFormHtml(fields, null),
+                width: 520,
+                showCancelButton: true,
+                confirmButtonText: 'حفظ',
                 cancelButtonText: 'إلغاء',
                 confirmButtonColor: '#2563eb',
                 preConfirm: () => {
-                    const data = {};
-                    fields.forEach(field => {
-                        const val = document.getElementById(`swal_field_${field}`).value;
-                        data[field] = val.trim();
-                    });
-
+                    const data = collectForm(fields);
                     if (!data[fields[0]]) {
                         Swal.showValidationMessage(`الحقل "${fields[0]}" مطلوب`);
                         return false;
@@ -1213,867 +1167,204 @@
                     return data;
                 }
             });
-
-            if (formValues) {
-                Swal.fire({
-                    title: 'جاري الحفظ...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                });
-
-                const collectionRef = ref(db, `reference_data/${currentDbName}`);
-                const newRef = push(collectionRef);
-
-                set(newRef, formValues)
-                    .then(() => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'تم الحفظ!',
-                            text: 'تمت إضافة السجل بنجاح إلى قاعدة البيانات',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                        refreshData();
-                        resetSessionTimer();
-                    })
-                    .catch(err => {
-                        Swal.fire('خطأ', `فشل الحفظ: ${err.message}`, 'error');
-                    });
-            }
-        };
-
-        // ==================== FAST IN-MEMORY FILTER & TABLE RENDER ====================
-        function applyFilterAndRenderTable() {
-            const searchInput = document.getElementById('searchInput');
-            const subSearchInput = document.getElementById('subsearchInput');
-
-            const mainSearchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-            const subSearchTerm = subSearchInput ? subSearchInput.value.toLowerCase().trim() : '';
-
-            const clearMainBtn = document.getElementById('clearMainBtn');
-            const clearSubBtn = document.getElementById('clearSubBtn');
-            if (clearMainBtn) clearMainBtn.classList.toggle('visible', mainSearchTerm.length > 0);
-            if (clearSubBtn) clearSubBtn.classList.toggle('visible', subSearchTerm.length > 0);
-
-            let resultKeys = currentDbKeys;
-
-            if (mainSearchTerm) {
-                resultKeys = resultKeys.filter(key => {
-                    const record = currentDbData[key];
-                    return JSON.stringify(record).toLowerCase().includes(mainSearchTerm);
-                });
-            }
-
-            if (subSearchTerm && resultKeys.length > 0) {
-                resultKeys = resultKeys.filter(key => {
-                    const record = currentDbData[key];
-                    return JSON.stringify(record).toLowerCase().includes(subSearchTerm);
-                });
-            }
-
-            filteredKeys = resultKeys;
-            const filteredTotal = filteredKeys.length;
-            const displayKeys = filteredKeys.slice(0, displayLimit);
-
-            const displayedNum = document.getElementById('displayedNum');
-            const filteredNum = document.getElementById('filteredNum');
-            if (displayedNum) displayedNum.textContent = displayKeys.length;
-            if (filteredNum) filteredNum.textContent = filteredTotal;
-
-            const tableContainer = document.getElementById('tableContainer');
-            if (!tableContainer) return;
-
-            if (displayKeys.length === 0) {
-                tableContainer.innerHTML = `<div class="no-data">${mainSearchTerm || subSearchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد بيانات في هذه القاعدة'}</div>`;
-            } else {
-                tableContainer.innerHTML = renderTableContent(displayKeys);
-            }
-
-            const loadMoreContainer = document.getElementById('loadMoreContainer');
-            const loadMoreText = document.getElementById('loadMoreText');
-            if (loadMoreContainer && loadMoreText) {
-                const remaining = filteredTotal - displayKeys.length;
-                if (remaining > 0) {
-                    loadMoreContainer.style.display = 'block';
-                    loadMoreText.textContent = `عرض المزيد (${remaining} سجل متبقي)`;
-                } else {
-                    loadMoreContainer.style.display = 'none';
-                }
-            }
-            resetSessionTimer();
-        }
-
-        window.onSearch = function () {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(() => {
-                displayLimit = 20;
-                applyFilterAndRenderTable();
-                resetSessionTimer();
-            }, 150);
-        };
-
-        window.clearSearch = function () {
-            const input = document.getElementById('searchInput');
-            if (input) {
-                input.value = '';
-                onSearch();
-            }
-            resetSessionTimer();
-        };
-
-        window.clearSubSearch = function () {
-            const input = document.getElementById('subsearchInput');
-            if (input) {
-                input.value = '';
-                onSearch();
-            }
-            resetSessionTimer();
-        };
-
-        window.loadMore = function () {
-            displayLimit += 50;
-            applyFilterAndRenderTable();
-            resetSessionTimer();
-        };
-
-        // ==================== RENDER TABLE CONTENT ====================
-        function renderTableContent(displayKeys) {
-            let fields = currentFields;
-            if (fields.length === 0 && displayKeys.length > 0) {
-                const firstKey = displayKeys[0];
-                const record = currentDbData[firstKey];
-                if (typeof record === 'object' && record !== null) {
-                    fields = Object.keys(record);
-                } else {
-                    fields = ['value'];
-                }
-            }
-
-            let html = `<table><thead><tr><th>#</th>`;
-            for (const field of fields) {
-                html += `<th>${field}</th>`;
-            }
-            html += `<th>الإجراءات</th></tr></thead><tbody>`;
-
-            let index = 0;
-            displayKeys.forEach(key => {
-                const record = currentDbData[key];
-                index++;
-                html += `<tr>`;
-                html += `<td>${index}</td>`;
-                for (const field of fields) {
-                    let value = '';
-                    if (typeof record === 'object' && record !== null) {
-                        value = record[field] !== undefined ? record[field] : '';
-                    } else if (field === 'value') {
-                        value = record;
-                    }
-                    if (typeof value === 'object') {
-                        value = JSON.stringify(value);
-                    }
-                    html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
-                }
-                html += `
-                <td>
-                    <div class="actions-cell">
-                        <button class="btn btn-warning btn-sm" onclick="openEditModal('${key}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${key}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table>`;
-            return html;
-        }
-
-        // ==================== UPLOAD ANY CONTENT ====================
-        window.showUploadAnyContent = function () {
-            const container = document.getElementById('contentArea');
-
-            let html = `
-            <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-cloud-upload-alt"></i> رفع أي بيانات إلى أي مسار
-                </div>
-                <div class="path-input">
-                    <span class="path-label">📂 المسار المستهدف:</span>
-                    <input type="text" id="uploadAnyPath" value="reference_data/new_collection" dir="ltr">
-                </div>
-                <div class="upload-row">
-                    <div class="upload-area-compact" id="uploadAnyArea" onclick="document.getElementById('uploadAnyFile').click()">
-                        <i class="fas fa-file-excel"></i>
-                        <span>اسحب ملف Excel/CSV أو اضغط للتحميل</span>
-                    </div>
-                    <input type="file" id="uploadAnyFile" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleAnyFileUpload(this)">
-                    <div id="progressAny" class="progress-bar"><div class="progress-fill" id="progressFillAny"></div></div>
-                    <button class="btn btn-success" id="saveAnyBtn" onclick="saveAnyDataOptimized()" disabled>
-                        <i class="fas fa-save"></i> حفظ
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearAnyUpload()">
-                        <i class="fas fa-undo"></i> مسح
-                    </button>
-                    <span id="uploadAnyStatus" class="upload-status"></span>
-                    <span id="uploadAnySpeed" class="upload-speed"></span>
-                </div>
-                <div class="table-container" id="uploadAnyPreview">
-                    <div class="no-data">قم بتحميل ملف لعرض البيانات</div>
-                </div>
-            </div>
-        `;
-
-            container.innerHTML = html;
-            setupAnyUploadListeners();
-            resetSessionTimer();
-        };
-
-        function setupAnyUploadListeners() {
-            const area = document.getElementById('uploadAnyArea');
-            if (area) {
-                area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
-                area.addEventListener('dragleave', () => area.classList.remove('dragover'));
-                area.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    area.classList.remove('dragover');
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        const input = document.getElementById('uploadAnyFile');
-                        const dt = new DataTransfer();
-                        dt.items.add(files[0]);
-                        input.files = dt.files;
-                        handleAnyFileUpload(input);
-                        resetSessionTimer();
-                    }
-                });
-            }
-        }
-
-        window.handleAnyFileUpload = function (input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            if (typeof XLSX === 'undefined') {
-                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-                return;
-            }
-
-            const reader = new FileReader();
-            const progressBar = document.getElementById('progressAny');
-            const progressFill = document.getElementById('progressFillAny');
-
-            progressBar.style.display = 'block';
-            progressFill.style.width = '30%';
-
-            reader.onload = function (e) {
-                try {
-                    progressFill.style.width = '60%';
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-                    progressFill.style.width = '90%';
-
-                    anyUploadData = jsonData;
-                    renderAnyUploadPreview(jsonData);
-
-                    progressFill.style.width = '100%';
-                    setTimeout(() => {
-                        progressBar.style.display = 'none';
-                        progressFill.style.width = '0%';
-                    }, 500);
-
-                    document.getElementById('uploadAnyStatus').textContent =
-                        `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
-                    document.getElementById('saveAnyBtn').disabled = false;
-                    resetSessionTimer();
-
-                } catch (err) {
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    progressBar.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }
-            };
-
-            reader.readAsArrayBuffer(file);
-        };
-
-        window.renderAnyUploadPreview = function (data) {
-            const container = document.getElementById('uploadAnyPreview');
-            if (!data || data.length === 0) {
-                container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
-                return;
-            }
-
-            const fields = Object.keys(data[0]);
-
-            let html = `<table><thead><tr><th>#</th>`;
-            fields.forEach(field => { html += `<th>${field}</th>`; });
-            html += `</tr></thead><tbody>`;
-
-            data.forEach((record, index) => {
-                html += `<tr><td>${index + 1}</td>`;
-                fields.forEach(field => {
-                    let value = record[field] !== undefined ? record[field] : '';
-                    if (typeof value === 'object') value = JSON.stringify(value);
-                    html += `<td style="max-width:150px;white-space:normal;word-break:break-word;">${value}</td>`;
-                });
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-            resetSessionTimer();
-        };
-
-        // ==================== SAVE FUNCTIONS ====================
-        window.saveToDatabaseOptimized = function () {
-            if (isUploading) return;
-            if (!anyUploadData || anyUploadData.length === 0) {
-                showStatus('❌ لا توجد بيانات للحفظ', 'error');
-                return;
-            }
-
-            if (!currentDbName) {
-                showStatus('⚠️ يرجى اختيار قاعدة بيانات', 'error');
-                return;
-            }
-
-            const compressedData = compressData(anyUploadData);
-            const totalRecords = compressedData.length;
-
-            if (!confirm(`حفظ ${totalRecords} سجل في "${currentDbName}"؟`)) return;
-
-            isUploading = true;
-            updateSyncStatus(true);
-            document.getElementById('saveBtn').disabled = true;
-            document.getElementById('uploadStatus').textContent = '⏳ جاري الحفظ...';
-
-            const progressFill = document.getElementById('progressFill');
-            progressFill.style.display = 'block';
-            progressFill.style.width = '0%';
-
-            const collectionRef = ref(db, `reference_data/${currentDbName}`);
-
-            const batchData = {};
-            compressedData.forEach((record, index) => {
-                const newKey = push(collectionRef).key;
-                batchData[newKey] = record;
-            });
-
-            const startTime = Date.now();
-
-            set(collectionRef, {
-                ...currentDbData,
-                ...batchData
-            })
-                .then(() => {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    const speed = (totalRecords / elapsed).toFixed(1);
-
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
-
-                    document.getElementById('saveBtn').disabled = true;
-                    document.getElementById('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
-                    document.getElementById('uploadSpeed').textContent = `⚡ ${speed} سجل/ثانية`;
-
-                    progressFill.style.width = '100%';
-                    setTimeout(() => {
-                        progressFill.style.display = 'none';
-                        progressFill.style.width = '0%';
-                    }, 1000);
-
-                    anyUploadData = [];
-                    document.getElementById('uploadFile').value = '';
-                    isUploading = false;
-                    refreshData();
-                    resetSessionTimer();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    document.getElementById('saveBtn').disabled = false;
-                    document.getElementById('uploadStatus').textContent = '❌ فشل الحفظ';
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    isUploading = false;
-                    progressFill.style.display = 'none';
-                });
-        };
-
-        window.saveAnyDataOptimized = function () {
-            if (isUploading) return;
-            if (!anyUploadData || anyUploadData.length === 0) {
-                showStatus('❌ لا توجد بيانات للحفظ', 'error');
-                return;
-            }
-
-            const path = document.getElementById('uploadAnyPath').value.trim();
-            if (!path) {
-                showStatus('⚠️ يرجى إدخال المسار المستهدف', 'error');
-                return;
-            }
-
-            const compressedData = compressData(anyUploadData);
-            const totalRecords = compressedData.length;
-
-            if (!confirm(`حفظ ${totalRecords} سجل في "${path}"؟`)) return;
-
-            isUploading = true;
-            updateSyncStatus(true);
-            document.getElementById('saveAnyBtn').disabled = true;
-            document.getElementById('uploadAnyStatus').textContent = '⏳ جاري الحفظ...';
-
-            const progressFill = document.getElementById('progressFillAny');
-            progressFill.style.display = 'block';
-            progressFill.style.width = '0%';
-
-            const dbRef = ref(db, path);
-
-            const startTime = Date.now();
-
-            get(dbRef).then((snapshot) => {
-                const existingData = snapshot.exists() ? snapshot.val() : {};
-
-                const batchData = {};
-                compressedData.forEach((record, index) => {
-                    const newKey = push(dbRef).key;
-                    batchData[newKey] = record;
-                });
-
-                return set(dbRef, { ...existingData, ...batchData });
-            })
-                .then(() => {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    const speed = (totalRecords / elapsed).toFixed(1);
-
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم حفظ ${totalRecords} سجل في ${elapsed.toFixed(1)} ثانية (${speed} سجل/ثانية)`, 'success');
-
-                    document.getElementById('saveAnyBtn').disabled = true;
-                    document.getElementById('uploadAnyStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
-                    document.getElementById('uploadAnySpeed').textContent = `⚡ ${speed} سجل/ثانية`;
-
-                    progressFill.style.width = '100%';
-                    setTimeout(() => {
-                        progressFill.style.display = 'none';
-                        progressFill.style.width = '0%';
-                    }, 1000);
-
-                    anyUploadData = [];
-                    document.getElementById('uploadAnyFile').value = '';
-                    document.getElementById('uploadAnyPreview').innerHTML =
-                        `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-                    isUploading = false;
-                    resetSessionTimer();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    document.getElementById('saveAnyBtn').disabled = false;
-                    document.getElementById('uploadAnyStatus').textContent = '❌ فشل الحفظ';
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    isUploading = false;
-                    progressFill.style.display = 'none';
-                });
-        };
-
-        function compressData(data) {
-            return data.map(record => {
-                const compressed = {};
-                for (const [key, value] of Object.entries(record)) {
-                    const sanitizedKey = key.replace(/[.#$/[\]]/g, '_').trim();
-                    if (value !== '' && value !== null && value !== undefined) {
-                        let cleanedValue = typeof value === 'string' ? value.trim() : value;
-                        if (typeof cleanedValue === 'string') {
-                            cleanedValue = cleanedValue.replace(/,$/, '');
-                            cleanedValue = cleanedValue.replace(/,{2,}/g, ',');
-                        }
-                        compressed[sanitizedKey] = cleanedValue;
-                    }
-                }
-                return compressed;
-            });
-        }
-
-        window.saveToDatabase = window.saveToDatabaseOptimized;
-        window.saveAnyData = window.saveAnyDataOptimized;
-
-        function setupUploadListeners() {
-            const area = document.getElementById('uploadArea');
-            if (area) {
-                area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
-                area.addEventListener('dragleave', () => area.classList.remove('dragover'));
-                area.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    area.classList.remove('dragover');
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        const input = document.getElementById('uploadFile');
-                        const dt = new DataTransfer();
-                        dt.items.add(files[0]);
-                        input.files = dt.files;
-                        handleFileUpload(input);
-                        resetSessionTimer();
-                    }
-                });
-            }
-        }
-
-        window.handleFileUpload = function (input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            if (typeof XLSX === 'undefined') {
-                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-                return;
-            }
-
-            const reader = new FileReader();
-            const progressBar = document.getElementById('progressBar');
-            const progressFill = document.getElementById('progressFill');
-
-            progressBar.style.display = 'block';
-            progressFill.style.width = '30%';
-
-            reader.onload = function (e) {
-                try {
-                    progressFill.style.width = '60%';
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-                    progressFill.style.width = '90%';
-
-                    anyUploadData = jsonData;
-                    renderUploadPreview(jsonData);
-
-                    progressFill.style.width = '100%';
-                    setTimeout(() => {
-                        progressBar.style.display = 'none';
-                        progressFill.style.width = '0%';
-                    }, 500);
-
-                    document.getElementById('uploadStatus').textContent =
-                        `✅ تم تحميل ${jsonData.length} سجل من ${file.name}`;
-                    document.getElementById('saveBtn').disabled = false;
-                    document.getElementById('uploadSpeed').textContent = '';
-                    resetSessionTimer();
-
-                } catch (err) {
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                    progressBar.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }
-            };
-
-            reader.readAsArrayBuffer(file);
-        };
-
-        window.renderUploadPreview = function (data) {
-            const container = document.getElementById('tableContainer');
-            if (!data || data.length === 0) {
-                container.innerHTML = `<div class="no-data">لا توجد بيانات لعرضها</div>`;
-                return;
-            }
-
-            const fields = Object.keys(data[0]);
-
-            let html = `<table><thead><tr><th>#</th>`;
-            fields.forEach(field => { html += `<th>${field}</th>`; });
-            html += `</tr></thead><tbody>`;
-
-            data.forEach((record, index) => {
-                html += `<tr><td>${index + 1}</td>`;
-                fields.forEach(field => {
-                    let value = record[field] !== undefined ? record[field] : '';
-                    if (typeof value === 'object') value = JSON.stringify(value);
-                    html += `<td style="max-width:120px;white-space:normal;word-break:break-word;">${value}</td>`;
-                });
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-            resetSessionTimer();
-        };
-
-        window.clearPreview = function () {
-            anyUploadData = [];
-            document.getElementById('uploadFile').value = '';
-            document.getElementById('uploadStatus').textContent = '';
-            document.getElementById('uploadSpeed').textContent = '';
-            document.getElementById('saveBtn').disabled = true;
-            refreshData();
-            resetSessionTimer();
-        };
-
-        window.clearAnyUpload = function () {
-            anyUploadData = [];
-            document.getElementById('uploadAnyFile').value = '';
-            document.getElementById('uploadAnyPreview').innerHTML =
-                `<div class="no-data">قم بتحميل ملف لعرض البيانات</div>`;
-            document.getElementById('uploadAnyStatus').textContent = '';
-            document.getElementById('uploadAnySpeed').textContent = '';
-            document.getElementById('saveAnyBtn').disabled = true;
-            resetSessionTimer();
-        };
-
-        window.refreshData = function () {
-            if (!currentDbName) return;
-            updateSyncStatus(true);
-            showStatus('🔄 جاري التحديث...', 'info');
-            displayLimit = 20;
-
-            const searchInput = document.getElementById('searchInput');
-            const subSearchInput = document.getElementById('subsearchInput');
-            if (searchInput) searchInput.value = '';
-            if (subSearchInput) subSearchInput.value = '';
-
-            filteredKeys = [];
-            loadDatabaseData(currentDbName);
-            resetSessionTimer();
-        };
-
-        // ==================== EXPORT TO EXCEL ====================
-        window.exportToExcel = function () {
-            const keys = filteredKeys.length > 0 ? filteredKeys : currentDbKeys;
-
-            if (keys.length === 0) {
-                showStatus('❌ لا توجد بيانات للتصدير', 'error');
-                return;
-            }
-
-            if (typeof XLSX === 'undefined') {
-                showStatus('⚠️ جاري تحميل مكتبة Excel...', 'info');
-                return;
-            }
-
-            let fields = currentFields;
-            if (fields.length === 0) {
-                const firstKey = keys[0];
-                const record = currentDbData[firstKey];
-                if (typeof record === 'object' && record !== null) {
-                    fields = Object.keys(record);
-                } else {
-                    fields = ['value'];
-                }
-            }
-
-            const exportData = [];
-            keys.forEach(key => {
-                const record = currentDbData[key];
-                const row = { '_key': key };
-                if (typeof record === 'object' && record !== null) {
-                    fields.forEach(field => {
-                        row[field] = record[field] || '';
-                    });
-                } else {
-                    row['value'] = record;
-                }
-                exportData.push(row);
-            });
+            if (!res.isConfirmed) return;
 
             try {
-                const ws = XLSX.utils.json_to_sheet(exportData);
+                setSync(true);
+                const collectionRef = ref(db, `${ROOT}/${state.current}`);
+                await set(push(collectionRef), res.value);
+                toast('✅ تمت إضافة السجل', 'success');
+                await loadFirstPage();
+                fetchCount(state.current);
+            } catch (err) {
+                toast('خطأ: ' + err.message, 'error');
+            } finally {
+                setSync(false);
+            }
+        }
+
+        async function editRecordDialog(key) {
+            const rec = state.records.get(key);
+            if (!rec) return;
+            const fields = currentFieldsForForm(rec);
+
+            const res = await Swal.fire({
+                title: 'تعديل سجل',
+                html: buildFormHtml(fields, rec),
+                width: 520,
+                showCancelButton: true,
+                confirmButtonText: 'تحديث',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#f59e0b',
+                preConfirm: () => {
+                    const data = collectForm(fields);
+                    if (!data[fields[0]]) {
+                        Swal.showValidationMessage(`الحقل "${fields[0]}" مطلوب`);
+                        return false;
+                    }
+                    return data;
+                }
+            });
+            if (!res.isConfirmed) return;
+
+            try {
+                setSync(true);
+                await set(ref(db, `${ROOT}/${state.current}/${key}`), res.value);
+                toast('✅ تم تحديث السجل', 'success');
+                await loadFirstPage();
+            } catch (err) {
+                toast('خطأ: ' + err.message, 'error');
+            } finally {
+                setSync(false);
+            }
+        }
+
+        async function deleteRecordDialog(key) {
+            const res = await Swal.fire({
+                title: 'تأكيد الحذف',
+                text: 'لا يمكن التراجع عن هذه العملية',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'حذف',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#ef4444'
+            });
+            if (!res.isConfirmed) return;
+
+            try {
+                setSync(true);
+                await remove(ref(db, `${ROOT}/${state.current}/${key}`));
+
+                state.records.delete(key);
+                state.searchIndex.delete(key);
+                const idx = state.order.indexOf(key);
+                if (idx > -1) state.order.splice(idx, 1);
+
+                renderTable();
+                toast('✅ تم حذف السجل', 'success');
+                fetchCount(state.current);
+            } catch (err) {
+                toast('خطأ: ' + err.message, 'error');
+            } finally {
+                setSync(false);
+            }
+        }
+
+        /* =========================================================
+           EXPORT — respects BOTH filters
+        ========================================================= */
+        async function exportExcel() {
+            const qMain = state.searchQuery;
+            const qSub = state.subSearchQuery;
+
+            let keys = state.order;
+            if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
+            if (qSub) keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+
+            if (!keys.length) {
+                toast('لا توجد بيانات للتصدير', 'error');
+                return;
+            }
+
+            try {
+                const XLSX = await loadXLSX();
+                const fields = state.fields.length ? state.fields : deriveFields();
+
+                const data = keys.map(k => {
+                    const rec = state.records.get(k);
+                    const row = { _key: k };
+                    if (rec && typeof rec === 'object') {
+                        for (const f of fields) row[f] = rec[f] ?? '';
+                    } else {
+                        row.value = rec;
+                    }
+                    return row;
+                });
+
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Data');
-
-                const filename = `${currentDbName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-                XLSX.writeFile(wb, filename);
-
-                showStatus(`✅ تم تصدير ${exportData.length} سجل`, 'success');
-                resetSessionTimer();
+                XLSX.writeFile(wb, `${state.current || 'data'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                toast(`✅ تم تصدير ${data.length} سجل`, 'success');
             } catch (err) {
-                showStatus(`❌ خطأ: ${err.message}`, 'error');
+                toast('خطأ: ' + err.message, 'error');
             }
-        };
+        }
 
-        // ==================== MODAL EDIT FUNCTIONS ====================
-        window.openEditModal = function (key) {
-            const record = currentDbData[key];
-            if (!record) {
-                showStatus('❌ السجل غير موجود', 'error');
-                return;
-            }
-
-            modalMode = 'edit';
-            modalEditKey = key;
-            const displayName = currentDbName ? currentDbName.replace(/_/g, ' ') : '';
-            document.getElementById('modalTitle').textContent = `تعديل سجل - ${displayName}`;
-
-            let fields = currentFields;
-            if (fields.length === 0) {
-                if (typeof record === 'object' && record !== null) {
-                    fields = Object.keys(record);
-                } else {
-                    fields = ['value'];
-                }
-            }
-
-            let html = '';
-            fields.forEach(field => {
-                let value = '';
-                if (typeof record === 'object' && record !== null) {
-                    value = record[field] || '';
-                } else if (field === 'value') {
-                    value = record;
-                }
-                html += `
-                <div class="form-group">
-                    <label>${field}</label>
-                    <input type="text" id="modal_field_${field}" placeholder="أدخل ${field}" value="${value}">
-                </div>
-            `;
-            });
-
-            html += `
-            <div class="form-actions">
-                <button class="btn btn-warning" onclick="saveModalData()">
-                    <i class="fas fa-edit"></i> تحديث
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    <i class="fas fa-times"></i> إلغاء
-                </button>
-            </div>
-        `;
-
-            document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('dataModal').classList.add('active');
-            resetSessionTimer();
-        };
-
-        window.closeModal = function () {
-            document.getElementById('dataModal').classList.remove('active');
-            resetSessionTimer();
-        };
-
-        window.saveModalData = function () {
-            let fields = currentFields;
-            if (fields.length === 0) fields = ['field1', 'field2', 'field3'];
-
-            const data = {};
-            let isValid = true;
-
-            fields.forEach(field => {
-                const input = document.getElementById(`modal_field_${field}`);
-                if (input) {
-                    const value = norm(input.value);
-                    if (value === '' && field === fields[0]) isValid = false;
-                    data[field] = value;
-                }
-            });
-
-            if (!isValid) {
-                showStatus(`⚠️ الحقل "${fields[0]}" مطلوب`, 'error');
-                return;
-            }
-
-            updateSyncStatus(true);
-            const recordRef = ref(db, `reference_data/${currentDbName}/${modalEditKey}`);
-            set(recordRef, data)
-                .then(() => {
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم تحديث السجل بنجاح!`, 'success');
-                    closeModal();
-                    refreshData();
-                    resetSessionTimer();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                });
-        };
-
-        document.getElementById('dataModal').addEventListener('click', function (e) {
-            if (e.target === this) closeModal();
+        /* =========================================================
+           EVENT WIRING
+        ========================================================= */
+        $('dbButtons').addEventListener('click', e => {
+            const btn = e.target.closest('.db-btn');
+            if (btn) selectDb(btn.dataset.db);
         });
 
-        window.deleteRecord = function (key) {
-            if (!confirm(`هل أنت متأكد من حذف هذا السجل؟`)) return;
+        $('refreshDbs').addEventListener('click', () => {
+            state.counts = {};
+            loadReferenceDatabases();
+        });
 
-            updateSyncStatus(true);
-            const recordRef = ref(db, `reference_data/${currentDbName}/${key}`);
-            remove(recordRef)
-                .then(() => {
-                    updateSyncStatus(false);
-                    showStatus(`✅ تم حذف السجل بنجاح!`, 'success');
-                    refreshData();
-                    resetSessionTimer();
-                })
-                .catch((err) => {
-                    updateSyncStatus(false);
-                    showStatus(`❌ خطأ: ${err.message}`, 'error');
-                });
-        };
+        $('tableBody').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-act]');
+            if (!btn) return;
+            const key = btn.dataset.key;
+            if (btn.dataset.act === 'edit') editRecordDialog(key);
+            else deleteRecordDialog(key);
+        });
 
-        // ==================== STATE VARIABLES ====================
-        let referenceDatabases = {};
-        let dbNames = [];
-        let currentDbName = '';
-        let currentDbData = {};
-        let currentDbKeys = [];
-        let displayLimit = 20;
-        let totalRecords = 0;
-        let modalMode = 'add';
-        let modalEditKey = '';
-        let anyUploadData = [];
-        let currentFields = [];
-        let currentDbPath = '';
-        let isUploadAnyMode = false;
-        let isUploading = false;
-        let filteredKeys = [];
-        let searchDebounceTimer = null;
+        $('loadMoreBtn').addEventListener('click', loadMore);
+        $('addBtn').addEventListener('click', addRecordDialog);
+        $('exportBtn').addEventListener('click', exportExcel);
 
-        // ==================== STATUS FUNCTIONS ====================
-        function showStatus(message, type = 'info') {
-            const div = document.getElementById('statusMessage');
-            div.textContent = message;
-            div.className = type;
-            div.style.display = 'block';
-            setTimeout(() => { div.style.display = 'none'; }, 5000);
-            resetSessionTimer();
-        }
+        $('reloadBtn').addEventListener('click', () => {
+            if (state.current) loadFirstPage();
+        });
 
-        function updateSyncStatus(isLoading = false) {
-            const status = document.getElementById('syncStatus');
-            status.textContent = isLoading ? '⏳ جاري الاتصال...' : '✅ متصل';
-            status.className = `sync-status ${isLoading ? 'loading' : ''}`;
-        }
+        /* Main search */
+        $('searchInput').addEventListener('input', onMainSearch);
+        $('clearSearch').addEventListener('click', () => {
+            $('searchInput').value = '';
+            state.searchQuery = '';
+            $('clearSearch').hidden = true;
+            renderTable();
+        });
 
-        const norm = v => String(v ?? '').trim();
+        /* Sub search (independent) */
+        $('subSearchInput').addEventListener('input', onSubSearch);
+        $('clearSubSearch').addEventListener('click', () => {
+            $('subSearchInput').value = '';
+            state.subSearchQuery = '';
+            $('clearSubSearch').hidden = true;
+            renderTable();
+        });
 
-        // Load databases on start
+        /* Upload wiring */
+        const dropzone = $('dropzone');
+        dropzone.addEventListener('click', () => $('fileInput').click());
+
+        ['dragenter', 'dragover'].forEach(ev =>
+            dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('over'); })
+        );
+        ['dragleave', 'drop'].forEach(ev =>
+            dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('over'); })
+        );
+        dropzone.addEventListener('drop', e => {
+            const f = e.dataTransfer.files[0];
+            if (f) handleFile(f);
+        });
+
+        $('fileInput').addEventListener('change', e => {
+            const f = e.target.files[0];
+            if (f) handleFile(f);
+        });
+
+        $('saveBtn').addEventListener('click', saveData);
+        $('clearBtn').addEventListener('click', resetUploadUI);
+
+        /* =========================================================
+           BOOT
+        ========================================================= */
         loadReferenceDatabases();
-
-        // Export functions globally
-        window.loadReferenceDatabases = loadReferenceDatabases;
-        window.selectDatabase = selectDatabase;
-        window.handleFileUpload = handleFileUpload;
-        window.saveToDatabaseOptimized = saveToDatabaseOptimized;
-        window.saveToDatabase = saveToDatabaseOptimized;
-        window.clearPreview = clearPreview;
-        window.loadMore = loadMore;
-        window.onSearch = onSearch;
-        window.clearSearch = clearSearch;
-        window.clearSubSearch = clearSubSearch;
-        window.refreshData = refreshData;
-        window.exportToExcel = exportToExcel;
-        window.openAddModalSwal = openAddModalSwal;
-        window.openEditModal = openEditModal;
-        window.saveModalData = saveModalData;
-        window.closeModal = closeModal;
-        window.deleteRecord = deleteRecord;
-        window.showUploadAnyContent = showUploadAnyContent;
-        window.handleAnyFileUpload = handleAnyFileUpload;
-        window.renderAnyUploadPreview = renderAnyUploadPreview;
-        window.saveAnyDataOptimized = saveAnyDataOptimized;
-        window.saveAnyData = saveAnyDataOptimized;
-        window.clearAnyUpload = clearAnyUpload;
     </script>
 </body>
 

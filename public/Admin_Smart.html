@@ -5,900 +5,1321 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - رفع واستعراض البيانات</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
+        :root {
+            --bg: #f4f6fb;
+            --surface: #ffffff;
+            --surface-2: #fafbfd;
+            --border: #e6eaf1;
+            --border-2: #eef1f6;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #64748b;
+            --muted-2: #94a3b8;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-soft: #eff4ff;
+            --success: #10b981;
+            --success-soft: #ecfdf5;
+            --danger: #ef4444;
+            --danger-soft: #fef2f2;
+            --warning: #f59e0b;
+            --warning-soft: #fffbeb;
+            --purple: #8b5cf6;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .04);
+            --shadow-md: 0 8px 26px -12px rgba(15, 23, 42, .28);
+        }
+
         * {
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        [hidden] {
+            display: none !important;
         }
 
         body {
-            background-color: #f4f6f9;
-            margin: 20px;
-            padding: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             direction: rtl;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* header with back button */
-        .page-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e2e8f0;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .page-header h2 {
-            margin: 0;
-            color: #333;
+        /* ========== TOPBAR ========== */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: linear-gradient(135deg, #111c33, #1e293b);
+            color: #fff;
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 6px;
+            z-index: 60;
+        }
+
+        .brand {
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 0;
         }
 
-        .page-header-actions {
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            flex: none;
+            border-radius: 10px;
+            background: var(--primary);
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            box-shadow: 0 6px 16px -6px var(--primary);
+        }
+
+        .brand h1 {
+            font-size: .95rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 46vw;
+        }
+
+        .brand .sub {
+            font-size: .72rem;
+            color: #94a3b8;
+        }
+
+        .topbar-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .btn-back {
-            background-color: #f59e0b;
-            color: white;
-            padding: 8px 18px;
-            border-radius: 8px;
-            text-decoration: none;
+        .chip {
+            font-size: .72rem;
+            padding: 4px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .12);
+            white-space: nowrap;
+            transition: .2s;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .chip.warn {
+            color: #fcd34d;
+            border-color: rgba(245, 158, 11, .35);
+            background: rgba(245, 158, 11, .12);
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background 0.2s;
             border: none;
-            cursor: pointer;
-        }
-
-        .btn-back:hover {
-            background-color: #d97706;
-        }
-
-        .session-timer {
-            color: #94a3b8;
-            font-size: 0.75rem;
-            padding: 4px 12px;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0 15px;
+            height: 38px;
+            font-size: .78rem;
             font-weight: 600;
-        }
-
-        .session-timer.warning {
-            color: #dc2626;
-            border-color: #fca5a5;
-            background: #fee2e2;
-        }
-
-        h3 {
-            color: #1e293b;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        input,
-        select,
-        button {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        button {
-            background-color: #2563eb;
-            color: white;
-            font-weight: bold;
-            border: none;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: .15s;
+            font-family: inherit;
+            white-space: nowrap;
+            line-height: 1;
         }
 
-        button:hover {
-            background-color: #1d4ed8;
-        }
-
-        button:disabled {
-            background-color: #cccccc;
+        .btn:disabled {
+            opacity: .5;
             cursor: not-allowed;
-        }
-
-        .btn-success {
-            background-color: #10b981;
-        }
-
-        .btn-success:hover {
-            background-color: #059669;
-        }
-
-        .btn-success:disabled {
-            background-color: #6ee7b7;
-            cursor: not-allowed;
-        }
-
-        .btn-danger {
-            background-color: #dc2626;
-        }
-
-        .btn-danger:hover {
-            background-color: #b91c1c;
-        }
-
-        .btn-secondary {
-            background-color: #64748b;
-        }
-
-        .btn-secondary:hover {
-            background-color: #475569;
         }
 
         .btn-primary {
-            background-color: #2563eb;
+            background: var(--primary);
+            color: #fff;
         }
 
-        .btn-primary:hover {
-            background-color: #1d4ed8;
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
         }
 
         .btn-warning {
-            background-color: #f59e0b;
-            color: white;
+            background: var(--warning);
+            color: #fff;
         }
 
-        .btn-warning:hover {
-            background-color: #d97706;
+        .btn-warning:hover:not(:disabled) {
+            background: #d97706;
+        }
+
+        .btn-ghost {
+            background: var(--surface);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .btn-top {
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+
+        .btn-top:hover {
+            background: rgba(255, 255, 255, .2);
         }
 
         .btn-sm {
-            padding: 6px 14px;
-            font-size: 12px;
-            width: auto;
-            border-radius: 6px;
-            display: inline-flex;
+            padding: 0 12px;
+            height: 32px;
+            font-size: .72rem;
+            border-radius: 8px;
+        }
+
+        .btn-xs {
+            padding: 0 10px;
+            height: 26px;
+            font-size: .68rem;
+            border-radius: 7px;
+            gap: 4px;
+        }
+
+        .icon-btn {
+            display: inline-grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--muted);
+            cursor: pointer;
+            transition: .15s;
+            font-size: .76rem;
+            font-family: inherit;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .icon-btn.edit {
+            color: var(--warning);
+        }
+
+        .icon-btn.edit:hover {
+            background: var(--warning-soft);
+            border-color: #fde68a;
+        }
+
+        .icon-btn.delete {
+            color: var(--danger);
+        }
+
+        .icon-btn.delete:hover {
+            background: var(--danger-soft);
+            border-color: #fecaca;
+        }
+
+        /* ========== CARDS ========== */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-2);
+            background: var(--surface-2);
+        }
+
+        .card-head h2 {
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-head h2 i {
+            color: var(--primary);
+            font-size: .9rem;
+        }
+
+        .card-head.danger h2 i {
+            color: var(--danger);
+        }
+
+        .card-head.danger {
+            background: #fff5f5;
+            border-bottom-color: #fee2e2;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* ========== TOOLBAR ========== */
+        .toolbar {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar .grow {
+            flex: 1;
+            min-width: 240px;
+        }
+
+        /* ========== FORM ========== */
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .field label {
+            font-size: .74rem;
+            font-weight: 700;
+            color: var(--text-2);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .field label i {
+            color: var(--muted);
+            font-size: .7rem;
+        }
+
+        .field label .req {
+            color: var(--danger);
+            font-size: .8rem;
+        }
+
+        .input,
+        .field input[type="text"],
+        .field select {
+            width: 100%;
+            height: 38px;
+            padding: 0 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            font-size: .8rem;
+            outline: none;
+            transition: .15s;
+            font-family: inherit;
+            color: var(--text);
+        }
+
+        .field input[type="file"] {
+            width: 100%;
+            height: 38px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            font-size: .76rem;
+            outline: none;
+            font-family: inherit;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+
+        .field .hint {
+            font-size: .68rem;
+            color: var(--muted);
+            display: flex;
             align-items: center;
             gap: 4px;
         }
 
-        .btn-sm i {
-            font-size: 11px;
+        .field .hint i {
+            font-size: .62rem;
         }
 
-        .btn-delete {
-            background-color: #dc2626;
-            color: white;
+        /* ========== MODERN SECTOR SELECT ========== */
+        .sector-picker {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
         }
 
-        .btn-delete:hover {
-            background-color: #b91c1c;
+        .sector-picker>label {
+            font-size: .78rem;
+            font-weight: 700;
+            color: var(--text-2);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex: 0 0 auto;
+            padding: 0;
+            margin: 0;
         }
 
-        .btn-delete:disabled {
-            background-color: #fca5a5;
-            cursor: not-allowed;
+        .sector-picker>label i {
+            color: var(--primary);
+            font-size: .85rem;
         }
 
-        .table-container {
-            margin-top: 15px;
-            overflow-x: auto;
-            max-height: 600px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .select-wrap {
+            position: relative;
+            display: flex;
+            flex: 1 1 300px;
+            min-width: 240px;
+            width: 100%;
+        }
+
+        .select-wrap .select-arrow {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: .8rem;
+            pointer-events: none;
+            z-index: 2;
+            transition: transform .2s;
+        }
+
+        .select-wrap:focus-within .select-arrow {
+            transform: translateY(-50%) rotate(180deg);
+            color: var(--primary);
+        }
+
+        .select-modern {
+            width: 100%;
+            height: 54px;
+            padding: 0 22px 0 52px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            font-size: .9rem;
+            font-weight: 600;
+            color: var(--text);
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            transition: .18s;
+            font-family: inherit;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+        }
+
+        .select-modern:hover {
+            border-color: #c7d7ff;
+            background: var(--primary-soft);
+        }
+
+        .select-modern:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+        .select-modern option {
+            font-size: .88rem;
+            padding: 10px;
+            font-family: inherit;
+        }
+
+        /* ========== STATUS ========== */
+        .status {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: .78rem;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status.show {
+            display: flex;
+        }
+
+        .status.success {
+            background: var(--success-soft);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            background: var(--danger-soft);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status.info {
+            background: var(--primary-soft);
+            color: var(--primary);
+            border: 1px solid #c7d7ff;
+        }
+
+        .status.warning {
+            background: var(--warning-soft);
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .status.loading {
+            background: #e0e7ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+
+        /* ========== PROGRESS ========== */
+        .progress {
+            height: 8px;
+            background: var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width .3s;
+            border-radius: 999px;
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #f87171);
+        }
+
+        /* ========== TABLE ========== */
+        .table-wrap {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: auto;
+            max-height: 62vh;
+            background: var(--surface);
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: .76rem;
         }
 
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 8px 12px;
-            text-align: right;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            color: #333;
+        thead th {
             position: sticky;
             top: 0;
-            z-index: 10;
+            z-index: 2;
+            background: var(--surface-2);
+            color: #475569;
+            font-weight: 700;
+            text-align: right;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            font-size: .72rem;
+            letter-spacing: .3px;
+        }
+
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-2);
+            text-align: right;
+            vertical-align: top;
+            color: var(--text-2);
+        }
+
+        tbody tr {
+            content-visibility: auto;
+            contain-intrinsic-size: 52px;
+            transition: background .12s;
+        }
+
+        tbody tr:hover {
+            background: #fbfcfe;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr.edit-mode {
+            background: var(--warning-soft);
+        }
+
+        tbody tr.edit-mode td {
+            background: var(--warning-soft);
+        }
+
+        tbody tr.internal-duplicate-row {
+            background: var(--danger-soft);
+        }
+
+        tbody tr.internal-duplicate-row td {
+            background: var(--danger-soft);
+        }
+
+        td.code-cell {
+            font-family: ui-monospace, 'SF Mono', 'Consolas', monospace;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--text);
+            width: 90px;
+        }
+
+        td.code-cell .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 24px;
+            padding: 0 8px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            border-radius: 6px;
+            font-size: .72rem;
+        }
+
+        td.name-cell {
+            font-weight: 600;
+            color: var(--text);
+            font-size: .8rem;
+            width: 200px;
+            white-space: nowrap;
+        }
+
+        td.pw-cell {
+            vertical-align: top;
+        }
+
+        td.actions-cell {
+            width: 92px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        td.actions-cell .row-actions {
+            display: inline-flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .empty-cell,
+        .loading-cell {
+            text-align: center;
+            padding: 40px 12px;
+            color: var(--muted);
+            font-size: .82rem;
+        }
+
+        /* ============ PASSWORDS BLOCK (side by side) ============ */
+        .pw-block {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 20px;
+            max-width: 100%;
+        }
+
+        .pw-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+            max-width: 100%;
+        }
+
+        .pw-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .68rem;
+            font-weight: 700;
+            padding: 0 8px;
+            height: 22px;
+            border-radius: 5px;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .pw-label.lab {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .pw-label.eng {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .pw-label.admin {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .pw-list {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            flex: 0 1 auto;
+            max-width: 100%;
+        }
+
+        .pw-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0 9px;
+            height: 22px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-family: ui-monospace, 'SF Mono', monospace;
+            font-size: .68rem;
+            color: var(--text-2);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pw-empty {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .68rem;
+            color: var(--muted);
+            height: 22px;
+            padding: 0 4px;
+            font-weight: 500;
+        }
+
+        .pw-empty i {
+            color: var(--danger);
+            font-size: .68rem;
+        }
+
+        .pw-denied {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 10px;
+            height: 24px;
+            background: var(--danger-soft);
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            color: #991b1b;
+            font-size: .7rem;
             font-weight: 700;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
+        .pw-denied i {
+            font-size: .68rem;
         }
 
-        .upload-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
-        .delete-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            align-items: end;
-        }
-
-        .align-end {
-            display: flex;
-            align-items: flex-end;
-        }
-
-        .full-width {
-            width: 100%;
-        }
-
-        .auth-table th {
-            position: sticky;
-            right: 0;
-            background: #f1f5f9;
-            z-index: 11;
-        }
-
-        .auth-table th.code-column {
-            width: 100px;
-        }
-
-        .auth-table th.password-column {
-            width: 350px;
-        }
-
-        .auth-table th.actions-column {
-            width: 180px;
-        }
-
-        .empty-table-cell {
-            text-align: center;
-            color: #94a3b8;
-            padding: 30px;
-        }
-
-        .loading-table-cell {
-            text-align: center;
-            color: #94a3b8;
-            padding: 20px;
-        }
-
-        .delete-warning {
-            color: #991b1b;
-            font-size: 13px;
-            margin-bottom: 15px;
-        }
-
-        .field-hint {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .duplicate-content {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .duplicate-icon-large {
-            font-size: 1.5rem;
-        }
-
-        .duplicate-icon {
-            font-size: 1.2rem;
-        }
-
-        .internal-duplicate-list,
-        .internal-duplicate-note {
-            font-size: 13px;
-            color: #991b1b;
-            margin-top: 4px;
-        }
-
-        .internal-duplicate-note {
-            font-size: 12px;
-        }
-
-        .warning-duplicate-list {
-            font-size: 13px;
-            color: #92400e;
-            margin-top: 4px;
-        }
-
-        .compact-actions {
-            margin-top: 10px;
-        }
-
-        .auto-width {
-            width: auto;
-        }
-
-        .upload-status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .upload-preview {
-            display: none;
-        }
-
-        .upload-preview-table {
-            max-height: 200px;
-            margin-top: 10px;
-        }
-
+        /* ========== EDIT CONTAINER ========== */
         .edit-container {
-            display: none;
-            margin-top: 5px;
+            margin-top: 8px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            box-shadow: inset 0 1px 2px rgba(245, 158, 11, .06);
+            max-width: 480px;
+            flex-basis: 100%;
         }
 
         .edit-field {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
-        .edit-label {
-            font-size: 12px;
-            margin-bottom: 2px;
+        .edit-field:last-of-type {
+            margin-bottom: 10px;
         }
 
-        .edit-action {
-            margin-top: 3px;
-        }
-
-        .delete-action {
-            margin-right: 5px;
-        }
-
-        .action-btns {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .action-btns button {
-            width: auto;
-            padding: 10px 24px;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-
-        .badge-green {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-red {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge-yellow {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-blue {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-
-        .user-tag {
-            background: #dbeafe;
-            color: #1d4ed8;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            display: inline-block;
-            margin: 2px;
-        }
-
-        .type-group {
-            margin-bottom: 6px;
-        }
-
-        .type-title {
-            font-weight: bold;
-            color: #1e293b;
-            font-size: 12px;
-            display: inline-block;
-            margin-left: 6px;
-        }
-
-        .edit-mode {
-            background-color: #fef3c7 !important;
-        }
-
-        .edit-mode td {
-            background-color: #fef3c7 !important;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #e2e8f0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-            display: none;
-        }
-
-        .progress-bar .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #2563eb);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            width: 0%;
+        .edit-field label {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .progress-bar .progress-fill.danger {
-            background: linear-gradient(90deg, #dc2626, #ef4444);
-        }
-
-        .section-divider {
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
-
-        .status-msg {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-            font-size: 13px;
-        }
-
-        .status-msg.success {
-            display: block;
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-msg.error {
-            display: block;
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .status-msg.info {
-            display: block;
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-
-        .status-msg.warning {
-            display: block;
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-msg.loading {
-            display: block;
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-
-        .edit-input {
-            padding: 4px 8px;
-            border: 2px solid #f59e0b;
-            border-radius: 4px;
-            font-size: 12px;
-            width: 140px;
-            background: white;
+            gap: 5px;
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--text-2);
             margin-bottom: 4px;
         }
 
-        .edit-input:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .duplicate-warning {
-            background: #fef3c7;
-            border: 2px solid #f59e0b;
-            padding: 15px;
+        .edit-input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            margin: 10px 0;
+            font-size: .76rem;
+            outline: none;
+            font-family: ui-monospace, monospace;
+            background: #fff;
+        }
+
+        .edit-input:focus {
+            border-color: var(--warning);
+            box-shadow: 0 0 0 3px var(--warning-soft);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* ========== WARNINGS ========== */
+        .warning-box {
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-top: 12px;
             display: none;
+            border: 1px solid;
         }
 
-        .duplicate-warning .count {
-            font-size: 1.5rem;
+        .warning-box.show {
+            display: block;
+        }
+
+        .warning-box.internal {
+            background: var(--danger-soft);
+            border-color: #fecaca;
+        }
+
+        .warning-box.external {
+            background: var(--warning-soft);
+            border-color: #fde68a;
+        }
+
+        .warning-box .title {
             font-weight: 700;
-            color: #92400e;
+            font-size: .84rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
-        .duplicate-warning.internal {
-            border-color: #dc2626;
-            background: #fee2e2;
-        }
-
-        .duplicate-warning.internal .count {
+        .warning-box.internal .title {
             color: #991b1b;
         }
 
-        .checking-spinner {
+        .warning-box.external .title {
+            color: #92400e;
+        }
+
+        .warning-box .count {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin: 0 3px;
+        }
+
+        .warning-box .note {
+            font-size: .72rem;
+            margin-top: 6px;
+            padding: 6px 9px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, .5);
+        }
+
+        .warning-box .keys {
+            font-size: .72rem;
+            margin-top: 5px;
+            font-family: ui-monospace, monospace;
+            color: var(--text-2);
+            word-break: break-word;
+        }
+
+        .warning-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* ========== STATS ROW ========== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-box .label {
+            font-size: .68rem;
+            color: var(--muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-box .label i {
+            font-size: .62rem;
+        }
+
+        .stat-box .value {
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-box.danger .value {
+            color: var(--danger);
+        }
+
+        .stat-box.primary .value {
+            color: var(--primary);
+        }
+
+        /* ========== SPINNER ========== */
+        .spinner {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #e2e8f0;
-            border-top: 2px solid #2563eb;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(37, 99, 235, .2);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 8px;
+            animation: spin .7s linear infinite;
+            margin-left: 4px;
+            flex: none;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
 
-        .internal-duplicate-row {
-            background-color: #fee2e2 !important;
+        /* ========== PREVIEW ========== */
+        .preview-wrap {
+            margin-top: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
         }
 
-        .internal-duplicate-row td {
-            background-color: #fee2e2 !important;
-        }
-
-        .actions-cell {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .actions-cell .btn-sm {
-            font-size: 11px;
-            padding: 5px 12px;
-            min-width: 60px;
-            justify-content: center;
-        }
-
-        /* Delete section styles */
-        .delete-section {
-            background: #fef2f2;
-            border: 2px solid #fca5a5;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .delete-section h3 {
-            color: #991b1b;
-        }
-
-        .delete-section .form-group label {
-            color: #991b1b;
-        }
-
-        .delete-stats {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            margin-top: 10px;
-        }
-
-        .delete-stats .stat-item {
+        .preview-head {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 8px;
-            font-size: 13px;
-        }
-
-        .delete-stats .stat-item .value {
+            padding: 9px 14px;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border-2);
+            font-size: .74rem;
             font-weight: 700;
-            font-size: 16px;
+            color: var(--text-2);
         }
 
-        .delete-stats .stat-item .value.danger {
-            color: #dc2626;
+        .preview-head .meta {
+            font-weight: 500;
+            color: var(--muted);
         }
 
-        .delete-stats .stat-item .value.success {
-            color: #10b981;
+        .preview-wrap .table-wrap {
+            border: none;
+            border-radius: 0;
+            max-height: 280px;
         }
 
-        @media (max-width: 768px) {
+        /* ========== GRID ========== */
+        .grid-4 {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(4, 1fr);
+        }
 
-            .form-row,
-            .upload-form-row,
-            .delete-form-row {
-                grid-template-columns: 1fr;
+        /* ========== BANNER ========== */
+        .banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--danger-soft);
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            color: #991b1b;
+            font-size: .76rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .banner i {
+            font-size: .9rem;
+            flex: none;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1100px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 8px;
             }
 
-            .action-btns button {
-                width: 100%;
+            .brand h1 {
+                font-size: .82rem;
+                max-width: 60vw;
             }
 
-            .page-header {
+            .topbar {
+                position: static;
+            }
+
+            .toolbar {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .page-header-actions {
-                justify-content: flex-start;
+            .toolbar .btn {
+                width: 100%;
+            }
+
+            .toolbar .grow {
+                width: 100%;
+            }
+
+            .warning-actions .btn {
+                flex: 1;
+            }
+
+            .select-wrap {
+                flex-basis: 100%;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .grid-4 {
+                grid-template-columns: 1fr;
             }
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-    </script>
 </head>
 
 <body>
-
     <div class="container">
-        <!-- Header with Back Button -->
-        <div class="page-header">
-            <h2><i class="fas fa-cog"></i> Admin - رفع واستعراض البيانات</h2>
-            <div class="page-header-actions">
-                <span id="sessionTimer" class="session-timer">⏱️ 5:00</span>
-                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
+
+        <!-- ============ TOPBAR ============ -->
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon"><i class="fas fa-cog"></i></div>
+                <div>
+                    <h1>Admin - رفع واستعراض البيانات</h1>
+                    <span class="sub">إدارة الصلاحيات، حذف السجلات، ورفع ملفات Excel</span>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <span id="sessionTimer" class="chip">5:00</span>
+                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn btn-top btn-sm">
                     <i class="fas fa-arrow-right"></i> رجوع
                 </a>
             </div>
-        </div>
+        </header>
 
-        <!-- ==================== قسم استعراض بيانات الصلاحيات ==================== -->
-        <div class="section-divider">
-            <h3><i class="fas fa-lock"></i> استعراض وتعديل صلاحيات المستخدمين</h3>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="sectorSelect">اختر القطاع:</label>
-                    <select id="sectorSelect">
-                        <option value="1">قطاع دمياط</option>
-                        <option value="3">قطاع شمال الدقهلية</option>
-                        <option value="4">قطاع جنوب الدقهلية</option>
-                        <option value="2">قطاع كفر الشيخ</option>
-                        <option value="admin">Admin (صلاحيات كاملة)</option>
-                    </select>
-                </div>
-                <div class="form-group align-end">
-                    <button class="btn-primary full-width" id="btnFetchAuth">
-                        <i class="fas fa-sync-alt"></i> جلب الصلاحيات
-                    </button>
-                </div>
+        <!-- ============ 1. AUTH SECTION ============ -->
+        <section class="card">
+            <div class="card-head">
+                <h2><i class="fas fa-lock"></i> استعراض وتعديل صلاحيات المستخدمين</h2>
             </div>
+            <div class="card-body">
 
-            <div id="authStatus" class="status-msg"></div>
-
-            <div class="table-container" id="authTableContainer">
-                <table id="authTable" class="auth-table">
-                    <thead>
-                        <tr>
-                            <th class="code-column">Handsa Code</th>
-                            <th>Handsa Name</th>
-                            <th class="password-column">كلمات المرور حسب جهة الدخول</th>
-                            <th class="actions-column">الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="authBody">
-                        <tr>
-                            <td colspan="4" class="empty-table-cell">اختر قطاع واضغط "جلب الصلاحيات"</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ==================== حذف البيانات حسب مرجع الرفع ==================== -->
-        <div class="delete-section">
-            <h3><i class="fas fa-trash-alt"></i> حذف البيانات حسب مرجع الرفع</h3>
-            <p class="delete-warning">
-                <i class="fas fa-exclamation-triangle"></i> سيتم حذف جميع السجلات التي تحمل مرجع الرفع المحدد.
-            </p>
-
-            <div class="delete-form-row">
-                <div class="form-group">
-                    <label for="deleteDateSelect">اختر مرجع الرفع:</label>
-                    <select id="deleteDateSelect">
-                        <option value="">-- جاري تحميل المراجع --</option>
-                    </select>
-                    <div class="field-hint">
-                        <i class="fas fa-list"></i> هذه القائمة تعرض النصوص المستخدمة عند الرفع
+                <!-- Modern sector picker (no button — auto loads on change) -->
+                <div class="sector-picker">
+                    <label for="sectorSelect">
+                        <i class="fas fa-layer-group"></i>
+                        اختر القطاع لعرض الصلاحيات
+                    </label>
+                    <div class="select-wrap">
+                        <select id="sectorSelect" class="select-modern">
+                            <option value="1">قطاع دمياط</option>
+                            <option value="3">قطاع شمال الدقهلية</option>
+                            <option value="4">قطاع جنوب الدقهلية</option>
+                            <option value="2">قطاع كفر الشيخ</option>
+                            <option value="admin">Admin (صلاحيات كاملة)</option>
+                        </select>
+                        <i class="fas fa-chevron-down select-arrow"></i>
                     </div>
                 </div>
-                <div class="form-group align-end">
-                    <button class="btn btn-secondary full-width" id="btnLoadDeleteDates">
-                        <i class="fas fa-sync-alt"></i> تحديث القائمة
-                    </button>
-                </div>
-                <div class="form-group align-end">
-                    <button class="btn btn-secondary full-width" id="btnPreviewDeleteDate">
-                        <i class="fas fa-search"></i> معاينة المرجع
-                    </button>
-                </div>
-                <div class="form-group align-end">
-                    <button class="btn btn-danger full-width" id="btnDeleteByDate" disabled>
-                        <i class="fas fa-trash"></i> حذف البيانات
-                    </button>
-                </div>
-            </div>
 
-            <div id="deleteStats" class="delete-stats hidden">
-                <div class="stat-item">المرجع المحدد: <span class="value" id="selectedDeleteDate">-</span></div>
-                <div class="stat-item">عدد السجلات: <span class="value danger" id="deleteRecordsCount">0</span></div>
-                <div class="stat-item">عدد القطاعات: <span class="value" id="deleteSectorsCount">0</span></div>
-                <div class="stat-item">عدد الهندسات: <span class="value" id="deleteDistrictsCount">0</span></div>
-            </div>
-            <div id="deleteStatus" class="status-msg"></div>
-            <div id="deleteProgress" class="progress-bar">
-                <div class="progress-fill danger" id="deleteProgressFill">0%</div>
-            </div>
-        </div>
+                <div id="authStatus" class="status"></div>
 
-        <!-- ==================== قسم رفع البيانات ==================== -->
-        <div>
-            <h3><i class="fas fa-file-upload"></i> رفع بيانات الإكسيل</h3>
-
-            <div class="upload-form-row">
-                <div class="form-group">
-                    <label for="excelFile">اختر ملف الإكسيل:</label>
-                    <input type="file" id="excelFile" accept=".xlsx, .xls" />
-                </div>
-                <div class="form-group">
-                    <label for="uploadKey">المفتاح لتجنب التكرار:</label>
-                    <select id="uploadKey">
-                        <option value="meter_number">meter_number</option>
-                        <option value="sim_number">sim_number</option>
-                    </select>
-                    <div class="field-hint">
-                        <i class="fas fa-info-circle"></i> سيتم التحقق من التكرار بناءً على هذا المفتاح
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="uploadDate">مرجع الرفع:</label>
-                    <input type="text" id="uploadDate" placeholder="أدخل نص مرجع الرفع" />
-                    <div class="field-hint">
-                        <i class="fas fa-tag"></i> أدخل أي نص لتمييز عملية الرفع
-                    </div>
-                </div>
-            </div>
-
-            <!-- Internal Duplicates Warning -->
-            <div id="internalDuplicateWarning" class="duplicate-warning internal hidden">
-                <div class="duplicate-content">
-                    <span class="duplicate-icon-large">🚫</span>
-                    <div>
-                        <strong>⚠️ تم العثور على <span class="count" id="internalDuplicateCount">0</span> سجل مكرر داخل
-                            الملف</strong>
-                        <div class="internal-duplicate-list" id="internalDuplicateList"></div>
-                        <div class="internal-duplicate-note">
-                            <strong>ملاحظة:</strong> يجب إزالة المكررات من الملف قبل الرفع، أو اختيار مفتاح تكرار مختلف.
-                        </div>
-                    </div>
-                </div>
-                <div class="action-btns compact-actions">
-                    <button class="btn btn-danger btn-sm auto-width" id="btnCancelUploadInternal">
-                        <i class="fas fa-times"></i> إلغاء الرفع
-                    </button>
-                    <button class="btn btn-warning btn-sm auto-width" id="btnUploadWithInternalDuplicates">
-                        <i class="fas fa-exclamation-triangle"></i> الرفع مع السماح بالتكرار
-                    </button>
-                </div>
-            </div>
-
-            <!-- External Duplicates Warning -->
-            <div id="externalDuplicateWarning" class="duplicate-warning hidden">
-                <div class="duplicate-content">
-                    <span class="duplicate-icon">⚠️</span>
-                    <div>
-                        <strong>تم العثور على <span class="count" id="externalDuplicateCount">0</span> سجل مكرر في قاعدة
-                            البيانات</strong>
-                        <div class="warning-duplicate-list" id="externalDuplicateList"></div>
-                    </div>
-                </div>
-                <div class="action-btns compact-actions">
-                    <button class="btn btn-success btn-sm auto-width" id="btnUploadDuplicates">
-                        <i class="fas fa-cloud-upload-alt"></i> رفع المكررات (استبدال)
-                    </button>
-                    <button class="btn btn-secondary btn-sm auto-width" id="btnSkipDuplicates">
-                        <i class="fas fa-skip"></i> تخطي المكررات
-                    </button>
-                    <button class="btn btn-danger btn-sm auto-width" id="btnCancelUpload">
-                        <i class="fas fa-times"></i> إلغاء
-                    </button>
-                </div>
-            </div>
-
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill">0%</div>
-            </div>
-
-            <div id="uploadStatus" class="upload-status"></div>
-
-            <div id="uploadPreviewArea" class="upload-preview">
-                <div class="action-btns">
-                    <button class="btn btn-success" id="btnUploadConfirm" disabled><i
-                            class="fas fa-cloud-upload-alt"></i> تأكيد الرفع</button>
-                    <button class="btn btn-secondary" id="btnCancelUploadPreview"><i class="fas fa-times"></i>
-                        إلغاء</button>
-                </div>
-                <div class="table-container upload-preview-table">
+                <div class="table-wrap" style="max-height:520px">
                     <table>
                         <thead>
-                            <tr id="uploadHeader"></tr>
+                            <tr>
+                                <th style="width:90px">الكود</th>
+                                <th style="width:200px">الهندسة</th>
+                                <th>كلمات المرور حسب جهة الدخول</th>
+                                <th style="width:90px; text-align:center">إجراءات</th>
+                            </tr>
                         </thead>
-                        <tbody id="uploadBody"></tbody>
+                        <tbody id="authBody">
+                            <tr>
+                                <td colspan="4" class="empty-cell">
+                                    <i class="fas fa-info-circle"
+                                        style="opacity:.4; font-size:1.2rem; margin-bottom:6px; display:block"></i>
+                                    اختر قطاعاً من القائمة لعرض الصلاحيات
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- ============ 2. DELETE SECTION ============ -->
+        <section class="card">
+            <div class="card-head danger">
+                <h2><i class="fas fa-trash-alt"></i> حذف البيانات حسب مرجع الرفع</h2>
+            </div>
+            <div class="card-body">
+                <div class="banner">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span>سيتم حذف جميع السجلات التي تحمل مرجع الرفع المحدد. لا يمكن التراجع عن هذا الإجراء.</span>
+                </div>
+
+                <div class="toolbar">
+                    <div class="field grow">
+                        <label><i class="fas fa-tag"></i> مرجع الرفع</label>
+                        <select id="deleteDateSelect">
+                            <option value="">— جاري تحميل المراجع —</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-ghost" id="btnLoadDeleteDates">
+                        <i class="fas fa-sync-alt"></i> تحديث القائمة
+                    </button>
+                    <button class="btn btn-ghost" id="btnPreviewDeleteDate">
+                        <i class="fas fa-search"></i> معاينة
+                    </button>
+                    <button class="btn btn-danger" id="btnDeleteByDate" disabled>
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </div>
+
+                <div id="deleteStats" class="stats-row" hidden>
+                    <div class="stat-box primary">
+                        <span class="label"><i class="fas fa-tag"></i> المرجع المحدد</span>
+                        <span class="value" id="selectedDeleteDate" style="font-size:.85rem">-</span>
+                    </div>
+                    <div class="stat-box danger">
+                        <span class="label"><i class="fas fa-file-lines"></i> عدد السجلات</span>
+                        <span class="value" id="deleteRecordsCount">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label"><i class="fas fa-layer-group"></i> القطاعات</span>
+                        <span class="value" id="deleteSectorsCount">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label"><i class="fas fa-building"></i> الهندسات</span>
+                        <span class="value" id="deleteDistrictsCount">0</span>
+                    </div>
+                </div>
+
+                <div id="deleteStatus" class="status"></div>
+                <div class="progress" id="deleteProgress" hidden>
+                    <div class="progress-fill danger" id="deleteProgressFill"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 3. UPLOAD SECTION ============ -->
+        <section class="card">
+            <div class="card-head">
+                <h2><i class="fas fa-file-upload"></i> رفع بيانات Excel</h2>
+            </div>
+            <div class="card-body">
+                <div class="grid-4">
+                    <div class="field">
+                        <label><i class="fas fa-file-excel"></i> اختر ملف Excel</label>
+                        <input type="file" id="excelFile" accept=".xlsx, .xls">
+                    </div>
+                    <div class="field">
+                        <label><i class="fas fa-key"></i> مفتاح منع التكرار</label>
+                        <select id="uploadKey">
+                            <option value="meter_number">meter_number</option>
+                            <option value="sim_number">sim_number</option>
+                        </select>
+                        <span class="hint"><i class="fas fa-info-circle"></i> التحقق بناءً على هذا الحقل</span>
+                    </div>
+                    <div class="field" style="grid-column: span 2">
+                        <label><i class="fas fa-tag"></i> مرجع الرفع <span class="req">*</span></label>
+                        <input type="text" id="uploadDate" placeholder="مثال: يناير 2025 - دفعة أولى">
+                        <span class="hint"><i class="fas fa-info-circle"></i> سيُستخدم هذا النص لاحقاً للحذف أو
+                            الفلترة</span>
+                    </div>
+                </div>
+
+                <div id="internalDuplicateWarning" class="warning-box internal">
+                    <div class="title">
+                        <span>🚫</span>
+                        <span>تم العثور على <span class="count" id="internalDuplicateCount">0</span> سجل مكرر داخل
+                            الملف</span>
+                    </div>
+                    <div class="keys" id="internalDuplicateList"></div>
+                    <div class="note">
+                        <strong>ملاحظة:</strong> يُفضّل إزالة المكررات من الملف قبل الرفع، أو اختيار مفتاح تكرار مختلف.
+                    </div>
+                    <div class="warning-actions">
+                        <button class="btn btn-danger btn-sm" id="btnCancelUploadInternal">
+                            <i class="fas fa-times"></i> إلغاء
+                        </button>
+                        <button class="btn btn-warning btn-sm" id="btnUploadWithInternalDuplicates">
+                            <i class="fas fa-triangle-exclamation"></i> المتابعة رغم التكرار
+                        </button>
+                    </div>
+                </div>
+
+                <div id="externalDuplicateWarning" class="warning-box external">
+                    <div class="title">
+                        <span>⚠️</span>
+                        <span>تم العثور على <span class="count" id="externalDuplicateCount">0</span> سجل مكرر في قاعدة
+                            البيانات</span>
+                    </div>
+                    <div class="keys" id="externalDuplicateList"></div>
+                    <div class="warning-actions">
+                        <button class="btn btn-success btn-sm" id="btnUploadDuplicates">
+                            <i class="fas fa-cloud-upload-alt"></i> رفع المكررات (استبدال)
+                        </button>
+                        <button class="btn btn-ghost btn-sm" id="btnSkipDuplicates">
+                            <i class="fas fa-forward"></i> تخطي المكررات
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="btnCancelUpload">
+                            <i class="fas fa-times"></i> إلغاء
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress" id="progressBar" hidden>
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div id="uploadStatus" class="status"></div>
+
+                <div id="uploadPreviewArea" hidden>
+                    <div class="preview-wrap">
+                        <div class="preview-head">
+                            <span><i class="fas fa-table"></i> معاينة أول 10 صفوف</span>
+                            <span class="meta" id="uploadPreviewMeta"></span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr id="uploadHeader"></tr>
+                                </thead>
+                                <tbody id="uploadBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                        <button class="btn btn-success" id="btnUploadConfirm" disabled>
+                            <i class="fas fa-cloud-upload-alt"></i> تأكيد الرفع
+                        </button>
+                        <button class="btn btn-ghost" id="btnCancelUploadPreview">
+                            <i class="fas fa-times"></i> إلغاء
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, get, set, remove, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Firebase Configuration
+        /* ============ FIREBASE ============ */
         const firebaseConfig = {
             apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
             authDomain: "trial-85.firebaseapp.com",
@@ -913,59 +1334,61 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Keep input clear
-        const uploadDateInput = document.getElementById('uploadDate');
-        if (uploadDateInput) {
-            uploadDateInput.value = '';
+        /* ============ HELPERS ============ */
+        const $ = id => document.getElementById(id);
+        const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+        const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]);
+
+        function showStatus(msg, type, targetId) {
+            const el = $(targetId);
+            if (!el) return;
+            el.innerHTML = msg;
+            el.className = `status show ${type}`;
+            clearTimeout(el._t);
+            el._t = setTimeout(() => { el.className = 'status'; }, 5500);
         }
 
-        // ==================== SESSION TIMER (5 minutes) ====================
-        let sessionTimeout = null;
-        let sessionTimerInterval = null;
-        let sessionTimeLeft = 300; // 5 minutes in seconds
-
-        function resetSessionTimer() {
-            sessionTimeLeft = 300;
-            updateTimerDisplay();
-            clearTimeout(sessionTimeout);
-            clearInterval(sessionTimerInterval);
-            startSessionTimer();
+        function showProgress(barId, fillId, pct, danger = false) {
+            const bar = $(barId), fill = $(fillId);
+            if (!bar || !fill) return;
+            bar.hidden = false;
+            fill.classList.toggle('danger', danger);
+            fill.style.width = `${pct}%`;
         }
 
-        function startSessionTimer() {
-            sessionTimerInterval = setInterval(() => {
-                sessionTimeLeft--;
-                updateTimerDisplay();
-                if (sessionTimeLeft <= 0) {
-                    clearInterval(sessionTimerInterval);
-                    clearTimeout(sessionTimeout);
-                    window.location.href = 'login_Smart.html';
-                }
-            }, 1000);
+        function hideProgress(barId) {
+            setTimeout(() => { const el = $(barId); if (el) el.hidden = true; }, 800);
         }
 
-        function updateTimerDisplay() {
-            const timerEl = document.getElementById('sessionTimer');
-            if (timerEl) {
-                const minutes = Math.floor(sessionTimeLeft / 60);
-                const seconds = sessionTimeLeft % 60;
-                timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                if (sessionTimeLeft <= 60) {
-                    timerEl.classList.add('warning');
-                } else {
-                    timerEl.classList.remove('warning');
-                }
+        /* ============ SESSION TIMER (passive) ============ */
+        const SESSION_MS = 5 * 60 * 1000;
+        let lastActivity = Date.now();
+        const touch = () => { lastActivity = Date.now(); };
+
+        ['click', 'keydown', 'scroll', 'touchstart', 'pointerdown'].forEach(ev =>
+            document.addEventListener(ev, touch, { passive: true })
+        );
+
+        let sessionDead = false;
+        setInterval(() => {
+            if (sessionDead) return;
+            const left = Math.max(0, SESSION_MS - (Date.now() - lastActivity));
+            const m = Math.floor(left / 60000);
+            const s = Math.floor((left % 60000) / 1000);
+            const el = $('sessionTimer');
+            if (el) {
+                el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+                el.classList.toggle('warn', left <= 60000);
             }
-        }
+            if (left <= 0) {
+                sessionDead = true;
+                window.location.href = 'login_Smart.html';
+            }
+        }, 1000);
 
-        document.addEventListener('click', resetSessionTimer);
-        document.addEventListener('keydown', resetSessionTimer);
-        document.addEventListener('mousemove', resetSessionTimer);
-        document.addEventListener('scroll', resetSessionTimer);
-
-        startSessionTimer();
-
-        // ==================== District Names Mapping ====================
+        /* ============ DATA MAPPINGS ============ */
         const districtNames = {
             '1': 'هندسة شمال دمياط', '2': 'هندسة جنوب دمياط', '3': 'هندسة الشعراء', '4': 'هندسة عزبة البرج', '5': 'هندسة دمياط الجديدة',
             '6': 'هندسة فارسكور', '7': 'هندسة الروضة', '8': 'هندسة كفر سعد', '9': 'هندسة كفر البطيخ', '10': 'هندسة رأس البر', '11': 'هندسة الزرقا',
@@ -987,1135 +1410,740 @@
             '4': 'قطاع جنوب الدقهلية'
         };
 
-        // ==================== استعراض الصلاحيات ====================
         function getDistrictsForSector(sectorId) {
             const sector = parseInt(sectorId);
-            const allDistricts = Object.keys(districtNames);
-
-            if (sector === 1) return allDistricts.filter(d => parseInt(d) >= 1 && parseInt(d) <= 11);
-            if (sector === 2) return allDistricts.filter(d => parseInt(d) >= 12 && parseInt(d) <= 28);
-            if (sector === 3) return allDistricts.filter(d => parseInt(d) >= 29 && parseInt(d) <= 42);
-            if (sector === 4) return allDistricts.filter(d => parseInt(d) >= 43 && parseInt(d) <= 55);
-
+            const all = Object.keys(districtNames);
+            if (sector === 1) return all.filter(d => +d >= 1 && +d <= 11);
+            if (sector === 2) return all.filter(d => +d >= 12 && +d <= 28);
+            if (sector === 3) return all.filter(d => +d >= 29 && +d <= 42);
+            if (sector === 4) return all.filter(d => +d >= 43 && +d <= 55);
             return [];
         }
 
-        function showStatus(msg, type = 'info', target = 'authStatus') {
-            const s = document.getElementById(target);
-            s.textContent = msg;
-            s.className = `status-msg ${type}`;
-            s.style.display = 'block';
-            setTimeout(() => {
-                s.style.display = 'none';
-            }, 4000);
+        /* =========================================================
+           AUTH SECTION
+        ========================================================= */
+        function buildPwRow(label, labelClass, passwords) {
+            const tags = passwords.length
+                ? `<div class="pw-list">${passwords.map(p => `<span class="pw-tag">${esc(p)}</span>`).join('')}</div>`
+                : `<span class="pw-empty"><i class="fas fa-xmark"></i> غير مسجل</span>`;
+            return `<div class="pw-row">
+                <span class="pw-label ${labelClass}">${label}</span>
+                ${tags}
+            </div>`;
         }
 
         async function fetchAuthData() {
-            const sectorId = document.getElementById('sectorSelect').value;
-            const authBody = document.getElementById('authBody');
-            authBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">جاري التحميل...</td></tr>';
+            const sectorId = $('sectorSelect').value;
+            const authBody = $('authBody');
+            authBody.innerHTML = '<tr><td colspan="4" class="loading-cell"><span class="spinner"></span> جاري التحميل…</td></tr>';
 
             try {
-                const authRef = ref(db, `auth_sectors/${sectorId}/districts`);
-                const snapshot = await get(authRef);
-
-                const authData = snapshot.exists() ? snapshot.val() : {};
+                const snap = await get(ref(db, `auth_sectors/${sectorId}/districts`));
+                const authData = snap.exists() ? snap.val() : {};
 
                 if (sectorId === 'admin') {
-                    let html = '';
-                    const adminDistricts = ['admin'];
-                    for (const districtId of adminDistricts) {
-                        const districtName = 'Admin (صلاحيات كاملة)';
-                        const userTypePasswords = { "Admin": [] };
-
-                        if (authData[districtId] && typeof authData[districtId] === 'object') {
-                            const distObj = authData[districtId];
-                            if (distObj['Admin'] && typeof distObj['Admin'] === 'object') {
-                                for (const pwd of Object.keys(distObj['Admin'])) {
-                                    if (distObj['Admin'][pwd] === true) {
-                                        userTypePasswords["Admin"].push(pwd);
-                                    }
-                                }
-                            }
-                        }
-
-                        let userDisplay = '';
-                        const hasAdmin = userTypePasswords["Admin"].length > 0;
-
-                        if (hasAdmin) {
-                            userDisplay = `
-                                <div class="type-group">
-                                    <span class="type-title">👑 Admin:</span>
-                                    ${userTypePasswords["Admin"].map(p => `<span class="user-tag" data-user="${p}">${p}</span>`).join(' ')}
-                                </div>`;
-                        } else {
-                            userDisplay = '<span class="badge badge-red">❌ غير مسجل</span>';
-                        }
-
-                        const adminPwdsStr = userTypePasswords["Admin"].join(', ');
-
-                        html += `
-                            <tr id="row-${districtId}">
-                                <td><strong>Admin</strong></td>
-                                <td>${districtName}</td>
-                                <td class="users-cell" data-district="${districtId}">
-                                    <div class="users-list" id="users-list-${districtId}">
-                                        ${userDisplay}
-                                    </div>
-                                    <div class="edit-container" id="edit-container-${districtId}" style="display:none; margin-top:5px;">
-                                        <div style="margin-bottom:6px;">
-                                            <label style="font-size:12px; margin-bottom:2px;">👑 كلمة مرور Admin:</label>
-                                            <input type="text" class="edit-input" id="edit-input-admin-${districtId}" value="${adminPwdsStr}" placeholder="كلمة مرور Admin" />
-                                        </div>
-                                        <button class="btn-sm btn-success" onclick="saveAdminEdit('${districtId}')" style="margin-top:3px;">💾 حفظ</button>
-                                        <button class="btn-sm btn-secondary" onclick="cancelEdit('${districtId}')" style="margin-top:3px;">✖ إلغاء</button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn-sm btn-warning" onclick="editAdmin('${districtId}')">
-                                        <i class="fas fa-edit"></i> تعديل
-                                    </button>
-                                    <button class="btn-sm btn-danger" onclick="deleteAllUsers('${districtId}')" style="margin-right:5px;">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }
-                    authBody.innerHTML = html;
+                    authBody.innerHTML = renderAdminRow(authData);
                     return;
                 }
 
                 const districts = getDistrictsForSector(sectorId);
                 let html = '';
-
-                for (const districtId of districts) {
-                    const districtName = districtNames[districtId] || `هندسة ${districtId}`;
-                    const userTypePasswords = { "المعمل": [], "الهندسات": [] };
-
-                    if (authData[districtId] && typeof authData[districtId] === 'object') {
-                        const distObj = authData[districtId];
-                        ['المعمل', 'الهندسات'].forEach(type => {
-                            if (distObj[type] && typeof distObj[type] === 'object') {
-                                for (const pwd of Object.keys(distObj[type])) {
-                                    if (distObj[type][pwd] === true) {
-                                        userTypePasswords[type].push(pwd);
-                                    }
-                                }
-                            }
-                        });
-                    }
-
-                    let userDisplay = '';
-                    const hasLab = userTypePasswords['المعمل'].length > 0;
-                    const hasEng = userTypePasswords['الهندسات'].length > 0;
-
-                    if (hasLab || hasEng) {
-                        if (hasLab) {
-                            userDisplay += `
-                                <div class="type-group">
-                                    <span class="type-title">🧪 المعمل:</span>
-                                    ${userTypePasswords['المعمل'].map(p => `<span class="user-tag" data-user="${p}">${p}</span>`).join(' ')}
-                                </div>`;
-                        } else {
-                            userDisplay += `
-                                <div class="type-group">
-                                    <span class="type-title">🧪 المعمل:</span>
-                                    <span class="badge badge-red">❌ غير مسجل</span>
-                                </div>`;
-                        }
-
-                        if (hasEng) {
-                            userDisplay += `
-                                <div class="type-group">
-                                    <span class="type-title">⚡ الهندسات:</span>
-                                    ${userTypePasswords['الهندسات'].map(p => `<span class="user-tag" data-user="${p}">${p}</span>`).join(' ')}
-                                </div>`;
-                        } else {
-                            userDisplay += `
-                                <div class="type-group">
-                                    <span class="type-title">⚡ الهندسات:</span>
-                                    <span class="badge badge-red">❌ غير مسجل</span>
-                                </div>`;
-                        }
-                    } else {
-                        userDisplay = '<span class="badge badge-red">❌ غير مصرح</span>';
-                    }
-
-                    const labPwdsStr = userTypePasswords['المعمل'].join(', ');
-                    const engPwdsStr = userTypePasswords['الهندسات'].join(', ');
-
-                    html += `
-                    <tr id="row-${districtId}">
-                        <td><strong>${districtId}</strong></td>
-                        <td>${districtName}</td>
-                        <td class="users-cell" data-district="${districtId}">
-                            <div class="users-list" id="users-list-${districtId}">
-                                ${userDisplay}
-                            </div>
-                            <div class="edit-container" id="edit-container-${districtId}" style="display:none; margin-top:5px;">
-                                <div style="margin-bottom:6px;">
-                                    <label style="font-size:12px; margin-bottom:2px;">🧪 كلمة مرور المعمل:</label>
-                                    <input type="text" class="edit-input" id="edit-input-lab-${districtId}" value="${labPwdsStr}" placeholder="كلمة مرور المعمل" />
-                                </div>
-                                <div style="margin-bottom:6px;">
-                                    <label style="font-size:12px; margin-bottom:2px;">⚡ كلمة مرور الهندسات:</label>
-                                    <input type="text" class="edit-input" id="edit-input-eng-${districtId}" value="${engPwdsStr}" placeholder="كلمة مرور الهندسات" />
-                                </div>
-                                <button class="btn-sm btn-success" onclick="saveUserEdit('${districtId}')" style="margin-top:3px;">💾 حفظ</button>
-                                <button class="btn-sm btn-secondary" onclick="cancelEdit('${districtId}')" style="margin-top:3px;">✖ إلغاء</button>
-                            </div>
-                        </td>
-                        <td>
-                            <button class="btn-sm btn-warning" onclick="editUser('${districtId}')">
-                                <i class="fas fa-edit"></i> تعديل
-                            </button>
-                            <button class="btn-sm btn-danger" onclick="deleteAllUsers('${districtId}')" style="margin-right:5px;">
-                                <i class="fas fa-trash"></i> حذف
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                for (const dId of districts) {
+                    html += renderDistrictRow(dId, authData[dId]);
                 }
-
                 authBody.innerHTML = html;
-
             } catch (err) {
                 console.error(err);
-                authBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">خطأ في جلب البيانات</td></tr>';
+                authBody.innerHTML = `<tr><td colspan="4" class="empty-cell">خطأ: ${esc(err.message)}</td></tr>`;
             }
         }
 
-        window.editUser = function (districtId) {
-            document.querySelectorAll('.edit-container').forEach(el => { el.style.display = 'none'; });
-            const container = document.getElementById(`edit-container-${districtId}`);
-            container.style.display = 'block';
-            const row = document.getElementById(`row-${districtId}`);
-            row.classList.add('edit-mode');
-            resetSessionTimer();
+        function renderAdminRow(authData) {
+            const adminPwds = [];
+            if (authData['admin']?.['Admin']) {
+                for (const pwd in authData['admin']['Admin']) {
+                    if (authData['admin']['Admin'][pwd] === true) adminPwds.push(pwd);
+                }
+            }
+
+            const display = buildPwRow('👑 Admin', 'admin', adminPwds);
+
+            return `
+                <tr id="row-admin">
+                    <td class="code-cell"><span class="num">—</span></td>
+                    <td class="name-cell">Admin (صلاحيات كاملة)</td>
+                    <td class="pw-cell">
+                        <div class="pw-block">
+                            ${display}
+                            <div class="edit-container" id="edit-container-admin" hidden>
+                                <div class="edit-field">
+                                    <label>👑 كلمات مرور Admin (مفصولة بفواصل)</label>
+                                    <input type="text" class="edit-input" id="edit-input-admin-admin" value="${esc(adminPwds.join(', '))}" placeholder="user1, user2">
+                                </div>
+                                <div class="edit-actions">
+                                    <button class="btn btn-success btn-xs" onclick="saveAdminEdit('admin')"><i class="fas fa-check"></i> حفظ</button>
+                                    <button class="btn btn-ghost btn-xs" onclick="cancelEdit('admin')"><i class="fas fa-times"></i> إلغاء</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="actions-cell">
+                        <div class="row-actions">
+                            <button class="icon-btn edit" title="تعديل" onclick="editUser('admin')"><i class="fas fa-pen"></i></button>
+                            <button class="icon-btn delete" title="حذف الكل" onclick="deleteAllUsers('admin')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderDistrictRow(dId, distData) {
+            const dName = districtNames[dId] || `هندسة ${dId}`;
+            const labPwds = [], engPwds = [];
+
+            if (distData && typeof distData === 'object') {
+                ['المعمل', 'الهندسات'].forEach(type => {
+                    if (distData[type] && typeof distData[type] === 'object') {
+                        for (const pwd in distData[type]) {
+                            if (distData[type][pwd] === true) {
+                                (type === 'المعمل' ? labPwds : engPwds).push(pwd);
+                            }
+                        }
+                    }
+                });
+            }
+
+            let display = '';
+            if (!labPwds.length && !engPwds.length) {
+                display = `<span class="pw-denied"><i class="fas fa-ban"></i> غير مصرح — لا توجد كلمات مرور</span>`;
+            } else {
+                display = buildPwRow('🧪 المعمل', 'lab', labPwds) + buildPwRow('⚡ الهندسات', 'eng', engPwds);
+            }
+
+            return `
+                <tr id="row-${dId}">
+                    <td class="code-cell"><span class="num">${esc(dId)}</span></td>
+                    <td class="name-cell">${esc(dName)}</td>
+                    <td class="pw-cell">
+                        <div class="pw-block">
+                            ${display}
+                            <div class="edit-container" id="edit-container-${dId}" hidden>
+                                <div class="edit-field">
+                                    <label>🧪 كلمات مرور المعمل (مفصولة بفواصل)</label>
+                                    <input type="text" class="edit-input" id="edit-input-lab-${dId}" value="${esc(labPwds.join(', '))}" placeholder="lab1, lab2">
+                                </div>
+                                <div class="edit-field">
+                                    <label>⚡ كلمات مرور الهندسات (مفصولة بفواصل)</label>
+                                    <input type="text" class="edit-input" id="edit-input-eng-${dId}" value="${esc(engPwds.join(', '))}" placeholder="eng1, eng2">
+                                </div>
+                                <div class="edit-actions">
+                                    <button class="btn btn-success btn-xs" onclick="saveUserEdit('${dId}')"><i class="fas fa-check"></i> حفظ</button>
+                                    <button class="btn btn-ghost btn-xs" onclick="cancelEdit('${dId}')"><i class="fas fa-times"></i> إلغاء</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="actions-cell">
+                        <div class="row-actions">
+                            <button class="icon-btn edit" title="تعديل" onclick="editUser('${dId}')"><i class="fas fa-pen"></i></button>
+                            <button class="icon-btn delete" title="حذف الكل" onclick="deleteAllUsers('${dId}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        window.editUser = function (dId) {
+            document.querySelectorAll('.edit-container').forEach(el => el.hidden = true);
+            document.querySelectorAll('tbody tr').forEach(el => el.classList.remove('edit-mode'));
+            const c = $(`edit-container-${dId}`);
+            if (c) c.hidden = false;
+            const r = $(`row-${dId}`);
+            if (r) r.classList.add('edit-mode');
+            touch();
         };
 
-        window.editAdmin = function (districtId) {
-            document.querySelectorAll('.edit-container').forEach(el => { el.style.display = 'none'; });
-            const container = document.getElementById(`edit-container-${districtId}`);
-            container.style.display = 'block';
-            const row = document.getElementById(`row-${districtId}`);
-            row.classList.add('edit-mode');
-            resetSessionTimer();
+        window.cancelEdit = function (dId) {
+            const c = $(`edit-container-${dId}`);
+            if (c) c.hidden = true;
+            const r = $(`row-${dId}`);
+            if (r) r.classList.remove('edit-mode');
         };
 
-        window.saveAdminEdit = async function (districtId) {
-            const adminInput = document.getElementById(`edit-input-admin-${districtId}`).value.trim();
-            const adminUsers = adminInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+        window.saveAdminEdit = async function (dId) {
+            const input = $(`edit-input-admin-${dId}`).value.trim();
+            const list = input.split(',').map(u => u.trim()).filter(u => u.length);
+            if (!list.length) { showStatus('يرجى إدخال كلمة مرور واحدة على الأقل', 'error', 'authStatus'); return; }
 
-            if (adminUsers.length === 0) {
-                showStatus('يرجى إدخال كلمة مرور واحدة على الأقل', 'error');
+            try {
+                const districtRef = ref(db, `auth_sectors/admin/districts/${dId}`);
+                await remove(districtRef);
+                const updates = { Admin: {} };
+                list.forEach(u => updates.Admin[u] = true);
+                await set(districtRef, updates);
+                showStatus('✅ تم تحديث كلمات مرور Admin بنجاح', 'success', 'authStatus');
+                cancelEdit(dId);
+                await fetchAuthData();
+            } catch (err) {
+                showStatus('خطأ: ' + err.message, 'error', 'authStatus');
+            }
+        };
+
+        window.saveUserEdit = async function (dId) {
+            const labInput = $(`edit-input-lab-${dId}`).value.trim();
+            const engInput = $(`edit-input-eng-${dId}`).value.trim();
+            const labList = labInput.split(',').map(u => u.trim()).filter(u => u.length);
+            const engList = engInput.split(',').map(u => u.trim()).filter(u => u.length);
+
+            if (!labList.length && !engList.length) {
+                showStatus('يرجى إدخال كلمة مرور واحدة على الأقل', 'error', 'authStatus');
                 return;
             }
 
-            const sectorId = 'admin';
-
+            const sectorId = $('sectorSelect').value;
             try {
-                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${districtId}`);
+                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${dId}`);
                 await remove(districtRef);
-
                 const updates = {};
-                if (adminUsers.length > 0) {
-                    updates['Admin'] = {};
-                    adminUsers.forEach(u => updates['Admin'][u] = true);
-                }
-
+                if (labList.length) { updates['المعمل'] = {}; labList.forEach(u => updates['المعمل'][u] = true); }
+                if (engList.length) { updates['الهندسات'] = {}; engList.forEach(u => updates['الهندسات'][u] = true); }
                 await set(districtRef, updates);
-                showStatus(`✅ تم تحديث كلمات مرور Admin بنجاح`, 'success');
-                cancelEdit(districtId);
+                showStatus(`✅ تم تحديث صلاحيات ${dId} بنجاح`, 'success', 'authStatus');
+                cancelEdit(dId);
                 await fetchAuthData();
-                resetSessionTimer();
             } catch (err) {
-                showStatus('خطأ في تحديث البيانات: ' + err.message, 'error');
-                console.error(err);
+                showStatus('خطأ: ' + err.message, 'error', 'authStatus');
             }
         };
 
-        window.saveUserEdit = async function (districtId) {
-            const labInput = document.getElementById(`edit-input-lab-${districtId}`).value.trim();
-            const engInput = document.getElementById(`edit-input-eng-${districtId}`).value.trim();
-
-            const labUsers = labInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
-            const engUsers = engInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
-
-            if (labUsers.length === 0 && engUsers.length === 0) {
-                showStatus('يرجى إدخال كلمة مرور واحدة على الأقل لإحدى الجهات', 'error');
-                return;
-            }
-
-            const sectorId = document.getElementById('sectorSelect').value;
-
+        window.deleteAllUsers = async function (dId) {
+            if (!confirm(`هل أنت متأكد من حذف جميع كلمات المرور من (${dId})؟`)) return;
+            const sectorId = $('sectorSelect').value;
             try {
-                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${districtId}`);
-                await remove(districtRef);
-
-                const updates = {};
-                if (labUsers.length > 0) {
-                    updates['المعمل'] = {};
-                    labUsers.forEach(u => updates['المعمل'][u] = true);
-                }
-                if (engUsers.length > 0) {
-                    updates['الهندسات'] = {};
-                    engUsers.forEach(u => updates['الهندسات'][u] = true);
-                }
-
-                await set(districtRef, updates);
-                showStatus(`✅ تم تحديث كلمات المرور بنجاح للمنطقة ${districtId}`, 'success');
-                cancelEdit(districtId);
+                await remove(ref(db, `auth_sectors/${sectorId}/districts/${dId}`));
+                showStatus('✅ تم حذف الصلاحيات', 'success', 'authStatus');
                 await fetchAuthData();
-                resetSessionTimer();
             } catch (err) {
-                showStatus('خطأ في تحديث البيانات: ' + err.message, 'error');
-                console.error(err);
+                showStatus('خطأ: ' + err.message, 'error', 'authStatus');
             }
         };
 
-        window.cancelEdit = function (districtId) {
-            const container = document.getElementById(`edit-container-${districtId}`);
-            container.style.display = 'none';
-            const row = document.getElementById(`row-${districtId}`);
-            row.classList.remove('edit-mode');
-            resetSessionTimer();
-        };
-
-        window.deleteAllUsers = async function (districtId) {
-            if (!confirm(`هل أنت متأكد من حذف جميع كلمات المرور من هذه المنطقة (${districtId})؟`)) return;
-            const sectorId = document.getElementById('sectorSelect').value;
-
-            try {
-                const districtRef = ref(db, `auth_sectors/${sectorId}/districts/${districtId}`);
-                await remove(districtRef);
-                showStatus(`✅ تم حذف جميع كلمات المرور بنجاح`, 'success');
-                await fetchAuthData();
-                resetSessionTimer();
-            } catch (err) {
-                showStatus('خطأ في حذف البيانات: ' + err.message, 'error');
-                console.error(err);
-            }
-        };
-
-        document.getElementById('btnFetchAuth').addEventListener('click', function () {
+        /* ============ AUTO-LOAD ON SECTOR CHANGE ============ */
+        $('sectorSelect').addEventListener('change', () => {
             fetchAuthData();
-            resetSessionTimer();
+            touch();
         });
 
-        // ==================== حذف البيانات حسب المرجع ====================
+        /* =========================================================
+           DELETE BY REFERENCE
+        ========================================================= */
         async function loadDeleteDates() {
-            const select = document.getElementById('deleteDateSelect');
-            select.innerHTML = '<option value="">جاري التحميل...</option>';
-            document.getElementById('btnDeleteByDate').disabled = true;
-            document.getElementById('deleteStats').style.display = 'none';
+            const select = $('deleteDateSelect');
+            select.innerHTML = '<option value="">— جاري التحميل —</option>';
+            $('btnDeleteByDate').disabled = true;
+            $('deleteStats').hidden = true;
 
-            const status = document.getElementById('deleteStatus');
-            status.textContent = 'جاري استعراض جميع السجلات...';
-            status.className = 'info';
-            status.style.display = 'block';
+            const status = $('deleteStatus');
+            status.innerHTML = '<span class="spinner"></span> جاري استعراض جميع السجلات…';
+            status.className = 'status show loading';
 
             try {
-                const sectorsRef = ref(db, 'sectors');
-                const snapshot = await get(sectorsRef);
-
+                const snap = await get(ref(db, 'sectors'));
                 const dates = new Set();
-                let totalRecords = 0;
-                let sectorCount = 0;
-                let districtCount = 0;
+                let totalRecords = 0, sectorCount = 0, districtCount = 0;
 
-                if (snapshot.exists()) {
-                    const sectorsData = snapshot.val();
-                    const sectorKeys = Object.keys(sectorsData);
-                    sectorCount = sectorKeys.length;
-
-                    for (const sectorKey of sectorKeys) {
-                        const sectorData = sectorsData[sectorKey];
-                        if (sectorData.districts) {
-                            const districtKeys = Object.keys(sectorData.districts);
-                            districtCount += districtKeys.length;
-
-                            for (const districtKey of districtKeys) {
-                                const districtData = sectorData.districts[districtKey];
-                                if (districtData.manual_entries) {
-                                    const entries = districtData.manual_entries;
-                                    const entryKeys = Object.keys(entries);
-
-                                    for (const entryKey of entryKeys) {
-                                        const entry = entries[entryKey];
-                                        if (entry.upload_date) {
-                                            dates.add(entry.upload_date);
-                                            totalRecords++;
-                                        }
-                                    }
-                                }
+                if (snap.exists()) {
+                    const data = snap.val();
+                    const sKeys = Object.keys(data);
+                    sectorCount = sKeys.length;
+                    for (const sKey of sKeys) {
+                        const sData = data[sKey];
+                        if (!sData.districts) continue;
+                        const dKeys = Object.keys(sData.districts);
+                        districtCount += dKeys.length;
+                        for (const dKey of dKeys) {
+                            const entries = sData.districts[dKey]?.manual_entries;
+                            if (!entries) continue;
+                            for (const eKey in entries) {
+                                const e = entries[eKey];
+                                if (e.upload_date) { dates.add(e.upload_date); totalRecords++; }
                             }
                         }
                     }
                 }
 
-                select.innerHTML = '<option value="">-- اختر مرجع الرفع --</option>';
-
-                if (dates.size === 0) {
+                select.innerHTML = '<option value="">— اختر مرجع الرفع —</option>';
+                if (!dates.size) {
                     select.innerHTML += '<option value="" disabled>لا توجد مراجع متاحة</option>';
-                    status.textContent = 'لا توجد سجلات في قاعدة البيانات';
-                    status.className = 'warning';
-                    document.getElementById('btnDeleteByDate').disabled = true;
+                    status.innerHTML = 'لا توجد سجلات في قاعدة البيانات';
+                    status.className = 'status show warning';
                     return;
                 }
 
-                const sortedDates = Array.from(dates).sort().reverse();
-                for (const date of sortedDates) {
-                    const option = document.createElement('option');
-                    option.value = date;
-                    option.textContent = date;
-                    select.appendChild(option);
+                const sorted = Array.from(dates).sort().reverse();
+                for (const d of sorted) {
+                    const opt = document.createElement('option');
+                    opt.value = d; opt.textContent = d;
+                    select.appendChild(opt);
                 }
 
-                status.textContent = `✅ تم تحميل ${sortedDates.length} مرجع مختلف (إجمالي ${totalRecords} سجل)`;
-                status.className = 'success';
+                $('deleteStats').hidden = false;
+                $('selectedDeleteDate').textContent = '-';
+                $('deleteRecordsCount').textContent = totalRecords.toLocaleString('en-US');
+                $('deleteSectorsCount').textContent = sectorCount;
+                $('deleteDistrictsCount').textContent = districtCount;
 
-                // Show stats
-                document.getElementById('deleteStats').style.display = 'flex';
-                document.getElementById('selectedDeleteDate').textContent = '-';
-                document.getElementById('deleteRecordsCount').textContent = totalRecords;
-                document.getElementById('deleteSectorsCount').textContent = sectorCount;
-                document.getElementById('deleteDistrictsCount').textContent = districtCount;
-
-                resetSessionTimer();
-
+                status.innerHTML = `✅ تم تحميل ${sorted.length} مرجع مختلف (إجمالي ${totalRecords.toLocaleString('en-US')} سجل)`;
+                status.className = 'status show success';
             } catch (err) {
-                console.error('Error loading delete dates:', err);
+                console.error(err);
                 select.innerHTML = '<option value="">خطأ في التحميل</option>';
-                status.textContent = 'خطأ في تحميل المراجع: ' + err.message;
-                status.className = 'error';
-                document.getElementById('btnDeleteByDate').disabled = true;
+                status.innerHTML = 'خطأ: ' + err.message;
+                status.className = 'status show error';
             }
         }
 
         async function previewDeleteDate() {
-            const selectedDate = document.getElementById('deleteDateSelect').value;
-            const status = document.getElementById('deleteStatus');
+            const selectedDate = $('deleteDateSelect').value;
+            const status = $('deleteStatus');
 
             if (!selectedDate) {
-                document.getElementById('deleteStats').style.display = 'none';
-                document.getElementById('btnDeleteByDate').disabled = true;
+                $('deleteStats').hidden = true;
+                $('btnDeleteByDate').disabled = true;
                 return;
             }
 
-            status.textContent = 'جاري حساب السجلات...';
-            status.className = 'loading';
-            status.style.display = 'block';
-            document.getElementById('btnDeleteByDate').disabled = true;
+            status.innerHTML = '<span class="spinner"></span> جاري حساب السجلات…';
+            status.className = 'status show loading';
+            $('btnDeleteByDate').disabled = true;
 
             try {
-                const sectorsRef = ref(db, 'sectors');
-                const snapshot = await get(sectorsRef);
+                const snap = await get(ref(db, 'sectors'));
+                let count = 0;
+                const sectorSet = new Set(), districtSet = new Set();
 
-                let recordCount = 0;
-                const sectorSet = new Set();
-                const districtSet = new Set();
-
-                if (snapshot.exists()) {
-                    const sectorsData = snapshot.val();
-                    const sectorKeys = Object.keys(sectorsData);
-
-                    for (const sectorKey of sectorKeys) {
-                        const sectorData = sectorsData[sectorKey];
-                        if (sectorData.districts) {
-                            const districtKeys = Object.keys(sectorData.districts);
-
-                            for (const districtKey of districtKeys) {
-                                const districtData = sectorData.districts[districtKey];
-                                if (districtData.manual_entries) {
-                                    const entries = districtData.manual_entries;
-                                    const entryKeys = Object.keys(entries);
-
-                                    for (const entryKey of entryKeys) {
-                                        const entry = entries[entryKey];
-                                        if (entry.upload_date === selectedDate) {
-                                            recordCount++;
-                                            sectorSet.add(sectorKey);
-                                            districtSet.add(districtKey);
-                                        }
-                                    }
+                if (snap.exists()) {
+                    const data = snap.val();
+                    for (const sKey in data) {
+                        const sData = data[sKey];
+                        if (!sData.districts) continue;
+                        for (const dKey in sData.districts) {
+                            const entries = sData.districts[dKey]?.manual_entries;
+                            if (!entries) continue;
+                            for (const eKey in entries) {
+                                if (entries[eKey].upload_date === selectedDate) {
+                                    count++;
+                                    sectorSet.add(sKey);
+                                    districtSet.add(dKey);
                                 }
                             }
                         }
                     }
                 }
 
-                document.getElementById('deleteStats').style.display = 'flex';
-                document.getElementById('selectedDeleteDate').textContent = selectedDate;
-                document.getElementById('deleteRecordsCount').textContent = recordCount;
-                document.getElementById('deleteSectorsCount').textContent = sectorSet.size;
-                document.getElementById('deleteDistrictsCount').textContent = districtSet.size;
+                $('deleteStats').hidden = false;
+                $('selectedDeleteDate').textContent = selectedDate;
+                $('deleteRecordsCount').textContent = count.toLocaleString('en-US');
+                $('deleteSectorsCount').textContent = sectorSet.size;
+                $('deleteDistrictsCount').textContent = districtSet.size;
 
-                if (recordCount === 0) {
-                    status.textContent = `⚠️ لا توجد سجلات بالمرجع "${selectedDate}"`;
-                    status.className = 'warning';
-                    document.getElementById('btnDeleteByDate').disabled = true;
+                if (count === 0) {
+                    status.innerHTML = `⚠️ لا توجد سجلات بالمرجع "${esc(selectedDate)}"`;
+                    status.className = 'status show warning';
                 } else {
-                    status.textContent = `✅ تم العثور على ${recordCount} سجل بالمرجع "${selectedDate}"`;
-                    status.className = 'success';
-                    document.getElementById('btnDeleteByDate').disabled = false;
+                    status.innerHTML = `✅ ${count.toLocaleString('en-US')} سجل جاهز للحذف`;
+                    status.className = 'status show success';
+                    $('btnDeleteByDate').disabled = false;
                 }
-
-                resetSessionTimer();
-
             } catch (err) {
-                console.error('Error previewing delete:', err);
-                status.textContent = 'خطأ: ' + err.message;
-                status.className = 'error';
-                document.getElementById('btnDeleteByDate').disabled = true;
+                status.innerHTML = 'خطأ: ' + err.message;
+                status.className = 'status show error';
             }
         }
 
         async function deleteByDate() {
-            const selectedDate = document.getElementById('deleteDateSelect').value.trim();
+            const selectedDate = $('deleteDateSelect').value.trim();
+            if (!selectedDate) { showStatus('يرجى اختيار مرجع أولاً', 'error', 'deleteStatus'); return; }
 
-            if (!selectedDate) {
-                showStatus('يرجى اختيار مرجع الرفع أولاً', 'error', 'deleteStatus');
-                return;
-            }
+            const count = parseInt($('deleteRecordsCount').textContent.replace(/,/g, ''), 10) || 0;
+            if (!count) { showStatus('لا توجد سجلات للحذف', 'warning', 'deleteStatus'); return; }
 
-            const recordCount = parseInt(document.getElementById('deleteRecordsCount').textContent);
-            if (recordCount === 0) {
-                showStatus('لا توجد سجلات للحذف', 'warning', 'deleteStatus');
-                return;
-            }
+            if (!confirm(`⚠️ حذف ${count} سجل بمرجع "${selectedDate}"؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
+            if (!confirm(`تأكيد نهائي: حذف جميع سجلات "${selectedDate}"؟`)) return;
 
-            if (!confirm(`⚠️ تحذير: أنت على وشك حذف ${recordCount} سجل بمرجع الرفع "${selectedDate}". هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد؟`)) {
-                return;
-            }
+            const status = $('deleteStatus');
+            status.innerHTML = '<span class="spinner"></span> جاري الحذف…';
+            status.className = 'status show loading';
+            showProgress('deleteProgress', 'deleteProgressFill', 0, true);
+            $('btnDeleteByDate').disabled = true;
 
-            if (!confirm(`تأكيد نهائي: هل أنت متأكد من حذف جميع السجلات بمرجع الرفع "${selectedDate}"؟`)) {
-                return;
-            }
-
-            const status = document.getElementById('deleteStatus');
-            const progressBar = document.getElementById('deleteProgress');
-            const progressFill = document.getElementById('deleteProgressFill');
-
-            status.textContent = 'جاري حذف السجلات...';
-            status.className = 'loading';
-            status.style.display = 'block';
-
-            progressBar.style.display = 'block';
-            progressFill.style.width = '0%';
-            progressFill.textContent = '0%';
-
-            document.getElementById('btnDeleteByDate').disabled = true;
-
-            let deletedCount = 0;
-            let errorCount = 0;
-            const errors = [];
+            let deleted = 0, failed = 0;
 
             try {
-                const sectorsRef = ref(db, 'sectors');
-                const snapshot = await get(sectorsRef);
+                const snap = await get(ref(db, 'sectors'));
+                const paths = [];
 
-                const deletePromises = [];
-                let totalFound = 0;
-
-                if (snapshot.exists()) {
-                    const sectorsData = snapshot.val();
-                    const sectorKeys = Object.keys(sectorsData);
-
-                    for (const sectorKey of sectorKeys) {
-                        const sectorData = sectorsData[sectorKey];
-                        if (sectorData.districts) {
-                            const districtKeys = Object.keys(sectorData.districts);
-
-                            for (const districtKey of districtKeys) {
-                                const districtData = sectorData.districts[districtKey];
-                                if (districtData.manual_entries) {
-                                    const entries = districtData.manual_entries;
-                                    const entryKeys = Object.keys(entries);
-
-                                    for (const entryKey of entryKeys) {
-                                        const entry = entries[entryKey];
-                                        if (entry.upload_date === selectedDate) {
-                                            totalFound++;
-                                            const path = `sectors/${sectorKey}/districts/${districtKey}/manual_entries/${entryKey}`;
-                                            const deletePromise = remove(ref(db, path))
-                                                .then(() => {
-                                                    deletedCount++;
-                                                    const progress = Math.round((deletedCount / totalFound) * 100);
-                                                    progressFill.style.width = `${progress}%`;
-                                                    progressFill.textContent = `${progress}%`;
-                                                    status.textContent =
-                                                        `جاري الحذف... ${deletedCount}/${totalFound} (${progress}%)`;
-                                                })
-                                                .catch((err) => {
-                                                    errorCount++;
-                                                    errors.push(`${entryKey}: ${err.message}`);
-                                                    console.error(err);
-                                                });
-                                            deletePromises.push(deletePromise);
-                                        }
-                                    }
+                if (snap.exists()) {
+                    const data = snap.val();
+                    for (const sKey in data) {
+                        const sData = data[sKey];
+                        if (!sData.districts) continue;
+                        for (const dKey in sData.districts) {
+                            const entries = sData.districts[dKey]?.manual_entries;
+                            if (!entries) continue;
+                            for (const eKey in entries) {
+                                if (entries[eKey].upload_date === selectedDate) {
+                                    paths.push(`sectors/${sKey}/districts/${dKey}/manual_entries/${eKey}`);
                                 }
                             }
                         }
                     }
                 }
 
-                await Promise.allSettled(deletePromises);
+                const total = paths.length;
+                const promises = paths.map(p =>
+                    remove(ref(db, p))
+                        .then(() => {
+                            deleted++;
+                            const pct = Math.round((deleted / total) * 100);
+                            showProgress('deleteProgress', 'deleteProgressFill', pct, true);
+                            status.innerHTML = `<span class="spinner"></span> جاري الحذف… ${deleted}/${total} (${pct}%)`;
+                        })
+                        .catch(err => { failed++; console.error(err); })
+                );
 
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                }, 1000);
+                await Promise.allSettled(promises);
+                hideProgress('deleteProgress');
 
-                let msg = `✅ تم حذف ${deletedCount} سجل بنجاح`;
-                if (errorCount > 0) {
-                    msg += `، فشل حذف ${errorCount} سجل`;
-                    if (errors.length <= 5) {
-                        msg += `: ${errors.join('; ')}`;
-                    }
-                }
-                status.textContent = msg;
-                status.className = errorCount > 0 && deletedCount === 0 ? 'error' : 'success';
+                status.innerHTML = `✅ تم حذف ${deleted} سجل${failed ? ` — فشل ${failed}` : ''}`;
+                status.className = `status show ${failed && !deleted ? 'error' : 'success'}`;
+
+                await loadDeleteDates();
             } catch (err) {
-                console.error('Error during delete:', err);
-                status.textContent = 'خطأ في عملية الحذف: ' + err.message;
-                status.className = 'error';
+                status.innerHTML = 'خطأ: ' + err.message;
+                status.className = 'status show error';
+                hideProgress('deleteProgress');
             }
 
-            document.getElementById('btnDeleteByDate').disabled = false;
-            resetSessionTimer();
+            $('btnDeleteByDate').disabled = false;
         }
 
-        document.getElementById('btnLoadDeleteDates').addEventListener('click', function () {
-            loadDeleteDates();
-            resetSessionTimer();
-        });
+        $('btnLoadDeleteDates').addEventListener('click', () => { loadDeleteDates(); touch(); });
+        $('btnPreviewDeleteDate').addEventListener('click', () => { previewDeleteDate(); touch(); });
+        $('deleteDateSelect').addEventListener('change', () => { previewDeleteDate(); touch(); });
+        $('btnDeleteByDate').addEventListener('click', () => { deleteByDate(); touch(); });
 
-        document.getElementById('btnPreviewDeleteDate').addEventListener('click', function () {
-            previewDeleteDate();
-            resetSessionTimer();
-        });
-
-        document.getElementById('deleteDateSelect').addEventListener('change', function () {
-            previewDeleteDate();
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnDeleteByDate').addEventListener('click', function () {
-            deleteByDate();
-            resetSessionTimer();
-        });
-
-        // ==================== رفع البيانات مع التحقق من التكرار ====================
+        /* =========================================================
+           UPLOAD WITH DUPLICATE CHECKS
+        ========================================================= */
         let uploadData = [];
-        let internalDuplicateKeys = [];
-        let internalDuplicateRecords = [];
-        let externalDuplicateKeys = [];
-        let externalDuplicateRecords = [];
-        let uploadKey = 'meter_number';
+        let internalDupKeys = [];
+        let externalDupKeys = [];
 
-        const norm = v => String(v ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        const columnMapping = {
+            'meter_number': 'meter_number', 'sim_number': 'sim_number',
+            'facility': 'facility', 'facility_capacity': 'facility_capacity',
+            'facility_code': 'facility_code', 'facility_type': 'facility_type',
+            'address': 'address', 'install_date': 'install_date',
+            'feeder': 'feeder', 'feeder_code': 'feeder_code', 'dp': 'dp',
+            'keta3': 'keta3', 'handsa': 'handsa', 'lat': 'lat', 'lng': 'lng',
+            'meter_type': 'meter_type', 'keta3_id': 'keta3_id',
+            'handsa_code': 'handsa_code', 'meter_voltage': 'meter_voltage'
+        };
 
-        function convertExcelDateToDDMMYYYY(val) {
+        function convertExcelDate(val) {
             if (!val) return '';
             if (val instanceof Date && !isNaN(val)) {
-                const day = String(val.getDate()).padStart(2, '0');
-                const month = String(val.getMonth() + 1).padStart(2, '0');
-                const year = val.getFullYear();
-                return `${day}/${month}/${year}`;
+                return `${String(val.getDate()).padStart(2, '0')}/${String(val.getMonth() + 1).padStart(2, '0')}/${val.getFullYear()}`;
             }
-            const num = Number(val);
-            if (!isNaN(num) && num > 10000) {
-                const dateObj = new Date(Math.round((num - 25569) * 86400000));
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const year = dateObj.getFullYear();
-                return `${day}/${month}/${year}`;
+            const n = Number(val);
+            if (!isNaN(n) && n > 10000) {
+                const d = new Date(Math.round((n - 25569) * 86400000));
+                return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             }
-            const strVal = String(val);
-            const dateMatch = strVal.match(/(\d{4})-(\d{2})-(\d{2})/);
-            if (dateMatch) {
-                return `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
-            }
+            const m = String(val).match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[3]}/${m[2]}/${m[1]}`;
             return norm(val);
         }
 
-        const columnMapping = {
-            'meter_number': 'meter_number',
-            'sim_number': 'sim_number',
-            'facility': 'facility',
-            'facility_capacity': 'facility_capacity',
-            'facility_code': 'facility_code',
-            'facility_type': 'facility_type',
-            'address': 'address',
-            'install_date': 'install_date',
-            'feeder': 'feeder',
-            'feeder_code': 'feeder_code',
-            'dp': 'dp',
-            'keta3': 'keta3',
-            'handsa': 'handsa',
-            'lat': 'lat',
-            'lng': 'lng',
-            'meter_type': 'meter_type',
-            'keta3_id': 'keta3_id',
-            'handsa_code': 'handsa_code',
-            'meter_voltage': 'meter_voltage'
-        };
-
         function findInternalDuplicates(records, key) {
-            const seen = new Map();
-            const duplicates = [];
-            const duplicateValues = new Set();
-
-            for (const record of records) {
-                const value = record[key];
-                if (!value) continue;
-
-                if (seen.has(value)) {
-                    if (!duplicateValues.has(value)) {
-                        duplicateValues.add(value);
-                        duplicates.push({
-                            value: value,
-                            first: seen.get(value),
-                            duplicate: record
-                        });
-                    }
-                } else {
-                    seen.set(value, record);
-                }
+            const seen = new Set(), dupes = new Set();
+            for (const r of records) {
+                const v = r[key];
+                if (!v) continue;
+                if (seen.has(v)) dupes.add(v);
+                else seen.add(v);
             }
-
-            return duplicates;
+            return Array.from(dupes);
         }
 
-        async function checkExternalDuplicatesOptimized(records, key) {
-            const duplicateKeysList = [];
-            const duplicateRecordsList = [];
-
-            const pathGroups = {};
-            for (const record of records) {
-                const keyValue = record[key];
-                if (!keyValue) continue;
-
-                const keta3Id = record['keta3_id'] || '1';
-                const handsaCode = record['handsa_code'] || '1'; // Updated default code from '101' to '1'
-                const path = `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${keyValue}`;
-
-                if (!pathGroups[path]) {
-                    pathGroups[path] = [];
-                }
-                pathGroups[path].push({ record, keyValue });
+        async function checkExternalDuplicates(records, key) {
+            const groups = {};
+            for (const r of records) {
+                const v = r[key];
+                if (!v) continue;
+                const keta3 = r['keta3_id'] || '1';
+                const handsa = r['handsa_code'] || '1';
+                const path = `sectors/${keta3}/districts/${handsa}/manual_entries/${v}`;
+                if (!groups[path]) groups[path] = v;
             }
 
-            const checkPromises = Object.entries(pathGroups).map(async ([path, items]) => {
+            const entries = Object.entries(groups);
+            const found = [];
+
+            await Promise.all(entries.map(async ([path, val]) => {
                 try {
-                    const snapshot = await get(ref(db, path));
-                    const exists = snapshot.exists();
-                    if (exists) {
-                        for (const item of items) {
-                            duplicateKeysList.push(item.keyValue);
-                            duplicateRecordsList.push(item.record);
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Error checking path:', path, err);
-                }
-            });
+                    const snap = await get(ref(db, path));
+                    if (snap.exists()) found.push(val);
+                } catch (_) { /* silent */ }
+            }));
 
-            await Promise.all(checkPromises);
-            return { duplicateKeysList, duplicateRecordsList };
+            return found;
         }
 
-        document.getElementById('excelFile').addEventListener('change', async function (e) {
-            const file = e.target.files[0];
+        function clearUploadUI() {
+            uploadData = [];
+            internalDupKeys = [];
+            externalDupKeys = [];
+            $('excelFile').value = '';
+            $('internalDuplicateWarning').classList.remove('show');
+            $('externalDuplicateWarning').classList.remove('show');
+            $('uploadPreviewArea').hidden = true;
+            $('uploadStatus').className = 'status';
+            $('progressBar').hidden = true;
+            $('btnUploadConfirm').disabled = true;
+            $('uploadPreviewMeta').textContent = '';
+        }
+
+        async function handleFile(file) {
             if (!file) return;
+            clearUploadUI();
 
-            const status = document.getElementById('uploadStatus');
-            status.innerHTML = 'جاري قراءة الملف...';
-            status.className = 'info';
-            status.style.display = 'block';
-
-            document.getElementById('btnUploadConfirm').disabled = true;
-            document.getElementById('btnUploadDuplicates').disabled = true;
-            document.getElementById('btnSkipDuplicates').disabled = true;
-
-            document.getElementById('internalDuplicateWarning').style.display = 'none';
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-
-            const reader = new FileReader();
-            reader.onload = async function (evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-
-                    if (json.length === 0) {
-                        status.textContent = 'الملف فارغ';
-                        status.className = 'error';
-                        return;
-                    }
-
-                    uploadData = json.map(row => {
-                        const record = Object.fromEntries(Object.values(columnMapping).map(dbKey => [dbKey, '']));
-                        for (const [excelCol, dbKey] of Object.entries(columnMapping)) {
-                            let value = row[excelCol];
-                            if (value !== undefined && value !== null && value !== '') {
-                                if (dbKey === 'install_date') {
-                                    record[dbKey] = convertExcelDateToDDMMYYYY(value);
-                                } else {
-                                    record[dbKey] = norm(String(value));
-                                }
-                            }
-                        }
-                        if (!record['keta3'] && record['keta3_id']) {
-                            record['keta3'] = sectorNames[record['keta3_id']] || `قطاع ${record['keta3_id']}`;
-                        }
-                        if (!record['handsa'] && record['handsa_code']) {
-                            record['handsa'] = districtNames[record['handsa_code']] || `هندسة ${record['handsa_code']}`;
-                        }
-                        return record;
-                    });
-
-                    const header = document.getElementById('uploadHeader');
-                    const body = document.getElementById('uploadBody');
-                    header.innerHTML = '';
-                    body.innerHTML = '';
-
-                    const cols = Object.keys(uploadData[0] || {});
-
-                    cols.forEach(col => {
-                        const th = document.createElement('th');
-                        th.textContent = col;
-                        header.appendChild(th);
-                    });
-
-                    const key = document.getElementById('uploadKey').value;
-
-                    const internalDupes = findInternalDuplicates(uploadData, key);
-                    internalDuplicateKeys = internalDupes.map(d => d.value);
-                    internalDuplicateRecords = internalDupes.map(d => d.duplicate);
-
-                    uploadData.slice(0, 10).forEach((row) => {
-                        const tr = document.createElement('tr');
-                        const keyValue = row[key];
-                        const isDuplicate = internalDuplicateKeys.includes(keyValue);
-
-                        if (isDuplicate) {
-                            tr.classList.add('internal-duplicate-row');
-                        }
-
-                        cols.forEach(col => {
-                            const td = document.createElement('td');
-                            let displayText = String(row[col] ?? '').slice(0, 30);
-                            if (col === key && isDuplicate) {
-                                displayText += ' ⚠️ مكرر';
-                            }
-                            td.textContent = displayText;
-                            tr.appendChild(td);
-                        });
-                        body.appendChild(tr);
-                    });
-
-                    document.getElementById('uploadPreviewArea').style.display = 'block';
-
-                    const hasInternalDuplicates = internalDuplicateKeys.length > 0;
-
-                    if (hasInternalDuplicates) {
-                        const warningDiv = document.getElementById('internalDuplicateWarning');
-                        warningDiv.style.display = 'block';
-                        document.getElementById('internalDuplicateCount').textContent = internalDuplicateKeys.length;
-
-                        const displayList = internalDuplicateKeys.slice(0, 10).join('، ');
-                        document.getElementById('internalDuplicateList').textContent =
-                            `المفاتيح المكررة داخل الملف: ${displayList}${internalDuplicateKeys.length > 10 ? ` ... و ${internalDuplicateKeys.length - 10} أكثر` : ''}`;
-
-                        status.innerHTML = `🚫 تم العثور على ${internalDuplicateKeys.length} سجل مكرر داخل الملف`;
-                        status.className = 'error';
-
-                        document.getElementById('btnUploadWithInternalDuplicates').style.display = 'inline-block';
-                        document.getElementById('btnUploadConfirm').disabled = true;
-                        document.getElementById('btnUploadDuplicates').disabled = true;
-                        document.getElementById('btnSkipDuplicates').disabled = true;
-
-                        await checkExternalDuplicatesAndShow();
-                        return;
-                    }
-
-                    await checkExternalDuplicatesAndShow();
-                    resetSessionTimer();
-
-                } catch (err) {
-                    status.textContent = 'خطأ: ' + err.message;
-                    status.className = 'error';
-                    console.error(err);
-                    document.getElementById('btnUploadConfirm').disabled = false;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        async function checkExternalDuplicatesAndShow() {
-            const key = document.getElementById('uploadKey').value;
-            uploadKey = key;
-
-            const status = document.getElementById('uploadStatus');
-            status.innerHTML = `<span class="checking-spinner"></span> جاري التحقق من التكرار في قاعدة البيانات...`;
-            status.className = 'loading';
-            status.style.display = 'block';
-
-            document.getElementById('btnUploadConfirm').disabled = true;
-            document.getElementById('btnUploadDuplicates').disabled = true;
-            document.getElementById('btnSkipDuplicates').disabled = true;
-
-            const warningDiv = document.getElementById('externalDuplicateWarning');
-            warningDiv.style.display = 'none';
+            const status = $('uploadStatus');
+            status.innerHTML = '<span class="spinner"></span> جاري قراءة الملف…';
+            status.className = 'status show info';
 
             try {
-                const result = await checkExternalDuplicatesOptimized(uploadData, key);
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-                externalDuplicateKeys = result.duplicateKeysList;
-                externalDuplicateRecords = result.duplicateRecordsList;
-
-                if (externalDuplicateKeys.length > 0) {
-                    warningDiv.style.display = 'block';
-                    document.getElementById('externalDuplicateCount').textContent = externalDuplicateKeys.length;
-
-                    const displayList = externalDuplicateKeys.slice(0, 10).join('، ');
-                    document.getElementById('externalDuplicateList').textContent =
-                        `المفاتيح المكررة في قاعدة البيانات: ${displayList}${externalDuplicateKeys.length > 10 ? ` ... و ${externalDuplicateKeys.length - 10} أكثر` : ''}`;
-
-                    status.innerHTML = `⚠️ تم العثور على ${externalDuplicateKeys.length} سجل مكرر في قاعدة البيانات`;
-                    status.className = 'warning';
-
-                    document.getElementById('btnUploadConfirm').disabled = true;
-                    document.getElementById('btnUploadDuplicates').disabled = false;
-                    document.getElementById('btnSkipDuplicates').disabled = false;
-                } else {
-                    warningDiv.style.display = 'none';
-                    status.innerHTML = `✅ لا توجد سجلات مكررة. يمكنك الرفع بأمان.`;
-                    status.className = 'success';
-
-                    document.getElementById('btnUploadConfirm').disabled = false;
-                    document.getElementById('btnUploadDuplicates').disabled = true;
-                    document.getElementById('btnSkipDuplicates').disabled = true;
+                if (!json.length) {
+                    status.innerHTML = '⚠️ الملف فارغ';
+                    status.className = 'status show warning';
+                    return;
                 }
-                resetSessionTimer();
 
+                uploadData = json.map(row => {
+                    const rec = {};
+                    for (const [excelCol, dbKey] of Object.entries(columnMapping)) {
+                        let v = row[excelCol];
+                        if (v === undefined || v === null || v === '') continue;
+                        rec[dbKey] = dbKey === 'install_date' ? convertExcelDate(v) : norm(String(v));
+                    }
+                    if (!rec['keta3'] && rec['keta3_id']) rec['keta3'] = sectorNames[rec['keta3_id']] || `قطاع ${rec['keta3_id']}`;
+                    if (!rec['handsa'] && rec['handsa_code']) rec['handsa'] = districtNames[rec['handsa_code']] || `هندسة ${rec['handsa_code']}`;
+                    return rec;
+                });
+
+                renderPreview();
+                await runDuplicateChecks();
             } catch (err) {
-                console.error('Error checking external duplicates:', err);
-                status.innerHTML = 'خطأ في التحقق من التكرار: ' + err.message;
-                status.className = 'error';
-                document.getElementById('btnUploadConfirm').disabled = false;
-                document.getElementById('btnUploadDuplicates').disabled = false;
-                document.getElementById('btnSkipDuplicates').disabled = false;
+                console.error(err);
+                status.innerHTML = 'خطأ: ' + err.message;
+                status.className = 'status show error';
             }
         }
 
-        async function performUpload(skipDuplicates = false) {
-            if (uploadData.length === 0) {
-                showStatus('لا توجد بيانات للرفع', 'error', 'uploadStatus');
-                return;
+        function renderPreview() {
+            const key = $('uploadKey').value;
+            const header = $('uploadHeader');
+            const body = $('uploadBody');
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            const cols = Object.keys(uploadData[0] || {});
+            for (const c of cols) {
+                const th = document.createElement('th');
+                th.textContent = c;
+                header.appendChild(th);
             }
 
-            const status = document.getElementById('uploadStatus');
-            const progressBar = document.getElementById('progressBar');
-            const progressFill = document.getElementById('progressFill');
-            const selectedUploadDate = document.getElementById('uploadDate').value.trim();
+            const preview = uploadData.slice(0, 10);
+            const frag = document.createDocumentFragment();
+            for (const row of preview) {
+                const tr = document.createElement('tr');
+                if (row[key] && internalDupKeys.includes(row[key])) tr.classList.add('internal-duplicate-row');
+                for (const c of cols) {
+                    const td = document.createElement('td');
+                    let txt = String(row[c] ?? '');
+                    if (txt.length > 30) txt = txt.slice(0, 30) + '…';
+                    td.textContent = txt;
+                    tr.appendChild(td);
+                }
+                frag.appendChild(tr);
+            }
+            body.appendChild(frag);
 
-            if (!selectedUploadDate) {
-                showStatus('يرجى إدخال نص مرجع الرفع قبل المتابعة', 'error', 'uploadStatus');
-                return;
+            $('uploadPreviewArea').hidden = false;
+            $('uploadPreviewMeta').textContent = `${uploadData.length} سجل — معاينة أول ${preview.length}`;
+        }
+
+        async function runDuplicateChecks() {
+            const key = $('uploadKey').value;
+            const status = $('uploadStatus');
+
+            internalDupKeys = findInternalDuplicates(uploadData, key);
+
+            const intWarn = $('internalDuplicateWarning');
+            if (internalDupKeys.length > 0) {
+                intWarn.classList.add('show');
+                $('internalDuplicateCount').textContent = internalDupKeys.length;
+                const sample = internalDupKeys.slice(0, 10).join('، ');
+                $('internalDuplicateList').textContent =
+                    `المفاتيح: ${sample}${internalDupKeys.length > 10 ? ` … و ${internalDupKeys.length - 10} أكثر` : ''}`;
+            } else {
+                intWarn.classList.remove('show');
             }
 
-            status.textContent = 'جاري الرفع إلى قاعدة البيانات...';
-            status.className = 'info';
-            status.style.display = 'block';
+            status.innerHTML = '<span class="spinner"></span> جاري التحقق من التكرار في قاعدة البيانات…';
+            status.className = 'status show loading';
 
-            progressBar.style.display = 'block';
-            progressFill.style.width = '0%';
-            progressFill.textContent = '0%';
+            externalDupKeys = await checkExternalDuplicates(uploadData, key);
 
-            document.getElementById('btnUploadConfirm').disabled = true;
-            document.getElementById('btnUploadDuplicates').disabled = true;
-            document.getElementById('btnSkipDuplicates').disabled = true;
-            document.getElementById('btnUploadWithInternalDuplicates').disabled = true;
+            const extWarn = $('externalDuplicateWarning');
+            if (externalDupKeys.length > 0) {
+                extWarn.classList.add('show');
+                $('externalDuplicateCount').textContent = externalDupKeys.length;
+                const sample = externalDupKeys.slice(0, 10).join('، ');
+                $('externalDuplicateList').textContent =
+                    `المفاتيح: ${sample}${externalDupKeys.length > 10 ? ` … و ${externalDupKeys.length - 10} أكثر` : ''}`;
+            } else {
+                extWarn.classList.remove('show');
+            }
 
-            let successCount = 0;
-            let errorCount = 0;
-            let skippedCount = 0;
-            let errors = [];
+            if (internalDupKeys.length > 0) {
+                status.innerHTML = `🚫 ${internalDupKeys.length} سجل مكرر داخل الملف${externalDupKeys.length ? ` — و ${externalDupKeys.length} مكرر في قاعدة البيانات` : ''}`;
+                status.className = 'status show error';
+            } else if (externalDupKeys.length > 0) {
+                status.innerHTML = `⚠️ ${externalDupKeys.length} سجل مكرر في قاعدة البيانات`;
+                status.className = 'status show warning';
+            } else {
+                status.innerHTML = '✅ لا توجد تكرارات — جاهز للرفع';
+                status.className = 'status show success';
+                $('btnUploadConfirm').disabled = false;
+            }
+        }
+
+        async function performUpload(skipDuplicates) {
+            if (!uploadData.length) { showStatus('لا توجد بيانات للرفع', 'error', 'uploadStatus'); return; }
+
+            const refName = $('uploadDate').value.trim();
+            if (!refName) { showStatus('يرجى إدخال مرجع الرفع', 'error', 'uploadStatus'); return; }
+
+            const status = $('uploadStatus');
+            status.innerHTML = '<span class="spinner"></span> جاري الرفع…';
+            status.className = 'status show info';
+            showProgress('progressBar', 'progressFill', 0, false);
+
+            $('btnUploadConfirm').disabled = true;
+            $('btnUploadDuplicates').disabled = true;
+            $('btnSkipDuplicates').disabled = true;
+            $('btnUploadWithInternalDuplicates').disabled = true;
+
+            const key = $('uploadKey').value;
+            const dupSet = new Set(externalDupKeys);
             const total = uploadData.length;
-
-            const key = document.getElementById('uploadKey').value;
-            const duplicateKeySet = new Set(externalDuplicateKeys);
-
-            const allUploads = [];
+            let success = 0, skipped = 0, failed = 0;
             let processed = 0;
 
-            for (const record of uploadData) {
-                const keyValue = record[key];
+            const tasks = [];
+            for (const rec of uploadData) {
+                const keyVal = rec[key];
 
-                if (skipDuplicates && duplicateKeySet.has(keyValue)) {
-                    skippedCount++;
-                    processed++;
-                    const progress = Math.round((processed / total) * 100);
-                    progressFill.style.width = `${progress}%`;
-                    progressFill.textContent = `${progress}%`;
-                    status.textContent = `جاري الرفع... تخطي المكررات ${processed}/${total} (${progress}%)`;
+                if (skipDuplicates && dupSet.has(keyVal)) {
+                    skipped++; processed++;
+                    const pct = Math.round((processed / total) * 100);
+                    showProgress('progressBar', 'progressFill', pct);
                     continue;
                 }
 
-                // Injecting user defined upload reference and timestamp
-                record['upload_date'] = selectedUploadDate;
-                record['uploaded_at'] = new Date().toISOString();
+                rec.upload_date = refName;
+                rec.uploaded_at = new Date().toISOString();
 
-                const meterNum = record['meter_number'] || `record_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-                const keta3Id = record['keta3_id'] || '1';
-                const handsaCode = record['handsa_code'] || '101';
+                const meter = rec.meter_number || `rec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+                const keta3 = rec.keta3_id || '1';
+                const handsa = rec.handsa_code || '101';
+                const path = `sectors/${keta3}/districts/${handsa}/manual_entries/${meter}`;
 
-                if (!keta3Id || !handsaCode) {
-                    errorCount++;
-                    errors.push(`سجل بدون keta3_id أو handsa_code: ${meterNum}`);
-                    processed++;
-                    continue;
-                }
-
-                const path = `sectors/${keta3Id}/districts/${handsaCode}/manual_entries/${meterNum}`;
-
-                const uploadPromise = set(ref(db, path), record)
-                    .then(() => {
-                        successCount++;
-                        processed++;
-                        const progress = Math.round((processed / total) * 100);
-                        progressFill.style.width = `${progress}%`;
-                        progressFill.textContent = `${progress}%`;
-                        status.textContent = `جاري الرفع... ${processed}/${total} (${progress}%)`;
-                    })
-                    .catch((err) => {
-                        errorCount++;
-                        processed++;
-                        errors.push(`${meterNum}: ${err.message}`);
-                        const progress = Math.round((processed / total) * 100);
-                        progressFill.style.width = `${progress}%`;
-                        progressFill.textContent = `${progress}%`;
-                        console.error(err);
-                    });
-                allUploads.push(uploadPromise);
+                tasks.push(
+                    set(ref(db, path), rec)
+                        .then(() => {
+                            success++; processed++;
+                            const pct = Math.round((processed / total) * 100);
+                            showProgress('progressBar', 'progressFill', pct);
+                            status.innerHTML = `<span class="spinner"></span> جاري الرفع… ${processed}/${total} (${pct}%)`;
+                        })
+                        .catch(err => {
+                            failed++; processed++;
+                            console.error(err);
+                        })
+                );
             }
 
-            await Promise.allSettled(allUploads);
+            await Promise.allSettled(tasks);
+            hideProgress('progressBar');
 
-            setTimeout(() => {
-                progressBar.style.display = 'none';
-            }, 1000);
+            let msg = `✅ تم رفع ${success} سجل`;
+            if (skipped) msg += ` — تخطي ${skipped}`;
+            if (failed) msg += ` — فشل ${failed}`;
+            status.innerHTML = msg;
+            status.className = `status show ${failed && !success ? 'error' : 'success'}`;
 
-            let msg = `✅ تم رفع ${successCount} سجل بنجاح`;
-            if (skippedCount > 0) {
-                msg += `، تم تخطي ${skippedCount} سجل مكرر`;
-            }
-            if (errorCount > 0) {
-                msg += `، فشل ${errorCount} سجل`;
-                if (errors.length <= 5) {
-                    msg += `: ${errors.join('; ')}`;
-                }
-            }
-            status.textContent = msg;
-            status.className = errorCount > 0 && successCount === 0 ? 'error' : 'success';
+            $('btnUploadConfirm').disabled = false;
+            $('btnUploadDuplicates').disabled = false;
+            $('btnSkipDuplicates').disabled = false;
+            $('btnUploadWithInternalDuplicates').disabled = false;
 
-            document.getElementById('btnUploadConfirm').disabled = false;
-            document.getElementById('btnUploadDuplicates').disabled = false;
-            document.getElementById('btnSkipDuplicates').disabled = false;
-            document.getElementById('btnUploadWithInternalDuplicates').disabled = false;
+            $('externalDuplicateWarning').classList.remove('show');
+            $('internalDuplicateWarning').classList.remove('show');
 
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-            document.getElementById('internalDuplicateWarning').style.display = 'none';
             await loadDeleteDates();
-            resetSessionTimer();
         }
 
-        document.getElementById('btnUploadWithInternalDuplicates').addEventListener('click', async function () {
-            if (!confirm('⚠️ يوجد مكررات داخل الملف. هل أنت متأكد من المتابعة؟ قد يتسبب ذلك في مشاكل في البيانات.')) return;
-            await performUpload(false);
-            resetSessionTimer();
+        /* ============ UPLOAD EVENT WIRING ============ */
+        $('excelFile').addEventListener('change', e => {
+            const f = e.target.files[0];
+            if (f) handleFile(f);
         });
 
-        document.getElementById('btnUploadConfirm').addEventListener('click', async function () {
-            const internalWarning = document.getElementById('internalDuplicateWarning');
-            if (internalWarning.style.display === 'block') {
-                return;
-            }
-            await performUpload(false);
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnUploadDuplicates').addEventListener('click', async function () {
-            await performUpload(false);
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnSkipDuplicates').addEventListener('click', async function () {
-            await performUpload(true);
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnCancelUpload').addEventListener('click', function () {
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-            uploadData = [];
-            document.getElementById('excelFile').value = '';
-            document.getElementById('uploadPreviewArea').style.display = 'none';
-            document.getElementById('uploadStatus').style.display = 'none';
-            document.getElementById('progressBar').style.display = 'none';
-            document.getElementById('btnUploadConfirm').disabled = true;
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnCancelUploadInternal').addEventListener('click', function () {
-            document.getElementById('internalDuplicateWarning').style.display = 'none';
-            uploadData = [];
-            document.getElementById('excelFile').value = '';
-            document.getElementById('uploadPreviewArea').style.display = 'none';
-            document.getElementById('uploadStatus').style.display = 'none';
-            document.getElementById('progressBar').style.display = 'none';
-            document.getElementById('btnUploadConfirm').disabled = true;
-            resetSessionTimer();
-        });
-
-        document.getElementById('btnCancelUploadPreview').addEventListener('click', function () {
-            uploadData = [];
-            document.getElementById('excelFile').value = '';
-            document.getElementById('uploadPreviewArea').style.display = 'none';
-            document.getElementById('uploadStatus').style.display = 'none';
-            document.getElementById('progressBar').style.display = 'none';
-            document.getElementById('internalDuplicateWarning').style.display = 'none';
-            document.getElementById('externalDuplicateWarning').style.display = 'none';
-            document.getElementById('btnUploadConfirm').disabled = true;
-            resetSessionTimer();
-        });
-
-        document.getElementById('uploadKey').addEventListener('change', function () {
+        $('uploadKey').addEventListener('change', () => {
             if (uploadData.length > 0) {
-                const fileInput = document.getElementById('excelFile');
-                if (fileInput.files.length > 0) {
-                    const event = new Event('change');
-                    fileInput.dispatchEvent(event);
-                }
+                runDuplicateChecks();
             }
-            resetSessionTimer();
         });
 
-        // Initial load
+        $('btnUploadConfirm').addEventListener('click', () => performUpload(false));
+        $('btnUploadDuplicates').addEventListener('click', () => performUpload(false));
+        $('btnSkipDuplicates').addEventListener('click', () => performUpload(true));
+
+        $('btnUploadWithInternalDuplicates').addEventListener('click', () => {
+            if (!confirm('⚠️ يوجد مكررات داخل الملف. هل أنت متأكد من المتابعة؟')) return;
+            performUpload(false);
+        });
+
+        $('btnCancelUpload').addEventListener('click', clearUploadUI);
+        $('btnCancelUploadInternal').addEventListener('click', clearUploadUI);
+        $('btnCancelUploadPreview').addEventListener('click', clearUploadUI);
+
+        /* ============ BOOT ============ */
         setTimeout(() => {
             fetchAuthData();
             loadDeleteDates();
-        }, 500);
-
-        console.log('Admin page loaded successfully.');
+        }, 300);
     </script>
-
 </body>
 
 </html>

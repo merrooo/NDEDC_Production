@@ -4,271 +4,703 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استعراض جميع السجلات والملخصات الإحصائية</title>
+    <title>استعراض السجلات والملخصات</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <style>
         :root {
+            --bg: #f4f6fb;
+            --surface: #ffffff;
+            --surface-2: #fafbfd;
+            --border: #e6eaf1;
+            --border-2: #eef1f6;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #64748b;
+            --muted-2: #94a3b8;
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
-            --secondary: #64748b;
-            --bg-main: #f8fafc;
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --text-dark: #0f172a;
+            --primary-soft: #eff4ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --radius: 12px;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .04);
+            --shadow-md: 0 8px 26px -12px rgba(15, 23, 42, .28);
+            --shadow-lg: 0 16px 40px -12px rgba(15, 23, 42, .32);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-dark); padding: 20px; direction: rtl; }
-        .container { max-width: 100%; margin: 0 auto; }
-        header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px 30px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-right: 6px solid var(--primary); flex-wrap: wrap; gap: 15px; }
-        .header-left { display: flex; align-items: center; gap: 20px; }
-        .header-icon { width: 52px; height: 52px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; }
-        .header-title h1 { font-size: 1.6rem; color: #ffffff; margin-bottom: 4px; }
-        .header-title .subtitle { color: #94a3b8; font-size: 0.85rem; }
-        .stats-badge { display: flex; align-items: center; gap: 20px; background: rgba(255, 255, 255, 0.06); padding: 8px 24px; border-radius: 50px; flex-wrap: wrap; }
-        .stat-item { display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-size: 0.85rem; }
-        .stat-item .value { font-weight: 700; color: white; font-size: 1rem; }
-        .header-actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-        .btn-back { background-color: #f59e0b; color: white; padding: 8px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s; border: none; cursor: pointer; }
-        .btn-back:hover { background-color: #d97706; }
-        .sync-status { padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; font-weight: 600; }
-        .sync-status.loading { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
-        .card { background: var(--card-bg); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 25px; }
-        .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .summary-header h3 { font-size: 1.1rem; color: #1e293b; display: flex; align-items: center; gap: 8px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
-        .summary-card-item { background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border-color); }
-        .summary-card-item .type-title { font-size: 0.9rem; font-weight: 700; color: var(--secondary); margin-bottom: 5px; }
-        .summary-card-item .type-count { font-size: 1.4rem; font-weight: 800; color: var(--primary-dark); }
-        .summary-card-item.total-item { background: #dbeafe; border-color: #bfdbfe; }
-        .summary-card-item.total-item .type-count { color: var(--primary); }
-        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; flex-wrap: wrap; }
-        .action-btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .filter-group { display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 4px 12px 4px 4px; border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
-        .filter-group label { font-size: 0.8rem; color: var(--secondary); font-weight: 600; white-space: nowrap; }
-        .filter-group .dropdown-toggle { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: white; outline: none; min-width: 150px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .filter-group .dropdown-toggle:focus { border-color: var(--primary); }
-        .filter-dropdown { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 1000; width: 280px; padding: 12px; text-align: right; }
-        .filter-dropdown.show { display: block; }
-        .filter-dropdown .search-box-inline { width: 100%; padding: 6px 10px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; outline: none; }
-        .filter-dropdown .search-box-inline:focus { border-color: var(--primary); }
-        .filter-options-list { max-height: 200px; overflow-y: auto; margin-bottom: 8px; }
-        .filter-option { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.85rem; font-weight: normal; cursor: pointer; }
-        .filter-option input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-        .filter-actions { display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px; flex-wrap: wrap; gap: 5px; }
-        .filter-actions .btn-link { font-size: 0.8rem; }
-        .table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; position: relative; min-height: 150px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: right; white-space: nowrap; }
-        th { background-color: #f1f5f9; color: #334155; padding: 10px 12px; font-weight: 700; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
-        td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); color: #334155; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-        tr:hover { background-color: #f8fafc; }
-        tr.sector-row { background-color: #e2e8f0; font-weight: 700; }
-        tr.grand-total-row { background-color: #1e293b; color: #ffffff; font-weight: 800; }
-        tr.grand-total-row td { color: #ffffff; }
-        .th-content { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .filter-btn { background: none; border: none; cursor: pointer; color: var(--secondary); font-size: 0.8rem; padding: 2px 5px; border-radius: 4px; }
-        .filter-btn:hover, .filter-btn.active { color: var(--primary); background: #dbeafe; }
-        .filter-popover { display: none; position: absolute; background: white; border: 1px solid var(--border-color); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 8px; padding: 12px; z-index: 100; width: 280px; text-align: right; }
-        .filter-popover.show { display: block; }
-        .popover-search { width: 100%; padding: 6px 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; outline: none; }
-        .popover-search:focus { border-color: var(--primary); }
-        .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px; }
-        .pagination-btns { display: flex; gap: 8px; align-items: center; }
-        .btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: var(--primary-dark); }
-        .btn-secondary { background-color: #e2e8f0; color: #475569; }
-        .btn-secondary:hover { background-color: #cbd5e1; }
-        .btn-custom-excel { background-color: #0284c7; color: white; }
-        .btn-custom-excel:hover { background-color: #0369a1; }
-        .btn-excel { background-color: #10b981; color: white; }
-        .btn-excel:hover { background-color: #059669; }
-        .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.75rem; font-weight: bold; }
-        .btn-link:hover { text-decoration: underline; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        [hidden] { display: none !important; }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            direction: rtl;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1700px;
+            margin: 0 auto;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        /* ========== TOPBAR ========== */
+        header.topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap;
+            background: linear-gradient(135deg, #111c33, #1e293b);
+            color: #fff; border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow-md);
+            position: sticky; top: 6px; z-index: 60;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-icon {
+            width: 38px; height: 38px; flex: none;
+            border-radius: 10px; background: var(--primary);
+            display: grid; place-items: center; font-size: 16px;
+            box-shadow: 0 6px 16px -6px var(--primary);
+        }
+        .brand h1 {
+            font-size: .95rem; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 48vw;
+        }
+        .brand .sub { font-size: .72rem; color: #94a3b8; }
+        .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .chip {
+            font-size: .72rem; padding: 4px 11px; border-radius: 999px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            white-space: nowrap; transition: .2s;
+        }
+        .chip-ok { background: rgba(16,185,129,.15); color: #6ee7b7; border-color: rgba(16,185,129,.25); }
+        .chip-loading { background: rgba(245,158,11,.15); color: #fcd34d; border-color: rgba(245,158,11,.25); }
+        .chip-err { background: rgba(239,68,68,.15); color: #fca5a5; border-color: rgba(239,68,68,.25); }
+        .chip.warn { color: #fcd34d; border-color: rgba(245,158,11,.35); }
+
+        .stats-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+        .stat-item { display: flex; align-items: center; gap: 6px; font-size: .74rem; color: #cbd5e1; }
+        .stat-item i { opacity: .75; font-size: .7rem; }
+        .stat-item .value { font-weight: 700; color: #fff; font-size: .85rem; }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: none; border-radius: 10px;
+            padding: 8px 13px; font-size: .78rem; font-weight: 600;
+            cursor: pointer; transition: .15s; font-family: inherit;
+            white-space: nowrap; line-height: 1.2;
+        }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover:not(:disabled) { background: #059669; }
+        .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+        .btn-ghost:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .btn-top { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.16); }
+        .btn-top:hover { background: rgba(255,255,255,.2); }
+        .btn-sm { padding: 6px 11px; font-size: .74rem; border-radius: 8px; }
+        .btn-link {
+            background: none; border: none; color: var(--primary);
+            cursor: pointer; font-size: .73rem; font-weight: 600;
+            padding: 4px 8px; border-radius: 6px; font-family: inherit;
+        }
+        .btn-link:hover { background: var(--primary-soft); }
+        .btn-link.danger { color: var(--danger); }
+        .btn-link.danger:hover { background: #fef2f2; }
+
+        /* Count badge inside any button */
+        .count-pill {
+            display: inline-flex; align-items: center;
+            padding: 1px 7px; border-radius: 999px;
+            font-size: .64rem; font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: rgba(255,255,255,.22);
+            min-width: 20px; justify-content: center;
+        }
+        .btn-ghost .count-pill { background: var(--primary-soft); color: var(--primary); }
+
+        /* ========== CARDS ========== */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow-sm);
+            padding: 12px 14px;
+        }
+        .card-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .card-head h3 {
+            font-size: .88rem; font-weight: 700; color: var(--text);
+            display: flex; align-items: center; gap: 7px;
+        }
+        .card-head h3 i { color: var(--primary); }
+
+        /* ========== CONTROLS ROW ========== */
+        .controls {
+            display: flex; align-items: center; gap: 8px;
+            flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .controls-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; }
+
+        .search {
+            position: relative; flex: 1; min-width: 200px; max-width: 340px;
+        }
+        .search i {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: .75rem; color: var(--muted); pointer-events: none;
+        }
+        .search input {
+            width: 100%; height: 34px; padding: 0 34px 0 34px;
+            border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface-2); font-size: .78rem;
+            outline: none; transition: .15s; font-family: inherit; color: var(--text);
+        }
+        .search input:focus {
+            border-color: var(--primary); background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+        .search .clear {
+            position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+            border: none; background: none; cursor: pointer;
+            color: var(--muted); font-size: .75rem; padding: 5px; border-radius: 6px;
+        }
+        .search .clear:hover { color: var(--danger); background: #fef2f2; }
+
+        /* ========== DROPDOWN COMMON ========== */
+        .dd-wrap { position: relative; }
+        .dd-toggle {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 7px 12px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--surface);
+            font-size: .76rem; font-weight: 600; color: var(--text-2);
+            cursor: pointer; font-family: inherit; transition: .15s;
+            min-height: 34px;
+        }
+        .dd-toggle:hover { border-color: var(--primary); color: var(--primary); }
+        .dd-toggle .caret { opacity: .55; font-size: .62rem; transition: .2s; }
+        .dd-toggle.open { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+        .dd-toggle.open .caret { transform: rotate(180deg); }
+        .dd-toggle .pill {
+            background: var(--primary-soft); color: var(--primary);
+            padding: 1px 7px; border-radius: 999px;
+            font-size: .64rem; font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .dd-toggle.open .pill { background: var(--primary); color: #fff; }
+
+        /* ========== COLUMN DROPDOWN ========== */
+        .col-dropdown {
+            position: absolute; top: calc(100% + 6px); right: 0;
+            width: 320px; max-width: calc(100vw - 24px);
+            background: #fff; border: 1px solid var(--border);
+            border-radius: 14px; box-shadow: var(--shadow-lg);
+            z-index: 300;
+            display: flex; flex-direction: column;
+            max-height: 440px; overflow: hidden;
+            transform-origin: top right;
+            opacity: 0; transform: scale(.96) translateY(-4px);
+            pointer-events: none; transition: .18s ease;
+        }
+        .col-dropdown.show {
+            opacity: 1; transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+        .col-dropdown-head {
+            padding: 10px 12px 8px;
+            border-bottom: 1px solid var(--border-2);
+            background: var(--surface-2);
+        }
+        .col-dropdown-head .row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 8px; margin-bottom: 8px;
+        }
+        .col-dropdown-head .title {
+            font-size: .78rem; font-weight: 700; color: var(--text);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .col-dropdown-head .title i { color: var(--primary); }
+        .col-dropdown-head .meta {
+            font-size: .7rem; color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .col-search {
+            position: relative;
+        }
+        .col-search i {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            font-size: .7rem; color: var(--muted); pointer-events: none;
+        }
+        .col-search input {
+            width: 100%; height: 32px; padding: 0 30px 0 10px;
+            border-radius: 8px; border: 1px solid var(--border);
+            background: #fff; font-size: .76rem;
+            outline: none; font-family: inherit; color: var(--text);
+        }
+        .col-search input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+        .col-options {
+            overflow-y: auto; padding: 6px; flex: 1;
+            display: flex; flex-direction: column; gap: 1px;
+        }
+        .col-option {
+            display: flex; align-items: center; gap: 9px;
+            padding: 6px 9px; border-radius: 8px;
+            font-size: .76rem; color: var(--text-2);
+            cursor: pointer; transition: .1s;
+            user-select: none;
+        }
+        .col-option:hover { background: var(--surface-2); }
+        .col-option input[type="checkbox"] {
+            width: 15px; height: 15px; flex: none;
+            cursor: pointer; accent-color: var(--primary);
+            margin: 0;
+        }
+        .col-option span {
+            flex: 1; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .col-option.checked { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+        .col-empty {
+            padding: 20px 10px; text-align: center;
+            color: var(--muted); font-size: .78rem;
+        }
+        .col-dropdown-foot {
+            padding: 7px 8px; border-top: 1px solid var(--border-2);
+            background: var(--surface-2);
+            display: flex; gap: 4px; justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .col-dropdown-foot .group { display: flex; gap: 2px; }
+
+        /* ========== EXPORT DROPDOWNS ========== */
         .export-menu { position: relative; display: inline-block; }
-        .export-menu-options { display: none; position: absolute; top: calc(100% + 4px); right: 0; z-index: 1000; min-width: 230px; padding: 6px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15); }
-        .export-menu:hover .export-menu-options, .export-menu:focus-within .export-menu-options { display: block; }
-        .export-menu-options button { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: white; color: var(--text-dark); text-align: right; cursor: pointer; font-size: 0.8rem; }
-        .export-menu-options button:hover { background: #f1f5f9; }
-        .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
-        .no-data { text-align: center; padding: 40px; color: var(--secondary); }
-        .column-toggle { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-        #columnToggleCheckboxes { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .column-toggle label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--secondary); cursor: pointer; padding: 4px 10px; border-radius: 6px; background: white; border: 1px solid var(--border-color); white-space: nowrap; }
-        .column-toggle label:hover { background: var(--bg-main); }
-        .column-toggle label input[type="checkbox"] { margin: 0; cursor: pointer; }
-        .search-box { display: flex; gap: 10px; align-items: center; flex: 1; max-width: 600px; }
-        .search-box input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; min-width: 350px; flex: 1; }
-        .search-box input:focus { outline: none; border-color: var(--primary); }
-        @media (max-width: 768px) {
-            header { flex-direction: column; align-items: stretch; }
-            .header-left { flex-wrap: wrap; }
-            .stats-badge { justify-content: center; }
-            .header-actions { justify-content: center; }
-            .table-controls { flex-direction: column; align-items: stretch; }
-            .action-btns { justify-content: center; }
-            .search-box { flex-direction: column; width: 100%; max-width: 100%; }
-            .search-box input { min-width: auto; width: 100%; }
-            .column-toggle { justify-content: flex-start; }
-            .filter-group { flex-wrap: wrap; width: 100%; }
-            .filter-group .dropdown-toggle { flex: 1; min-width: 100px; }
+        .export-menu-options {
+            display: none; position: absolute; top: calc(100% + 6px); right: 0;
+            z-index: 200; min-width: 260px; padding: 5px;
+            background: #fff; border: 1px solid var(--border);
+            border-radius: 12px; box-shadow: var(--shadow-lg);
         }
-        .session-timer { color: #94a3b8; font-size: 0.7rem; padding: 3px 10px; background: rgba(255, 255, 255, 0.06); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .session-timer.warning { color: #fcd34d; border-color: rgba(245, 158, 11, 0.3); }
-        .date-badge { background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .records-count { font-weight: bold; color: var(--secondary); }
-        .date-filter-badge { display: none; margin-right: 10px; }
-        .column-toggle-title { font-weight: 600; font-size: 0.85rem; color: var(--secondary); margin-left: 5px; }
-        .page-indicator { font-size: 0.85rem; color: var(--secondary); }
+        .export-menu:hover .export-menu-options,
+        .export-menu:focus-within .export-menu-options,
+        .export-menu.open .export-menu-options { display: block; }
+        .export-menu-options button {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; padding: 8px 11px;
+            border: 0; border-radius: 8px; background: #fff;
+            color: var(--text); text-align: right; cursor: pointer;
+            font-size: .76rem; font-family: inherit; gap: 8px;
+            transition: .12s;
+        }
+        .export-menu-options button:hover { background: var(--primary-soft); color: var(--primary); }
+        .export-menu-options .opt-count {
+            font-size: .68rem; font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: var(--primary-soft); color: var(--primary);
+            padding: 1px 8px; border-radius: 999px;
+            min-width: 24px; text-align: center;
+            flex: none;
+        }
+        .export-menu-options button:hover .opt-count { background: var(--primary); color: #fff; }
+        .export-menu-options .opt-count.zero { opacity: .4; }
+        .export-menu-options .opt-label { flex: 1; min-width: 0; }
+
+        /* ========== TABLE ========== */
+        .table-wrap {
+            overflow: auto; max-height: 62vh;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--surface); position: relative;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .74rem; }
+        thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: var(--surface-2); color: #475569;
+            font-weight: 700; text-align: right;
+            padding: 8px 10px; border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        tbody td {
+            padding: 6px 10px; border-bottom: 1px solid var(--border-2);
+            text-align: right; max-width: 220px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: var(--text-2);
+        }
+        tbody tr { content-visibility: auto; contain-intrinsic-size: 28px; }
+        tbody tr:hover { background: var(--surface-2); }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody td:first-child { color: var(--muted-2); font-size: .68rem; width: 44px; }
+
+        .th-content { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+        .filter-btn {
+            background: none; border: none; cursor: pointer;
+            color: var(--muted-2); font-size: .68rem;
+            padding: 2px 5px; border-radius: 5px;
+        }
+        .filter-btn:hover, .filter-btn.active { color: var(--primary); background: var(--primary-soft); }
+
+        .sector-row { background: #f1f5f9 !important; }
+        .sector-row td { font-weight: 700; color: #1e293b; }
+        .grand-total-row { background: #1e293b !important; }
+        .grand-total-row td { color: #fff !important; font-weight: 700; }
+
+        .no-data, .loading-state {
+            text-align: center; padding: 40px 16px;
+            color: var(--muted); font-size: .84rem;
+        }
+
+        /* ========== POPOVER ========== */
+        .filter-popover {
+            display: none; position: fixed;
+            background: #fff; border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg); border-radius: 12px;
+            padding: 10px; z-index: 500;
+            width: 280px; text-align: right;
+        }
+        .filter-popover.show { display: block; }
+        .popover-search {
+            width: 100%; padding: 7px 10px; margin-bottom: 7px;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: .76rem; outline: none; font-family: inherit;
+        }
+        .popover-search:focus { border-color: var(--primary); }
+        .date-picker-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+        .date-picker-group label { font-size: .72rem; font-weight: 600; color: var(--muted); }
+        .date-picker-group input[type="date"] {
+            padding: 6px 10px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: .76rem; outline: none;
+            font-family: inherit;
+        }
+        .date-picker-group input[type="date"]:focus { border-color: var(--primary); }
+
+        .filter-options-list { max-height: 220px; overflow-y: auto; margin-bottom: 6px; }
+        .filter-option {
+            display: flex; align-items: center; gap: 7px;
+            margin-bottom: 3px; font-size: .78rem; cursor: pointer;
+            padding: 4px 6px; border-radius: 6px;
+        }
+        .filter-option:hover { background: var(--surface-2); }
+        .filter-option input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--primary); }
+        .filter-actions {
+            display: flex; justify-content: space-between; gap: 4px;
+            border-top: 1px solid var(--border-2); padding-top: 6px; margin-top: 4px;
+        }
+
+        /* ========== PAGINATION ========== */
+        .pagination {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border-2);
+            gap: 10px; flex-wrap: wrap;
+        }
+        .pagination-btns { display: flex; gap: 8px; }
+        .page-indicator { font-size: .76rem; color: var(--muted); }
+        .records-count { font-size: .78rem; color: var(--text-2); font-weight: 600; }
+
+        /* ========== SUMMARY ========== */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        .summary-item {
+            background: var(--surface-2); border: 1px solid var(--border);
+            padding: 12px; border-radius: 10px; text-align: center;
+            transition: .15s;
+        }
+        .summary-item:hover { border-color: var(--primary); }
+        .summary-item .type-title {
+            font-size: .74rem; font-weight: 700; color: var(--muted);
+            margin-bottom: 3px; letter-spacing: .4px;
+        }
+        .summary-item .type-count {
+            font-size: 1.35rem; font-weight: 800; color: var(--primary-dark);
+            font-variant-numeric: tabular-nums;
+        }
+        .summary-item.total { background: var(--primary-soft); border-color: #c7d7ff; }
+        .summary-item.total .type-count { color: var(--primary); }
+
+        /* ========== LOAD PROGRESS ========== */
+        .progress-bar {
+            height: 3px; background: var(--border); border-radius: 999px;
+            overflow: hidden; margin-bottom: 8px; display: none;
+        }
+        .progress-bar.on { display: block; }
+        .progress-fill {
+            height: 100%; width: 0;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width .25s;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            body { padding: 8px; }
+            .brand h1 { font-size: .82rem; max-width: 60vw; }
+            header.topbar { position: static; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls-left { width: 100%; }
+            .search { max-width: 100%; }
+            .col-dropdown { width: calc(100vw - 24px); right: -12px; }
+            .table-wrap { max-height: 55vh; }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <header>
-            <div class="header-left">
-                <div class="header-icon"><i class="fas fa-database"></i></div>
-                <div class="header-title">
-                    <h1>استعراض جميع البيانات والملخصات</h1>
-                    <div class="subtitle">جميع السجلات - إحصائيات تفصيلية بالأنواع والقطاعات</div>
+
+        <!-- ============ TOPBAR ============ -->
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon"><i class="fas fa-database"></i></div>
+                <div>
+                    <h1>Summary - HES - MDM</h1>
                 </div>
             </div>
-            <div class="stats-badge" id="statsBadge">
-                <div class="stat-item"><i class="fas fa-file-alt"></i> إجمالي السجلات: <span class="value" id="totalRecords">0</span></div>
+
+            <div class="stats-bar" id="statsBadge">
+                <div class="stat-item"><i class="fas fa-file-lines"></i> السجلات: <span class="value" id="totalRecords">0</span></div>
                 <div class="stat-item"><i class="fas fa-layer-group"></i> القطاعات: <span class="value" id="totalSectors">0</span></div>
                 <div class="stat-item"><i class="fas fa-building"></i> الهندسات: <span class="value" id="totalDistricts">0</span></div>
                 <div class="stat-item"><i class="fas fa-columns"></i> الأعمدة: <span class="value" id="totalColumns">0</span></div>
             </div>
-            <div class="header-actions">
-                <span id="syncStatus" class="sync-status loading">⏳ جاري التحميل...</span>
-                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn-back">
+
+            <div class="topbar-actions">
+                <span id="sessionTimer" class="chip">5:00</span>
+                <span id="syncStatus" class="chip chip-loading">جاري التحميل…</span>
+                <a href="Control_Smart.html?keta3=admin&handsa=admin&userType=Admin" class="btn btn-top btn-sm">
                     <i class="fas fa-arrow-right"></i> رجوع
                 </a>
             </div>
         </header>
 
-        <div class="card">
-            <div class="table-controls">
-                <div>
-                    <span id="recordsCount" class="records-count">0 سجل معروض</span>
-                    <span id="dateFilterBadge" class="date-badge date-filter-badge">
-                        <i class="fas fa-calendar-day"></i> <span id="selectedDateDisplay"></span>
-                    </span>
-                </div>
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 بحث في جميع الأعمدة..." onkeyup="searchAllColumns(this.value)">
-                    <button class="btn btn-secondary btn-sm" title="مسح البحث" onclick="document.getElementById('searchInput').value='';searchAllColumns('')"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="action-btns">
-                    <div class="filter-group">
-                        <label><i class="fas fa-filter"></i> تصفية عامة:</label>
-                        <div class="dropdown-toggle" id="generalFilterToggle" onclick="toggleGeneralFilterDropdown(event)">
+        <!-- ============ MAIN CARD ============ -->
+        <section class="card">
+            <div class="progress-bar" id="loadProgress"><div class="progress-fill" id="loadProgressFill"></div></div>
+
+            <!-- Controls row -->
+            <div class="controls">
+                <div class="controls-left">
+                    <div class="search">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="بحث في جميع الأعمدة…" autocomplete="off">
+                        <button class="clear" id="clearSearchBtn" hidden><i class="fas fa-xmark"></i></button>
+                    </div>
+
+                    <!-- General filter -->
+                    <div class="dd-wrap" id="genFilterWrap">
+                        <button class="dd-toggle" id="generalFilterToggle">
+                            <i class="fas fa-filter"></i>
                             <span id="generalFilterLabel">جميع القيم</span>
-                            <i class="fas fa-caret-down"></i>
-                        </div>
-                        <div class="filter-dropdown" id="generalFilterDropdown">
-                            <input type="text" class="search-box-inline" id="generalFilterSearch" placeholder="🔍 بحث في القائمة..." oninput="filterGeneralOptions(this.value)">
-                            <div class="filter-options-list" id="generalFilterOptionsList"></div>
-                            <div class="filter-actions">
-                                <button class="btn-link" onclick="selectAllGeneral(true)">تحديد الكل</button>
-                                <button class="btn-link" onclick="selectAllGeneral(false)">إلغاء الكل</button>
-                                <button class="btn-link" onclick="clearGeneralFilter()">مسح التصفية</button>
+                            <span class="caret"><i class="fas fa-caret-down"></i></span>
+                        </button>
+                        <div class="col-dropdown" id="generalFilterDropdown" style="width:280px">
+                            <div class="col-dropdown-head">
+                                <div class="row">
+                                    <span class="title"><i class="fas fa-filter"></i> تصفية upload_date</span>
+                                </div>
+                                <div class="col-search">
+                                    <i class="fas fa-magnifying-glass"></i>
+                                    <input type="text" id="generalFilterSearch" placeholder="بحث في القيم…">
+                                </div>
+                            </div>
+                            <div class="col-options" id="generalFilterOptionsList"></div>
+                            <div class="col-dropdown-foot">
+                                <div class="group">
+                                    <button class="btn-link" data-act="gf-all">تحديد الكل</button>
+                                    <button class="btn-link" data-act="gf-none">إلغاء الكل</button>
+                                </div>
+                                <button class="btn-link danger" data-act="gf-clear">مسح</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="export-menu">
-                        <button class="btn btn-primary" type="button"><i class="fas fa-file-export"></i> MDM + HES <i class="fas fa-caret-down"></i></button>
+                    <!-- Column dropdown (NEW) -->
+                    <div class="dd-wrap" id="colWrap">
+                        <button class="dd-toggle" id="colToggleBtn">
+                            <i class="fas fa-columns"></i>
+                            <span>الأعمدة</span>
+                            <span class="pill" id="colPill">0/0</span>
+                            <span class="caret"><i class="fas fa-caret-down"></i></span>
+                        </button>
+                        <div class="col-dropdown" id="colDropdown">
+                            <div class="col-dropdown-head">
+                                <div class="row">
+                                    <span class="title"><i class="fas fa-columns"></i> إظهار / إخفاء الأعمدة</span>
+                                    <span class="meta" id="colMeta">0 مظهر</span>
+                                </div>
+                                <div class="col-search">
+                                    <i class="fas fa-magnifying-glass"></i>
+                                    <input type="text" id="colSearch" placeholder="بحث في الأعمدة…">
+                                </div>
+                            </div>
+                            <div class="col-options" id="colOptions"></div>
+                            <div class="col-dropdown-foot">
+                                <div class="group">
+                                    <button class="btn-link" data-act="col-show">إظهار الكل</button>
+                                    <button class="btn-link" data-act="col-hide">إخفاء الكل</button>
+                                </div>
+                                <button class="btn-link" data-act="col-reset">الافتراضي</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export buttons with live counts -->
+                <div class="controls" style="flex-wrap:wrap;gap:6px">
+                    <div class="export-menu" data-menu="combined">
+                        <button class="btn btn-primary btn-sm" type="button">
+                            <i class="fas fa-file-export"></i> MDM + HES
+                            <span class="count-pill" data-count="total">0</span>
+                            <i class="fas fa-caret-down"></i>
+                        </button>
                         <div class="export-menu-options">
-                            <button type="button" onclick="exportCombinedCustomExcel(false)">MDM + HES: مع الخلايا الفارغة</button>
-                            <button type="button" onclick="exportCombinedCustomExcel(true)">MDM + HES: بدون خلايا فارغة</button>
+                            <button type="button" onclick="exportCombinedCustomExcel(false)">
+                                <span class="opt-label">مع الخلايا الفارغة</span>
+                                <span class="opt-count" data-count="total">0</span>
+                            </button>
+                            <button type="button" onclick="exportCombinedCustomExcel(true)">
+                                <span class="opt-label">بدون خلايا فارغة</span>
+                                <span class="opt-count" data-count="complete">0</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="export-menu">
-                        <button class="btn btn-custom-excel" type="button"><i class="fas fa-file-export"></i> MDM <i class="fas fa-caret-down"></i></button>
+                    <div class="export-menu" data-menu="mdm">
+                        <button class="btn btn-ghost btn-sm" type="button">
+                            <i class="fas fa-file-export"></i> MDM
+                            <span class="count-pill" data-count="total">0</span>
+                            <i class="fas fa-caret-down"></i>
+                        </button>
                         <div class="export-menu-options">
-                            <button type="button" onclick="exportFormattedCustomExcel(false)">MDM: مع الخلايا الفارغة</button>
-                            <button type="button" onclick="exportFormattedCustomExcel(true)">MDM: بدون خلايا فارغة</button>
+                            <button type="button" onclick="exportFormattedCustomExcel(false)">
+                                <span class="opt-label">مع الخلايا الفارغة</span>
+                                <span class="opt-count" data-count="total">0</span>
+                            </button>
+                            <button type="button" onclick="exportFormattedCustomExcel(true)">
+                                <span class="opt-label">بدون خلايا فارغة</span>
+                                <span class="opt-count" data-count="complete">0</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="export-menu">
-                        <button class="btn btn-excel" type="button"><i class="fas fa-file-excel"></i> HES <i class="fas fa-caret-down"></i></button>
+
+                    <div class="export-menu" data-menu="hes">
+                        <button class="btn btn-success btn-sm" type="button">
+                            <i class="fas fa-file-excel"></i> HES
+                            <span class="count-pill" data-count="total">0</span>
+                            <i class="fas fa-caret-down"></i>
+                        </button>
                         <div class="export-menu-options">
-                            <button type="button" onclick="exportSecondCustomExcel(false)">HES: مع الخلايا الفارغة</button>
-                            <button type="button" onclick="exportSecondCustomExcel(true)">HES: بدون خلايا فارغة</button>
+                            <button type="button" onclick="exportSecondCustomExcel(false)">
+                                <span class="opt-label">مع الخلايا الفارغة</span>
+                                <span class="opt-count" data-count="total">0</span>
+                            </button>
+                            <button type="button" onclick="exportSecondCustomExcel(true)">
+                                <span class="opt-label">بدون خلايا فارغة</span>
+                                <span class="opt-count" data-count="complete">0</span>
+                            </button>
                         </div>
                     </div>
-                    <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير الجدول Excel</button>
-                    <button class="btn btn-secondary" onclick="resetAllFilters()"><i class="fas fa-undo"></i> إعادة ضبط الفلاتر</button>
-                    <button class="btn btn-secondary" onclick="loadAllData()"><i class="fas fa-sync-alt"></i> تحديث</button>
+
+                    <button class="btn btn-success btn-sm" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> تصدير الجدول
+                        <span class="count-pill" data-count="total">0</span>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="resetAllFilters()">
+                        <i class="fas fa-undo"></i> إعادة ضبط
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="loadAllData()">
+                        <i class="fas fa-rotate"></i> تحديث
+                    </button>
                 </div>
             </div>
 
-            <div class="column-toggle" id="columnToggleContainer">
-                <span class="column-toggle-title">إظهار/إخفاء الأعمدة:</span>
-                <div id="columnToggleCheckboxes"></div>
-                <button class="btn-link" onclick="showAllColumns()">إظهار الكل</button>
-                <button class="btn-link" onclick="hideAllColumns()">إخفاء الكل</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+                <span id="recordsCount" class="records-count">0 سجل معروض</span>
+                <span class="records-count" style="color:var(--success)" id="completeCountLabel" hidden>
+                    <i class="fas fa-check-circle"></i> مكتمل: <span id="completeCountValue">0</span>
+                </span>
             </div>
 
-            <div class="table-container" id="tableContainer">
-                <div class="no-data">جاري تحميل البيانات...</div>
+            <div class="table-wrap" id="tableContainer">
+                <div class="loading-state">⏳ جاري تحميل البيانات…</div>
             </div>
 
-            <div class="pagination" id="paginationControls">
+            <div class="pagination">
                 <span id="pageIndicator" class="page-indicator">الصفحة 1 من 1</span>
                 <div class="pagination-btns">
-                    <button class="btn btn-secondary" id="btnPrev" onclick="changePage(-1)">السابق</button>
-                    <button class="btn btn-secondary" id="btnNext" onclick="changePage(1)">التالي</button>
+                    <button class="btn btn-ghost btn-sm" id="btnPrev" onclick="changePage(-1)">السابق</button>
+                    <button class="btn btn-ghost btn-sm" id="btnNext" onclick="changePage(1)">التالي</button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="summary-header">
+        <!-- ============ SUMMARY CARDS ============ -->
+        <section class="card">
+            <div class="card-head">
                 <h3><i class="fas fa-chart-pie"></i> ملخص الإحصائيات (A1 - A5)</h3>
-                <button class="btn btn-excel btn-sm" onclick="exportSummary1ToExcel()"><i class="fas fa-file-excel"></i> تصدير Excel (الملخص 1)</button>
+                <button class="btn btn-success btn-sm" onclick="exportSummary1ToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير
+                </button>
             </div>
-            <div class="summary-grid" id="summary1Container">
-                <div class="summary-card-item"><div class="type-title">A1</div><div class="type-count" id="countA1">0</div></div>
-                <div class="summary-card-item"><div class="type-title">A2</div><div class="type-count" id="countA2">0</div></div>
-                <div class="summary-card-item"><div class="type-title">A3</div><div class="type-count" id="countA3">0</div></div>
-                <div class="summary-card-item"><div class="type-title">A4</div><div class="type-count" id="countA4">0</div></div>
-                <div class="summary-card-item"><div class="type-title">A5</div><div class="type-count" id="countA5">0</div></div>
-                <div class="summary-card-item total-item"><div class="type-title">الإجمالي</div><div class="type-count" id="countTotal">0</div></div>
+            <div class="summary-grid">
+                <div class="summary-item"><div class="type-title">A1</div><div class="type-count" id="countA1">0</div></div>
+                <div class="summary-item"><div class="type-title">A2</div><div class="type-count" id="countA2">0</div></div>
+                <div class="summary-item"><div class="type-title">A3</div><div class="type-count" id="countA3">0</div></div>
+                <div class="summary-item"><div class="type-title">A4</div><div class="type-count" id="countA4">0</div></div>
+                <div class="summary-item"><div class="type-title">A5</div><div class="type-count" id="countA5">0</div></div>
+                <div class="summary-item total"><div class="type-title">الإجمالي</div><div class="type-count" id="countTotal">0</div></div>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="summary-header">
+        <section class="card">
+            <div class="card-head">
                 <h3><i class="fas fa-layer-group"></i> ملخص إجمالي القطاعات (A1 - A5)</h3>
-                <button class="btn btn-excel btn-sm" onclick="exportSectorSummaryToExcel()"><i class="fas fa-file-excel"></i> تصدير Excel (ملخص القطاعات)</button>
+                <button class="btn btn-success btn-sm" onclick="exportSectorSummaryToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير
+                </button>
             </div>
-            <div class="table-container" id="sectorSummaryContainer">
-                <div class="no-data">جاري حساب ملخص القطاعات...</div>
+            <div class="table-wrap" style="max-height:400px" id="sectorSummaryContainer">
+                <div class="loading-state">جاري حساب ملخص القطاعات…</div>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="summary-header">
+        <section class="card">
+            <div class="card-head">
                 <h3><i class="fas fa-table"></i> التقرير التجميعي للقطاعات والهندسات (A1 - A5)</h3>
-                <button class="btn btn-excel btn-sm" onclick="exportSummary2ToExcel()"><i class="fas fa-file-excel"></i> تصدير Excel (الملخص 2)</button>
+                <button class="btn btn-success btn-sm" onclick="exportSummary2ToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير
+                </button>
             </div>
-            <div class="table-container" id="summary2Container">
-                <div class="no-data">جاري حساب التقرير...</div>
+            <div class="table-wrap" style="max-height:400px" id="summary2Container">
+                <div class="loading-state">جاري حساب التقرير…</div>
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <div class="summary-header">
-                <h3><i class="fas fa-tasks"></i> ملخص إجمالي الهندسات ومعدل الإنجاز لمستهدف (A4+A5) والرصيد المتبقي</h3>
-                <button class="btn btn-excel btn-sm" onclick="exportTargetSummaryToExcel()"><i class="fas fa-file-excel"></i> تصدير Excel (تقرير الإنجاز)</button>
+        <section class="card">
+            <div class="card-head">
+                <h3><i class="fas fa-tasks"></i> ملخص إجمالي الهندسات ومعدل الإنجاز (A4+A5) والرصيد</h3>
+                <button class="btn btn-success btn-sm" onclick="exportTargetSummaryToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير
+                </button>
             </div>
-            <div class="table-container" id="targetSummaryContainer">
-                <div class="no-data">جاري حساب معدل الإنجاز...</div>
+            <div class="table-wrap" style="max-height:400px" id="targetSummaryContainer">
+                <div class="loading-state">جاري حساب معدل الإنجاز…</div>
             </div>
-        </div>
+        </section>
+
     </div>
 
     <div id="filterPopover" class="filter-popover"></div>
@@ -277,6 +709,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        /* =========================================================
+           FIREBASE
+        ========================================================= */
         const firebaseConfig = {
             apiKey: "AIzaSyCFXLCWmwrAQIrmRvnus3yJlTpra9Rv69k",
             authDomain: "trial-85.firebaseapp.com",
@@ -291,7 +726,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const sectorNames = { '1': 'قطاع دمياط', '2': 'قطاع كفر الشيخ', '3': 'قطاع شمال الدقهلية', '4': 'قطاع جنوب الدقهلية' };
+        /* =========================================================
+           CONSTANTS
+        ========================================================= */
+        const sectorNames = {
+            '1': 'قطاع دمياط', '2': 'قطاع كفر الشيخ',
+            '3': 'قطاع شمال الدقهلية', '4': 'قطاع جنوب الدقهلية'
+        };
 
         const districtNames = {
             '1': 'هندسة شمال دمياط', '2': 'هندسة جنوب دمياط', '3': 'هندسة الشعراء', '4': 'هندسة عزبة البرج',
@@ -343,25 +784,18 @@
             "55": { name: "هندسة كوم النور", target: 345, sectorKey: "4" }
         };
 
-        const exactExcelHeaders = ["SerialNum", "LogicalName", "Badge Number", "Manufacturer", "Model", "EEHC Unified code", "Facililty Description", "Disco", "Disco Section", "Disco Branch فرع", "Losses Area", "Device function", "Distribution Facility", "Installation Date", "ADDRESS1", "ADDRESS2", "ADDRESS3", "ADDRESS4", "Latitude(y)", "Longitude(x)", "VIP"];
-        const secondExcelHeaders = ["operator", "dials", "sims", "imsi", "com", "كود المشترك", "اسم المشترك", "العنوان", "الجهد", "القدرة", "رقم العداد", "كود الشركة", "نوع العداد", "شركة العدادات", "اسم الكشك الموصل بيه العميل", "اسم المغذي الموصل بيه العميل"];
-        const combinedExcelHeaders = ["M", "Dials", "Sims", "IMSI", "com", "القدرة", "رقم العداد", "كود الشركة", "نوع العداد", "شركة العدادات", "اسم الكشك الموصل بيه العميل", "اسم المغذي الموصل بيه العميل", "Serial Num", "LogicalName", "Badge Number", "Manufacturer", "Model", "EEHC Unified code", "VIP Customer (Y/N)", "Facililty Description", "Disco", "Disco Section", "Disco Branch فرع", "منطقة", "Losses Area", "Device function", "Distribution Facility (EEHC unified code)", "Installation Date", "ADDRESS1", "ADDRESS2", "ADDRESS3", "ADDRESS4", "Latitude", "Longitude"];
+        const exactExcelHeaders = ["SerialNum","LogicalName","Badge Number","Manufacturer","Model","EEHC Unified code","Facililty Description","Disco","Disco Section","Disco Branch فرع","Losses Area","Device function","Distribution Facility","Installation Date","ADDRESS1","ADDRESS2","ADDRESS3","ADDRESS4","Latitude(y)","Longitude(x)","VIP"];
+        const secondExcelHeaders = ["operator","dials","sims","imsi","com","كود المشترك","اسم المشترك","العنوان","الجهد","القدرة","رقم العداد","كود الشركة","نوع العداد","شركة العدادات","اسم الكشك الموصل بيه العميل","اسم المغذي الموصل بيه العميل"];
+        const combinedExcelHeaders = ["M","Dials","Sims","IMSI","com","القدرة","رقم العداد","كود الشركة","نوع العداد","شركة العدادات","اسم الكشك الموصل بيه العميل","اسم المغذي الموصل بيه العميل","Serial Num","LogicalName","Badge Number","Manufacturer","Model","EEHC Unified code","VIP Customer (Y/N)","Facililty Description","Disco","Disco Section","Disco Branch فرع","منطقة","Losses Area","Device function","Distribution Facility (EEHC unified code)","Installation Date","ADDRESS1","ADDRESS2","ADDRESS3","ADDRESS4","Latitude","Longitude"];
 
-
-
-        
-        // ============================================================
-        //  ✅ ONLY THESE FIELDS ARE CHECKED FOR EMPTINESS
-        //  "N/A" and any text value = NOT empty → row is kept
-        // ============================================================
         const REQUIRED_FIELDS_FOR_COMPLETE = [
-            'lat', 'lng',
-            'feeder_code', 'dp', 'feeder',
-            'facility', 'facility_capacity', 'facility_code', 'address'
+            'lat','lng','feeder_code','dp','feeder',
+            'facility','facility_capacity','facility_code','address'
         ];
 
-
-
+        /* =========================================================
+           STATE
+        ========================================================= */
         let allRecordsList = [];
         let filteredData = [];
         let allColumns = [];
@@ -376,18 +810,96 @@
         let generalFilterValues = new Set();
         let availableGeneralValues = [];
 
-        function getFormattedDateString() {
-            const now = new Date();
-            const dd = String(now.getDate()).padStart(2, '0');
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const yyyy = now.getFullYear();
-            return `${dd}-${mm}-${yyyy}`;
+        // Cached export counts
+        let cachedTotalCount = 0;
+        let cachedCompleteCount = 0;
+
+        /* =========================================================
+           HELPERS
+        ========================================================= */
+        const $ = id => document.getElementById(id);
+        const ESC_MAP = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]);
+
+        function debounce(fn, wait) {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); };
         }
 
+        function getFormattedDateString() {
+            const now = new Date();
+            return `${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}`;
+        }
+
+        function getRecordValue(record, colKey) {
+            let val = record[colKey];
+            if (colKey === 'sector' && val && sectorNames[val]) val = sectorNames[val];
+            if (colKey === 'district' && val && districtNames[val]) val = districtNames[val];
+            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
+        }
+
+        function extractRecordType(record) {
+            const candidates = ['type','type_code','fault_type','kind','النوع','نوع_العطل','نوع'];
+            for (const k of candidates) {
+                const v = record[k];
+                if (v && String(v).trim()) {
+                    const u = String(v).trim().toUpperCase();
+                    if (['A1','A2','A3','A4','A5'].includes(u)) return u;
+                }
+            }
+            for (const k in record) {
+                if (k === '_recordId') continue;
+                const v = record[k];
+                if (v) {
+                    const u = String(v).trim().toUpperCase();
+                    if (['A1','A2','A3','A4','A5'].includes(u)) return u;
+                }
+            }
+            return null;
+        }
+
+        function formatToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            if (!isNaN(dateStr) && dateStr.toString().length === 13) {
+                const d = new Date(Number(dateStr));
+                return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+            }
+            const parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[2].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[0]}`;
+                if (parts[2].length === 4) return `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[2]}`;
+            }
+            return dateStr;
+        }
+
+        function parseToTimestamp(dateStr) {
+            if (!dateStr) return null;
+            if (!isNaN(dateStr) && dateStr.toString().length === 13) return Number(dateStr);
+            const parts = dateStr.split(/[\/\-]/);
+            if (parts.length === 3) {
+                let day, month, year;
+                if (parts[2].length === 4) { day = +parts[0]; month = +parts[1] - 1; year = +parts[2]; }
+                else if (parts[0].length === 4) { year = +parts[0]; month = +parts[1] - 1; day = +parts[2]; }
+                else return null;
+                const d = new Date(year, month, day);
+                return isNaN(d.getTime()) ? null : d.getTime();
+            }
+            return null;
+        }
+
+        function isDateColumn(colKey) {
+            const kws = ['date','time','_uploaded_at','installation','created','updated'];
+            const lower = colKey.toLowerCase();
+            return kws.some(k => lower.includes(k));
+        }
+
+        /* =========================================================
+           TRANSFORM FUNCTIONS
+        ========================================================= */
         function transformRecordToExcelFormat(rec) {
             const meterNum = rec.meter_number || rec.meterNum || rec.meterNo || rec.meter_no || rec.meter || rec.SerialNum || '';
             const meterTypeRaw = String(rec.meter_type || rec.meterType || rec.type || '').trim().toUpperCase();
-            let vip = (meterTypeRaw === 'A5' || meterTypeRaw === 'A3') ? "Y" : "N";
+            const vip = (meterTypeRaw === 'A5' || meterTypeRaw === 'A3') ? "Y" : "N";
             return {
                 "SerialNum": meterNum,
                 "LogicalName": meterNum ? `CLE25103${meterNum}` : '',
@@ -459,732 +971,949 @@
             };
         }
 
-        // ============================================================
-        //  ✅ COMPLETENESS CHECK — ONLY TRULY EMPTY CELLS
-        //  "N/A", "nan", "null", "undefined", 0, "0" → all treated as REAL values (kept)
-        //  Only undefined / null / empty-string cause removal
-        // ============================================================
+        /* =========================================================
+           COMPLETENESS CHECK
+        ========================================================= */
         function isSourceRecordComplete(record) {
-            return REQUIRED_FIELDS_FOR_COMPLETE.every(field => {
-                const val = record[field];
+            const req = REQUIRED_FIELDS_FOR_COMPLETE;
+            for (let i = 0; i < req.length; i++) {
+                const val = record[req[i]];
                 if (val === undefined || val === null) return false;
                 if (String(val).trim() === '') return false;
-                return true;
-            });
+            }
+            return true;
         }
 
         function getCompleteSourceRecords(records) {
-            return records.filter(isSourceRecordComplete);
+            const out = [];
+            for (let i = 0; i < records.length; i++) {
+                if (isSourceRecordComplete(records[i])) out.push(records[i]);
+            }
+            return out;
         }
 
+        /* =========================================================
+           EXPORT COUNTS  —  live counts on each button
+        ========================================================= */
+        function computeExportCounts() {
+            const data = getDataForExport();
+            cachedTotalCount = data.length;
+
+            // Reset per-record completeness cache is not needed — compute directly
+            let complete = 0;
+            for (let i = 0; i < data.length; i++) {
+                if (isSourceRecordComplete(data[i])) complete++;
+            }
+            cachedCompleteCount = complete;
+        }
+
+        function applyCountsToUI() {
+            // Update every element with data-count attribute
+            document.querySelectorAll('[data-count="total"]').forEach(el => {
+                el.textContent = cachedTotalCount.toLocaleString('en-US');
+                el.classList.toggle('zero', cachedTotalCount === 0);
+            });
+            document.querySelectorAll('[data-count="complete"]').forEach(el => {
+                el.textContent = cachedCompleteCount.toLocaleString('en-US');
+                el.classList.toggle('zero', cachedCompleteCount === 0);
+            });
+
+            // Complete count label near records count
+            const lbl = $('completeCountLabel');
+            const val = $('completeCountValue');
+            if (lbl && val) {
+                if (cachedCompleteCount > 0 && cachedCompleteCount < cachedTotalCount) {
+                    lbl.hidden = false;
+                    val.textContent = cachedCompleteCount.toLocaleString('en-US');
+                } else {
+                    lbl.hidden = true;
+                }
+            }
+        }
+
+        function getDataForExport() {
+            const hasFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || generalFilterValues.size > 0;
+            const allCols = visibleColumns.length === allColumns.length;
+            return (hasFilters || !allCols) ? filteredData : allRecordsList;
+        }
+
+        /* =========================================================
+           EXPORT HANDLERS
+        ========================================================= */
         window.exportCombinedCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
-            if (!dataToExport || dataToExport.length === 0) { alert("لا توجد بيانات لتصديرها."); return; }
+            if (!dataToExport?.length) { alert("لا توجد بيانات لتصديرها."); return; }
 
             let sourceData = dataToExport;
             let skippedCount = 0;
-
             if (withoutEmptyCells) {
                 sourceData = getCompleteSourceRecords(dataToExport);
                 skippedCount = dataToExport.length - sourceData.length;
-                if (sourceData.length === 0) {
-                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة.\n\n` +
-                          `إجمالي السجلات: ${dataToExport.length}\n` +
-                          `تم استبعاد: ${skippedCount} صف (به خلية فارغة فعلاً من الحقول المطلوبة).\n\n` +
-                          `ملاحظة: القيم مثل N/A تُعتبر قيمة حقيقية ولا تُستبعد.`);
+                if (!sourceData.length) {
+                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة.\nإجمالي: ${dataToExport.length}\nمستبعد: ${skippedCount}`);
                     return;
                 }
             }
 
-            const exportData = sourceData.map((rec, index) => transformRecordToCombinedExcelFormat(rec, index + 1));
-            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: combinedExcelHeaders });
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "MDM_HES");
-            const count = exportData.length;
-            const dateStr = getFormattedDateString();
-            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
-            XLSX.writeFile(workbook, `MDM_HES_Combined${modeSuffix}-${count}-${dateStr}.xlsx`);
-
-            if (withoutEmptyCells) {
-                alert(`تم التصدير: ${count} صف كامل.${skippedCount ? `\nتم استبعاد ${skippedCount} صف.` : ''}`);
-            }
+            const exportData = sourceData.map((rec, i) => transformRecordToCombinedExcelFormat(rec, i + 1));
+            const ws = XLSX.utils.json_to_sheet(exportData, { header: combinedExcelHeaders });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MDM_HES");
+            const suffix = withoutEmptyCells ? '-no-empty' : '';
+            XLSX.writeFile(wb, `MDM_HES_Combined${suffix}-${exportData.length}-${getFormattedDateString()}.xlsx`);
+            if (withoutEmptyCells) alert(`تم التصدير: ${exportData.length} صف.${skippedCount ? `\nمستبعد ${skippedCount}.` : ''}`);
         };
 
         window.exportFormattedCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
-            if (!dataToExport || dataToExport.length === 0) { alert("لا توجد بيانات لتصديرها."); return; }
+            if (!dataToExport?.length) { alert("لا توجد بيانات لتصديرها."); return; }
 
             let sourceData = dataToExport;
             let skippedCount = 0;
-
             if (withoutEmptyCells) {
                 sourceData = getCompleteSourceRecords(dataToExport);
                 skippedCount = dataToExport.length - sourceData.length;
-                if (sourceData.length === 0) {
-                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة (MDM).\n\n` +
-                          `إجمالي السجلات: ${dataToExport.length}\n` +
-                          `تم استبعاد: ${skippedCount} صف.`);
+                if (!sourceData.length) {
+                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة (MDM).\nإجمالي: ${dataToExport.length}\nمستبعد: ${skippedCount}`);
                     return;
                 }
             }
 
             const exportData = sourceData.map(rec => transformRecordToExcelFormat(rec));
-            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: exactExcelHeaders });
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-            const count = exportData.length;
-            const dateStr = getFormattedDateString();
-            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
-            XLSX.writeFile(workbook, `MDM${modeSuffix}-${count}-${dateStr}.xlsx`);
-
-            if (withoutEmptyCells) {
-                alert(`تم التصدير: ${count} صف كامل (MDM).${skippedCount ? `\nتم استبعاد ${skippedCount} صف.` : ''}`);
-            }
+            const ws = XLSX.utils.json_to_sheet(exportData, { header: exactExcelHeaders });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            const suffix = withoutEmptyCells ? '-no-empty' : '';
+            XLSX.writeFile(wb, `MDM${suffix}-${exportData.length}-${getFormattedDateString()}.xlsx`);
+            if (withoutEmptyCells) alert(`تم التصدير: ${exportData.length} صف.${skippedCount ? `\nمستبعد ${skippedCount}.` : ''}`);
         };
 
         window.exportSecondCustomExcel = function (withoutEmptyCells = false) {
             const dataToExport = getDataForExport();
-            if (!dataToExport || dataToExport.length === 0) { alert("لا توجد بيانات لتصديرها."); return; }
+            if (!dataToExport?.length) { alert("لا توجد بيانات لتصديرها."); return; }
 
             let sourceData = dataToExport;
             let skippedCount = 0;
-
             if (withoutEmptyCells) {
                 sourceData = getCompleteSourceRecords(dataToExport);
                 skippedCount = dataToExport.length - sourceData.length;
-                if (sourceData.length === 0) {
-                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة (HES).\n\n` +
-                          `إجمالي السجلات: ${dataToExport.length}\n` +
-                          `تم استبعاد: ${skippedCount} صف.`);
+                if (!sourceData.length) {
+                    alert(`لا توجد صفوف تحتوي على جميع الحقول المطلوبة (HES).\nإجمالي: ${dataToExport.length}\nمستبعد: ${skippedCount}`);
                     return;
                 }
             }
 
             const exportData = sourceData.map(rec => transformRecordToSecondExcelFormat(rec));
-            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: secondExcelHeaders });
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-            const count = exportData.length;
-            const dateStr = getFormattedDateString();
-            const modeSuffix = withoutEmptyCells ? '-no-empty' : '';
-            XLSX.writeFile(workbook, `HES${modeSuffix}-${count}-${dateStr}.xlsx`);
-
-            if (withoutEmptyCells) {
-                alert(`تم التصدير: ${count} صف كامل (HES).${skippedCount ? `\nتم استبعاد ${skippedCount} صف.` : ''}`);
-            }
+            const ws = XLSX.utils.json_to_sheet(exportData, { header: secondExcelHeaders });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            const suffix = withoutEmptyCells ? '-no-empty' : '';
+            XLSX.writeFile(wb, `HES${suffix}-${exportData.length}-${getFormattedDateString()}.xlsx`);
+            if (withoutEmptyCells) alert(`تم التصدير: ${exportData.length} صف.${skippedCount ? `\nمستبعد ${skippedCount}.` : ''}`);
         };
 
-        function getDataForExport() {
-            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || generalFilterValues.size > 0;
-            const allColumnsSelected = visibleColumns.length === allColumns.length;
-            const isFilteredOrCustomized = hasActiveFilters || !allColumnsSelected;
-            return isFilteredOrCustomized ? filteredData : allRecordsList;
-        }
+        window.exportToExcel = function () {
+            if (!allRecordsList.length) { alert("لا توجد بيانات."); return; }
+            const data = getDataForExport();
+            const hasFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || generalFilterValues.size > 0;
+            const allCols = visibleColumns.length === allColumns.length;
+            const useFiltered = hasFilters || !allCols;
+            const cols = useFiltered ? visibleColumns : allColumns;
+            if (!data.length) { alert("لا توجد بيانات مطابقة."); return; }
 
-        function getRecordValue(record, colKey) {
-            let val = record[colKey];
-            if (colKey === 'sector' && val && sectorNames[val]) val = sectorNames[val];
-            if (colKey === 'district' && val && districtNames[val]) val = districtNames[val];
-            return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
-        }
-
-        function extractRecordType(record) {
-            const candidateKeys = ['type', 'type_code', 'fault_type', 'kind', 'النوع', 'نوع_العطل', 'نوع'];
-            for (let k of candidateKeys) {
-                if (record[k] && String(record[k]).trim()) {
-                    const val = String(record[k]).trim().toUpperCase();
-                    if (['A1', 'A2', 'A3', 'A4', 'A5'].includes(val)) return val;
+            const exportData = data.map((record, i) => {
+                const row = { '#': i + 1 };
+                for (const col of cols) {
+                    let v = getRecordValue(record, col);
+                    if (isDateColumn(col)) v = formatToDDMMYYYY(v);
+                    row[col.replace(/_/g, ' ')] = v;
                 }
-            }
-            for (let k in record) {
-                if (k !== '_recordId' && record[k]) {
-                    const val = String(record[k]).trim().toUpperCase();
-                    if (['A1', 'A2', 'A3', 'A4', 'A5'].includes(val)) return val;
-                }
-            }
-            return null;
-        }
-
-        function formatToDDMMYYYY(dateStr) {
-            if (!dateStr) return '';
-            if (!isNaN(dateStr) && dateStr.toString().length === 13) {
-                const date = new Date(Number(dateStr));
-                return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-            }
-            let parts = dateStr.split(/[\/\-]/);
-            if (parts.length === 3) {
-                if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
-                else if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
-            }
-            return dateStr;
-        }
-
-        function parseToTimestamp(dateStr) {
-            if (!dateStr) return null;
-            if (!isNaN(dateStr) && dateStr.toString().length === 13) return Number(dateStr);
-            let day, month, year;
-            let parts = dateStr.split(/[\/\-]/);
-            if (parts.length === 3) {
-                if (parts[2].length === 4) { day = parseInt(parts[0], 10); month = parseInt(parts[1], 10) - 1; year = parseInt(parts[2], 10); }
-                else if (parts[0].length === 4) { year = parseInt(parts[0], 10); month = parseInt(parts[1], 10) - 1; day = parseInt(parts[2], 10); }
-                const parsedDate = new Date(year, month, day);
-                return isNaN(parsedDate.getTime()) ? null : parsedDate.getTime();
-            }
-            return null;
-        }
-
-        function isDateColumn(colKey) {
-            const dateKeywords = ['date', 'time', '_uploaded_at', 'installation', 'created', 'updated'];
-            return dateKeywords.some(keyword => colKey.toLowerCase().includes(keyword));
-        }
-
-        function updateColumnToggles() {
-            const container = document.getElementById('columnToggleCheckboxes');
-            let html = '';
-            allColumns.forEach(col => {
-                const checked = visibleColumns.includes(col) ? 'checked' : '';
-                html += `<label><input type="checkbox" ${checked} onchange="toggleColumn('${col}', this.checked)">${col.replace(/_/g, ' ')}</label>`;
+                return row;
             });
-            container.innerHTML = html;
-            document.getElementById('totalColumns').textContent = allColumns.length;
-        }
-
-        window.toggleColumn = function (colKey, show) {
-            if (show) { if (!visibleColumns.includes(colKey)) visibleColumns.push(colKey); }
-            else { visibleColumns = visibleColumns.filter(c => c !== colKey); }
-            filterAndRenderTable();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "السجلات");
+            XLSX.writeFile(wb, `تصدير_البيانات_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        window.showAllColumns = function () { visibleColumns = [...allColumns]; updateColumnToggles(); filterAndRenderTable(); };
-        window.hideAllColumns = function () { visibleColumns = []; updateColumnToggles(); filterAndRenderTable(); };
-        window.searchAllColumns = function (term) { globalSearchTerm = term.trim().toLowerCase(); filterAndRenderTable(); };
-
-        function populateGeneralFilterDropdown() {
-            const valuesSet = new Set();
-            allRecordsList.forEach(rec => { if (rec.upload_date && String(rec.upload_date).trim() !== '') valuesSet.add(String(rec.upload_date).trim()); });
-            availableGeneralValues = Array.from(valuesSet).sort();
-            renderGeneralFilterOptions();
-        }
-
-        function renderGeneralFilterOptions(searchTerm = '') {
-            const container = document.getElementById('generalFilterOptionsList');
+        /* =========================================================
+           COLUMN DROPDOWN (NEW)
+        ========================================================= */
+        function renderColumnOptions(searchTerm = '') {
+            const container = $('colOptions');
             if (!container) return;
             const term = searchTerm.toLowerCase();
-            const filteredValues = availableGeneralValues.filter(v => v.toLowerCase().includes(term));
-            if (filteredValues.length === 0) { container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;">لا توجد قيم</p>'; return; }
-            let html = '';
-            filteredValues.forEach(val => {
-                const checked = generalFilterValues.has(val) ? 'checked' : '';
-                html += `<label class="filter-option"><input type="checkbox" value="${val}" ${checked} onchange="onGeneralFilterChange('${val}', this.checked)"><span>${val}</span></label>`;
-            });
-            container.innerHTML = html;
-        }
 
-        window.filterGeneralOptions = function (searchTerm) { renderGeneralFilterOptions(searchTerm); };
-        window.onGeneralFilterChange = function (value, isChecked) {
-            if (isChecked) generalFilterValues.add(value); else generalFilterValues.delete(value);
-            updateGeneralFilterLabel(); filterAndRenderTable();
-        };
-
-        window.selectAllGeneral = function (selectAll) {
-            const searchTerm = document.getElementById('generalFilterSearch').value;
-            const term = searchTerm.toLowerCase();
-            const visibleValues = availableGeneralValues.filter(v => v.toLowerCase().includes(term));
-            if (selectAll) visibleValues.forEach(v => generalFilterValues.add(v));
-            else visibleValues.forEach(v => generalFilterValues.delete(v));
-            renderGeneralFilterOptions(searchTerm); updateGeneralFilterLabel(); filterAndRenderTable();
-        };
-
-        window.clearGeneralFilter = function () {
-            generalFilterValues.clear();
-            document.getElementById('generalFilterSearch').value = '';
-            renderGeneralFilterOptions(''); updateGeneralFilterLabel(); filterAndRenderTable();
-            document.getElementById('generalFilterDropdown').classList.remove('show');
-        };
-
-        function updateGeneralFilterLabel() {
-            const label = document.getElementById('generalFilterLabel');
-            if (generalFilterValues.size === 0) label.textContent = 'جميع القيم';
-            else if (generalFilterValues.size === 1) label.textContent = Array.from(generalFilterValues)[0];
-            else label.textContent = `${generalFilterValues.size} قيم مختارة`;
-        }
-
-        window.toggleGeneralFilterDropdown = function (event) {
-            event.stopPropagation();
-            const dropdown = document.getElementById('generalFilterDropdown');
-            const isVisible = dropdown.classList.contains('show');
-            if (isVisible) dropdown.classList.remove('show');
-            else {
-                document.getElementById('filterPopover').classList.remove('show');
-                renderGeneralFilterOptions(document.getElementById('generalFilterSearch').value);
-                dropdown.classList.add('show');
+            const matches = [];
+            for (let i = 0; i < allColumns.length; i++) {
+                const col = allColumns[i];
+                if (!term || col.toLowerCase().includes(term)) matches.push(col);
             }
-        };
 
-        document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('generalFilterDropdown');
-            const toggle = document.getElementById('generalFilterToggle');
-            if (dropdown && dropdown.classList.contains('show') && !dropdown.contains(e.target) && !toggle.contains(e.target)) dropdown.classList.remove('show');
-        });
+            if (matches.length === 0) {
+                container.innerHTML = `<div class="col-empty">لا توجد أعمدة مطابقة</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const col of matches) {
+                const checked = visibleColumns.includes(col);
+                html += `<label class="col-option${checked ? ' checked' : ''}" data-col="${esc(col)}">
+                    <input type="checkbox" ${checked ? 'checked' : ''}>
+                    <span>${esc(col.replace(/_/g, ' '))}</span>
+                </label>`;
+            }
+            container.innerHTML = html;
+            updateColPill();
+        }
+
+        function updateColPill() {
+            const pill = $('colPill');
+            const meta = $('colMeta');
+            const visible = visibleColumns.length;
+            const total = allColumns.length;
+            if (pill) {
+                pill.textContent = `${visible}/${total}`;
+                pill.style.background = visible === 0
+                    ? '#fee2e2'
+                    : (visible === total ? '' : '');
+                pill.style.color = visible === 0 ? '#b91c1c' : '';
+            }
+            if (meta) meta.textContent = `${visible} مظهر من ${total}`;
+        }
+
+        function refreshColumnVisibilityClasses() {
+            const container = $('colOptions');
+            if (!container) return;
+            container.querySelectorAll('.col-option').forEach(label => {
+                const col = label.dataset.col;
+                const checked = visibleColumns.includes(col);
+                label.classList.toggle('checked', checked);
+                const cb = label.querySelector('input[type="checkbox"]');
+                if (cb) cb.checked = checked;
+            });
+            updateColPill();
+        }
+
+        /* =========================================================
+           FILTER + RENDER  (with debounced heavy work)
+        ========================================================= */
+        const runHeavyWorkDebounced = debounce(() => {
+            // Update export counts
+            computeExportCounts();
+            applyCountsToUI();
+            // Update summaries
+            updateSummaries();
+        }, 280);
 
         window.filterAndRenderTable = function () {
-            filteredData = allRecordsList.filter(record => {
-                if (generalFilterValues.size > 0) {
-                    const recordVal = record.upload_date ? String(record.upload_date).trim() : '';
-                    if (!generalFilterValues.has(recordVal)) return false;
-                }
-                if (globalSearchTerm) {
-                    let found = false;
-                    const allKeys = Object.keys(record);
-                    for (const key of allKeys) {
-                        const val = getRecordValue(record, key);
-                        if (val && val.toLowerCase().includes(globalSearchTerm)) { found = true; break; }
-                    }
-                    if (!found) return false;
-                }
-                for (const colKey of Object.keys(activeColumnFilters)) {
-                    const filter = activeColumnFilters[colKey];
-                    if (filter && filter.type === 'date') {
-                        const recTimestamp = parseToTimestamp(getRecordValue(record, colKey));
-                        if (!recTimestamp) return false;
-                        if (filter.from) { const fromTs = parseToTimestamp(filter.from); if (fromTs && recTimestamp < fromTs) return false; }
-                        if (filter.to) { const toTs = parseToTimestamp(filter.to); if (toTs && recTimestamp > toTs) return false; }
-                    } else if (filter && filter.type === 'text' && filter.values && filter.values.length > 0) {
-                        const val = getRecordValue(record, colKey);
-                        if (!filter.values.includes(val)) return false;
-                    }
-                }
-                return true;
-            });
+            const hasGeneral = generalFilterValues.size > 0;
+            const hasGlobal = globalSearchTerm !== '';
+            const hasColumn = Object.keys(activeColumnFilters).length > 0;
 
-            document.getElementById('recordsCount').textContent = `${filteredData.length} سجل معروض من ${allRecordsList.length}`;
+            if (!hasGeneral && !hasGlobal && !hasColumn) {
+                filteredData = allRecordsList;
+            } else {
+                const colFilterKeys = Object.keys(activeColumnFilters);
+                const gfv = generalFilterValues;
+
+                filteredData = allRecordsList.filter(record => {
+                    if (hasGeneral) {
+                        const rv = record.upload_date ? String(record.upload_date).trim() : '';
+                        if (!gfv.has(rv)) return false;
+                    }
+                    if (hasGlobal) {
+                        let found = false;
+                        for (const key in record) {
+                            const v = getRecordValue(record, key);
+                            if (v && v.toLowerCase().includes(globalSearchTerm)) { found = true; break; }
+                        }
+                        if (!found) return false;
+                    }
+                    for (let i = 0; i < colFilterKeys.length; i++) {
+                        const colKey = colFilterKeys[i];
+                        const filter = activeColumnFilters[colKey];
+                        if (filter.type === 'date') {
+                            const ts = parseToTimestamp(getRecordValue(record, colKey));
+                            if (!ts) return false;
+                            if (filter.from) { const f = parseToTimestamp(filter.from); if (f && ts < f) return false; }
+                            if (filter.to) { const t = parseToTimestamp(filter.to); if (t && ts > t) return false; }
+                        } else if (filter.type === 'text' && filter.values.length > 0) {
+                            const val = getRecordValue(record, colKey);
+                            if (!filter.values.includes(val)) return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+
+            $('recordsCount').textContent = `${filteredData.length} سجل معروض من ${allRecordsList.length}`;
             currentPage = 1;
             renderTablePage();
-            updateSummaries();
+            runHeavyWorkDebounced();
         };
 
         function renderTablePage() {
-            const container = document.getElementById('tableContainer');
+            const container = $('tableContainer');
             if (filteredData.length === 0) {
                 container.innerHTML = `<div class="no-data">لا توجد سجلات مطابقة للفلاتر المحددة</div>`;
                 updatePaginationControls();
                 return;
             }
+
             const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
             const startIndex = (currentPage - 1) * PAGE_SIZE;
             const pageData = filteredData.slice(startIndex, startIndex + PAGE_SIZE);
 
-            let html = `<table><thead><tr><th>#</th>`;
-            visibleColumns.forEach(col => {
+            const cols = visibleColumns;
+            let html = '<table><thead><tr><th>#</th>';
+            for (const col of cols) {
                 const filter = activeColumnFilters[col];
                 const isActive = filter && ((filter.type === 'text' && filter.values.length > 0) || (filter.type === 'date' && (filter.from || filter.to)));
-                html += `<th><div class="th-content"><span>${col.replace(/_/g, ' ')}</span><button class="filter-btn ${isActive ? 'active' : ''}" onclick="toggleFilterPopover(event, '${col}')"><i class="fas fa-filter"></i></button></div></th>`;
-            });
-            html += `</tr></thead><tbody>`;
+                html += `<th><div class="th-content"><span>${esc(col.replace(/_/g, ' '))}</span><button class="filter-btn ${isActive ? 'active' : ''}" data-col="${esc(col)}" data-act="filter"><i class="fas fa-filter"></i></button></div></th>`;
+            }
+            html += '</tr></thead><tbody>';
 
             let index = startIndex;
-            pageData.forEach(record => {
+            for (const record of pageData) {
                 index++;
                 html += `<tr><td>${index}</td>`;
-                visibleColumns.forEach(col => {
-                    let val = getRecordValue(record, col);
-                    if (isDateColumn(col)) val = formatToDDMMYYYY(val);
-                    if (val.length > 50) val = val.substring(0, 50) + '...';
-                    html += `<td title="${getRecordValue(record, col)}">${val}</td>`;
-                });
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table>`;
+                for (const col of cols) {
+                    const raw = getRecordValue(record, col);
+                    const val = isDateColumn(col) ? formatToDDMMYYYY(raw) : raw;
+                    const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
+                    html += `<td title="${esc(raw)}">${esc(display)}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
             container.innerHTML = html;
             updatePaginationControls();
         }
 
         function updatePaginationControls() {
             const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
-            document.getElementById('pageIndicator').textContent = `الصفحة ${currentPage} من ${totalPages}`;
-            document.getElementById('btnPrev').disabled = (currentPage === 1);
-            document.getElementById('btnNext').disabled = (currentPage >= totalPages);
+            $('pageIndicator').textContent = `الصفحة ${currentPage} من ${totalPages}`;
+            $('btnPrev').disabled = (currentPage === 1);
+            $('btnNext').disabled = (currentPage >= totalPages);
         }
 
         window.changePage = function (delta) {
             const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
-            if (currentPage + delta >= 1 && currentPage + delta <= totalPages) { currentPage += delta; renderTablePage(); }
+            const next = currentPage + delta;
+            if (next >= 1 && next <= totalPages) { currentPage = next; renderTablePage(); }
         };
 
+        /* =========================================================
+           SEARCH
+        ========================================================= */
+        const onSearch = debounce(() => {
+            globalSearchTerm = $('searchInput').value.trim().toLowerCase();
+            $('clearSearchBtn').hidden = !globalSearchTerm;
+            filterAndRenderTable();
+        }, 220);
+
+        /* =========================================================
+           GENERAL FILTER (upload_date)
+        ========================================================= */
+        function populateGeneralFilterDropdown() {
+            const valuesSet = new Set();
+            for (const rec of allRecordsList) {
+                const v = rec.upload_date;
+                if (v && String(v).trim() !== '') valuesSet.add(String(v).trim());
+            }
+            availableGeneralValues = Array.from(valuesSet).sort();
+            renderGeneralFilterOptions();
+        }
+
+        function renderGeneralFilterOptions(searchTerm = '') {
+            const container = $('generalFilterOptionsList');
+            if (!container) return;
+            const term = searchTerm.toLowerCase();
+            const filtered = term ? availableGeneralValues.filter(v => v.toLowerCase().includes(term)) : availableGeneralValues;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="col-empty">لا توجد قيم</div>';
+                return;
+            }
+            let html = '';
+            for (const val of filtered) {
+                const checked = generalFilterValues.has(val);
+                html += `<label class="col-option${checked ? ' checked' : ''}" data-val="${esc(val)}">
+                    <input type="checkbox" ${checked ? 'checked' : ''}>
+                    <span>${esc(val)}</span>
+                </label>`;
+            }
+            container.innerHTML = html;
+        }
+
+        window.onGeneralFilterChange = function (value, isChecked) {
+            if (isChecked) generalFilterValues.add(value); else generalFilterValues.delete(value);
+            updateGeneralFilterLabel();
+            filterAndRenderTable();
+        };
+
+        window.selectAllGeneral = function (selectAll) {
+            const term = $('generalFilterSearch').value.toLowerCase();
+            const visible = term ? availableGeneralValues.filter(v => v.toLowerCase().includes(term)) : availableGeneralValues;
+            if (selectAll) visible.forEach(v => generalFilterValues.add(v));
+            else visible.forEach(v => generalFilterValues.delete(v));
+            renderGeneralFilterOptions(term);
+            updateGeneralFilterLabel();
+            filterAndRenderTable();
+        };
+
+        window.clearGeneralFilter = function () {
+            generalFilterValues.clear();
+            $('generalFilterSearch').value = '';
+            renderGeneralFilterOptions('');
+            updateGeneralFilterLabel();
+            filterAndRenderTable();
+            closeAllDropdowns();
+        };
+
+        function updateGeneralFilterLabel() {
+            const label = $('generalFilterLabel');
+            if (generalFilterValues.size === 0) label.textContent = 'جميع القيم';
+            else if (generalFilterValues.size === 1) label.textContent = Array.from(generalFilterValues)[0];
+            else label.textContent = `${generalFilterValues.size} قيم مختارة`;
+        }
+
+        /* =========================================================
+           DROPDOWN MANAGER
+        ========================================================= */
+        function closeAllDropdowns(except = null) {
+            const colDD = $('colDropdown');
+            const gfDD = $('generalFilterDropdown');
+            if (colDD && colDD !== except) colDD.classList.remove('show');
+            if (gfDD && gfDD !== except) gfDD.classList.remove('show');
+            $('colToggleBtn')?.classList.toggle('open', colDD?.classList.contains('show'));
+            $('generalFilterToggle')?.classList.toggle('open', gfDD?.classList.contains('show'));
+            if (except === null) {
+                $('colToggleBtn')?.classList.remove('open');
+                $('generalFilterToggle')?.classList.remove('open');
+            }
+        }
+
+        function toggleDropdown(ddEl, toggleEl) {
+            const isOpen = ddEl.classList.contains('show');
+            closeAllDropdowns(isOpen ? null : ddEl);
+            if (!isOpen) {
+                ddEl.classList.add('show');
+                toggleEl.classList.add('open');
+            }
+        }
+
+        /* =========================================================
+           EVENT WIRING
+        ========================================================= */
+        // Main search
+        $('searchInput').addEventListener('input', onSearch);
+        $('clearSearchBtn').addEventListener('click', () => {
+            $('searchInput').value = '';
+            globalSearchTerm = '';
+            $('clearSearchBtn').hidden = true;
+            filterAndRenderTable();
+        });
+
+        // General filter toggle
+        $('generalFilterToggle').addEventListener('click', e => {
+            e.stopPropagation();
+            toggleDropdown($('generalFilterDropdown'), $('generalFilterToggle'));
+        });
+        $('generalFilterSearch').addEventListener('input', e => renderGeneralFilterOptions(e.target.value));
+
+        $('generalFilterOptionsList').addEventListener('change', e => {
+            const cb = e.target.closest('input[type="checkbox"]');
+            if (!cb) return;
+            const label = cb.closest('.col-option');
+            const val = label.dataset.val;
+            label.classList.toggle('checked', cb.checked);
+            window.onGeneralFilterChange(val, cb.checked);
+        });
+
+        // General filter actions
+        document.querySelectorAll('[data-act^="gf-"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const a = btn.dataset.act;
+                if (a === 'gf-all') window.selectAllGeneral(true);
+                else if (a === 'gf-none') window.selectAllGeneral(false);
+                else if (a === 'gf-clear') window.clearGeneralFilter();
+            });
+        });
+
+        // Column dropdown toggle
+        $('colToggleBtn').addEventListener('click', e => {
+            e.stopPropagation();
+            toggleDropdown($('colDropdown'), $('colToggleBtn'));
+        });
+
+        $('colSearch').addEventListener('input', e => renderColumnOptions(e.target.value));
+
+        // Column checkboxes (delegated)
+        $('colOptions').addEventListener('change', e => {
+            const cb = e.target.closest('input[type="checkbox"]');
+            if (!cb) return;
+            const label = cb.closest('.col-option');
+            const col = label.dataset.col;
+            if (cb.checked) {
+                if (!visibleColumns.includes(col)) visibleColumns.push(col);
+                label.classList.add('checked');
+            } else {
+                visibleColumns = visibleColumns.filter(c => c !== col);
+                label.classList.remove('checked');
+            }
+            updateColPill();
+            filterAndRenderTable();
+        });
+
+        // Column dropdown actions
+        document.querySelectorAll('[data-act^="col-"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const a = btn.dataset.act;
+                if (a === 'col-show') {
+                    visibleColumns = [...allColumns];
+                } else if (a === 'col-hide') {
+                    visibleColumns = [];
+                } else if (a === 'col-reset') {
+                    visibleColumns = [...allColumns];
+                }
+                refreshColumnVisibilityClasses();
+                filterAndRenderTable();
+            });
+        });
+
+        // Table filter buttons (delegated)
+        $('tableContainer').addEventListener('click', e => {
+            const btn = e.target.closest('button.filter-btn');
+            if (btn) window.toggleFilterPopover(e, btn.dataset.col);
+        });
+
+        // Popover actions
+        $('filterPopover').addEventListener('click', e => {
+            const act = e.target.closest('[data-act]');
+            if (!act) return;
+            const a = act.dataset.act;
+            const col = act.dataset.col;
+            if (a === 'apply-date') window.applyDateFilter(col);
+            else if (a === 'clear-date') window.clearDateFilter(col);
+            else if (a === 'select-all') window.selectAllColumn(col, true);
+            else if (a === 'clear-all') window.selectAllColumn(col, false);
+        });
+        $('filterPopover').addEventListener('input', e => {
+            if (e.target.matches('[data-act="pop-search"]')) window.filterPopoverOptions(e.target.value);
+        });
+        $('filterPopover').addEventListener('change', e => {
+            const cb = e.target.closest('input[type="checkbox"]');
+            if (cb && cb.dataset.act === 'col-check') {
+                window.onCheckboxChange($('filterPopover').dataset.colKey);
+            }
+        });
+
+        // Global click — close dropdowns / popovers
+        document.addEventListener('click', e => {
+            const colWrap = $('colWrap');
+            const gfWrap = $('genFilterWrap');
+            if (colWrap && !colWrap.contains(e.target)) {
+                if ($('colDropdown').classList.contains('show')) closeAllDropdowns();
+            }
+            if (gfWrap && !gfWrap.contains(e.target)) {
+                if ($('generalFilterDropdown').classList.contains('show')) closeAllDropdowns();
+            }
+            const pop = $('filterPopover');
+            if (pop?.classList.contains('show') && !pop.contains(e.target) && !e.target.closest('.filter-btn')) {
+                pop.classList.remove('show');
+            }
+        });
+
+        // Escape closes everything
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                closeAllDropdowns();
+                $('filterPopover').classList.remove('show');
+            }
+        });
+
+        /* =========================================================
+           FILTER POPOVER
+        ========================================================= */
         window.toggleFilterPopover = function (event, colKey) {
             event.stopPropagation();
-            const popover = document.getElementById('filterPopover');
+            closeAllDropdowns();
+            const popover = $('filterPopover');
             const button = event.currentTarget;
             const rect = button.getBoundingClientRect();
 
-            if (popover.classList.contains('show') && popover.dataset.colKey === colKey) { popover.classList.remove('show'); return; }
+            if (popover.classList.contains('show') && popover.dataset.colKey === colKey) {
+                popover.classList.remove('show');
+                return;
+            }
 
             const isDate = isDateColumn(colKey);
             const label = colKey.replace(/_/g, ' ');
-            let popHtml = `<strong style="display:block; margin-bottom:8px; font-size:0.85rem;">تصفية حسب ${label}</strong>`;
+            let html = `<strong style="display:block;margin-bottom:8px;font-size:.8rem;">تصفية: ${esc(label)}</strong>`;
 
             if (isDate) {
-                const currentFilter = activeColumnFilters[colKey] || { fromRGB: '', toRGB: '' };
-                popHtml += `<div class="date-picker-group"><label>من تاريخ:</label><input type="date" id="dateFromPicker" value="${currentFilter.fromRGB || ''}"><label>إلى تاريخ:</label><input type="date" id="dateToPicker" value="${currentFilter.toRGB || ''}"></div><div class="filter-actions"><button class="btn btn-primary btn-sm" onclick="applyDateFilter('${colKey}')">تطبيق</button><button class="btn-link" onclick="clearDateFilter('${colKey}')">إلغاء</button></div>`;
+                const cur = activeColumnFilters[colKey] || {};
+                html += `<div class="date-picker-group">
+                    <label>من تاريخ:</label>
+                    <input type="date" id="dateFromPicker" value="${cur.fromRGB || ''}">
+                    <label>إلى تاريخ:</label>
+                    <input type="date" id="dateToPicker" value="${cur.toRGB || ''}">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-link" data-act="apply-date" data-col="${esc(colKey)}">تطبيق</button>
+                    <button class="btn-link danger" data-act="clear-date" data-col="${esc(colKey)}">إلغاء</button>
+                </div>`;
             } else {
-                const uniqueValues = new Set();
-                allRecordsList.forEach(rec => { const val = getRecordValue(rec, colKey); if (val) uniqueValues.add(val); });
-                const sortedValues = Array.from(uniqueValues).sort();
-                const currentFilter = activeColumnFilters[colKey];
-                const currentSelected = currentFilter && currentFilter.type === 'text' ? currentFilter.values : [];
-
-                popHtml += `<input type="text" class="popover-search" placeholder="🔍 بحث في القائمة..." oninput="filterPopoverOptions(this.value)">`;
-                popHtml += `<div class="filter-options-list" id="filterOptionsList">`;
-                if (sortedValues.length === 0) popHtml += `<p style="color:var(--secondary);font-size:0.85rem;">لا توجد قيم للتصفية</p>`;
-                else {
-                    sortedValues.forEach(val => {
-                        const checked = currentSelected.includes(val) ? 'checked' : '';
-                        popHtml += `<label class="filter-option"><input type="checkbox" value="${val}" ${checked} onchange="onCheckboxChange('${colKey}')"><span>${val}</span></label>`;
-                    });
+                const values = new Set();
+                for (const rec of allRecordsList) {
+                    const v = getRecordValue(rec, colKey);
+                    if (v) values.add(v);
                 }
-                popHtml += `</div>`;
-                popHtml += `<div class="filter-actions"><button class="btn-link" onclick="selectAllColumn('${colKey}', true)">تحديد الكل</button><button class="btn-link" onclick="selectAllColumn('${colKey}', false)">إلغاء الكل</button></div>`;
+                const sorted = Array.from(values).sort();
+                const cur = activeColumnFilters[colKey];
+                const selected = cur && cur.type === 'text' ? cur.values : [];
+
+                html += `<input type="text" class="popover-search" placeholder="🔍 بحث في القائمة…" data-act="pop-search">`;
+                html += `<div class="filter-options-list" id="filterOptionsList">`;
+                if (sorted.length === 0) html += `<div class="col-empty">لا توجد قيم</div>`;
+                else for (const val of sorted) {
+                    const checked = selected.includes(val);
+                    html += `<label class="filter-option"><input type="checkbox" value="${esc(val)}" ${checked ? 'checked' : ''} data-act="col-check"><span>${esc(val)}</span></label>`;
+                }
+                html += `</div>
+                <div class="filter-actions">
+                    <button class="btn-link" data-act="select-all" data-col="${esc(colKey)}">تحديد الكل</button>
+                    <button class="btn-link danger" data-act="clear-all" data-col="${esc(colKey)}">إلغاء الكل</button>
+                </div>`;
             }
 
-            popover.innerHTML = popHtml;
+            popover.innerHTML = html;
             popover.dataset.colKey = colKey;
-            popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
-            popover.style.left = `${Math.min(rect.left + window.scrollX - 150, window.innerWidth - 300)}px`;
+            popover.style.top = `${Math.min(rect.bottom + 5, window.innerHeight - 320)}px`;
+            popover.style.left = `${Math.max(6, Math.min(rect.left - 130, window.innerWidth - 300))}px`;
             popover.classList.add('show');
         };
 
-        window.filterPopoverOptions = function (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            document.querySelectorAll('#filterOptionsList .filter-option').forEach(opt => {
-                opt.style.display = opt.textContent.toLowerCase().includes(term) ? 'flex' : 'none';
-            });
-        };
-
         window.applyDateFilter = function (colKey) {
-            const fromRGB = document.getElementById('dateFromPicker').value;
-            const toRGB = document.getElementById('dateToPicker').value;
+            const fromRGB = $('dateFromPicker').value;
+            const toRGB = $('dateToPicker').value;
             let from = '', to = '';
-            if (fromRGB) { const parts = fromRGB.split('-'); from = `${parts[2]}/${parts[1]}/${parts[0]}`; }
-            if (toRGB) { const parts = toRGB.split('-'); to = `${parts[2]}/${parts[1]}/${parts[0]}`; }
+            if (fromRGB) { const p = fromRGB.split('-'); from = `${p[2]}/${p[1]}/${p[0]}`; }
+            if (toRGB) { const p = toRGB.split('-'); to = `${p[2]}/${p[1]}/${p[0]}`; }
             if (fromRGB || toRGB) activeColumnFilters[colKey] = { type: 'date', from, to, fromRGB, toRGB };
             else delete activeColumnFilters[colKey];
-            document.getElementById('filterPopover').classList.remove('show');
+            $('filterPopover').classList.remove('show');
             filterAndRenderTable();
         };
 
         window.clearDateFilter = function (colKey) {
             delete activeColumnFilters[colKey];
-            document.getElementById('filterPopover').classList.remove('show');
+            $('filterPopover').classList.remove('show');
             filterAndRenderTable();
         };
 
         window.onCheckboxChange = function (colKey) {
-            const popover = document.getElementById('filterPopover');
-            const checkboxes = popover.querySelectorAll('input[type="checkbox"]:checked');
-            const selected = Array.from(checkboxes).map(cb => cb.value);
+            const popover = $('filterPopover');
+            const selected = Array.from(popover.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
             if (selected.length > 0) activeColumnFilters[colKey] = { type: 'text', values: selected };
             else delete activeColumnFilters[colKey];
             filterAndRenderTable();
         };
 
         window.selectAllColumn = function (colKey, selectAll) {
-            const popover = document.getElementById('filterPopover');
-            popover.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
+            $('filterPopover').querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
             window.onCheckboxChange(colKey);
         };
 
+        window.filterPopoverOptions = function (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            $('filterPopover').querySelectorAll('#filterOptionsList .filter-option').forEach(opt => {
+                opt.style.display = opt.textContent.toLowerCase().includes(term) ? 'flex' : 'none';
+            });
+        };
+
+        /* =========================================================
+           RESET
+        ========================================================= */
         window.resetAllFilters = function () {
             activeColumnFilters = {};
             globalSearchTerm = '';
             generalFilterValues.clear();
-            document.getElementById('searchInput').value = '';
-            document.getElementById('generalFilterSearch').value = '';
+            $('searchInput').value = '';
+            $('generalFilterSearch').value = '';
+            $('colSearch').value = '';
+            $('clearSearchBtn').hidden = true;
+            visibleColumns = [...allColumns];
             renderGeneralFilterOptions('');
+            renderColumnOptions('');
             updateGeneralFilterLabel();
             filterAndRenderTable();
+            closeAllDropdowns();
         };
 
+        /* =========================================================
+           SUMMARY EXPORTS
+        ========================================================= */
         window.exportSummary1ToExcel = function () {
             const data = [{
-                'A1': document.getElementById('countA1').textContent, 'A2': document.getElementById('countA2').textContent,
-                'A3': document.getElementById('countA3').textContent, 'A4': document.getElementById('countA4').textContent,
-                'A5': document.getElementById('countA5').textContent, 'الإجمالي': document.getElementById('countTotal').textContent
+                'A1': $('countA1').textContent, 'A2': $('countA2').textContent,
+                'A3': $('countA3').textContent, 'A4': $('countA4').textContent,
+                'A5': $('countA5').textContent, 'الإجمالي': $('countTotal').textContent
             }];
-            const worksheet = XLSX.utils.json_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص الإحصائيات");
-            XLSX.writeFile(workbook, `ملخص_الأنواع_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ملخص الإحصائيات");
+            XLSX.writeFile(wb, `ملخص_الأنواع_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
         window.exportSectorSummaryToExcel = function () {
-            if (sectorSummaryCalculatedData.length === 0) { alert("لا توجد بيانات لتصدير الملخص."); return; }
-            const worksheet = XLSX.utils.json_to_sheet(sectorSummaryCalculatedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "ملخص_القطاعات");
-            XLSX.writeFile(workbook, `ملخص_إجمالي_القطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+            if (!sectorSummaryCalculatedData.length) { alert("لا توجد بيانات."); return; }
+            const ws = XLSX.utils.json_to_sheet(sectorSummaryCalculatedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ملخص_القطاعات");
+            XLSX.writeFile(wb, `ملخص_إجمالي_القطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
         window.exportSummary2ToExcel = function () {
-            if (summary2CalculatedData.length === 0) { alert("لا توجد بيانات لتصدير الملخص."); return; }
-            const worksheet = XLSX.utils.json_to_sheet(summary2CalculatedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "توزيع_القطاعات_والهندسات");
-            XLSX.writeFile(workbook, `ملخص_تجميعي_للقطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
+            if (!summary2CalculatedData.length) { alert("لا توجد بيانات."); return; }
+            const ws = XLSX.utils.json_to_sheet(summary2CalculatedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "توزيع_القطاعات_والهندسات");
+            XLSX.writeFile(wb, `ملخص_تجميعي_للقطاعات_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
         window.exportTargetSummaryToExcel = function () {
-            if (targetSummaryCalculatedData.length === 0) { alert("لا توجد بيانات لتصدير التقرير."); return; }
-            const worksheet = XLSX.utils.json_to_sheet(targetSummaryCalculatedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "معدل_الإنجاز");
-            XLSX.writeFile(workbook, `معدل_الإنجاز_والرصيد_${new Date().toISOString().split('T')[0]}.xlsx`);
+            if (!targetSummaryCalculatedData.length) { alert("لا توجد بيانات."); return; }
+            const ws = XLSX.utils.json_to_sheet(targetSummaryCalculatedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "معدل_الإنجاز");
+            XLSX.writeFile(wb, `معدل_الإنجاز_والرصيد_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
 
-        window.exportToExcel = function () {
-            if (allRecordsList.length === 0) { alert("لا توجد بيانات لتصديرها."); return; }
-            const hasActiveFilters = Object.keys(activeColumnFilters).length > 0 || globalSearchTerm !== '' || generalFilterValues.size > 0;
-            const allColumnsSelected = visibleColumns.length === allColumns.length;
-            const isFilteredOrCustomized = hasActiveFilters || !allColumnsSelected;
-            const recordsToExport = isFilteredOrCustomized ? filteredData : allRecordsList;
-            const columnsToExport = isFilteredOrCustomized ? visibleColumns : allColumns;
-            if (recordsToExport.length === 0) { alert("لا توجد بيانات مطابقة لتصديرها."); return; }
-            const exportData = recordsToExport.map((record, index) => {
-                const rowObj = { '#': index + 1 };
-                columnsToExport.forEach(col => {
-                    let val = getRecordValue(record, col);
-                    if (isDateColumn(col)) val = formatToDDMMYYYY(val);
-                    rowObj[col.replace(/_/g, ' ')] = val;
-                });
-                return rowObj;
-            });
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "السجلات التصدير");
-            XLSX.writeFile(workbook, `تصدير_البيانات_${new Date().toISOString().split('T')[0]}.xlsx`);
-        };
-
-        document.addEventListener('click', (e) => {
-            const popover = document.getElementById('filterPopover');
-            if (popover && !popover.contains(e.target) && !e.target.closest('.filter-btn')) popover.classList.remove('show');
-        });
-
+        /* =========================================================
+           SUMMARIES
+        ========================================================= */
         function updateSummaries() {
             const typeCounts = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0 };
             const grouped = {};
-            Object.keys(MASTER_TARGETS).forEach(dKey => {
+            for (const dKey in MASTER_TARGETS) {
                 const sKey = MASTER_TARGETS[dKey].sectorKey;
                 if (!grouped[sKey]) grouped[sKey] = {};
                 grouped[sKey][dKey] = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: MASTER_TARGETS[dKey].target };
-            });
+            }
 
-            filteredData.forEach(rec => {
+            for (const rec of filteredData) {
                 const type = extractRecordType(rec);
-                if (type && typeCounts.hasOwnProperty(type)) typeCounts[type]++;
+                if (type) typeCounts[type]++;
                 const sKey = rec.sector || 'unknown';
                 const dKey = rec.district || 'unknown';
                 if (grouped[sKey] && grouped[sKey][dKey]) {
-                    if (type && typeCounts.hasOwnProperty(type)) { grouped[sKey][dKey][type]++; grouped[sKey][dKey].total++; }
+                    if (type) { grouped[sKey][dKey][type]++; grouped[sKey][dKey].total++; }
                 } else if (sKey !== 'unknown' && dKey !== 'unknown') {
                     if (!grouped[sKey]) grouped[sKey] = {};
                     if (!grouped[sKey][dKey]) grouped[sKey][dKey] = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
-                    if (type && typeCounts.hasOwnProperty(type)) { grouped[sKey][dKey][type]++; grouped[sKey][dKey].total++; }
+                    if (type) { grouped[sKey][dKey][type]++; grouped[sKey][dKey].total++; }
                 }
-            });
+            }
 
-            document.getElementById('countA1').textContent = typeCounts.A1;
-            document.getElementById('countA2').textContent = typeCounts.A2;
-            document.getElementById('countA3').textContent = typeCounts.A3;
-            document.getElementById('countA4').textContent = typeCounts.A4;
-            document.getElementById('countA5').textContent = typeCounts.A5;
-            document.getElementById('countTotal').textContent = filteredData.length;
+            $('countA1').textContent = typeCounts.A1;
+            $('countA2').textContent = typeCounts.A2;
+            $('countA3').textContent = typeCounts.A3;
+            $('countA4').textContent = typeCounts.A4;
+            $('countA5').textContent = typeCounts.A5;
+            $('countTotal').textContent = filteredData.length;
 
             sectorSummaryCalculatedData = [];
             summary2CalculatedData = [];
             targetSummaryCalculatedData = [];
-            let grandTotals = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
+            const grand = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
 
             let secHtml = `<table><thead><tr><th>القطاع</th><th>A1</th><th>A2</th><th>A3</th><th>A4</th><th>A5</th><th>الإجمالي</th></tr></thead><tbody>`;
             let sum2Html = `<table><thead><tr><th>القطاعات والهندسات</th><th>A1</th><th>A2</th><th>A3</th><th>A4</th><th>A5</th><th>الإجمالي</th></tr></thead><tbody>`;
             let targetHtml = `<table><thead><tr><th>القطاعات والهندسات</th><th>المستهدف</th><th>المنفذ (A4+A5)</th><th>الرصيد المتبقي</th><th>معدل الإنجاز</th></tr></thead><tbody>`;
 
-            const sectorKeysSorted = Object.keys(grouped).sort();
-            sectorKeysSorted.forEach(sKey => {
+            const sectorsSorted = Object.keys(grouped).sort();
+            for (const sKey of sectorsSorted) {
                 const sName = sectorNames[sKey] || `قطاع ${sKey}`;
-                const sectorTotals = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
-                const districtsObj = grouped[sKey];
-                const districtKeysSorted = Object.keys(districtsObj).sort();
-                const districtRowsTemp = [];
+                const sTot = { A1: 0, A2: 0, A3: 0, A4: 0, A5: 0, total: 0, target: 0 };
+                const dObj = grouped[sKey];
+                const dKeysSorted = Object.keys(dObj).sort();
+                const dRows = [];
 
-                districtKeysSorted.forEach(dKey => {
+                for (const dKey of dKeysSorted) {
                     const dName = districtNames[dKey] || MASTER_TARGETS[dKey]?.name || `هندسة ${dKey}`;
-                    const dData = districtsObj[dKey];
-                    ['A1', 'A2', 'A3', 'A4', 'A5', 'total', 'target'].forEach(k => { sectorTotals[k] += dData[k]; grandTotals[k] += dData[k]; });
-                    districtRowsTemp.push({ name: dName, A1: dData.A1, A2: dData.A2, A3: dData.A3, A4: dData.A4, A5: dData.A5, total: dData.total, target: dData.target });
-                });
+                    const d = dObj[dKey];
+                    for (const k of ['A1', 'A2', 'A3', 'A4', 'A5', 'total', 'target']) { sTot[k] += d[k]; grand[k] += d[k]; }
+                    dRows.push({ name: dName, ...d });
+                }
 
-                const sectorRowTitle = `إجمالي ${sName.replace('قطاع ', '')}`;
-                sectorSummaryCalculatedData.push({ 'القطاع': sectorRowTitle, 'A1': sectorTotals.A1, 'A2': sectorTotals.A2, 'A3': sectorTotals.A3, 'A4': sectorTotals.A4, 'A5': sectorTotals.A5, 'الإجمالي': sectorTotals.total });
-                secHtml += `<tr class="sector-row"><td>${sectorRowTitle}</td><td>${sectorTotals.A1}</td><td>${sectorTotals.A2}</td><td>${sectorTotals.A3}</td><td>${sectorTotals.A4}</td><td>${sectorTotals.A5}</td><td>${sectorTotals.total}</td></tr>`;
-                summary2CalculatedData.push({ 'القطاعات والهندسات': sectorRowTitle, 'A1': sectorTotals.A1, 'A2': sectorTotals.A2, 'A3': sectorTotals.A3, 'A4': sectorTotals.A4, 'A5': sectorTotals.A5, 'الإجمالي': sectorTotals.total });
-                sum2Html += `<tr class="sector-row"><td>${sectorRowTitle}</td><td>${sectorTotals.A1}</td><td>${sectorTotals.A2}</td><td>${sectorTotals.A3}</td><td>${sectorTotals.A4}</td><td>${sectorTotals.A5}</td><td>${sectorTotals.total}</td></tr>`;
+                const title = `إجمالي ${sName.replace('قطاع ', '')}`;
+                sectorSummaryCalculatedData.push({ 'القطاع': title, 'A1': sTot.A1, 'A2': sTot.A2, 'A3': sTot.A3, 'A4': sTot.A4, 'A5': sTot.A5, 'الإجمالي': sTot.total });
+                secHtml += `<tr class="sector-row"><td>${esc(title)}</td><td>${sTot.A1}</td><td>${sTot.A2}</td><td>${sTot.A3}</td><td>${sTot.A4}</td><td>${sTot.A5}</td><td>${sTot.total}</td></tr>`;
 
-                const secExecuted = sectorTotals.A4 + sectorTotals.A5;
-                const secRemaining = sectorTotals.target - secExecuted;
-                const secRate = sectorTotals.target > 0 ? ((secExecuted / sectorTotals.target) * 100).toFixed(1) + '%' : '0.0%';
-                targetSummaryCalculatedData.push({ 'القطاعات والهندسات': sectorRowTitle, 'المستهدف': sectorTotals.target, 'المنفذ (A4+A5)': secExecuted, 'الرصيد المتبقي': secRemaining, 'معدل الإنجاز': secRate });
-                targetHtml += `<tr class="sector-row"><td>${sectorRowTitle}</td><td>${sectorTotals.target}</td><td>${secExecuted}</td><td>${secRemaining}</td><td>${secRate}</td></tr>`;
+                summary2CalculatedData.push({ 'القطاعات والهندسات': title, 'A1': sTot.A1, 'A2': sTot.A2, 'A3': sTot.A3, 'A4': sTot.A4, 'A5': sTot.A5, 'الإجمالي': sTot.total });
+                sum2Html += `<tr class="sector-row"><td>${esc(title)}</td><td>${sTot.A1}</td><td>${sTot.A2}</td><td>${sTot.A3}</td><td>${sTot.A4}</td><td>${sTot.A5}</td><td>${sTot.total}</td></tr>`;
 
-                districtRowsTemp.forEach(dRow => {
-                    summary2CalculatedData.push({ 'القطاعات والهندسات': dRow.name, 'A1': dRow.A1, 'A2': dRow.A2, 'A3': dRow.A3, 'A4': dRow.A4, 'A5': dRow.A5, 'الإجمالي': dRow.total });
-                    sum2Html += `<tr><td style="padding-right: 25px;">${dRow.name}</td><td>${dRow.A1}</td><td>${dRow.A2}</td><td>${dRow.A3}</td><td>${dRow.A4}</td><td>${dRow.A5}</td><td>${dRow.total}</td></tr>`;
-                    const dExecuted = dRow.A4 + dRow.A5;
-                    const dRemaining = dRow.target - dExecuted;
-                    const dRate = dRow.target > 0 ? ((dExecuted / dRow.target) * 100).toFixed(1) + '%' : '0.0%';
-                    targetSummaryCalculatedData.push({ 'القطاعات والهندسات': dRow.name, 'المستهدف': dRow.target, 'المنفذ (A4+A5)': dExecuted, 'الرصيد المتبقي': dRemaining, 'معدل الإنجاز': dRate });
-                    targetHtml += `<tr><td style="padding-right: 25px;">${dRow.name}</td><td>${dRow.target}</td><td>${dExecuted}</td><td>${dRemaining}</td><td>${dRate}</td></tr>`;
-                });
-            });
+                const sExec = sTot.A4 + sTot.A5;
+                const sRem = sTot.target - sExec;
+                const sRate = sTot.target > 0 ? ((sExec / sTot.target) * 100).toFixed(1) + '%' : '0.0%';
+                targetSummaryCalculatedData.push({ 'القطاعات والهندسات': title, 'المستهدف': sTot.target, 'المنفذ (A4+A5)': sExec, 'الرصيد المتبقي': sRem, 'معدل الإنجاز': sRate });
+                targetHtml += `<tr class="sector-row"><td>${esc(title)}</td><td>${sTot.target}</td><td>${sExec}</td><td>${sRem}</td><td>${sRate}</td></tr>`;
 
-            sectorSummaryCalculatedData.push({ 'القطاع': 'الإجمالي العام', 'A1': grandTotals.A1, 'A2': grandTotals.A2, 'A3': grandTotals.A3, 'A4': grandTotals.A4, 'A5': grandTotals.A5, 'الإجمالي': grandTotals.total });
-            secHtml += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grandTotals.A1}</td><td>${grandTotals.A2}</td><td>${grandTotals.A3}</td><td>${grandTotals.A4}</td><td>${grandTotals.A5}</td><td>${grandTotals.total}</td></tr></tbody></table>`;
-            summary2CalculatedData.push({ 'القطاعات والهندسات': 'الإجمالي العام', 'A1': grandTotals.A1, 'A2': grandTotals.A2, 'A3': grandTotals.A3, 'A4': grandTotals.A4, 'A5': grandTotals.A5, 'الإجمالي': grandTotals.total });
-            sum2Html += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grandTotals.A1}</td><td>${grandTotals.A2}</td><td>${grandTotals.A3}</td><td>${grandTotals.A4}</td><td>${grandTotals.A5}</td><td>${grandTotals.total}</td></tr></tbody></table>`;
+                for (const r of dRows) {
+                    summary2CalculatedData.push({ 'القطاعات والهندسات': r.name, 'A1': r.A1, 'A2': r.A2, 'A3': r.A3, 'A4': r.A4, 'A5': r.A5, 'الإجمالي': r.total });
+                    sum2Html += `<tr><td style="padding-right:25px">${esc(r.name)}</td><td>${r.A1}</td><td>${r.A2}</td><td>${r.A3}</td><td>${r.A4}</td><td>${r.A5}</td><td>${r.total}</td></tr>`;
 
-            const grandExecuted = grandTotals.A4 + grandTotals.A5;
-            const grandRemaining = grandTotals.target - grandExecuted;
-            const grandRate = grandTotals.target > 0 ? ((grandExecuted / grandTotals.target) * 100).toFixed(1) + '%' : '0.0%';
-            targetSummaryCalculatedData.push({ 'القطاعات والهندسات': 'الإجمالي العام', 'المستهدف': grandTotals.target, 'المنفذ (A4+A5)': grandExecuted, 'الرصيد المتبقي': grandRemaining, 'معدل الإنجاز': grandRate });
-            targetHtml += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grandTotals.target}</td><td>${grandExecuted}</td><td>${grandRemaining}</td><td>${grandRate}</td></tr></tbody></table>`;
+                    const dExec = r.A4 + r.A5;
+                    const dRem = r.target - dExec;
+                    const dRate = r.target > 0 ? ((dExec / r.target) * 100).toFixed(1) + '%' : '0.0%';
+                    targetSummaryCalculatedData.push({ 'القطاعات والهندسات': r.name, 'المستهدف': r.target, 'المنفذ (A4+A5)': dExec, 'الرصيد المتبقي': dRem, 'معدل الإنجاز': dRate });
+                    targetHtml += `<tr><td style="padding-right:25px">${esc(r.name)}</td><td>${r.target}</td><td>${dExec}</td><td>${dRem}</td><td>${dRate}</td></tr>`;
+                }
+            }
 
-            document.getElementById('sectorSummaryContainer').innerHTML = secHtml;
-            document.getElementById('summary2Container').innerHTML = sum2Html;
-            document.getElementById('targetSummaryContainer').innerHTML = targetHtml;
+            sectorSummaryCalculatedData.push({ 'القطاع': 'الإجمالي العام', 'A1': grand.A1, 'A2': grand.A2, 'A3': grand.A3, 'A4': grand.A4, 'A5': grand.A5, 'الإجمالي': grand.total });
+            secHtml += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grand.A1}</td><td>${grand.A2}</td><td>${grand.A3}</td><td>${grand.A4}</td><td>${grand.A5}</td><td>${grand.total}</td></tr></tbody></table>`;
+
+            summary2CalculatedData.push({ 'القطاعات والهندسات': 'الإجمالي العام', 'A1': grand.A1, 'A2': grand.A2, 'A3': grand.A3, 'A4': grand.A4, 'A5': grand.A5, 'الإجمالي': grand.total });
+            sum2Html += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grand.A1}</td><td>${grand.A2}</td><td>${grand.A3}</td><td>${grand.A4}</td><td>${grand.A5}</td><td>${grand.total}</td></tr></tbody></table>`;
+
+            const gExec = grand.A4 + grand.A5;
+            const gRem = grand.target - gExec;
+            const gRate = grand.target > 0 ? ((gExec / grand.target) * 100).toFixed(1) + '%' : '0.0%';
+            targetSummaryCalculatedData.push({ 'القطاعات والهندسات': 'الإجمالي العام', 'المستهدف': grand.target, 'المنفذ (A4+A5)': gExec, 'الرصيد المتبقي': gRem, 'معدل الإنجاز': gRate });
+            targetHtml += `<tr class="grand-total-row"><td>الإجمالي العام</td><td>${grand.target}</td><td>${gExec}</td><td>${gRem}</td><td>${gRate}</td></tr></tbody></table>`;
+
+            $('sectorSummaryContainer').innerHTML = secHtml;
+            $('summary2Container').innerHTML = sum2Html;
+            $('targetSummaryContainer').innerHTML = targetHtml;
         }
 
+        /* =========================================================
+           LOAD ALL DATA (chunked, non-blocking)
+        ========================================================= */
         async function loadAllData() {
-            const statusEl = document.getElementById('syncStatus');
-            statusEl.textContent = '⏳ جاري التحميل...';
-            statusEl.className = 'sync-status loading';
+            const statusEl = $('syncStatus');
+            const progressBar = $('loadProgress');
+            const progressFill = $('loadProgressFill');
+            statusEl.textContent = 'جاري التحميل…';
+            statusEl.className = 'chip chip-loading';
+            progressBar.classList.add('on');
+            progressFill.style.width = '5%';
 
             try {
-                const sectorsRef = ref(db, 'sectors');
-                const snapshot = await get(sectorsRef);
-                const allRecordsListTemp = [];
-                const allFieldsSet = new Set();
-                let totalRecords = 0;
-                let totalSectors = Object.keys(sectorNames).length;
-                let totalDistricts = Object.keys(MASTER_TARGETS).length;
+                const snap = await get(ref(db, 'sectors'));
+                progressFill.style.width = '30%';
 
-                if (snapshot.exists()) {
-                    const sectorsData = snapshot.val();
+                const temp = [];
+                const fieldsSet = new Set();
+
+                if (snap.exists()) {
+                    const sectorsData = snap.val();
                     const sectorKeys = Object.keys(sectorsData);
-                    for (const sectorKey of sectorKeys) {
-                        const sectorData = sectorsData[sectorKey];
-                        if (sectorData.districts) {
-                            const districtKeys = Object.keys(sectorData.districts);
-                            for (const districtKey of districtKeys) {
-                                const districtData = sectorData.districts[districtKey];
-                                if (districtData.manual_entries) {
-                                    const entries = districtData.manual_entries;
-                                    const entryKeys = Object.keys(entries);
-                                    for (const entryKey of entryKeys) {
-                                        const entry = entries[entryKey];
-                                        const enrichedEntry = { ...entry, sector: sectorKey, district: districtKey, keta3: sectorKey, handsa: districtKey, _recordId: `${sectorKey}_${districtKey}_${entryKey}` };
-                                        allRecordsListTemp.push(enrichedEntry);
-                                        Object.keys(entry).forEach(field => allFieldsSet.add(field));
-                                        totalRecords++;
+                    let processed = 0;
+
+                    for (const sKey of sectorKeys) {
+                        const sData = sectorsData[sKey];
+                        if (sData?.districts) {
+                            const dKeys = Object.keys(sData.districts);
+                            for (const dKey of dKeys) {
+                                const dData = sData.districts[dKey];
+                                if (dData?.manual_entries) {
+                                    const entries = dData.manual_entries;
+                                    for (const eKey in entries) {
+                                        const entry = entries[eKey];
+                                        temp.push({
+                                            ...entry,
+                                            sector: sKey, district: dKey,
+                                            keta3: sKey, handsa: dKey,
+                                            _recordId: `${sKey}_${dKey}_${eKey}`
+                                        });
+                                        for (const f in entry) fieldsSet.add(f);
                                     }
                                 }
                             }
                         }
+                        processed++;
+                        progressFill.style.width = `${30 + (processed / sectorKeys.length) * 60}%`;
+                        await new Promise(r => setTimeout(r, 0));
                     }
                 }
 
-                allRecordsList = allRecordsListTemp;
-                allColumns = Array.from(allFieldsSet).filter(f => f !== 'sector' && f !== 'district' && f !== '_recordId').sort();
+                progressFill.style.width = '95%';
+                allRecordsList = temp;
+                allColumns = Array.from(fieldsSet).filter(f => f !== 'sector' && f !== 'district' && f !== '_recordId').sort();
                 visibleColumns = [...allColumns];
 
-                document.getElementById('totalRecords').textContent = totalRecords;
-                document.getElementById('totalSectors').textContent = totalSectors;
-                document.getElementById('totalDistricts').textContent = totalDistricts;
-                document.getElementById('totalColumns').textContent = allColumns.length;
+                $('totalRecords').textContent = allRecordsList.length.toLocaleString('en-US');
+                $('totalSectors').textContent = Object.keys(sectorNames).length;
+                $('totalDistricts').textContent = Object.keys(MASTER_TARGETS).length;
+                $('totalColumns').textContent = allColumns.length;
 
-                updateColumnToggles();
                 populateGeneralFilterDropdown();
                 updateGeneralFilterLabel();
-
-                statusEl.textContent = `✅ تم تحميل ${totalRecords} سجل`;
-                statusEl.className = 'sync-status';
+                renderColumnOptions('');
+                renderGeneralFilterOptions('');
+                updateColPill();
 
                 activeColumnFilters = {};
                 globalSearchTerm = '';
                 generalFilterValues.clear();
-                document.getElementById('searchInput').value = '';
-                document.getElementById('generalFilterSearch').value = '';
-                renderGeneralFilterOptions('');
-                updateGeneralFilterLabel();
+                $('searchInput').value = '';
+                $('generalFilterSearch').value = '';
+                $('colSearch').value = '';
+                $('clearSearchBtn').hidden = true;
+
+                statusEl.textContent = `تم تحميل ${allRecordsList.length.toLocaleString('en-US')} سجل`;
+                statusEl.className = 'chip chip-ok';
+                progressFill.style.width = '100%';
+
                 filterAndRenderTable();
-            } catch (error) {
-                console.error('Error loading data:', error);
-                document.getElementById('tableContainer').innerHTML = `<div class="no-data">حدث خطأ في تحميل البيانات: ${error.message}</div>`;
-                statusEl.textContent = '❌ خطأ في التحميل';
-                statusEl.className = 'sync-status loading';
+
+                setTimeout(() => progressBar.classList.remove('on'), 600);
+            } catch (err) {
+                console.error('Load error:', err);
+                $('tableContainer').innerHTML = `<div class="no-data">خطأ في تحميل البيانات: ${esc(err.message)}</div>`;
+                statusEl.textContent = 'خطأ في التحميل';
+                statusEl.className = 'chip chip-err';
+                progressBar.classList.remove('on');
             }
         }
 
         window.loadAllData = loadAllData;
-        loadAllData();
 
-        let sessionTimeout = null;
-        let sessionTimerInterval = null;
-        let sessionTimeLeft = 300;
-
-        function resetSessionTimer() {
-            sessionTimeLeft = 300;
-            updateTimerDisplay();
-            clearTimeout(sessionTimeout);
-            clearInterval(sessionTimerInterval);
-            startSessionTimer();
-        }
-
-        function startSessionTimer() {
-            sessionTimerInterval = setInterval(() => {
-                sessionTimeLeft--;
-                updateTimerDisplay();
-                if (sessionTimeLeft <= 0) {
-                    clearInterval(sessionTimerInterval);
-                    clearTimeout(sessionTimeout);
-                    window.location.href = 'login_Smart.html';
-                }
-            }, 1000);
-        }
-
-        function updateTimerDisplay() {
-            const timerEl = document.getElementById('sessionTimer');
-            if (timerEl) {
-                const minutes = Math.floor(sessionTimeLeft / 60);
-                const seconds = sessionTimeLeft % 60;
-                timerEl.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                if (sessionTimeLeft <= 60) timerEl.classList.add('warning');
-                else timerEl.classList.remove('warning');
+        /* =========================================================
+           SESSION TIMER (passive)
+        ========================================================= */
+        const SESSION_MS = 5 * 60 * 1000;
+        let lastActivity = Date.now();
+        const touch = () => { lastActivity = Date.now(); };
+        ['click', 'keydown', 'scroll', 'touchstart', 'pointerdown'].forEach(ev =>
+            document.addEventListener(ev, touch, { passive: true })
+        );
+        let sessionDead = false;
+        setInterval(() => {
+            if (sessionDead) return;
+            const left = Math.max(0, SESSION_MS - (Date.now() - lastActivity));
+            const m = Math.floor(left / 60000);
+            const s = Math.floor((left % 60000) / 1000);
+            const el = $('sessionTimer');
+            if (el) {
+                el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+                el.classList.toggle('warn', left <= 60000);
             }
-        }
+            if (left <= 0) {
+                sessionDead = true;
+                window.location.href = 'login_Smart.html';
+            }
+        }, 1000);
 
-        document.addEventListener('click', resetSessionTimer);
-        document.addEventListener('keydown', resetSessionTimer);
-        document.addEventListener('mousemove', resetSessionTimer);
-        document.addEventListener('scroll', resetSessionTimer);
-
-        const headerActions = document.querySelector('.header-actions');
-        if (headerActions) {
-            const timerSpan = document.createElement('span');
-            timerSpan.id = 'sessionTimer';
-            timerSpan.className = 'session-timer';
-            timerSpan.textContent = '⏱️ 5:00';
-            headerActions.insertBefore(timerSpan, headerActions.querySelector('.btn-back'));
-        }
-        startSessionTimer();
+        /* =========================================================
+           BOOT
+        ========================================================= */
+        loadAllData();
     </script>
 </body>
 
