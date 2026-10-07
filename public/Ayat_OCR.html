@@ -1113,6 +1113,37 @@
             background: linear-gradient(135deg, #059669, #047857);
         }
 
+        /* ★★★ IMPORT EXCEL BUTTON ★★★ */
+        .import-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 11px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            font-family: 'Cairo', sans-serif;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
+        }
+
+        .import-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.38);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+
+        .import-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .db-scroll-area {
             max-height: 500px;
             overflow-x: auto;
@@ -1381,7 +1412,10 @@
                         <input type="date" id="registrationDateTo" onchange="filterByDateRanges()" />
                     </div>
                     <button class="clear-btn" onclick="clearDateFilters()">🗑 مسح</button>
+                    <button class="import-btn" onclick="requestImportWithPassword()">📤 استيراد Excel</button>
                     <button class="export-btn" onclick="exportToExcel()">📊 تصدير Excel</button>
+                    <input type="file" id="excelImportFile" accept=".xlsx,.xls" style="display:none"
+                        onchange="importFromExcel(event)" />
                 </div>
 
                 <div class="db-scroll-area">
@@ -1999,7 +2033,6 @@
                 fpSaveBtn.disabled = true;
                 fpSaveBtn.textContent = `🔒 أكمل ${TOTAL_REQUIRED - filledCount} حقل للحفظ`;
             }
-            // ★ Always update the filled class so empty/filled coloring stays in sync
             updatePendingVisuals();
         }
         window.checkFormCompletion = checkFormCompletion;
@@ -2022,8 +2055,6 @@
             pendingOcrText = '';
             fieldsContainer.classList.remove('pending');
             ocrHint.classList.remove('show');
-            // Do NOT remove the .filled class here — it's needed for coloring
-            // The .filled class is managed by updatePendingVisuals()
             updatePendingVisuals();
         }
 
@@ -2099,8 +2130,6 @@
             }
 
             el.closest('.field')?.classList.add('highlight');
-
-            // Lock the field after OCR fill so next OCR can't overwrite it
             lockField(el);
 
             clearPendingText();
@@ -2115,7 +2144,7 @@
         }
 
         // ==================================================
-        // ★★★ SUBTOTAL UPDATE HELPER ★★★
+        // SUBTOTAL UPDATE HELPER
         // ==================================================
         function updateDbSubtotal(shownCount) {
             const totalCount = (window.dbRecordsCache || []).length;
@@ -2142,8 +2171,6 @@
             tableBody.innerHTML = '';
 
             const shownCount = (records || []).length;
-
-            // ★ Subtotal is updated even when the list is empty
             updateDbSubtotal(shownCount);
 
             if (!records || records.length === 0) {
@@ -2288,7 +2315,6 @@
                 };
             });
 
-            // ★ Append subtotal row to the exported sheet
             data.push({
                 'م': '',
                 'القطاع': '',
@@ -2310,6 +2336,208 @@
             XLSX.utils.book_append_sheet(wb, ws, 'Ayat_meterdata');
             XLSX.writeFile(wb, `Ayat_meterdata_${new Date().toISOString().split('T')[0]}.xlsx`);
             showToast('📊', 'تم تصدير البيانات بنجاح', 'success');
+        };
+
+        // ==================================================
+        // ★★★ IMPORT EXCEL TO DATABASE ★★★
+        // ==================================================
+        function parseExcelDate(val) {
+            if (val === null || val === undefined || val === '') return '';
+            if (val instanceof Date) {
+                const y = val.getFullYear();
+                const m = String(val.getMonth() + 1).padStart(2, '0');
+                const d = String(val.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            if (typeof val === 'number' && val > 20000 && val < 80000) {
+                const date = new Date((val - 25569) * 86400 * 1000);
+                const y = date.getUTCFullYear();
+                const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const d = String(date.getUTCDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            const s = String(val).trim();
+            if (!s) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            const parts = s.split('/');
+            if (parts.length === 3) {
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2];
+                return `${year}-${month}-${day}`;
+            }
+            return s;
+        }
+
+        async function performImport(newRecords, replaceAll) {
+            try {
+                Swal.fire({
+                    title: 'جاري الاستيراد...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                let list = [];
+                if (!replaceAll) {
+                    const snap = await window.fbGet(window.fbRef(window.firebaseDB, 'Ayat/meterdata'));
+                    if (snap.exists()) {
+                        const raw = snap.val();
+                        if (Array.isArray(raw)) list = raw.filter(v => v && typeof v === 'object');
+                        else if (typeof raw === 'object') list = Object.values(raw).filter(v => v && typeof v === 'object');
+                    }
+                }
+
+                list = list.concat(newRecords);
+                await window.fbSet(window.fbRef(window.firebaseDB, 'Ayat/meterdata'), list);
+
+                Swal.close();
+                showToast('✅', `تم استيراد ${newRecords.length} سجل بنجاح`, 'success');
+            } catch (err) {
+                Swal.close();
+                console.error('Import error:', err);
+                showToast('❌', 'فشل الاستيراد: ' + (err.message || err.code || 'خطأ غير معروف'), 'error');
+            }
+        }
+
+        // ==================================================
+        // ★★★ PASSWORD PROTECTION FOR IMPORT ★★★
+        // ==================================================
+        window.requestImportWithPassword = async function () {
+            const { value: password } = await Swal.fire({
+                title: '🔒 كلمة مرور الاستيراد',
+                input: 'password',
+                inputLabel: 'أدخل كلمة المرور للسماح باستيراد البيانات',
+                inputPlaceholder: '••••••',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off',
+                    autocomplete: 'new-password'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'تأكيد',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#94a3b8',
+                allowOutsideClick: false,
+                inputValidator: (value) => {
+                    if (!value) return 'يجب إدخال كلمة المرور';
+                    return null;
+                }
+            });
+
+            if (password === undefined) return; // user cancelled
+
+            if (password === '1') {
+                // ✅ Correct password — open the file picker
+                document.getElementById('excelImportFile').click();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: '❌ كلمة مرور خاطئة',
+                    text: 'لا يمكنك استيراد البيانات بدون كلمة المرور الصحيحة',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#ef4444'
+                });
+                showToast('🔒', 'كلمة المرور غير صحيحة', 'error');
+            }
+        };
+
+        window.importFromExcel = function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = null;
+
+            if (!window.firebaseDB || !window.fbRef || !window.fbSet || !window.fbGet) {
+                showToast('❌', 'Firebase غير جاهز', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                    if (!rows || rows.length === 0) {
+                        showToast('⚠️', 'الملف فارغ', 'warning');
+                        return;
+                    }
+
+                    const newRecords = [];
+                    let skippedSubtotal = 0;
+
+                    rows.forEach(row => {
+                        const rawMeter = String(row['رقم العداد'] || '').trim();
+
+                        if (!rawMeter || rawMeter === 'إجمالي عدد السجلات' || rawMeter.includes('إجمالي')) {
+                            skippedSubtotal++;
+                            return;
+                        }
+
+                        newRecords.push({
+                            keta3: String(row['القطاع'] || '').trim(),
+                            handsa: String(row['الهندسة'] || '').trim(),
+                            calibrationdate: parseExcelDate(row['تاريخ الفحص']),
+                            enterdate: parseExcelDate(row['تاريخ التسجيل']),
+                            metername: String(row['اسم المشترك'] || '').trim(),
+                            metercode: String(row['كود المشترك'] || '').replace(/\s/g, ''),
+                            nashattype: String(row['نوع النشاط'] || '').trim(),
+                            metertype: String(row['نوع العداد'] || '').trim(),
+                            meternumber: rawMeter.replace(/\D/g, ''),
+                            result: String(row['نوع التقرير'] || '').trim(),
+                            notes: String(row['نتيجة الفحص'] || '').trim(),
+                            manufacturer: String(row['الشركة المصنعة'] || '').trim()
+                        });
+                    });
+
+                    if (newRecords.length === 0) {
+                        showToast('⚠️', 'لا توجد سجلات صالحة في الملف', 'warning');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'استيراد البيانات',
+                        html: `
+                            تم العثور على <b style="color:#0d9488;">${newRecords.length}</b> سجل صالح.
+                            ${skippedSubtotal > 0 ? `<br><small style="color:#64748b;">تم تجاهل ${skippedSubtotal} صف (إجمالي/فارغ)</small>` : ''}
+                            <br><br>كيف تريد إضافتها إلى قاعدة البيانات؟
+                        `,
+                        icon: 'question',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: '➕ إضافة للبيانات الموجودة',
+                        denyButtonText: '🔄 استبدال كل البيانات',
+                        cancelButtonText: 'إلغاء',
+                        confirmButtonColor: '#10b981',
+                        denyButtonColor: '#ef4444',
+                        cancelButtonColor: '#94a3b8'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            await performImport(newRecords, false);
+                        } else if (result.isDenied) {
+                            const confirmReplace = await Swal.fire({
+                                title: '⚠️ تحذير',
+                                html: 'سيتم <b style="color:#ef4444;">حذف جميع السجلات الحالية</b> واستبدالها بالبيانات الجديدة.<br>هل أنت متأكد؟',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'نعم، استبدل الكل',
+                                cancelButtonText: 'إلغاء',
+                                confirmButtonColor: '#ef4444',
+                                cancelButtonColor: '#94a3b8'
+                            });
+                            if (confirmReplace.isConfirmed) {
+                                await performImport(newRecords, true);
+                            }
+                        }
+                    });
+                } catch (err) {
+                    console.error('Import parse error:', err);
+                    showToast('❌', 'فشل قراءة الملف: ' + err.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
         };
 
         window.saveCurrentDataToFirebase = async function () {
