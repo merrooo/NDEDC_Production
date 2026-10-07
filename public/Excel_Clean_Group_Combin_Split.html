@@ -675,6 +675,15 @@
                         <span class="mode-btn-desc">Split one file by column values</span>
                     </div>
                 </button>
+
+                <!-- ===== NEW MODE BUTTON ===== -->
+                <button class="mode-btn" data-mode="splitSheets" onclick="setMode('splitSheets')">
+                    <div class="mode-icon">🗂️</div>
+                    <div class="mode-btn-text">
+                        <span class="mode-btn-title">Split Sheets → Files</span>
+                        <span class="mode-btn-desc">One file per worksheet, named by sheet</span>
+                    </div>
+                </button>
             </div>
 
             <!-- ===================================================== -->
@@ -902,6 +911,89 @@
                 </div>
             </div>
 
+            <!-- ============================================ -->
+            <!-- MODE 4 (SPLIT SHEETS → FILES)                 -->
+            <!-- ============================================ -->
+            <div class="step-card" data-mode="splitSheets">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Load Workbook</div>
+                        <div class="step-subtitle">Multi-sheet file to explode</div>
+                    </div>
+                    <span class="status-pill" id="ssFileStatus">Empty</span>
+                </div>
+                <div class="step-body">
+                    <label for="ssFile" class="btn outline" style="cursor:pointer;">📁 Choose File</label>
+                    <input type="file" id="ssFile" accept=".xlsx, .xls, .csv" style="display:none;">
+                    <div id="ssFileName" style="font-size:11px; color:var(--text-muted); text-align:center; word-break:break-word;">
+                        No file loaded yet
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="splitSheets">
+                <div class="step-header">
+                    <div class="step-number violet">3</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Sheets → Files</div>
+                        <div class="step-subtitle">Each sheet becomes one file</div>
+                    </div>
+                    <span class="status-pill" id="ssSheetCount">0</span>
+                </div>
+                <div class="step-body">
+                    <div class="mini-utils">
+                        <button type="button" onclick="ssToggleAll(true)">✓ All</button>
+                        <button type="button" onclick="ssToggleAll(false)">✗ None</button>
+                    </div>
+                    <div class="list-card tall" id="ssSheetList">
+                        <p class="empty-note">Waiting for data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="splitSheets">
+                <div class="step-header">
+                    <div class="step-number amber">4</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Output Mode</div>
+                        <div class="step-subtitle">How to deliver the files</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="ssExportMode" value="zip" checked>
+                            <div>
+                                <b>📦 ZIP archive</b>
+                                <span class="radio-desc">All sheet files packed into one .zip (recommended)</span>
+                            </div>
+                        </label>
+                        <label>
+                            <input type="radio" name="ssExportMode" value="individual">
+                            <div>
+                                <b>📄 Individual downloads</b>
+                                <span class="radio-desc">One .xlsx download per sheet — your browser may ask to allow multiple downloads</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card" data-mode="splitSheets">
+                <div class="step-header">
+                    <div class="step-number green">5</div>
+                    <div class="step-title-wrap">
+                        <div class="step-title">Export</div>
+                        <div class="step-subtitle">Generate one file per sheet</div>
+                    </div>
+                </div>
+                <div class="step-body">
+                    <input type="text" id="ssFileNameInput" class="compact-input" placeholder="Filename prefix (optional)">
+                    <button id="ssExportBtn" class="btn green" disabled>🚀 Export Sheets as Files</button>
+                </div>
+            </div>
+
         </div>
 
         <!-- ============== MAIN CONTENT ============== -->
@@ -1035,6 +1127,9 @@
             } else if (mode === 'mergeMulti') {
                 mainTitle.textContent = '📚 Merge Preview — Multi Sheets';
                 mainSubtitle.textContent = 'Files will be kept as separate sheets';
+            } else if (mode === 'splitSheets') {
+                mainTitle.textContent = '🗂️ Sheet Split Preview';
+                mainSubtitle.textContent = 'Every worksheet will be exported as its own file';
             } else {
                 mainTitle.textContent = '✂️ Split Preview';
                 mainSubtitle.textContent = 'Split one file by column values';
@@ -1045,6 +1140,24 @@
         }
 
         function refreshPreviewForMode() {
+            /* ---- NEW: sheet-split preview ---- */
+            if (currentMode === 'splitSheets') {
+                const first = ssSheets.find(s => ssChecked.get(s.name) !== false);
+                if (first && first.matrix.length > 0) {
+                    currentHeaders = first.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
+                    currentGridData = first.matrix.slice(1).map(row => {
+                        const obj = {};
+                        currentHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
+                        return obj;
+                    });
+                } else {
+                    currentHeaders = [];
+                    currentGridData = [];
+                }
+                renderTable();
+                return;
+            }
+
             if (currentMode === 'split') {
                 // Split preview
                 currentHeaders = spHeaders;
@@ -1513,10 +1626,200 @@
             setTimeout(() => setProgress(0), 800);
         });
 
+        /* ================================================================ */
+        /* ============ MODE 4: SPLIT SHEETS → SEPARATE FILES ============ */
+        /* ================================================================ */
+        let ssSheets = [];            // [{ name, matrix }]
+        let ssChecked = new Map();    // sheetName -> bool
+        let ssSourceName = '';
+
+        const ssFileInput      = document.getElementById('ssFile');
+        const ssFileNameEl     = document.getElementById('ssFileName');
+        const ssSheetList      = document.getElementById('ssSheetList');
+        const ssSheetCount     = document.getElementById('ssSheetCount');
+        const ssFileStatus     = document.getElementById('ssFileStatus');
+        const ssFileNameInput  = document.getElementById('ssFileNameInput');
+        const ssExportBtn      = document.getElementById('ssExportBtn');
+
+        /* --- filename helpers --- */
+        function ssSafeFile(name) {
+            return String(name)
+                .replace(/[\\/:*?"<>|]/g, '_')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 80) || 'Sheet';
+        }
+        function ssSafeTab(name) {
+            const base = String(name).replace(/[\\/?*\[\]:]/g, '_').substring(0, 31);
+            return base || 'Sheet';
+        }
+
+        /* --- upload --- */
+        ssFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+
+            ssSourceName = file.name;
+            ssFileNameEl.textContent = file.name;
+            headerBadge.textContent = file.name;
+            addLog(`📂 Sheet-split: reading ${file.name}...`);
+            setProgress(10);
+
+            try {
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(buf, { type: 'array' });
+
+                ssSheets = [];
+                ssChecked.clear();
+
+                wb.SheetNames.forEach(n => {
+                    const matrix = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' });
+                    ssSheets.push({ name: n, matrix });
+                    ssChecked.set(n, true);
+                });
+
+                if (ssSheets.length === 0) throw new Error('Workbook has no sheets');
+
+                // pre-fill the prefix with the source filename
+                if (!ssFileNameInput.value.trim()) {
+                    ssFileNameInput.value = file.name.replace(/\.[^.]+$/, '');
+                }
+
+                renderSsSheetList();
+
+                ssFileStatus.textContent = `${ssSheets.length} sheet${ssSheets.length > 1 ? 's' : ''}`;
+                ssFileStatus.classList.add('success');
+
+                if (currentMode === 'splitSheets') refreshPreviewForMode();
+
+                setProgress(100);
+                setTimeout(() => setProgress(0), 800);
+                addLog(`✅ Loaded ${ssSheets.length} sheet(s) from "${file.name}".`, '#4ade80');
+            } catch (err) {
+                addLog(`❌ Error: ${err.message}`, '#f87171');
+                setProgress(0);
+            }
+        });
+
+        /* --- sheet checkbox list --- */
+        function renderSsSheetList() {
+            ssSheetList.innerHTML = '';
+
+            if (ssSheets.length === 0) {
+                ssSheetList.innerHTML = '<p class="empty-note">Waiting for data...</p>';
+                updateSsCounts();
+                return;
+            }
+
+            ssSheets.forEach(s => {
+                const rows = Math.max(s.matrix.length - 1, 0);
+
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = ssChecked.get(s.name) !== false;
+                cb.addEventListener('change', () => {
+                    ssChecked.set(s.name, cb.checked);
+                    updateSsCounts();
+                    if (currentMode === 'splitSheets') refreshPreviewForMode();
+                });
+
+                const span = document.createElement('span');
+                span.title = s.name;
+                span.innerHTML = `${escHtml(s.name)} <small style="color:#94a3b8">(${rows} row${rows === 1 ? '' : 's'})</small>`;
+
+                label.appendChild(cb);
+                label.appendChild(span);
+                ssSheetList.appendChild(label);
+            });
+
+            updateSsCounts();
+        }
+
+        function ssToggleAll(checked) {
+            ssSheets.forEach(s => ssChecked.set(s.name, checked));
+            renderSsSheetList();
+            if (currentMode === 'splitSheets') refreshPreviewForMode();
+        }
+
+        function updateSsCounts() {
+            const total = ssSheets.length;
+            const checked = ssSheets.filter(s => ssChecked.get(s.name) !== false).length;
+
+            ssSheetCount.textContent = total > 0 ? `${checked}/${total}` : '0';
+            ssExportBtn.disabled = checked === 0;
+        }
+
+        /* --- export --- */
+        ssExportBtn.addEventListener('click', async () => {
+            const chosen = ssSheets.filter(s => ssChecked.get(s.name) !== false);
+            if (chosen.length === 0) return addLog('⚠️ Select at least one sheet.', '#fbbf24');
+
+            const prefix = (ssFileNameInput.value.trim() || '').replace(/[\\/:*?"<>|]/g, '_');
+            const mode = document.querySelector('input[name="ssExportMode"]:checked').value;
+
+            const buildSheetWb = (sheet) => {
+                const wb = XLSX.utils.book_new();
+                const aoa = sheet.matrix.length ? sheet.matrix : [['']];
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                XLSX.utils.book_append_sheet(wb, ws, ssSafeTab(sheet.name));
+                return wb;
+            };
+
+            const baseNameFor = (sheet) => (prefix ? `${prefix}_` : '') + ssSafeFile(sheet.name) + '.xlsx';
+
+            // avoid duplicate file names inside one export
+            const used = new Set();
+            const uniqueNameFor = (sheet) => {
+                let n = baseNameFor(sheet), k = 2;
+                while (used.has(n)) n = baseNameFor(sheet).replace(/\.xlsx$/i, `_${k++}.xlsx`);
+                used.add(n);
+                return n;
+            };
+
+            setProgress(10);
+
+            try {
+                if (mode === 'zip') {
+                    const zip = new JSZip();
+                    chosen.forEach((s, i) => {
+                        const wb = buildSheetWb(s);
+                        const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+                        zip.file(uniqueNameFor(s), out);
+                        setProgress(10 + ((i + 1) / chosen.length) * 85);
+                    });
+
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = (prefix || 'Sheets') + '_Archive.zip';
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+
+                    addLog(`✅ ZIP export — ${chosen.length} sheet file(s) packed.`, '#4ade80');
+                } else {
+                    chosen.forEach((s, i) => {
+                        XLSX.writeFile(buildSheetWb(s), uniqueNameFor(s));
+                        setProgress(10 + ((i + 1) / chosen.length) * 85);
+                    });
+                    addLog(`✅ Exported ${chosen.length} separate file(s) — check your downloads folder.`, '#4ade80');
+                }
+            } catch (err) {
+                addLog(`❌ Error: ${err.message}`, '#f87171');
+            }
+
+            setProgress(100);
+            setTimeout(() => setProgress(0), 800);
+        });
+
         /* ============ INIT ============ */
         setMode('mergeOne');
         logSection.innerHTML = '';
         addLog('⚡ Ready. Pick a workflow, then load your files.', '#4ade80');
     </script>
 </body>
+
 </html>
