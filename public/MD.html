@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>نظام إدارة المشتركين · البيانات الرئيسية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-card: #f8fafc;
+            --border: #e2e8f0;
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-soft: #eff6ff;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --radius: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
+            --readonly-bg: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 12px;
+            padding-bottom: 110px;
+            min-height: 100vh;
+        }
+
+        .app-wrap {
+            max-width: 1700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Header */
+        .top-header {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 8px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--primary);
+            flex: 1;
+        }
+
+        .brand i {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        .nav-btn {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 6px 16px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .toggle-form-btn {
+            background: var(--accent-soft);
+            border: 1px solid var(--accent);
+            border-radius: 30px;
+            padding: 6px 18px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .toggle-form-btn:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .toggle-form-btn i {
+            font-size: 0.85rem;
+        }
+
+        /* Form Container */
+        .form-container {
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+            margin-top: 4px;
+        }
+
+        .form-container.hidden {
+            max-height: 0 !important;
+            opacity: 0;
+            margin-top: 0;
+            pointer-events: none;
+        }
+
+        .form-single {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .form-group label i {
+            color: var(--accent);
+            font-size: 0.65rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0 8px;
+            height: 34px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text);
+            outline: none;
+            width: 100%;
+            transition: 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .form-group textarea {
+            height: auto;
+            padding: 4px 8px;
+            min-height: 34px;
+            resize: vertical;
+        }
+
+        .form-group select {
+            background-image: url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: left 6px center;
+            padding-left: 24px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .form-group input:disabled,
+        .form-group textarea:disabled {
+            background: var(--surface-card);
+            color: var(--text-muted);
+        }
+
+        .form-group input.readonly-field {
+            background: var(--readonly-bg);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            border-color: #d1d5db;
+        }
+
+        /* Search Bar */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            box-shadow: var(--shadow);
+            margin-top: 10px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.8rem;
+            background: transparent;
+            padding: 6px 0;
+            color: var(--text);
+        }
+
+        .search-bar button {
+            background: var(--accent-soft);
+            border: none;
+            border-radius: var(--radius-sm);
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        /* Card Layout */
+        .grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-wrapper {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .card-wrapper:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .main-card {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 14px;
+        }
+
+        .main-card:hover {
+            background: var(--surface-card);
+        }
+
+        .main-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 0 0 auto;
+        }
+
+        .main-card-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .main-card-name .badge {
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 20px;
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .delete-btn {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            border-radius: 20px;
+            padding: 1px 10px;
+            font-size: 0.55rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .main-info-grid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 16px;
+            background: var(--surface-card);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            flex: 1 1 auto;
+            min-width: 200px;
+        }
+
+        .main-info-grid span {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .main-info-grid b {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .meter-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .meter-summary .meter-count {
+            background: var(--accent-soft);
+            padding: 1px 10px;
+            border-radius: 12px;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Meter Table */
+        .meter-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 14px 10px 14px;
+        }
+
+        .meter-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.6rem;
+            white-space: nowrap;
+        }
+
+        .meter-table th {
+            background: var(--surface-card);
+            color: var(--text-muted);
+            font-weight: 700;
+            padding: 3px 6px;
+            border-bottom: 2px solid var(--border);
+            text-align: center;
+            font-size: 0.55rem;
+        }
+
+        .meter-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 0.6rem;
+        }
+
+        .meter-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meter-table td:hover {
+            background: var(--accent-soft);
+        }
+
+        .meter-table .del {
+            color: var(--danger);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+
+        .meter-table .del:hover {
+            background: #fef2f2;
+        }
+
+        .meter-table .meter-row-active td {
+            background: #ecfdf5;
+            border-bottom: 2px solid var(--success);
+        }
+
+        /* Meter Card */
+        .meter-card {
+            padding: 12px 14px;
+            display: none;
+            border-top: 3px solid var(--success);
+        }
+
+        .meter-card.visible {
+            display: block;
+        }
+
+        .meter-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .meter-card-title {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn {
+            background: var(--accent-soft);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .meter-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4px 12px;
+            background: #ecfdf5;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem;
+            border: 1px solid #a7f3d0;
+        }
+
+        .meter-detail-grid .label {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.6rem;
+        }
+
+        .meter-detail-grid .value {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .meter-detail-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+        }
+
+        /* Bottom Sheet */
+        .sheet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(2px);
+            z-index: 1999;
+            display: none;
+        }
+
+        .sheet-overlay.show {
+            display: block;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-radius: 24px 24px 0 0;
+            border-top: 1px solid var(--border);
+            padding: 20px;
+            z-index: 2000;
+            transition: bottom 0.3s ease;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .bottom-sheet.show {
+            bottom: 0;
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sheet-header h4 {
+            font-size: 0.95rem;
+        }
+
+        .sheet-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sheet-item {
+            padding: 10px 16px;
+            background: var(--surface-card);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sheet-item.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+
+        .sheet-item.active .item-badge {
+            background: white;
+            color: var(--accent);
+        }
+
+        .item-badge {
+            background: var(--accent);
+            color: white;
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-right: auto;
+            white-space: nowrap;
+        }
+
+        /* Bottom Actions */
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            padding: 10px 12px;
+            z-index: 999;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bottom-actions .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1 1 auto;
+            min-width: 80px;
+            justify-content: center;
+        }
+
+        .bottom-actions .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .bottom-actions .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .bottom-actions .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .bottom-actions .btn-excel {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+        }
+
+        .bottom-actions .btn-clear {
+            background: var(--surface-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .bottom-actions .btn-danger {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+        }
+
+        .bottom-actions .btn-warning {
+            background: var(--warning);
+            color: #fff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .text-sm {
+            font-size: 0.7rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 4px;
+        }
+
+        .fw-700 {
+            font-weight: 700;
+        }
+
+        .mt-1 {
+            margin-top: 6px;
+        }
+
+        .flex {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .form-single {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .main-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+
+            .main-card-header {
+                flex-wrap: wrap;
+            }
+
+            .main-info-grid {
+                flex-wrap: wrap;
+                gap: 4px 8px;
+            }
+
+            .meter-detail-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bottom-actions .btn {
+                font-size: 0.6rem;
+                padding: 6px 10px;
+                min-width: 60px;
+            }
+
+            .meter-detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrap">
+        <header class="top-header">
+            <div class="header-row">
+                <div class="brand"><i class="fas fa-database"></i><span>إدارة المشتركين</span></div>
+                <button class="toggle-form-btn" id="toggleFormBtn" title="إظهار / إخفاء نموذج الإدخال">
+                    <i class="fas fa-chevron-up" id="toggleIcon"></i>
+                    <span id="toggleLabel">إخفاءالبيانات</span>
+                </button>
+                <button class="nav-btn" id="openMenuBtn"><i class="fas fa-compass"></i> التنقل</button>
+            </div>
+
+            <div class="form-container" id="formContainer">
+                <div class="form-single" id="formSingle">
+                    <div class="form-group"><label><i class="fas fa-user"></i> اسم المشترك</label><input id="mname"
+                            placeholder="اسم المشترك"></div>
+                    <div class="form-group"><label><i class="fas fa-hashtag"></i> رقم العداد</label><input id="mno"
+                            placeholder="رقم العداد"></div>
+                    <div class="form-group"><label><i class="fas fa-layer-group"></i> القطاع</label>
+                        <select id="keta3">
+                            <option value="">اختر</option>
+                            <option>دمياط</option>
+                            <option>شمال الدقهلية</option>
+                            <option>جنوب الدقهلية</option>
+                            <option>كفر الشيخ</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label><i class="fas fa-draw-polygon"></i> الهندسة</label>
+                        <select id="handsa">
+                            <option value="">اختر</option>
+                            <option>هندسة شمال دمياط</option>
+                            <option>هندسة جنوب دمياط</option>
+                            <option>هندسة عزبة البرج</option>
+                            <option>هندسة كفر سعد</option>
+                            <option>هندسة كفر البطيخ</option>
+                            <option>هندسة راس البر</option>
+                            <option>هندسة دمياط الجديدة</option>
+                            <option>هندسة الزرقا</option>
+                            <option>هندسة فارسكور</option>
+                            <option>هندسة الروضة</option>
+                            <option>هندسة الشعراء</option>
+                            <option>هندسة مدينة شربين</option>
+                            <option>هندسة قري شربين</option>
+                            <option>هندسة دكرنس</option>
+                            <option>هندسة جمصة</option>
+                            <option>هندسة قري بلقاس</option>
+                            <option>هندسة مدينة بلقاس</option>
+                            <option>هندسة الستاموني</option>
+                            <option>هندسة بني عبيد</option>
+                            <option>هندسة منية النصر</option>
+                            <option>هندسة ميت سلسيل</option>
+                            <option>هندسة الجمالية</option>
+                            <option>هندسة قري المنزلة</option>
+                            <option>هندسة مدينة المنزلة</option>
+                            <option>هندسة المطرية</option>
+                            <option>هندسة شرق المنصورة</option>
+                            <option>هندسة غرب المنصورة</option>
+                            <option>هندسة طلخا</option>
+                            <option>هندسة نبروه</option>
+                            <option>هندسة قري المنصورة 1</option>
+                            <option>هندسة قري المنصورة 2</option>
+                            <option>هندسة اجا</option>
+                            <option>هندسة مدينة السنبلاوين</option>
+                            <option>هندسة قري السنبلاوين</option>
+                            <option>هندسة تمي الامديد</option>
+                            <option>هندسة مدينة ميت غمر</option>
+                            <option>هندسة قري ميت غمر</option>
+                            <option>هندسة كوم النور</option>
+                            <option>هندسة مدينة كفر الشيخ</option>
+                            <option>هندسة غرب كفر الشيخ</option>
+                            <option>هندسة شرق كفر الشيخ</option>
+                            <option>هندسة قلين</option>
+                            <option>هندسة قرى سيدي سالم</option>
+                            <option>هندسة مدينة سيدي سالم</option>
+                            <option>هندسة الرياض</option>
+                            <option>هندسة مدينة دسوق</option>
+                            <option>هندسة قرى شمال دسوق</option>
+                            <option>هندسة قرى جنوب دسوق</option>
+                            <option>هندسة فوه</option>
+                            <option>هندسة مطوبس</option>
+                            <option>هندسة مدينة الحامول</option>
+                            <option>هندسة قرى الحامول</option>
+                            <option>هندسة بيلا</option>
+                            <option>هندسة بلطيم</option>
+                            <option>هندسة برج البرلس</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label><i class="fas fa-calendar-plus"></i> تاريخ الرفع</label><input
+                            type="date" id="inspection_date"></div>
+                    <div class="form-group"><label><i class="fas fa-calendar-check"></i> تاريخ التركيب</label><input
+                            type="date" id="fix_date"></div>
+                    <div class="form-group"><label><i class="fas fa-calendar-alt"></i> تاريخ الإطلاق</label><input
+                            type="date" id="power_date"></div>
+                    <div class="form-group"><label><i class="fas fa-arrows-alt-h"></i> VT Ratio</label><input
+                            id="vt_ratio"></div>
+                    <div class="form-group"><label><i class="fas fa-arrows-alt-h"></i> CT Ratio</label><input
+                            id="ct_ratio"></div>
+                    <div class="form-group"><label><i class="fas fa-cog"></i> الثابت</label><input id="constant"
+                            type="number" step="any"></div>
+                    <div class="form-group"><label><i class="fas fa-map-pin"></i> المكان</label><input id="location">
+                    </div>
+                    <div class="form-group"><label><i class="fas fa-microchip"></i> نوع العداد</label><input id="mtype">
+                    </div>
+                    <div class="form-group full"><label><i class="fas fa-sticky-note"></i> ملاحظات</label><textarea
+                            id="notes" rows="1" placeholder="ملاحظات"></textarea></div>
+                </div>
+            </div>
+
+            <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none;">
+        </header>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 بحث بالاسم أو رقم العداد...">
+            <button onclick="loadDataFromFirebase()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div class="grid" id="cardsGrid">
+            <div class="empty-state"><i class="fas fa-inbox"></i>
+                <p>لا توجد بيانات، قم برفع ملف إكسيل أو إضافة مشترك</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="sheet-overlay" id="sheetOverlay"></div>
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="sheet-header">
+            <h4><i class="fas fa-compass"></i> قائمة الصفحات</h4><i class="fas fa-times" id="closeSheetBtn"></i>
+        </div>
+        <div class="sheet-menu">
+            <a href="MD.html" class="sheet-item active"><i class="fas fa-database"></i> بيانات المشتركين</a>
+            <span class="item-badge">الحالية</span>
+            <a href="MD_Add.html" class="sheet-item"><i class="fas fa-user-plus"></i> إضافة مشترك جديد</a>
+            <a href="MD_Site.html" class="sheet-item"><i class="fas fa-clipboard-check"></i> تسجيل مرور ميداني</a>
+            <a href="MD_Pass.html" class="sheet-item"><i class="fas fa-chart-pie"></i> تقرير المرور العام</a>
+            <a href="index.html" class="sheet-item"><i class="fas fa-home"></i> الصفحة الرئيسية</a>
+            <a href="MD_PF.html" class="sheet-item"><i class="fas fa-bolt"></i> تقرير معامل القدرة</a>
+        </div>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="btn btn-excel" onclick="protectedAction('upload')"><i class="fas fa-file-excel"></i> رفع
+            إكسيل</button>
+        <button id="saveBtn" class="btn btn-primary" onclick="quickSave()"><i class="fas fa-save"></i>
+            حفظ/تحديث</button>
+        <button id="addMeterBtn" class="btn btn-success" onclick="addNewMeter()"><i class="fas fa-plus"></i> عداد
+            جديد</button>
+        <button id="updateAllBtn" class="btn btn-warning" onclick="updateCustomerData()" style="display:none;"><i
+                class="fas fa-sync"></i> تحديث الكل</button>
+        <button class="btn btn-clear" onclick="clearForm()"><i class="fas fa-eraser"></i> تفريغ</button>
+        <button class="btn btn-danger" onclick="protectedAction('deleteAll')"><i class="fas fa-trash"></i> مسح
+            الكل</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+            authDomain: "production1-ae85.firebaseapp.com",
+            databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+            projectId: "production1-ae85",
+            storageBucket: "production1-ae85.firebasestorage.app",
+            messagingSenderId: "490438031865",
+            appId: "1:490438031865:web:a4a69335989f30cd13a528",
+            measurementId: "G-W3TZ1EKWWN"
+        };
+        const app = initializeApp(firebaseConfig);
+        const dbMD = getDatabase(app);
+        const dbPass = getDatabase(app);
+        try { getAnalytics(app); } catch (_) { }
+
+        let allCustomers = {};
+        let allCustomerIds = [];
+        const ADMIN_PASS = "1";
+        let editIDs = { cID: null, mKey: null };
+        let formVisible = true;
+
+        // Elements
+        const toggleBtn = document.getElementById('toggleFormBtn');
+        const formContainer = document.getElementById('formContainer');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const toggleLabel = document.getElementById('toggleLabel');
+        const openBtn = document.getElementById('openMenuBtn');
+        const closeBtn = document.getElementById('closeSheetBtn');
+        const sheet = document.getElementById('bottomSheet');
+        const overlay = document.getElementById('sheetOverlay');
+        const updateAllBtn = document.getElementById("updateAllBtn");
+        const saveBtn = document.getElementById("saveBtn");
+        const addMeterBtn = document.getElementById("addMeterBtn");
+
+        // UI Form Mode Toggler
+        toggleBtn.addEventListener('click', () => {
+            formVisible = !formVisible;
+            formContainer.classList.toggle('hidden', !formVisible);
+            toggleIcon.className = formVisible ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+            toggleLabel.textContent = formVisible ? 'إخفاءالبيانات' : 'إظهارالبيانات';
+        });
+
+        // Helpers
+        function sanitizeKey(key) {
+            return key ? String(key).replace(/[.#$\[\]\(\)\/\s]/g, "").trim() : "unknown";
+        }
+        /* ---------- Arabic-normalized select setter ---------- */
+        function normalizeArabic(str) {
+            return String(str ?? "")
+                .replace(/[\u064B-\u0652\u0640]/g, "")   // tashkeel + tatweel
+                .replace(/[أإآٱ]/g, "ا")
+                .replace(/ى/g, "ي")
+                .replace(/ئ/g, "ي")
+                .replace(/ؤ/g, "و")
+                .replace(/ة/g, "ه")
+                .replace(/[^\u0621-\u064A0-9A-Za-z]/g, "") // drop spaces, dashes, punctuation
+                .toLowerCase();
+        }
+
+        function clearInjectedOptions(selectEl) {
+            selectEl.querySelectorAll('option[data-injected="1"]').forEach(o => o.remove());
+        }
+
+        function setSelectValue(selectEl, rawValue) {
+            if (!selectEl) return;
+            const val = (rawValue === null || rawValue === undefined) ? "" : String(rawValue).trim();
+
+            if (!val || val === "-" || val === "undefined") {   // no real value
+                selectEl.value = "";
+                return;
+            }
+
+            const opts = Array.from(selectEl.options);
+
+            // 1) exact match
+            let match = opts.find(o => o.value.trim() === val);
+
+            // 2) normalized match
+            if (!match) {
+                const n = normalizeArabic(val);
+                match = opts.find(o => normalizeArabic(o.value) === n);
+            }
+
+            // 3) partial / contains match
+            if (!match) {
+                const n = normalizeArabic(val);
+                match = opts.find(o => {
+                    const oN = normalizeArabic(o.value);
+                    return oN && (oN.includes(n) || n.includes(oN));
+                });
+            }
+
+            if (match) { selectEl.value = match.value; return; }
+
+            // 4) value not in the list -> inject it so the data is never lost
+            const opt = document.createElement("option");
+            opt.value = val;
+            opt.textContent = val;
+            opt.dataset.injected = "1";
+            selectEl.appendChild(opt);
+            selectEl.value = val;
+        }
+
+        function formatExcelDate(val) {
+            if (!val) return "";
+            if (typeof val === 'number' && !isNaN(val)) {
+                return new Date(Math.round((val - 25569) * 86400 * 1000)).toISOString().split('T')[0];
+            }
+            return String(val).trim();
+        }
+
+        function getVal(row, possibleNames) {
+            const rowKeys = Object.keys(row);
+            for (let target of possibleNames) {
+                let ct = target.replace(/\s+/g, '').toLowerCase();
+                for (let ak of rowKeys) {
+                    let ca = ak.replace(/\s+/g, '').toLowerCase();
+                    if (ca === ct || ca.includes(ct)) return row[ak];
+                }
+            }
+            return "";
+        }
+
+        // Sheet Navigation
+        function toggleSheet(show) {
+            sheet.classList.toggle('show', show);
+            overlay.classList.toggle('show', show);
+        }
+        openBtn.addEventListener('click', () => toggleSheet(true));
+        closeBtn.addEventListener('click', () => toggleSheet(false));
+        overlay.addEventListener('click', () => toggleSheet(false));
+
+        window.protectedAction = async function (type) {
+            const { value: password } = await Swal.fire({
+                title: 'كلمة المرور مطلوبة',
+                input: 'password',
+                inputPlaceholder: 'أدخل كلمة المرور',
+                showCancelButton: true
+            });
+            if (password === ADMIN_PASS) {
+                if (type === 'upload') document.getElementById('excelFile').click();
+                if (type === 'deleteAll') deleteAllData();
+            } else if (password !== undefined) {
+                Swal.fire("خطأ", "كلمة المرور غير صحيحة", "error");
+            }
+        };
+
+        // Excel Handling
+        document.getElementById("excelFile").addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                Swal.fire({
+                    title: 'جاري المعالجة...',
+                    text: `تحليل ${json.length} سجل`,
+                    didOpen: () => Swal.showLoading()
+                });
+                const grouped = {};
+                json.forEach(row => {
+                    const rawName = String(getVal(row, ['الاسم', 'اسم المشترك'])).trim();
+                    const rawMNo = String(getVal(row, ['رقم الشاسيه', 'رقم العداد'])).trim();
+                    if (!rawName || rawName === "undefined" || !rawMNo || rawMNo === "undefined") return;
+
+                    const safeNameKey = sanitizeKey(rawName);
+                    const safeMKey = sanitizeKey(rawMNo);
+
+                    if (!grouped[safeNameKey]) {
+                        grouped[safeNameKey] = {
+                            metername: rawName,
+                            name: rawName,
+                            keta3: getVal(row, ['القطاع']) || "-",
+                            handsa: getVal(row, ['الهندسة', 'الهندسه']) || "-",
+                            max_load: getVal(row, ['اقصى حمل', 'أقصى حمل']) || 0,
+                            power_factor: getVal(row, ['معامل قدرة', 'معامل القدرة', 'pf']) || 0,
+                            passing_date: formatExcelDate(getVal(row, ['تاريخ المرور', 'المرور'])),
+                            meters: {}
+                        };
+                    }
+                    grouped[safeNameKey].meters[safeMKey] = {
+                        meternumber: rawMNo,
+                        kwh_reading: getVal(row, ['القراءة ك.و.س', 'kwh']) || 0,
+                        kvarh_reading: getVal(row, ['القراءة ك.فار .س', 'kvarh']) || 0,
+                        vt_ratio: getVal(row, ['محولات الجهد']) || "11000/110",
+                        ct_ratio: getVal(row, ['محولات التيار']) || "200/5",
+                        constant: getVal(row, ['الثابت']) || 1,
+                        location: getVal(row, ['مكان التركيب']) || "",
+                        metertype: getVal(row, ['نوع العداد']) || "",
+                        inspection_date: formatExcelDate(getVal(row, ['تاريخ الرفع'])),
+                        fix_date: formatExcelDate(getVal(row, ['تاريخ التركيب'])),
+                        power_date: formatExcelDate(getVal(row, ['تاريخ الأطلاق'])),
+                        note: getVal(row, ['ملاحظات']) || ""
+                    };
+                });
+                try {
+                    await Promise.all([
+                        set(ref(dbPass, "MD_Pass/customers"), grouped),
+                        set(ref(dbMD, "MD/customers"), grouped)
+                    ]);
+                    Swal.fire("نجاح", "تم التحديث بنجاح في القاعدتين", "success");
+                    loadDataFromFirebase();
+                } catch (err) {
+                    Swal.fire("خطأ", err.message, "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Firebase Operations
+        window.loadDataFromFirebase = async function () {
+            const grid = document.getElementById("cardsGrid");
+            grid.innerHTML = "<div class='empty-state'><i class='fas fa-spinner fa-spin'></i><p>جاري جلب البيانات...</p></div>";
+            try {
+                const [snapMD, snapPass] = await Promise.all([
+                    get(ref(dbMD, "MD/customers")),
+                    get(ref(dbPass, "MD_Pass/customers"))
+                ]);
+                allCustomers = { ...(snapPass.exists() ? snapPass.val() : {}), ...(snapMD.exists() ? snapMD.val() : {}) };
+                allCustomerIds = Object.keys(allCustomers);
+                if (allCustomerIds.length > 0) {
+                    renderCards(allCustomerIds);
+                } else {
+                    grid.innerHTML = "<div class='empty-state'><i class='fas fa-inbox'></i><p>لا توجد بيانات</p></div>";
+                }
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = "<div class='empty-state'><i class='fas fa-exclamation-triangle' style='color:var(--danger);'></i><p>خطأ في الاتصال</p></div>";
+            }
+        };
+
+        window.deleteAllData = async function () {
+            const result = await Swal.fire({
+                title: 'حذف كلي؟',
+                text: "سيتم مسح كل شيء من القاعدتين!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'نعم، احذف الكل'
+            });
+            if (result.isConfirmed) {
+                await Promise.all([remove(ref(dbMD, "MD/customers")), remove(ref(dbPass, "MD_Pass/customers"))]);
+                loadDataFromFirebase();
+                Swal.fire("تم", "تم مسح قاعدة البيانات", "success");
+            }
+        };
+
+        window.deleteCustomer = async function (cID) {
+            const result = await Swal.fire({
+                title: 'حذف مشترك؟',
+                text: `هل تريد حذف ${allCustomers[cID]?.metername || cID} وجميع عداداته؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'نعم، احذف'
+            });
+            if (result.isConfirmed) {
+                await Promise.all([remove(ref(dbMD, `MD/customers/${cID}`)), remove(ref(dbPass, `MD_Pass/customers/${cID}`))]);
+                loadDataFromFirebase();
+            }
+        };
+
+        window.deleteMeter = async function (cID, mKey) {
+            const result = await Swal.fire({
+                title: 'حذف العداد؟',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'نعم، احذف'
+            });
+            if (result.isConfirmed) {
+                await Promise.all([
+                    remove(ref(dbMD, `MD/customers/${cID}/meters/${mKey}`)),
+                    remove(ref(dbPass, `MD_Pass/customers/${cID}/meters/${mKey}`))
+                ]);
+                loadDataFromFirebase();
+            }
+        };
+
+        // UI Builders
+        function renderCards(ids) {
+            const grid = document.getElementById("cardsGrid");
+            grid.innerHTML = "";
+            if (ids.length === 0) {
+                grid.innerHTML = "<div class='empty-state'><i class='fas fa-inbox'></i><p>لا توجد بيانات</p></div>";
+                return;
+            }
+            for (const id of ids) {
+                const c = allCustomers[id];
+                if (!c) continue;
+                const meters = c.meters || {};
+                const meterKeys = Object.keys(meters);
+                const meterCount = meterKeys.length;
+
+                let metersHtml = meterKeys.map(mKey => {
+                    const m = meters[mKey];
+                    return `<tr onclick="showMeterCard('${id}','${mKey}')">
+                        <td><b>${m.meternumber || '-'}</b></td>
+                        <td>${m.kwh_reading || 0}</td>
+                        <td>${m.kvarh_reading || 0}</td>
+                        <td>${m.vt_ratio || '-'}</td>
+                        <td>${m.ct_ratio || '-'}</td>
+                        <td>${m.constant || 1}</td>
+                        <td>${m.location || '-'}</td>
+                        <td>${m.metertype || '-'}</td>
+                        <td>${m.inspection_date || '-'}</td>
+                        <td>${m.fix_date || '-'}</td>
+                        <td>${m.power_date || '-'}</td>
+                        <td class="del" onclick="event.stopPropagation(); deleteMeter('${id}','${mKey}')">✕</td>
+                    </tr>`;
+                }).join('');
+
+                let meterCardsHtml = meterKeys.map(mKey => {
+                    const m = meters[mKey];
+                    return `<div class="meter-card" id="meterCard_${id}_${mKey}" data-customer="${id}" data-meterkey="${mKey}">
+                        <div class="meter-card-header">
+                            <div class="meter-card-title"><i class="fas fa-microchip"></i> تفاصيل العداد: <span style="color:var(--text);">${m.meternumber || '-'}</span></div>
+                            <button class="back-btn" onclick="showMainCard('${id}')"><i class="fas fa-arrow-right"></i> العودة</button>
+                        </div>
+                        <div class="meter-detail-grid">
+                            <div><span class="label">رقم العداد:</span> <span class="value">${m.meternumber || '-'}</span></div>
+                            <div><span class="label">kWh:</span> <span class="value">${m.kwh_reading || 0}</span></div>
+                            <div><span class="label">kVARh:</span> <span class="value">${m.kvarh_reading || 0}</span></div>
+                            <div><span class="label">VT Ratio:</span> <span class="value">${m.vt_ratio || '-'}</span></div>
+                            <div><span class="label">CT Ratio:</span> <span class="value">${m.ct_ratio || '-'}</span></div>
+                            <div><span class="label">الثابت:</span> <span class="value">${m.constant || 1}</span></div>
+                            <div><span class="label">المكان:</span> <span class="value">${m.location || '-'}</span></div>
+                            <div><span class="label">نوع العداد:</span> <span class="value">${m.metertype || '-'}</span></div>
+                            <div><span class="label">تاريخ الرفع:</span> <span class="value">${m.inspection_date || '-'}</span></div>
+                            <div><span class="label">تاريخ التركيب:</span> <span class="value">${m.fix_date || '-'}</span></div>
+                            <div><span class="label">تاريخ الإطلاق:</span> <span class="value">${m.power_date || '-'}</span></div>
+                            <div class="full"><span class="label">الملاحظات:</span> <span class="value">${m.meternote || 'لا توجد ملاحظات'}</span></div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "card-wrapper";
+                wrapper.dataset.customerId = id;
+                wrapper.innerHTML = `
+                    <div class="main-card" id="mainCard_${id}" onclick="showMainCard('${id}')">
+                        <div class="main-card-header">
+                            <div class="main-card-name">
+                                <i class="fas fa-user-circle"></i> ${c.metername}
+                                <span class="badge">${meterCount} عداد</span>
+                            </div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteCustomer('${id}')"><i class="fas fa-trash"></i> حذف</button>
+                        </div>
+                        <div class="main-info-grid">
+                            <span>القطاع: <b>${c.keta3 || '-'}</b></span>
+                            <span>الهندسة: <b>${c.handsa || '-'}</b></span>
+                            <span>تاريخ المرور: <b>${c.passing_date || '-'}</b></span>
+                            <span>معامل القدرة: <b>${c.power_factor || '-'}</b></span>
+                            <span>أقصى حمل: <b>${c.max_load || '-'}</b></span>
+                        </div>
+                        <div class="meter-summary">
+                            <i class="fas fa-microchip"></i>
+                            <span class="meter-count">${meterCount} عداد</span>
+                        </div>
+                    </div>
+                    ${meterCount > 0 ? `
+                        <div class="meter-table-wrap">
+                            <table class="meter-table">
+                                <thead><tr><th>#</th><th>kWh</th><th>kVARh</th><th>VT</th><th>CT</th><th>ثابت</th><th>المكان</th><th>النوع</th><th>الرفع</th><th>التركيب</th><th>الإطلاق</th><th></th></tr></thead>
+                                <tbody>${metersHtml}</tbody>
+                            </table>
+                        </div>
+                    ` : `<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:6px 0;"><i class="fas fa-info-circle"></i> لا توجد عدادات</div>`}
+                    ${meterCardsHtml}
+                `;
+                grid.appendChild(wrapper);
+            }
+        }
+
+        // Shared helpers for card states & inputs
+        function ensureFormVisible() {
+            if (!formVisible) {
+                formVisible = true;
+                formContainer.classList.remove('hidden');
+                toggleIcon.className = 'fas fa-chevron-up';
+                toggleLabel.textContent = 'إخفاءالبيانات';
+            }
+        }
+
+        function populateFormValues(c, m = {}) {
+            const keta3El = document.getElementById("keta3");
+            const handsaEl = document.getElementById("handsa");
+
+            // remove any option injected on a previous open, then set safely
+            clearInjectedOptions(keta3El);
+            clearInjectedOptions(handsaEl);
+
+            document.getElementById("mname").value = c.metername || "";
+            setSelectValue(keta3El, c.keta3);
+            setSelectValue(handsaEl, c.handsa);
+
+            document.getElementById("mno").value = m.meternumber || "";
+            document.getElementById("inspection_date").value = m.inspection_date || "";
+            document.getElementById("fix_date").value = m.fix_date || "";
+            document.getElementById("power_date").value = m.power_date || "";
+            document.getElementById("vt_ratio").value = m.vt_ratio || "";
+            document.getElementById("ct_ratio").value = m.ct_ratio || "";
+            document.getElementById("constant").value = m.constant || "";
+            document.getElementById("location").value = m.location || "";
+            document.getElementById("mtype").value = m.metertype || "";
+            document.getElementById("notes").value = m.note || "";
+
+            document.querySelectorAll("#formSingle input, #formSingle select, #formSingle textarea")
+                .forEach(i => i.disabled = false);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.showMeterCard = function (customerId, meterKey) {
+            const wrapper = document.querySelector(`.card-wrapper[data-customer-id="${customerId}"]`);
+            if (!wrapper) return;
+            const mainCard = wrapper.querySelector(`#mainCard_${customerId}`);
+            if (mainCard) mainCard.style.display = 'none';
+            wrapper.querySelectorAll('.meter-card').forEach(c => c.classList.remove('visible'));
+            const targetCard = wrapper.querySelector(`#meterCard_${customerId}_${meterKey}`);
+            if (targetCard) targetCard.classList.add('visible');
+
+            ensureFormVisible();
+            const c = allCustomers[customerId];
+            const m = c?.meters ? c.meters[meterKey] : null;
+            if (m) {
+                editIDs = { cID: customerId, mKey: meterKey };
+                populateFormValues(c, m);
+                updateAllBtn.style.display = "none";
+                saveBtn.style.display = "inline-flex";
+                addMeterBtn.style.display = "inline-flex";
+            }
+        };
+
+        // Form Action Functions
+        window.quickSave = async function () {
+            const mNoRaw = document.getElementById("mno").value.trim();
+            if (!mNoRaw || !editIDs.cID) return Swal.fire("تنبيه", "يجب اختيار مشترك وتحديد رقم العداد", "warning");
+
+            const finalMKey = editIDs.mKey || sanitizeKey(mNoRaw);
+            const existingCustomer = allCustomers[editIDs.cID] || {};
+            const existingMeter = existingCustomer.meters?.[finalMKey] || {};
+
+            const finalMeterData = {
+                ...existingMeter,
+                meternumber: mNoRaw,
+                vt_ratio: document.getElementById("vt_ratio").value || "",
+                ct_ratio: document.getElementById("ct_ratio").value || "",
+                constant: document.getElementById("constant").value || 1,
+                location: document.getElementById("location").value || "",
+                metertype: document.getElementById("mtype").value || "",
+                inspection_date: document.getElementById("inspection_date").value || "",
+                fix_date: document.getElementById("fix_date").value || "",
+                power_date: document.getElementById("power_date").value || "",
+                note: document.getElementById("notes").value || "",
+                kwh_reading: existingMeter.kwh_reading || 0,
+                kvarh_reading: existingMeter.kvarh_reading || 0
+            };
+
+            const finalCustomerData = {
+                ...existingCustomer,
+                metername: document.getElementById("mname").value,
+                name: document.getElementById("mname").value,
+                keta3: document.getElementById("keta3").value,
+                handsa: document.getElementById("handsa").value,
+                power_factor: existingCustomer.power_factor || 0,
+                max_load: existingCustomer.max_load || 0
+            };
+
+            try {
+                await Promise.all([
+                    update(ref(dbMD, `MD/customers/${editIDs.cID}`), finalCustomerData),
+                    update(ref(dbPass, `MD_Pass/customers/${editIDs.cID}`), finalCustomerData),
+                    update(ref(dbMD, `MD/customers/${editIDs.cID}/meters/${finalMKey}`), finalMeterData),
+                    update(ref(dbPass, `MD_Pass/customers/${editIDs.cID}/meters/${finalMKey}`), finalMeterData)
+                ]);
+                Swal.fire({ icon: 'success', title: 'تم الحفظ بنجاح', text: 'تم تحديث البيانات', confirmButtonText: 'حسناً' });
+                loadDataFromFirebase();
+                clearForm();
+            } catch (error) {
+                Swal.fire("خطأ", "فشل الحفظ: " + error.message, "error");
+            }
+        };
+
+        window.addNewMeter = async function () {
+            if (!editIDs.cID) return Swal.fire("تنبيه", "يرجى اختيار مشترك أولاً من القائمة", "warning");
+            const mNoRaw = document.getElementById("mno").value.trim();
+            if (!mNoRaw) return Swal.fire("تنبيه", "يرجى إدخال رقم العداد الجديد", "warning");
+
+            const newMKey = sanitizeKey(mNoRaw);
+            if (allCustomers[editIDs.cID]?.meters?.[newMKey]) return Swal.fire("تنبيه", "هذا العداد موجود بالفعل", "warning");
+
+            const meterData = {
+                meternumber: mNoRaw,
+                kwh_reading: 0,
+                kvarh_reading: 0,
+                vt_ratio: document.getElementById("vt_ratio").value || "",
+                ct_ratio: document.getElementById("ct_ratio").value || "",
+                constant: document.getElementById("constant").value || 1,
+                location: document.getElementById("location").value || "",
+                metertype: document.getElementById("mtype").value || "",
+                inspection_date: document.getElementById("inspection_date").value || "",
+                fix_date: document.getElementById("fix_date").value || "",
+                power_date: document.getElementById("power_date").value || "",
+                note: document.getElementById("notes").value || ""
+            };
+
+            try {
+                await Promise.all([
+                    set(ref(dbMD, `MD/customers/${editIDs.cID}/meters/${newMKey}`), meterData),
+                    set(ref(dbPass, `MD_Pass/customers/${editIDs.cID}/meters/${newMKey}`), meterData)
+                ]);
+                Swal.fire("تم", "تم إضافة العداد بنجاح", "success");
+                loadDataFromFirebase();
+                clearForm();
+            } catch (error) {
+                Swal.fire("خطأ", "فشل الإضافة: " + error.message, "error");
+            }
+        };
+
+        window.updateCustomerData = async function () {
+            if (!editIDs.cID) return Swal.fire("تنبيه", "لم يتم تحديد مشترك", "warning");
+            const mname = document.getElementById("mname").value;
+            const oldCID = editIDs.cID;
+            const newCID = sanitizeKey(mname);
+            const existingCustomer = allCustomers[oldCID] || {};
+            const updatedInfo = {
+                metername: mname,
+                name: mname,
+                keta3: document.getElementById("keta3").value,
+                handsa: document.getElementById("handsa").value,
+                power_factor: existingCustomer.power_factor || 0,
+                max_load: existingCustomer.max_load || 0
+            };
+
+            try {
+                if (oldCID !== newCID) {
+                    const [oldPassData, oldMDData] = await Promise.all([
+                        get(ref(dbPass, `MD_Pass/customers/${oldCID}`)),
+                        get(ref(dbMD, `MD/customers/${oldCID}`))
+                    ]);
+                    const dbPassUpdates = {}, dbMDUpdates = {};
+                    if (oldPassData.exists()) {
+                        dbPassUpdates[`MD_Pass/customers/${newCID}`] = { ...oldPassData.val(), ...updatedInfo };
+                        dbPassUpdates[`MD_Pass/customers/${oldCID}`] = null;
+                    }
+                    if (oldMDData.exists()) {
+                        dbMDUpdates[`MD/customers/${newCID}`] = { ...oldMDData.val(), ...updatedInfo };
+                        dbMDUpdates[`MD/customers/${oldCID}`] = null;
+                    }
+                    await Promise.all([
+                        Object.keys(dbPassUpdates).length ? update(ref(dbPass), dbPassUpdates) : null,
+                        Object.keys(dbMDUpdates).length ? update(ref(dbMD), dbMDUpdates) : null
+                    ]);
+                    editIDs.cID = newCID;
+                } else {
+                    await Promise.all([
+                        update(ref(dbPass, `MD_Pass/customers/${oldCID}`), updatedInfo),
+                        update(ref(dbMD, `MD/customers/${oldCID}`), updatedInfo)
+                    ]);
+                }
+                Swal.fire("تم", "تم تحديث البيانات بنجاح (تم الحفاظ على PF وأقصى حمل)", "success");
+                clearForm();
+                loadDataFromFirebase();
+            } catch (error) {
+                Swal.fire("خطأ", "فشل التحديث: " + error.message, "error");
+            }
+        };
+
+        window.clearForm = function () {
+            editIDs = { cID: null, mKey: null };
+            document.querySelectorAll("#formSingle input, #formSingle textarea, #formSingle select").forEach(i => {
+                if (i.type !== 'file') {
+                    i.value = "";
+                    i.disabled = false;
+                }
+            });
+            updateAllBtn.style.display = "none";
+            saveBtn.style.display = "inline-flex";
+            addMeterBtn.style.display = "inline-flex";
+            document.querySelectorAll('.main-card').forEach(el => el.style.display = 'flex');
+            document.querySelectorAll('.meter-card').forEach(el => el.classList.remove('visible'));
+            document.querySelectorAll('.meter-row-active').forEach(el => el.classList.remove('meter-row-active'));
+            document.getElementById('searchInput').value = '';
+            performSearch('');
+        };
+
+        function performSearch(query) {
+            const term = query.toLowerCase().trim();
+            const cards = document.querySelectorAll(".card-wrapper");
+            cards.forEach(w => w.style.display = "");
+            if (!term) return;
+
+            const results = new Set();
+            for (const id of allCustomerIds) {
+                const c = allCustomers[id];
+                if (!c) continue;
+                const meterNumbers = Object.values(c.meters || {}).map(m => m.meternumber || '').join(' ');
+                const searchText = `${c.metername || ''} ${c.keta3 || ''} ${c.handsa || ''} ${meterNumbers}`.toLowerCase();
+                if (searchText.includes(term)) results.add(id);
+            }
+            cards.forEach(w => {
+                w.style.display = results.has(w.dataset.customerId) ? "" : "none";
+            });
+        }
+
+        document.getElementById("searchInput").addEventListener("input", function (e) {
+            performSearch(e.target.value);
+        });
+
+        // Initialize App
+        loadDataFromFirebase();
+    </script>
+</body>
+
+</html>

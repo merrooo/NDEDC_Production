@@ -13,4 +13,4 @@ https://console.firebase.google.com/project/calcalibration-dev-r4t8/overview
 -Deploy to Firebase Hosting
 >firebase login
 >firebase init
->firebase deploy
+>npx firebase-tools deploy

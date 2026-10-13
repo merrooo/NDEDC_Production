@@ -112,7 +112,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1300px;
+      min-width: 1400px;
     }
 
     thead {
@@ -163,45 +163,19 @@
       gap: 8px;
     }
 
-    .primary {
-      background: linear-gradient(135deg, #4facfe, #00f2fe);
-    }
+    .primary { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .secondary { background: #7498a1; }
+    .warning { background: #f39c12; }
+    .danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 
-    .secondary {
-      background: #7498a1;
-    }
-
-    .warning {
-      background: #f39c12;
-    }
-
-    body.dark-mode {
-      background: #0f1419;
-    }
-
-    body.dark-mode .glass {
-      background: rgba(30, 40, 50, 0.8);
-      color: white;
-    }
-
-    body.dark-mode .table-container {
-      background: #1a1f2e;
-    }
-
-    body.dark-mode td {
-      color: #dbeafe;
-      border-color: #2d3748;
-    }
+    body.dark-mode { background: #0f1419; }
+    body.dark-mode .glass { background: rgba(30, 40, 50, 0.8); color: white; }
+    body.dark-mode .table-container { background: #1a1f2e; }
+    body.dark-mode td { color: #dbeafe; border-color: #2d3748; }
 
     @media (max-width: 1100px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-
-      .glass {
-        position: relative;
-        top: 0;
-      }
+      .app { grid-template-columns: 1fr; }
+      .glass { position: relative; top: 0; }
     }
   </style>
 </head>
@@ -228,25 +202,16 @@
           <span id="counterText">0</span>
         </div>
 
-        <button class="primary" onclick="refreshData()">
-          🔄 تحديث البيانات
-        </button>
-        <button class="warning" onclick="document.getElementById('excelInput').click()">
-          📥 استيراد من ملف Excel
-        </button>
+        <button class="primary" onclick="refreshData()">🔄 تحديث البيانات</button>
+        <button class="warning" onclick="document.getElementById('excelInput').click()">📥 استيراد من ملف Excel</button>
         <input type="file" id="excelInput" style="display: none" accept=".xlsx, .xls" />
-        <button class="secondary" onclick="exportToExcel()">
-          📊 تصدير البيانات الحالية
-        </button>
+        <button class="secondary" onclick="exportToExcel()">📊 تصدير البيانات الحالية</button>
         <button class="secondary" style="background: #333" onclick="document.body.classList.toggle('dark-mode')">
           🌙 الوضع الليلي
         </button>
+        <button class="danger" onclick="deleteAllData()">🗑️ حذف جميع البيانات</button>
 
-        <div style="
-              margin-top: 20px;
-              border-top: 2px solid #eee;
-              padding-top: 15px;
-            ">
+        <div style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px;">
           <label style="font-size: 13px; font-weight: bold; color: #444">بحث برقم العداد:</label>
           <input type="text" id="searchInput" placeholder="اكتب رقم العداد..." oninput="handleSearch(this.value)" />
         </div>
@@ -261,9 +226,7 @@
           </div>
         </div>
         <button class="secondary" style="background: #e74c3c; font-size: 11px; padding: 5px;"
-          onclick="clearDateFilters()">
-          ❌ مسح فلاتر التاريخ
-        </button>
+          onclick="clearDateFilters()">❌ مسح فلاتر التاريخ</button>
       </div>
     </div>
 
@@ -284,36 +247,23 @@
                 <th>الاستهلاك الحالي</th>
                 <th>الاستهلاك الكلي</th>
                 <th>ملاحظات</th>
+                <th>ملاحظات عامة</th>
               </tr>
             </thead>
             <tbody id="tableBody">
               <tr>
-                <td colspan="10" style="padding: 50px; color: #999">
-                  بانتظار جلب البيانات...
-                </td>
+                <td colspan="12" style="padding: 50px; color: #999">بانتظار جلب البيانات...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            background: #fff;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-          ">
-        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(-1)">
-          السابق
-        </button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+                  background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(-1)">السابق</button>
         <span id="pageInfo" style="font-weight: bold; color: #065192">صفحة 1</span>
-        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(1)">
-          التالي
-        </button>
+        <button class="secondary" style="width: 100px; margin: 0" onclick="changePage(1)">التالي</button>
       </div>
     </div>
   </div>
@@ -321,10 +271,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
     import {
-      getDatabase,
-      ref,
-      get,
-      set,
+      getDatabase, ref, get, update, remove,
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -338,12 +285,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    const DB_PATH = "Archive_Maint_Meters_Data";
+    const CHUNK_SIZE = 500;
+    const rowsPerPage = 25;
+
+    // كلمة المرور = "1"
+    const PASSWORD_HASH = "MQ==";
+
     let allData = [];
     let filteredData = [];
     let currentPage = 1;
-    const rowsPerPage = 25;
 
-    // دالة جلب البيانات من 
+    /* ============ 1) جلب البيانات ============ */
     window.refreshData = async function () {
       Swal.fire({
         title: "جاري الاتصال ...",
@@ -351,7 +304,7 @@
         didOpen: () => Swal.showLoading(),
       });
       try {
-        const snapshot = await get(ref(db, "Archive_Maint_Meters_Data"));
+        const snapshot = await get(ref(db, DB_PATH));
         if (snapshot.exists()) {
           allData = Object.values(snapshot.val());
           filteredData = [...allData];
@@ -361,65 +314,71 @@
           allData = [];
           filteredData = [];
           renderTable();
-          Swal.fire("تنبيه", "لا توجد بيانات مسجلة في  حالياً", "info");
+          Swal.fire("تنبيه", "لا توجد بيانات مسجلة حالياً", "info");
         }
       } catch (err) {
         Swal.fire("خطأ", "فشل جلب البيانات: " + err.message, "error");
       }
     };
 
-    // دالة عرض الجدول المحدثة لمعالجة شكل التاريخ
+    /* ============ 2) عرض الجدول ============ */
     function renderTable() {
       const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = "";
       const start = (currentPage - 1) * rowsPerPage;
       const pageData = filteredData.slice(start, start + rowsPerPage);
 
       if (pageData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="padding:40px">لا توجد سجلات مطابقة</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="padding:40px">لا توجد سجلات مطابقة</td></tr>';
+      } else {
+        const esc = (v) =>
+          String(v ?? "").replace(/[&<>"]/g, (c) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+        const rows = new Array(pageData.length);
+        for (let i = 0; i < pageData.length; i++) {
+          const item = pageData[i];
+          const displayDate = item.Timestamp
+            ? String(item.Timestamp).split("T")[0]
+            : "-";
+          rows[i] = `<tr>
+            <td style="font-weight:bold; color:#065192">${esc(item.m_no)}</td>
+            <td>${esc(displayDate)}</td>
+            <td>${esc(item.m_rosas || "-")}</td>
+            <td>${esc(item.m_cover || "-")}</td>
+            <td>${esc(item.m_reverse || "-")}</td>
+            <td>${esc(item.m_debt || "0")}</td>
+            <td>${esc(item.m_max_amp || "0")}</td>
+            <td>${esc(item.m_rem_money || "0")}</td>
+            <td>${esc(item.m_curr_cons || "0")}</td>
+            <td>${esc(item.m_total_cons || "0")}</td>
+            <td style="color:#666">${esc(item.m_notes || "-")}</td>
+            <td style="color:#666">${esc(item.general_notes || "-")}</td>
+          </tr>`;
+        }
+        tbody.innerHTML = rows.join("");
       }
 
-      pageData.forEach((item) => {
-        // تنسيق التاريخ للعرض فقط (أخذ الجزء قبل حرف T)
-        const displayDate = item.Timestamp ? item.Timestamp.split('T')[0] : "-";
-
-        tbody.innerHTML += `<tr>
-                    <td style="font-weight:bold; color:#065192">${item.m_no}</td>
-                    <td>${displayDate}</td>
-                    <td>${item.m_rosas || "-"}</td>
-                    <td>${item.m_cover || "-"}</td>
-                    <td>${item.m_reverse || "-"}</td>
-                    <td>${item.m_debt || "0"}</td>
-                    <td>${item.m_max_amp || "0"}</td>
-                    <td>${item.m_rem_money || "0"}</td>
-                    <td>${item.m_curr_cons || "0"}</td>
-                    <td>${item.m_total_cons || "0"}</td>
-                    <td style="color:#666">${item.m_notes || "-"}</td>
-                </tr>`;
-      });
       document.getElementById("counterText").innerText = filteredData.length;
       document.getElementById("pageInfo").innerText =
         `صفحة ${currentPage} من ${Math.ceil(filteredData.length / rowsPerPage) || 1}`;
     }
 
-    // --- نظام الفلترة المدمج (بحث بالرقم + التاريخ) ---
+    /* ============ 3) الفلترة ============ */
     window.applyFilters = () => {
       const searchVal = document.getElementById("searchInput").value.trim();
-      const dateFrom = document.getElementById("dateFrom")?.value; // yyyy-mm-dd
-      const dateTo = document.getElementById("dateTo")?.value;     // yyyy-mm-dd
+      const dateFrom = document.getElementById("dateFrom")?.value;
+      const dateTo = document.getElementById("dateTo")?.value;
 
       filteredData = allData.filter((item) => {
-        // 1. فلترة رقم العداد
         const matchesSearch = item.m_no?.toString().includes(searchVal);
 
-        // 2. فلترة التاريخ
         let matchesDate = true;
         if (item.Timestamp) {
-          const itemDate = item.Timestamp.split("T")[0]; // استخراج yyyy-mm-dd من 
+          const itemDate = String(item.Timestamp).split("T")[0];
           if (dateFrom && itemDate < dateFrom) matchesDate = false;
           if (dateTo && itemDate > dateTo) matchesDate = false;
         } else if (dateFrom || dateTo) {
-          matchesDate = false; // إذا كان هناك فلتر تاريخ والعداد ليس له تاريخ
+          matchesDate = false;
         }
 
         return matchesSearch && matchesDate;
@@ -429,19 +388,17 @@
       renderTable();
     };
 
-    // استبدال دالة handleSearch القديمة لتستخدم الفلتر الجديد
-    window.handleSearch = (val) => {
-      window.applyFilters();
-    };
+    window.handleSearch = () => window.applyFilters();
 
-    // دالة لمسح فلاتر التاريخ
     window.clearDateFilters = () => {
-      if (document.getElementById("dateFrom")) document.getElementById("dateFrom").value = "";
-      if (document.getElementById("dateTo")) document.getElementById("dateTo").value = "";
+      const f = document.getElementById("dateFrom");
+      const t = document.getElementById("dateTo");
+      if (f) f.value = "";
+      if (t) t.value = "";
       window.applyFilters();
     };
 
-    // التنقل
+    /* ============ 4) التنقل ============ */
     window.changePage = (dir) => {
       const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
       if (currentPage + dir >= 1 && currentPage + dir <= totalPages) {
@@ -450,79 +407,288 @@
       }
     };
 
-    // التصدير
+    /* ============ 5) التصدير ============ */
     window.exportToExcel = () => {
-      const ws = XLSX.utils.json_to_sheet(filteredData);
+      if (filteredData.length === 0) {
+        Swal.fire("تنبيه", "لا توجد بيانات للتصدير", "info");
+        return;
+      }
+      // نُعيد تسمية المفاتيح بأسماء عربية مطابقة للأعمدة
+      const rows = filteredData.map((it) => ({
+        "رقم العداد": it.m_no ?? "",
+        "تاريخ الصيانة": it.Timestamp ? String(it.Timestamp).split("T")[0] : "",
+        "غطاء الروزاتة": it.m_rosas ?? "",
+        "غطاء العداد": it.m_cover ?? "",
+        "الرجوع عكس": it.m_reverse ?? "",
+        "المديونية": it.m_debt ?? "",
+        "أقصى حمل (A)": it.m_max_amp ?? "",
+        "المتبقي بالجنيه": it.m_rem_money ?? "",
+        "الاستهلاك الحالي": it.m_curr_cons ?? "",
+        "الاستهلاك الكلي": it.m_total_cons ?? "",
+        "ملاحظات": it.m_notes ?? "",
+        "ملاحظات عامة": it.general_notes ?? "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Archive");
       XLSX.writeFile(wb, "NDEDC_Meters_Archive.xlsx");
     };
 
-    // نظام الاستيراد
+    /* ============ 6) الاستيراد ============ */
+    const normalize = (s) =>
+      String(s).trim()
+        .replace(/ة/g, "ه")
+        .replace(/[أإآ]/g, "ا")
+        .replace(/\s+/g, " ");
+
+    const safeKey = (s) => String(s).trim().replace(/[.#$/\[\]]/g, "_");
+
+    function excelDateToYMD(val) {
+      if (val === null || val === undefined || val === "") return "";
+
+      if (val instanceof Date) {
+        if (isNaN(val.getTime())) return "";
+        const y = val.getUTCFullYear();
+        const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(val.getUTCDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      if (typeof val === "number") {
+        const excelEpoch = Date.UTC(1899, 11, 30);
+        const ms = excelEpoch + val * 86400000;
+        const dt = new Date(ms);
+        if (isNaN(dt.getTime())) return "";
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(dt.getUTCDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      const s = String(val).trim();
+      if (!s) return "";
+
+      let m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+      if (m) {
+        let [, dd, mm, yyyy] = m;
+        if (yyyy.length === 2) yyyy = "20" + yyyy;
+        return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+      }
+
+      m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+      if (m) {
+        return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+      }
+
+      return "";
+    }
+
     document.getElementById("excelInput").addEventListener("change", function (e) {
       const file = e.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
+
       reader.onload = async (evt) => {
         try {
-          const workbook = XLSX.read(evt.target.result, { type: "binary" });
+          const workbook = XLSX.read(new Uint8Array(evt.target.result), {
+            type: "array",
+            cellDates: true,
+          });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(sheet);
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true });
 
-          if (json.length === 0) {
+          if (rows.length === 0) {
             Swal.fire("تنبيه", "الملف فارغ!", "warning");
+            e.target.value = "";
+            return;
+          }
+
+          const updates = {};
+          let skipped = 0;
+          let missingDate = 0;
+
+          for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+
+            const map = Object.create(null);
+            for (const k in row) map[normalize(k)] = row[k];
+
+            const pick = (aliases) => {
+              for (let a = 0; a < aliases.length; a++) {
+                const v = map[normalize(aliases[a])];
+                if (v !== undefined && v !== "" && v !== null) return v;
+              }
+              return "";
+            };
+
+            const rawId = pick(["رقم العداد", "رقم عداد"]);
+            const m_id = safeKey(rawId);
+
+            if (!m_id) {
+              skipped++;
+              continue;
+            }
+
+            const rawDate = pick([
+              "تاريخ الصيانة",
+              "تاريخ صيانة",
+              "تاريخ الصيانه",
+              "التاريخ",
+              "تاريخ",
+            ]);
+            const dateValue = excelDateToYMD(rawDate);
+            if (!dateValue) missingDate++;
+
+            updates[m_id] = {
+              m_no: String(rawId).trim(),
+              Timestamp: dateValue,
+              m_rosas: String(pick(["غطاء الروزاتة", "غطاء الروزاته", "الروزاتة"]) ?? ""),
+              m_cover: String(pick(["غطاء العداد", "غطاء عداد"]) ?? ""),
+              m_reverse: String(pick(["الرجوع عكس", "رجوع عكسي"]) ?? ""),
+              m_debt: String(pick(["المديونية", "مديونية"]) || "0"),
+              m_max_amp: String(pick(["اقصى حمل أمبير", "الامبير", "أقصى حمل (A)"]) || "0"),
+              m_rem_money: String(pick(["المتبقي بالجنيه", "المتبقي"]) || "0"),
+              m_curr_cons: String(pick(["الاستهلاك الحالي", "استهلاك حالي"]) || "0"),
+              m_total_cons: String(pick(["الاستهلاك الكلي", "استهلاك كلي"]) || "0"),
+              m_notes: String(pick(["ملاحظات", "ملاحظه"]) ?? ""),
+              // ⬇️⬇️ العمود الجديد ⬇️⬇️
+              general_notes: String(
+                pick([
+                  "ملاحظات عامة",
+                  "ملاحظه عامه",
+                  "ملاحظات عامه",
+                  "general_notes",
+                  "general notes",
+                ]) ?? ""
+              ),
+            };
+          }
+
+          const keys = Object.keys(updates);
+          const total = keys.length;
+
+          if (total === 0) {
+            Swal.fire("تنبيه", "لم يتم العثور على عمود (رقم العداد) في الملف", "warning");
+            e.target.value = "";
             return;
           }
 
           Swal.fire({
-            title: "جاري معالجة الملف...",
-            html: "تم رفع <b>0</b> من " + json.length,
+            title: "جاري رفع البيانات...",
+            html: `
+              <div style="font-size:14px">تم رفع <b>0</b> من ${total}</div>
+              <div style="margin-top:12px;background:#e9eef3;border-radius:8px;height:14px;overflow:hidden">
+                <div id="swalBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4facfe,#00f2fe);transition:width .15s"></div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#888">الرجاء عدم إغلاق الصفحة</div>`,
             allowOutsideClick: false,
-            didOpen: () => Swal.showLoading(),
+            allowEscapeKey: false,
+            showConfirmButton: false,
           });
 
-          let count = 0;
-          for (let row of json) {
-            const find = (names) => {
-              const key = Object.keys(row).find((k) =>
-                names.includes(k.trim().replace(/ة/g, "ه").replace(/أ/g, "ا"))
-              );
-              return key ? row[key] : "";
-            };
+          const bar = document.getElementById("swalBar");
+          const counterEl = Swal.getHtmlContainer().querySelector("b");
 
-            const m_id = find(["رقم العداد", "رقم عداد"])?.toString().trim();
+          const t0 = performance.now();
+          let done = 0;
 
-            if (m_id) {
-              await set(ref(db, `Archive_Maint_Meters_Data/${m_id}`), {
-                m_no: m_id,
-                Timestamp: new Date().toISOString(), // إضافة التاريخ عند الاستيراد
-                m_rosas: find(["غطاء الروزاتة", "غطاء الروزاته", "الروزاتة"])?.toString() || "",
-                m_cover: find(["غطاء العداد", "غطاء عداد"])?.toString() || "",
-                m_reverse: find(["الرجوع عكس", "رجوع عكسي"])?.toString() || "",
-                m_debt: find(["المديونية", "مديونية"])?.toString() || "0",
-                m_max_amp: find(["اقصى حمل أمبير", "الامبير"])?.toString() || "0",
-                m_rem_money: find(["المتبقي بالجنيه", "المتبقي"])?.toString() || "0",
-                m_curr_cons: find(["الاستهلاك الحالي", "استهلاك حالي"])?.toString() || "0",
-                m_total_cons: find(["الاستهلاك الكلي", "استهلاك كلي"])?.toString() || "0",
-                m_notes: find(["ملاحظات", "ملاحظه"])?.toString() || "",
-              });
-              count++;
-              Swal.getHtmlContainer().querySelector("b").textContent = count;
-            }
+          for (let i = 0; i < total; i += CHUNK_SIZE) {
+            const chunk = {};
+            const end = Math.min(i + CHUNK_SIZE, total);
+            for (let j = i; j < end; j++) chunk[keys[j]] = updates[keys[j]];
+            await update(ref(db, DB_PATH), chunk);
+            done = end;
+            counterEl.textContent = done;
+            bar.style.width = ((done / total) * 100).toFixed(1) + "%";
           }
 
-          if (count > 0) {
-            await Swal.fire("نجاح", `تم استيراد ${count} عداد بنجاح`, "success");
-            refreshData();
-          }
+          const secs = ((performance.now() - t0) / 1000).toFixed(1);
+
+          await Swal.fire({
+            icon: "success",
+            title: "تم الاستيراد بنجاح",
+            html: `تم رفع <b>${total}</b> عداد في <b>${secs}</b> ثانية
+              ${skipped ? `<br><small>تم تجاهل ${skipped} صف بدون رقم عداد</small>` : ""}
+              ${missingDate ? `<br><small style="color:#b8860b">${missingDate} صف بدون تاريخ صيانة (تم تركه فارغاً)</small>` : ""}`,
+          });
+
+          await refreshData();
         } catch (error) {
-          Swal.fire("خطأ", "حدث خطأ في القراءة: " + error.message, "error");
+          Swal.fire("خطأ", "حدث خطأ في القراءة أو الرفع: " + error.message, "error");
         }
         e.target.value = "";
       };
-      reader.readAsBinaryString(file);
+
+      reader.onerror = () => {
+        Swal.fire("خطأ", "فشل قراءة الملف", "error");
+        e.target.value = "";
+      };
+
+      reader.readAsArrayBuffer(file);
     });
+
+    /* ============ 7) حذف جميع البيانات (كلمة المرور = 1) ============ */
+    window.deleteAllData = async function () {
+      const { value: password } = await Swal.fire({
+        title: "منطقة خطر",
+        html: "لحذف <b>جميع</b> بيانات الصيانة نهائياً، أدخل كلمة المرور:",
+        input: "password",
+        inputPlaceholder: "كلمة المرور",
+        inputAttributes: { autocapitalize: "off", autocorrect: "off" },
+        showCancelButton: true,
+        confirmButtonText: "متابعة",
+        cancelButtonText: "إلغاء",
+        confirmButtonColor: "#e74c3c",
+        cancelButtonColor: "#7498a1",
+        reverseButtons: true,
+      });
+
+      if (!password) return;
+
+      let ok = false;
+      try {
+        ok = btoa(password) === PASSWORD_HASH;
+      } catch {
+        ok = false;
+      }
+
+      if (!ok) {
+        Swal.fire("رفض", "كلمة المرور غير صحيحة", "error");
+        return;
+      }
+
+      const confirm = await Swal.fire({
+        icon: "warning",
+        title: "تأكيد الحذف النهائي",
+        html: `سيتم حذف <b>كل</b> السجلات من قاعدة البيانات.<br>لا يمكن التراجع عن هذه العملية!`,
+        showCancelButton: true,
+        confirmButtonText: "نعم، احذف الكل",
+        cancelButtonText: "تراجع",
+        confirmButtonColor: "#c0392b",
+        cancelButtonColor: "#7498a1",
+        reverseButtons: true,
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      Swal.fire({
+        title: "جاري الحذف...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      try {
+        await remove(ref(db, DB_PATH));
+        allData = [];
+        filteredData = [];
+        currentPage = 1;
+        renderTable();
+        Swal.fire("تم الحذف", "تم حذف جميع البيانات بنجاح", "success");
+      } catch (err) {
+        Swal.fire("خطأ", "فشل الحذف: " + err.message, "error");
+      }
+    };
 
     window.onload = refreshData;
   </script>

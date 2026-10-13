@@ -5,198 +5,142 @@
   <meta charset="UTF-8" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
-  <meta name="theme-color" content="#2c3e50" />
+  <meta name="theme-color" content="#6366f1" />
   <title>إدارة الأنظمة الحديثة | م. أمير السيوفي</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
 
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    * {
-      font-family: 'Inter', system-ui, sans-serif;
-      box-sizing: border-box;
+    /* ============================================================
+       DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --bg: #f4f5fa;
+      --surface: #ffffff;
+      --surface-2: #f8f9fc;
+      --field: #f8f9fc;
+      --field-focus: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-soft: #94a3b8;
+      --border: #e7e9f0;
+      --border-soft: #f1f2f7;
+      --accent: #6366f1;
+      --accent-2: #8b5cf6;
+      --accent-soft: rgba(99, 102, 241, .09);
+      --accent-ring: rgba(99, 102, 241, .16);
+      --danger: #ef4444;
+      --success: #10b981;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, .05), 0 1px 2px rgba(15, 23, 42, .03);
+      --shadow-md: 0 6px 20px -6px rgba(15, 23, 42, .10);
+      --shadow-lg: 0 16px 40px -12px rgba(15, 23, 42, .16);
+      --radius: 16px;
+      --radius-sm: 10px;
     }
+
+    body.theme-dark {
+      --bg: #0b1020;
+      --surface: #141a2c;
+      --surface-2: #1a2036;
+      --field: #10162a;
+      --field-focus: #161d33;
+      --text: #e7eaf3;
+      --text-muted: #949cb5;
+      --text-soft: #6b7490;
+      --border: #262e48;
+      --border-soft: #1e253c;
+      --accent-soft: rgba(99, 102, 241, .16);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .3);
+      --shadow-md: 0 6px 20px -6px rgba(0, 0, 0, .45);
+      --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, .55);
+    }
+
+    body.theme-ocean {
+      --bg: #04202e;
+      --surface: #073244;
+      --surface-2: #0a3c51;
+      --field: #06293a;
+      --field-focus: #093448;
+      --text: #e9f6ff;
+      --text-muted: #8fc3dc;
+      --text-soft: #6fa5c0;
+      --border: #12536c;
+      --border-soft: #0e455c;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --accent-soft: rgba(56, 189, 248, .14);
+      --accent-ring: rgba(56, 189, 248, .22);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .3);
+      --shadow-md: 0 6px 20px -6px rgba(0, 0, 0, .4);
+      --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, .5);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; }
 
     body {
+      font-family: 'Cairo', system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 0.5rem;
-      margin: 0;
-      background: linear-gradient(135deg, #e0e7ff, #ede9fe, #fae8ff);
-      transition: all 0.3s;
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transition: background .25s ease, color .25s ease;
     }
 
-    .glass-card {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(620px 420px at 6% -8%, rgba(99, 102, 241, .10), transparent 62%),
+        radial-gradient(700px 480px at 102% -2%, rgba(168, 85, 247, .08), transparent 58%),
+        radial-gradient(520px 420px at 48% 112%, rgba(56, 189, 248, .07), transparent 62%);
     }
+    body.theme-dark::before { opacity: .5; }
+    body.theme-ocean::before { opacity: .45; }
 
-    .neo-card {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 28px;
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
-      transition: all 0.2s;
-    }
+    ::selection { background: var(--accent-ring); }
 
-    .neo-card:hover {
-      box-shadow: 0 24px 48px -12px rgba(79, 70, 229, 0.15);
-    }
-
-    .btn-modern {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
-      color: white;
-      border: none;
-      border-radius: 40px;
-      padding: 0.35rem 1rem;
-      font-weight: 600;
-      font-size: 0.75rem;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-      letter-spacing: 0.01em;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-modern:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-    }
-
-    .btn-modern.small {
-      font-size: 0.65rem;
-      padding: 0.25rem 0.75rem;
-    }
-
-    .btn-glass {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(8px);
-      color: #1e293b;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 40px;
-      padding: 0.35rem 1rem;
-      font-weight: 600;
-      font-size: 0.75rem;
-      transition: all 0.25s;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    .btn-glass:hover {
-      background: rgba(255, 255, 255, 0.45);
-      border-color: rgba(165, 180, 252, 0.5);
-      transform: translateY(-1px);
-    }
-
-    .btn-success {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      padding: 0.6rem 1.5rem;
-      border-radius: 0.75rem;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-success:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
-    }
-
-    .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: white;
-      padding: 0.6rem 1.5rem;
-      border-radius: 0.75rem;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-danger:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
-    }
-
-    .btn-sm {
-      padding: 0.3rem 0.8rem;
-      font-size: 0.75rem;
-    }
-
-    input,
-    select,
-    textarea {
-      background: rgba(255, 255, 255, 0.4);
-      backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(226, 232, 240, 0.4);
-      border-radius: 16px;
-      padding: 0.5rem 1rem;
-      color: #1e293b;
-      width: 100%;
-      transition: all 0.3s;
-      font-family: 'Inter', system-ui, sans-serif;
-      font-size: 0.85rem;
-      box-sizing: border-box;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: #7c3aed;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-      background: rgba(255, 255, 255, 0.6);
-    }
-
-    input::placeholder,
-    textarea::placeholder {
-      color: #94a3b8;
-    }
-
-    select option {
-      background-color: #f8fafc;
-      color: #1e293b;
-    }
-
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
     .container {
-      max-width: 700px;
+      max-width: 720px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 16px;
     }
 
-    /* Header Styles */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 22px;
+    }
+
+    /* ============================================================
+       HEADER
+       ============================================================ */
     .header {
       text-align: center;
-      padding: 1.5rem 1.5rem;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 28px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      padding: 28px 22px 22px;
       position: relative;
       overflow: hidden;
     }
@@ -204,619 +148,562 @@
     .header::before {
       content: '';
       position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 200px;
+      background: radial-gradient(closest-side, var(--accent-soft), transparent 75%);
       pointer-events: none;
+      z-index: 0;
     }
 
+    .header > * { position: relative; z-index: 1; }
+
     .profile-image {
-      width: 80px;
-      height: 80px;
+      width: 78px;
+      height: 78px;
       border-radius: 50%;
-      border: 3px solid rgba(139, 92, 246, 0.3);
-      margin: 0 auto 12px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      margin: 0 auto 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 22px -10px rgba(99, 102, 241, .55);
     }
 
     .profile-image i {
-      font-size: 38px;
-      color: white;
+      font-size: 32px;
+      color: #fff;
     }
 
     .header h1 {
-      font-size: 1.3rem;
+      font-size: 22px;
       font-weight: 800;
-      margin-bottom: 4px;
-      letter-spacing: -0.3px;
-      color: #1e293b;
+      margin: 0 0 6px;
+      letter-spacing: -0.4px;
+      color: var(--text);
     }
 
     .header .title {
-      font-size: 0.8rem;
-      color: #4f46e5;
+      font-size: 13px;
+      color: var(--accent);
       font-weight: 600;
-      opacity: 0.9;
+      opacity: .95;
     }
 
-    /* Contact Section */
-    .contact-section {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 28px;
-      padding: 1.25rem 1.5rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-      transition: all 0.2s ease;
-    }
-
-    .contact-section:hover {
-      border-color: rgba(139, 92, 246, 0.3);
-      box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
-    }
-
-    .contact-section h2 {
-      text-align: center;
-      color: #1e293b;
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
-      font-weight: 700;
+    /* ============================================================
+       CONTACT SECTION
+       ============================================================ */
+    .section-title {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 9px;
+      margin: 0 0 16px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em;
     }
 
-    .contact-section h2 i {
-      color: #4f46e5;
-      font-size: 1.2rem;
+    .section-title i {
+      color: var(--accent);
+      font-size: 15px;
     }
 
     .contact-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
+      gap: 12px;
     }
 
     .contact-item {
-      padding: 0.75rem 0.5rem;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 16px 12px;
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       text-align: center;
-      transition: all 0.2s ease;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
       cursor: pointer;
     }
 
     .contact-item:hover {
-      background: rgba(255, 255, 255, 0.5);
+      background: var(--surface);
+      border-color: var(--accent);
       transform: translateY(-2px);
-      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: var(--shadow-md);
     }
 
     .contact-item:active {
-      transform: scale(0.97);
+      transform: translateY(0) scale(.98);
     }
 
     .contact-icon {
-      font-size: 1.5rem;
-      color: #4f46e5;
-      margin-bottom: 4px;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      margin: 0 auto 10px;
     }
 
     .contact-item h3 {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 4px;
+      letter-spacing: -.01em;
     }
 
     .contact-item p {
-      font-size: 0.65rem;
-      color: #64748b;
+      font-size: 11.5px;
+      color: var(--text-muted);
       word-break: break-all;
       direction: ltr;
+      margin: 0;
+      line-height: 1.4;
     }
 
-    /* Ticket Form */
+    .contact-item p.rtl-text {
+      direction: rtl;
+      word-break: break-word;
+    }
+
+    /* ============================================================
+       FORM
+       ============================================================ */
     .ticket-form {
-      width: 100%;
-      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
+      gap: 14px;
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .form-group label {
-      font-weight: 700;
-      color: #1e293b;
-      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 13px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 7px;
     }
 
     .form-group label i {
-      color: #4f46e5;
-      font-size: 0.8rem;
+      color: var(--accent);
+      font-size: 12px;
+      width: 14px;
+      text-align: center;
     }
 
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      padding: 0.5rem 0.75rem;
-      border: 1.5px solid rgba(226, 232, 240, 0.4);
-      border-radius: 14px;
-      font-size: 0.8rem;
-      background: rgba(255, 255, 255, 0.4);
-      backdrop-filter: blur(8px);
-      transition: all 0.2s ease;
+    .required::after {
+      content: "*";
+      color: var(--danger);
+      margin-right: 2px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
       width: 100%;
-      box-sizing: border-box;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
       outline: none;
-      border-color: #7c3aed;
-      background: rgba(255, 255, 255, 0.6);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+      transition: border-color .18s, box-shadow .18s, background .18s;
     }
 
-    .form-group input:hover,
-    .form-group select:hover,
-    .form-group textarea:hover {
-      border-color: #a5b4fc;
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-soft);
     }
 
-    input[type="number"] {
-      -moz-appearance: textfield;
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      background: var(--field-focus);
+      box-shadow: 0 0 0 3px var(--accent-ring);
     }
 
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    select {
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: left 12px center;
+      background-size: 16px;
+      padding-left: 40px !important;
+      padding-right: 14px;
+    }
+
+    body.theme-ocean select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
+
+    select option {
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    select option[value="__add_new__"] {
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    input[type="number"] { -moz-appearance: textfield; }
     input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
+    /* ============================================================
+       SUBMIT BUTTON
+       ============================================================ */
     .submit-btn {
       width: 100%;
-      margin-top: 0.75rem;
-      padding: 0.7rem;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
-      color: white;
+      margin-top: 4px;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
       border: none;
-      border-radius: 40px;
-      font-size: 0.85rem;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+      gap: 9px;
+      box-shadow: 0 6px 16px -6px rgba(99, 102, 241, .55);
+      transition: transform .15s, box-shadow .2s, filter .2s;
+      letter-spacing: .01em;
     }
 
-    .submit-btn:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 10px 22px -8px rgba(99, 102, 241, .6);
     }
 
-    .submit-btn:active {
-      transform: scale(0.98);
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0) scale(.99);
     }
 
     .submit-btn:disabled {
-      opacity: 0.7;
-      transform: none;
+      opacity: .65;
       cursor: not-allowed;
+      transform: none;
     }
 
+    .submit-btn.loading { color: transparent; }
+    .submit-btn.loading::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, .4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    .submit-btn.loading { position: relative; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       STATUS MESSAGE
+       ============================================================ */
     #statusMessage {
-      margin-top: 0.75rem;
-      padding: 0.75rem;
-      border-radius: 14px;
+      margin-top: 4px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
       text-align: center;
-      font-size: 0.8rem;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
       display: none;
-      animation: slideIn 0.3s ease;
+      animation: slideIn .3s ease;
     }
 
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ============================================================
+       FOOTER
+       ============================================================ */
     .footer {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #1e293b;
-      padding: 0.75rem;
       text-align: center;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      margin-top: 0.5rem;
+      padding: 16px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
     }
 
+    .footer i { color: var(--accent); }
+
+    .footer .sub {
+      display: block;
+      font-size: 11px;
+      opacity: .7;
+      margin-top: 3px;
+    }
+
+    /* ============================================================
+       BACK BUTTON
+       ============================================================ */
     .back-button {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      bottom: 22px;
+      right: 22px;
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: #fff;
       text-decoration: none;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-      transition: all 0.25s;
+      box-shadow: 0 8px 22px -6px rgba(99, 102, 241, .55);
+      transition: transform .2s, box-shadow .2s;
       z-index: 1000;
-      font-size: 1.2rem;
+      font-size: 16px;
       border: none;
       cursor: pointer;
     }
 
     .back-button:hover {
       transform: translateY(-2px) scale(1.05);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 12px 28px -8px rgba(99, 102, 241, .65);
     }
 
-    .back-button:active {
-      transform: scale(0.92);
+    .back-button:active { transform: scale(.94); }
+
+    /* ============================================================
+       COPY FEEDBACK
+       ============================================================ */
+    .copy-feedback {
+      position: fixed;
+      bottom: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      z-index: 2000;
+      white-space: nowrap;
+      animation: fadeOut 1.6s ease forwards;
+      pointer-events: none;
+      box-shadow: var(--shadow-lg);
     }
 
+    body.theme-ocean .copy-feedback { background: #064663; }
+
+    @keyframes fadeOut {
+      0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      70%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    }
+
+    /* ============================================================
+       ANIMATIONS
+       ============================================================ */
     @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .animate {
-      animation: fadeInUp 0.4s ease-out forwards;
+      animation: fadeInUp .45s cubic-bezier(.22, 1, .36, 1) forwards;
+      opacity: 0;
     }
 
-    .required::after {
-      content: "*";
-      color: #ef4444;
-      margin-right: 2px;
+    /* ============================================================
+       SWEETALERT2 MODERN OVERRIDES — textarea support
+       ============================================================ */
+    .swal2-popup {
+      font-family: 'Cairo', system-ui, sans-serif !important;
+      border-radius: 16px !important;
+      padding: 24px 22px 20px !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, .25) !important;
     }
 
-    select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: left 12px center;
-      background-size: 16px;
-      padding-left: 36px !important;
+    .swal2-title {
+      font-size: 18px !important;
+      font-weight: 800 !important;
+      letter-spacing: -.01em !important;
+      color: #0f172a !important;
+      padding: 0 0 4px !important;
     }
 
-    .copy-feedback {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(16px);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 40px;
-      font-size: 0.75rem;
-      z-index: 2000;
-      white-space: nowrap;
-      animation: fadeOut 1.5s ease forwards;
-      pointer-events: none;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .swal2-html-container,
+    .swal2-input-label {
+      font-size: 13px !important;
+      color: #64748b !important;
     }
 
-    @keyframes fadeOut {
-      0% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
-      70% {
-        opacity: 1;
-      }
-
-      100% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-10px);
-      }
+    /* Shared styling for both text input and textarea */
+    .swal2-input,
+    .swal2-textarea {
+      font-family: inherit !important;
+      border-radius: 10px !important;
+      border: 1px solid #e7e9f0 !important;
+      padding: 12px 14px !important;
+      font-size: 14px !important;
+      box-shadow: none !important;
+      transition: border-color .18s, box-shadow .18s !important;
+      text-align: right !important;
+      line-height: 1.6 !important;
+      width: 100% !important;
+      margin: 8px 0 0 !important;
     }
 
-    .submit-btn.loading {
-      position: relative;
-      color: transparent;
+    .swal2-input:focus,
+    .swal2-textarea:focus {
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, .16) !important;
     }
 
-    .submit-btn.loading::after {
-      content: "";
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      top: 50%;
-      left: 50%;
-      margin-left: -10px;
-      margin-top: -10px;
-      border: 2px solid white;
-      border-radius: 50%;
-      border-top-color: transparent;
-      animation: spin 0.6s linear infinite;
+    /* Textarea-specific */
+    .swal2-textarea {
+      min-height: 110px !important;
+      max-height: 240px !important;
+      resize: vertical !important;
     }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+    .swal2-actions { gap: 8px !important; margin-top: 18px !important; }
+
+    .swal2-confirm,
+    .swal2-cancel {
+      font-family: inherit !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      border-radius: 10px !important;
+      padding: 10px 18px !important;
+      box-shadow: none !important;
+      border: none !important;
     }
 
-    /* Theme Styles */
-    .theme-dark body {
-      background: linear-gradient(135deg, #0b1120, #1a1a2e, #16213e);
-    }
+    .swal2-confirm { background: #6366f1 !important; }
+    .swal2-confirm:hover { background: #4f46e5 !important; }
 
-    .theme-dark .glass-card,
-    .theme-dark .header,
-    .theme-dark .contact-section {
-      background: rgba(20, 30, 50, 0.4);
-      border-color: rgba(42, 58, 90, 0.4);
-    }
-
-    .theme-dark .contact-item {
-      background: rgba(20, 30, 50, 0.3);
-      border-color: rgba(42, 58, 90, 0.3);
-    }
-
-    .theme-dark .contact-item h3 {
-      color: #e2e8f0;
-    }
-
-    .theme-dark .contact-item p {
+    /* Character counter (custom) */
+    .swal2-textarea-counter {
+      display: block;
+      text-align: left;
+      font-size: 11.5px;
       color: #94a3b8;
+      margin-top: 6px;
+      direction: ltr;
+      padding-left: 4px;
+    }
+    .swal2-textarea-counter.warn { color: #ef4444; }
+
+    /* Dark theme */
+    body.theme-dark .swal2-popup {
+      background: #141a2c !important;
+      color: #e7eaf3 !important;
+    }
+    body.theme-dark .swal2-title { color: #e7eaf3 !important; }
+    body.theme-dark .swal2-html-container,
+    body.theme-dark .swal2-input-label { color: #94a3b8 !important; }
+    body.theme-dark .swal2-input,
+    body.theme-dark .swal2-textarea {
+      background: #10162a !important;
+      border-color: #262e48 !important;
+      color: #e7eaf3 !important;
     }
 
-    .theme-dark .header h1 {
-      color: #e2e8f0;
+    /* Ocean theme */
+    body.theme-ocean .swal2-popup {
+      background: #073244 !important;
+      color: #e9f6ff !important;
+    }
+    body.theme-ocean .swal2-title { color: #e9f6ff !important; }
+    body.theme-ocean .swal2-html-container,
+    body.theme-ocean .swal2-input-label { color: #8fc3dc !important; }
+    body.theme-ocean .swal2-input,
+    body.theme-ocean .swal2-textarea {
+      background: #06293a !important;
+      border-color: #12536c !important;
+      color: #e9f6ff !important;
     }
 
-    .theme-dark .header .title {
-      color: #a78bfa;
-    }
-
-    .theme-dark .contact-section h2 {
-      color: #e2e8f0;
-    }
-
-    .theme-dark .form-group label {
-      color: #e2e8f0;
-    }
-
-    .theme-dark input,
-    .theme-dark select,
-    .theme-dark textarea {
-      background: rgba(26, 39, 64, 0.4);
-      border-color: rgba(42, 58, 90, 0.4);
-      color: #e2e8f0;
-    }
-
-    .theme-dark input::placeholder,
-    .theme-dark textarea::placeholder {
-      color: #64748b;
-    }
-
-    .theme-dark .footer {
-      background: rgba(20, 30, 50, 0.3);
-      border-color: rgba(42, 58, 90, 0.3);
-      color: #e2e8f0;
-    }
-
-    .theme-ocean body {
-      background: linear-gradient(135deg, #064663, #0a4b6e, #1a7a9e);
-    }
-
-    .theme-ocean .glass-card,
-    .theme-ocean .header,
-    .theme-ocean .contact-section {
-      background: rgba(6, 70, 99, 0.5);
-      border-color: rgba(56, 189, 248, 0.25);
-    }
-
-    .theme-ocean .contact-item {
-      background: rgba(6, 70, 99, 0.3);
-      border-color: rgba(56, 189, 248, 0.2);
-    }
-
-    .theme-ocean .contact-item h3 {
-      color: #f0f9ff;
-    }
-
-    .theme-ocean .contact-item p {
-      color: #7dd3fc;
-    }
-
-    .theme-ocean .header h1 {
-      color: #f0f9ff;
-    }
-
-    .theme-ocean .header .title {
-      color: #38bdf8;
-    }
-
-    .theme-ocean .contact-section h2 {
-      color: #f0f9ff;
-    }
-
-    .theme-ocean .form-group label {
-      color: #f0f9ff;
-    }
-
-    .theme-ocean input,
-    .theme-ocean select,
-    .theme-ocean textarea {
-      background: rgba(13, 79, 117, 0.4);
-      border-color: rgba(56, 189, 248, 0.25);
-      color: #f0f9ff;
-    }
-
-    .theme-ocean input::placeholder,
-    .theme-ocean textarea::placeholder {
-      color: #7dd3fc;
-    }
-
-    .theme-ocean .footer {
-      background: rgba(6, 70, 99, 0.3);
-      border-color: rgba(56, 189, 248, 0.2);
-      color: #f0f9ff;
-    }
-
-    .theme-ocean select option {
-      background-color: #064663;
-      color: #f0f9ff;
-    }
-
-    .theme-dark select option {
-      background-color: #0b1120;
-      color: #e2e8f0;
-    }
-
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
     @media (max-width: 600px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-      }
-
-      .contact-grid {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-      }
-
-      .header h1 {
-        font-size: 1.1rem;
-      }
-
-      .profile-image {
-        width: 60px;
-        height: 60px;
-      }
-
-      .profile-image i {
-        font-size: 28px;
-      }
-
-      .container {
-        gap: 0.75rem;
-      }
-
-      .contact-section {
-        padding: 1rem;
-      }
-
-      .contact-item {
-        padding: 0.5rem;
-      }
-
-      .header {
-        padding: 1rem;
-      }
+      body { padding: 12px; }
+      .card { padding: 18px; }
+      .header { padding: 22px 18px 18px; }
+      .header h1 { font-size: 18px; }
+      .profile-image { width: 66px; height: 66px; }
+      .profile-image i { font-size: 26px; }
+      .form-grid { grid-template-columns: 1fr; gap: 12px; }
+      .contact-grid { grid-template-columns: 1fr; gap: 10px; }
+      .contact-item { padding: 12px; }
+      .contact-icon { width: 34px; height: 34px; font-size: 14px; margin-bottom: 8px; }
+      .contact-item h3 { font-size: 11.5px; }
+      .contact-item p { font-size: 11px; }
+      .container { gap: 12px; }
     }
 
     @media (max-width: 380px) {
-      body {
-        padding: 0.3rem;
-      }
-
-      .header h1 {
-        font-size: 0.95rem;
-      }
-
-      .profile-image {
-        width: 50px;
-        height: 50px;
-      }
-
-      .profile-image i {
-        font-size: 22px;
-      }
-
-      .contact-item h3 {
-        font-size: 0.6rem;
-      }
-
-      .contact-item p {
-        font-size: 0.55rem;
-      }
-
-      .form-group input,
-      .form-group select,
-      .form-group textarea {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.7rem;
-      }
-
-      .submit-btn {
-        padding: 0.5rem;
-        font-size: 0.75rem;
-      }
+      body { padding: 8px; }
+      .header h1 { font-size: 16px; }
+      .profile-image { width: 58px; height: 58px; }
+      .profile-image i { font-size: 22px; }
+      input, select, textarea { padding: 10px 12px; font-size: 13px; }
+      .submit-btn { padding: 11px 16px; font-size: 13px; }
     }
 
     @media (hover: none) and (pointer: coarse) {
+      .contact-item:hover { transform: none; }
+    }
 
-      .contact-item,
-      .submit-btn,
-      .back-button {
-        cursor: default;
-      }
-
-      input,
-      select,
-      textarea {
-        font-size: 16px;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
   </style>
 </head>
 
 <body class="theme-light">
   <div class="container">
-    <header class="header animate">
+    <header class="header card animate">
       <div class="profile-image">
         <i class="fas fa-user-tie"></i>
       </div>
@@ -824,8 +711,8 @@
       <div class="title">الإدارة العامة للأنظمة العدادات الحديثة</div>
     </header>
 
-    <section id="contactInfo" class="contact-section animate" style="animation-delay: 0.1s">
-      <h2>
+    <section id="contactInfo" class="card animate" style="animation-delay: .08s">
+      <h2 class="section-title">
         <i class="fas fa-address-card"></i>
         معلومات التواصل
       </h2>
@@ -838,23 +725,22 @@
         <div class="contact-item" data-copy="+201017564638">
           <div class="contact-icon"><i class="fas fa-phone-alt"></i></div>
           <h3>رقم الهاتف</h3>
-          <p dir="ltr">+20 101 756 4638</p>
+          <p>+20 101 756 4638</p>
         </div>
         <div class="contact-item" data-copy="شمال الدلتا للكهرباء">
-          <div class="contact-icon">
-            <i class="fas fa-map-marker-alt"></i>
-          </div>
+          <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
           <h3>الموقع</h3>
-          <p>شمال الدلتا للكهرباء</p>
+          <p class="rtl-text">شمال الدلتا للكهرباء</p>
         </div>
       </div>
     </section>
 
-    <section id="ticketSection" class="contact-section animate" style="animation-delay: 0.2s">
-      <h2>
+    <section id="ticketSection" class="card animate" style="animation-delay: .16s">
+      <h2 class="section-title">
         <i class="fas fa-ticket-alt"></i>
         إنشاء تذكرة دعم
       </h2>
+
       <form id="ticketForm" class="ticket-form">
         <div class="form-grid">
           <div class="form-group">
@@ -867,9 +753,9 @@
           <div class="form-group">
             <label>
               <i class="fas fa-charging-station"></i>
-              رقم العداد <span class="required"></span>
+              رقم  /  كود العداد <span class="required"></span>
             </label>
-            <input type="text" name="meter_id" placeholder="رقم العداد" required autocomplete="off"
+            <input type="text" name="meter_id" placeholder="رقم  /  كود العداد" required autocomplete="off"
               inputmode="numeric" />
           </div>
         </div>
@@ -879,11 +765,12 @@
             <i class="fas fa-tag"></i>
             نوع الطلب <span class="required"></span>
           </label>
-          <select name="request_type" required>
+          <select name="request_type" id="requestType" required>
             <option value="">اختر نوع الطلب</option>
             <option value="عطل تقني">⚡ عطل تقني</option>
             <option value="اضافة بيانات">📝 إضافة بيانات</option>
             <option value="تعديل بيانات">✏️ تعديل بيانات</option>
+            <option value="__add_new__" data-addnew="true">➕ إضافة سبب جديد…</option>
           </select>
         </div>
 
@@ -912,10 +799,9 @@
       </form>
     </section>
 
-    <footer class="footer animate" style="animation-delay: 0.3s">
+    <footer class="footer animate" style="animation-delay: .24s">
       <i class="fas fa-copyright"></i> <span id="year"></span> م. أمير السيوفي
-      <br />
-      <span style="font-size: 0.6rem; opacity: 0.7">جميع الحقوق محفوظة</span>
+      <span class="sub">جميع الحقوق محفوظة</span>
     </footer>
   </div>
 
@@ -924,12 +810,12 @@
   </a>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("year").textContent = new Date().getFullYear();
 
-      // ============================================================
-      // THEME SUPPORT
-      // ============================================================
+      /* ============================================================
+         THEME SUPPORT
+         ============================================================ */
       function setTheme(theme) {
         document.body.className = `theme-${theme}`;
         localStorage.setItem('selectedTheme', theme);
@@ -938,9 +824,9 @@
       const savedTheme = localStorage.getItem('selectedTheme') || 'light';
       setTheme(savedTheme);
 
-      // ============================================================
-      // FIREBASE CONFIG - CORRECT DATABASE URL
-      // ============================================================
+      /* ============================================================
+         FIREBASE
+         ============================================================ */
       const FIREBASE_CONFIG = {
         apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
         authDomain: "production1-ae85.firebaseapp.com",
@@ -951,7 +837,6 @@
         appId: "1:490438031865:web:a4a69335989f30cd13a528"
       };
 
-      // Initialize Firebase
       let firebaseDB = null;
       let isFirebaseReady = false;
 
@@ -962,7 +847,6 @@
             return false;
           }
 
-          // Check if already initialized
           let app;
           try {
             app = firebase.app();
@@ -973,16 +857,12 @@
           firebaseDB = firebase.database(app);
           isFirebaseReady = true;
 
-          // Test connection
           firebaseDB.ref('.info/connected').once('value', (snap) => {
-            if (snap.val() === true) {
-              console.log('✅ Firebase connected successfully');
-            } else {
-              console.warn('⚠️ Firebase is not connected');
-            }
+            if (snap.val() === true) console.log('✅ Firebase connected');
+            else console.warn('⚠️ Firebase not connected');
           });
 
-          console.log('✅ Firebase initialized successfully');
+          console.log('✅ Firebase initialized');
           return true;
         } catch (e) {
           console.error('❌ Firebase init error:', e);
@@ -991,24 +871,17 @@
         }
       }
 
-      // Initialize Firebase
       const firebaseInitialized = initFirebase();
 
-      // ============================================================
-      // LOAD PERMISSIONS FOR VISIBILITY
-      // ============================================================
+      /* ============================================================
+         PERMISSIONS
+         ============================================================ */
       async function loadSmartPermissions() {
         try {
-          if (!firebaseDB) {
-            console.warn('Firebase not initialized, skipping permissions');
-            return;
-          }
+          if (!firebaseDB) return;
 
           const savedUser = localStorage.getItem('currentUser');
-          if (!savedUser) {
-            console.log('Help - No user logged in');
-            return;
-          }
+          if (!savedUser) return;
 
           const user = JSON.parse(savedUser);
           const role = user.author || 'visitor';
@@ -1018,196 +891,318 @@
           const userPerms = permissions[role] || { permissions: [] };
           const allowed = userPerms.permissions || [];
 
-          console.log(`🔐 Help - User role: ${role}, Permissions: ${allowed.length}`);
+          console.log(`🔐 Role: ${role} — Permissions: ${allowed.length}`);
 
-          // Apply visibility based on permissions
           const contactSection = document.getElementById('contactInfo');
           if (contactSection) {
             contactSection.style.display = allowed.includes('contactInfo') ? '' : 'none';
           }
 
-          // CHANGED: Targets 'ticketSection' correctly instead of breaking form behavior
           const ticketSection = document.getElementById('ticketSection');
           if (ticketSection) {
             ticketSection.style.display = allowed.includes('ticketForm') ? '' : 'none';
           }
-
         } catch (e) {
           console.error('Error loading permissions:', e);
         }
       }
 
-      // Load permissions after Firebase is ready
-      if (firebaseInitialized) {
-        loadSmartPermissions();
+      if (firebaseInitialized) loadSmartPermissions();
+
+      /* ============================================================
+         CUSTOM REASONS (localStorage) + SweetAlert2 textarea
+         ============================================================ */
+      const CUSTOM_REASONS_KEY = 'customRequestReasons';
+      const DEFAULT_TYPES = ['عطل تقني', 'اضافة بيانات', 'تعديل بيانات'];
+      const ADD_NEW_VALUE = '__add_new__';
+      const MAX_LENGTH = 120;
+
+      function getCustomReasons() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(CUSTOM_REASONS_KEY)) || [];
+          return Array.isArray(raw) ? raw.filter((r) => typeof r === 'string' && r.trim()) : [];
+        } catch (e) {
+          return [];
+        }
       }
 
-      // ============================================================
-      // COPY TO CLIPBOARD
-      // ============================================================
-      const contactItems = document.querySelectorAll('.contact-item[data-copy]');
+      function saveCustomReasons(list) {
+        localStorage.setItem(CUSTOM_REASONS_KEY, JSON.stringify(list));
+      }
 
-      const showCopyFeedback = (message) => {
-        const feedback = document.createElement('div');
-        feedback.className = 'copy-feedback';
-        feedback.textContent = message;
-        document.body.appendChild(feedback);
-        setTimeout(() => {
-          feedback.remove();
-        }, 1500);
-      };
+      function renderCustomReasons() {
+        const select = document.getElementById('requestType');
+        if (!select) return;
 
-      contactItems.forEach(item => {
+        // remove previously rendered custom options
+        select.querySelectorAll('option[data-custom="true"]').forEach((o) => o.remove());
+
+        const addNewOption = select.querySelector('option[data-addnew="true"]');
+        const customs = getCustomReasons().filter((r) => !DEFAULT_TYPES.includes(r));
+
+        customs.forEach((reason) => {
+          const opt = document.createElement('option');
+          opt.value = reason;
+          // Collapse multi-line reasons for display
+          const display = reason.length > 40
+            ? reason.substring(0, 40).replace(/\s+/g, ' ') + '…'
+            : reason.replace(/\s+/g, ' ');
+          opt.textContent = '📌 ' + display;
+          opt.dataset.custom = 'true';
+          select.insertBefore(opt, addNewOption);
+        });
+      }
+
+      function addCustomReason(reason) {
+        const trimmed = reason.trim();
+        if (!trimmed) return null;
+
+        // don't duplicate defaults
+        if (DEFAULT_TYPES.includes(trimmed)) {
+          showToast('⚠️ هذا السبب موجود مسبقاً');
+          return trimmed;
+        }
+
+        const list = getCustomReasons();
+        if (!list.includes(trimmed)) {
+          list.push(trimmed);
+          saveCustomReasons(list);
+          renderCustomReasons();
+          showToast('✅ تمت إضافة السبب الجديد');
+        }
+        return trimmed;
+      }
+
+      /**
+       * SweetAlert2 prompt — uses a TEXTAREA so long reasons are
+       * comfortable to write, with a live character counter.
+       */
+      async function promptAddNewReason(selectEl) {
+        if (typeof Swal === 'undefined') {
+          // Fallback to native prompt if Swal somehow isn't loaded
+          const fallback = prompt('إضافة سبب جديد:');
+          if (fallback) {
+            const added = addCustomReason(fallback);
+            if (added) selectEl.value = added;
+          }
+          if (!selectEl.value) selectEl.value = '';
+          return;
+        }
+
+        const result = await Swal.fire({
+          title: 'إضافة سبب جديد',
+          input: 'textarea',
+          inputPlaceholder: 'اكتب سبب الطلب هنا… (يمكنك الكتابة على أكثر من سطر)',
+          inputAttributes: {
+            'aria-label': 'اكتب سبب الطلب',
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            spellcheck: 'false',
+            maxlength: MAX_LENGTH,
+            rows: 4
+          },
+          showCancelButton: true,
+          confirmButtonText: 'إضافة السبب',
+          cancelButtonText: 'إلغاء',
+          confirmButtonColor: '#6366f1',
+          cancelButtonColor: '#94a3b8',
+          reverseButtons: true,
+          focusConfirm: false,
+          // Custom HTML so we can render a live character counter
+          didOpen: () => {
+            const textarea = Swal.getInput();
+            const popup = Swal.getPopup();
+            if (!textarea || !popup) return;
+
+            const counter = document.createElement('span');
+            counter.className = 'swal2-textarea-counter';
+            counter.textContent = `0 / ${MAX_LENGTH}`;
+            textarea.parentNode.insertBefore(counter, textarea.nextSibling);
+
+            const update = () => {
+              const len = textarea.value.length;
+              counter.textContent = `${len} / ${MAX_LENGTH}`;
+              counter.classList.toggle('warn', len >= MAX_LENGTH - 10);
+            };
+
+            textarea.addEventListener('input', update);
+            update();
+            setTimeout(() => textarea.focus(), 50);
+          },
+          inputValidator: (value) => {
+            const v = (value || '').trim();
+            if (!v) return 'الرجاء كتابة اسم السبب';
+            if (v.length > MAX_LENGTH) return `السبب طويل جداً (${MAX_LENGTH} حرف كحد أقصى)`;
+            if (v.length < 3) return 'السبب قصير جداً (3 أحرف على الأقل)';
+            return null;
+          }
+        });
+
+        if (result && result.isConfirmed && result.value) {
+          const added = addCustomReason(result.value);
+          if (added) {
+            selectEl.value = added;
+          } else {
+            selectEl.value = '';
+          }
+        } else {
+          // user cancelled → reset select
+          selectEl.value = '';
+        }
+      }
+
+      // Attach change listener on the select
+      const requestTypeSelect = document.getElementById('requestType');
+      if (requestTypeSelect) {
+        requestTypeSelect.addEventListener('change', function () {
+          if (this.value === ADD_NEW_VALUE) {
+            // briefly reset so we don't accidentally submit __add_new__
+            this.value = '';
+            promptAddNewReason(this);
+          }
+        });
+
+        // Render stored custom reasons on load
+        renderCustomReasons();
+      }
+
+      /* ============================================================
+         TOAST
+         ============================================================ */
+      function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'copy-feedback';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1600);
+      }
+
+      /* ============================================================
+         COPY TO CLIPBOARD
+         ============================================================ */
+      document.querySelectorAll('.contact-item[data-copy]').forEach((item) => {
         item.addEventListener('click', async (e) => {
           e.stopPropagation();
           const textToCopy = item.getAttribute('data-copy');
-          if (textToCopy) {
-            try {
-              await navigator.clipboard.writeText(textToCopy);
-              showCopyFeedback(`✅ تم نسخ: ${textToCopy}`);
-              item.style.transform = 'scale(0.97)';
-              setTimeout(() => {
-                item.style.transform = '';
-              }, 150);
-            } catch (err) {
-              console.error('Failed to copy:', err);
-              showCopyFeedback('❌ فشل النسخ');
-            }
+          if (!textToCopy) return;
+
+          try {
+            await navigator.clipboard.writeText(textToCopy);
+            showToast(`✅ تم نسخ: ${textToCopy}`);
+          } catch (err) {
+            console.error('Failed to copy:', err);
+            showToast('❌ فشل النسخ');
           }
         });
       });
 
-      // ============================================================
-      // FORM SUBMISSION - SAVE TO FIREBASE
-      // ============================================================
-      // FIXED: Because the section ID is changed, this correctly targets the `<form id="ticketForm">` element.
-      const form = document.getElementById("ticketForm");
-      const statusMessage = document.getElementById("statusMessage");
-      const submitBtn = document.getElementById("submitBtn");
+      /* ============================================================
+         FORM SUBMISSION
+         ============================================================ */
+      const form = document.getElementById('ticketForm');
+      const statusMessage = document.getElementById('statusMessage');
+      const submitBtn = document.getElementById('submitBtn');
 
-      const typeMapping = {
-        "عطل تقني": "عطل تقني",
-        "اضافة بيانات": "اضافة بيانات",
-        "تعديل بيانات": "تعديل بيانات",
-      };
-
-      form.addEventListener("submit", async function(e) {
+      form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        // Check if Firebase is ready
         if (!firebaseDB || !isFirebaseReady) {
-          showStatusMessage("❌ Firebase غير متصل، حاول تحديث الصفحة", "error");
+          showStatusMessage('❌ Firebase غير متصل، حاول تحديث الصفحة', 'error');
           initFirebase();
           return;
         }
 
         const formData = new FormData(form);
-        const selectedArabicType = formData.get("request_type");
+        const selectedType = (formData.get('request_type') || '').toString().trim();
 
-        if (!selectedArabicType) {
-          showStatusMessage("الرجاء اختيار نوع الطلب", "error");
+        if (!selectedType || selectedType === ADD_NEW_VALUE) {
+          showStatusMessage('الرجاء اختيار نوع الطلب', 'error');
           return;
         }
 
-        const dbFolder = typeMapping[selectedArabicType] || "General";
-
         const ticketData = {
-          name: formData.get("name").trim(),
-          meter_id: formData.get("meter_id").trim(),
-          message: formData.get("message").trim(),
-          email: formData.get("email").trim(),
-          timestamp: new Date().toLocaleString("ar-EG", {
+          name: (formData.get('name') || '').toString().trim(),
+          meter_id: (formData.get('meter_id') || '').toString().trim(),
+          message: (formData.get('message') || '').toString().trim(),
+          email: (formData.get('email') || '').toString().trim(),
+          timestamp: new Date().toLocaleString('ar-EG', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
           }),
-          type: selectedArabicType,
+          type: selectedType,
           date: new Date().toISOString(),
           status: 'pending'
         };
 
         // Validation
         if (!ticketData.name || !ticketData.meter_id || !ticketData.email || !ticketData.message) {
-          showStatusMessage("الرجاء تعبئة جميع الحقول المطلوبة", "error");
+          showStatusMessage('الرجاء تعبئة جميع الحقول المطلوبة', 'error');
           return;
         }
 
         const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
         if (!emailRegex.test(ticketData.email)) {
-          showStatusMessage("الرجاء إدخال بريد إلكتروني صحيح", "error");
+          showStatusMessage('الرجاء إدخال بريد إلكتروني صحيح', 'error');
           return;
         }
 
         submitBtn.disabled = true;
-        submitBtn.classList.add("loading");
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> جاري الحفظ...';
+        submitBtn.classList.add('loading');
+        submitBtn.innerHTML = 'جاري الحفظ…';
 
         try {
-          console.log('📤 Saving ticket to Firebase...', ticketData);
+          console.log('📤 Saving ticket…', ticketData);
 
-          // Save to Firebase under tickets/{dbFolder}
-          const ticketsRef = firebaseDB.ref(`tickets/${dbFolder}`);
+          // Sanitize folder name (Firebase keys don't allow . # $ [ ] /)
+          const safeFolder = selectedType.replace(/[.#$\[\]/]/g, '_');
+          const ticketsRef = firebaseDB.ref(`tickets/${safeFolder}`);
           const newTicketRef = ticketsRef.push();
           await newTicketRef.set(ticketData);
 
-          console.log("✅ Ticket saved successfully! Key:", newTicketRef.key);
-          console.log("📁 Path: tickets/" + dbFolder + "/" + newTicketRef.key);
+          console.log('✅ Ticket saved:', newTicketRef.key);
 
-          showStatusMessage("✅ تم إرسال التذكرة بنجاح", "success");
+          showStatusMessage('✅ تم إرسال التذكرة بنجاح', 'success');
           form.reset();
 
-          setTimeout(() => {
-            statusMessage.style.display = "none";
-          }, 4000);
-
+          setTimeout(() => { statusMessage.style.display = 'none'; }, 4000);
         } catch (error) {
-          console.error("❌ Firebase Error:", error);
+          console.error('❌ Firebase Error:', error);
           showStatusMessage(
-            "❌ خطأ في الإرسال: " + (error.message || "تأكد من الاتصال بالإنترنت وحاول مرة أخرى"),
-            "error"
+            '❌ خطأ في الإرسال: ' + (error.message || 'تأكد من الاتصال بالإنترنت وحاول مرة أخرى'),
+            'error'
           );
         } finally {
           submitBtn.disabled = false;
-          submitBtn.classList.remove("loading");
+          submitBtn.classList.remove('loading');
           submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال الطلب';
         }
       });
 
       function showStatusMessage(message, type) {
-        statusMessage.style.display = "block";
-        statusMessage.style.backgroundColor = type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
-        statusMessage.style.color = type === "success" ? "#065f46" : "#991b1b";
-        statusMessage.style.border = type === "success" ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(239,68,68,0.2)";
+        statusMessage.style.display = 'block';
+        statusMessage.style.background = type === 'success' ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)';
+        statusMessage.style.color = type === 'success' ? '#047857' : '#b91c1c';
+        statusMessage.style.border = type === 'success'
+          ? '1px solid rgba(16,185,129,.22)'
+          : '1px solid rgba(239,68,68,.22)';
         statusMessage.innerHTML = message;
       }
 
-      // ============================================================
-      // INPUT VALIDATION - Only numbers for meter_id
-      // ============================================================
+      /* ============================================================
+         METER ID — NUMBERS ONLY
+         ============================================================ */
       const meterInput = document.querySelector('input[name="meter_id"]');
       if (meterInput) {
-        meterInput.addEventListener('input', function(e) {
+        meterInput.addEventListener('input', function () {
           this.value = this.value.replace(/[^0-9]/g, '');
         });
       }
 
-      // ============================================================
-      // TOUCH FEEDBACK
-      // ============================================================
-      const allInputs = document.querySelectorAll('input, select, textarea');
-      allInputs.forEach(input => {
-        input.addEventListener('touchstart', function() {
-          this.style.transform = 'scale(1.01)';
-          setTimeout(() => {
-            this.style.transform = '';
-          }, 100);
-        });
-      });
-
-      console.log('✅ Ticket form loaded');
-      console.log('📡 Firebase status:', isFirebaseReady ? 'Connected' : 'Disconnected');
+      console.log('✅ Page loaded — theme:', savedTheme);
+      console.log('📡 Firebase:', isFirebaseReady ? 'Connected' : 'Disconnected');
     });
   </script>
 </body>
