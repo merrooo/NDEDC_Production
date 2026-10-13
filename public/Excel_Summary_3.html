@@ -18,17 +18,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.03); border-radius: 9999px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
         .totals-row { background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%); border-top: 2px solid #0ea5e9; }
         .dark .totals-row { background: linear-gradient(90deg, #082f49 0%, #0c4a6e 100%); border-top: 2px solid #0ea5e9; }
         .totals-row td { font-weight: 700 !important; }
-
         .pivot-col-header { position: relative; padding-right: 20px; }
         .pivot-col-header .remove-pivot-btn {
             position: absolute; top: 4px; right: 2px; width: 16px; height: 16px;
@@ -38,7 +35,6 @@
         }
         .pivot-col-header:hover .remove-pivot-btn { opacity: 1; }
         .pivot-col-header .remove-pivot-btn:hover { background: #ef4444; color: white; }
-
         .removed-pivot-badge {
             display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
             background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
@@ -48,6 +44,8 @@
         .removed-pivot-badge:hover { background: #fee2e2; border-color: #fca5a5; }
         .dark .removed-pivot-badge { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
         .dark .removed-pivot-badge:hover { background: #7f1d1d; }
+        .metric-pill { display: inline-flex; align-items: center; gap: 4px; }
+        .metric-dot { width: 7px; height: 7px; border-radius: 9999px; display: inline-block; }
     </style>
 </head>
 
@@ -64,30 +62,23 @@
                     <p class="text-xs text-slate-500 dark:text-slate-400">Hierarchical & Grouped Frequency Analyzer</p>
                 </div>
             </div>
-
             <div class="flex items-center space-x-2 sm:space-x-3">
                 <button id="themeToggleBtn" title="Toggle Theme"
                     class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
                     <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
                     <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
                 </button>
-
                 <button id="returnHomeBtn" title="Return to Home"
                     class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
-                    <i data-lucide="home" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
-                    <span>Home</span>
+                    <i data-lucide="home" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i><span>Home</span>
                 </button>
-
                 <button id="uploadNewBtn"
                     class="hidden px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition items-center space-x-1.5 shadow-sm">
-                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
-                    <span>Upload New File</span>
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i><span>Upload New File</span>
                 </button>
-
                 <button id="resetAppBtn"
                     class="hidden px-3.5 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/30 dark:hover:border-red-800 text-slate-600 dark:text-slate-300 transition items-center space-x-1.5">
-                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                    <span>Reset</span>
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span>Reset</span>
                 </button>
             </div>
         </div>
@@ -147,17 +138,36 @@
                         <div class="flex items-center justify-between mb-2">
                             <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Active Hierarchy</p>
                             <button id="clearHierarchyBtn" class="text-[10px] text-slate-400 hover:text-red-500 flex items-center space-x-0.5">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                                <span>Clear</span>
+                                <i data-lucide="trash-2" class="w-3 h-3"></i><span>Clear</span>
                             </button>
                         </div>
                         <div id="hierarchyContainer" class="space-y-1.5"></div>
                     </div>
-
                     <div>
                         <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Columns</p>
                         <div id="availableColumnsContainer" class="space-y-1"></div>
                     </div>
+                </div>
+
+                <!-- ====== SIMPLE COUNT METRICS (2 checkboxes only) ====== -->
+                <div class="border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Count Metrics</p>
+                    <label class="flex items-center justify-between cursor-pointer text-[11px]">
+                        <span class="text-slate-600 dark:text-slate-300 metric-pill">
+                            <span class="metric-dot bg-brand-500"></span>Frequency Count
+                        </span>
+                        <input type="checkbox" id="freqCountToggle" checked class="w-3.5 h-3.5 rounded text-brand-600 focus:ring-brand-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer text-[11px]">
+                        <span class="text-slate-600 dark:text-slate-300 metric-pill">
+                            <span class="metric-dot bg-emerald-500"></span>Unique Count
+                        </span>
+                        <input type="checkbox" id="uniqueCountToggle" checked class="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500">
+                    </label>
+                    <p class="text-[10px] text-slate-400 leading-snug pt-0.5">
+                        <b>Frequency</b> = total rows in the group.<br>
+                        <b>Unique</b> = distinct combinations under the group.
+                    </p>
                 </div>
 
                 <div class="border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
@@ -246,8 +256,7 @@
                 <div class="p-2.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between text-[11px] text-slate-500">
                     <span id="hierarchySummaryText">No hierarchy selected</span>
                     <span class="flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                        <span>Ready</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span><span>Ready</span>
                     </span>
                 </div>
             </div>
@@ -269,44 +278,24 @@
         let processedFlatData = [];
         let processedFlatAggregated = [];
 
+        // --- Count metric flags ---
+        let showFreqCount = true;
+        let showUniqueCount = true;
+
         // --- DOM ---
-        const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('fileInput');
-        const uploadSection = document.getElementById('uploadSection');
-        const workspaceSection = document.getElementById('workspaceSection');
-        const fileNameEl = document.getElementById('fileName');
-        const fileMetaEl = document.getElementById('fileMeta');
-        const sheetSelectorContainer = document.getElementById('sheetSelectorContainer');
-        const sheetSelect = document.getElementById('sheetSelect');
-        const resetAppBtn = document.getElementById('resetAppBtn');
-        const returnHomeBtn = document.getElementById('returnHomeBtn');
-        const uploadNewBtn = document.getElementById('uploadNewBtn');
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const availableColumnsContainer = document.getElementById('availableColumnsContainer');
-        const hierarchyContainer = document.getElementById('hierarchyContainer');
-        const clearHierarchyBtn = document.getElementById('clearHierarchyBtn');
-        const trimWhitespaceToggle = document.getElementById('trimWhitespaceToggle');
-        const ignoreCaseToggle = document.getElementById('ignoreCaseToggle');
-        const includeBlanksToggle = document.getElementById('includeBlanksToggle');
-        const viewTreeBtn = document.getElementById('viewTreeBtn');
-        const viewFlatBtn = document.getElementById('viewFlatBtn');
-        const treeExpandCollapseGroup = document.getElementById('treeExpandCollapseGroup');
-        const expandAllBtn = document.getElementById('expandAllBtn');
-        const collapseAllBtn = document.getElementById('collapseAllBtn');
-        const filterInput = document.getElementById('filterInput');
-        const treeViewContainer = document.getElementById('treeViewContainer');
-        const flatViewContainer = document.getElementById('flatViewContainer');
-        const emptyState = document.getElementById('emptyState');
-        const flatTableHead = document.getElementById('flatTableHead');
-        const flatTableBody = document.getElementById('flatTableBody');
-        const hierarchySummaryText = document.getElementById('hierarchySummaryText');
-        const exportCsvBtn = document.getElementById('exportCsvBtn');
-        const exportExcelBtn = document.getElementById('exportExcelBtn');
-        const alertBanner = document.getElementById('alertBanner');
-        const alertMessage = document.getElementById('alertMessage');
-        const flatPivotControls = document.getElementById('flatPivotControls');
-        const horizontalPivotSelect = document.getElementById('horizontalPivotSelect');
-        const removedPivotsContainer = document.getElementById('removedPivotsContainer');
+        const $ = id => document.getElementById(id);
+        const dropzone = $('dropzone'), fileInput = $('fileInput'), uploadSection = $('uploadSection'), workspaceSection = $('workspaceSection');
+        const fileNameEl = $('fileName'), fileMetaEl = $('fileMeta'), sheetSelectorContainer = $('sheetSelectorContainer'), sheetSelect = $('sheetSelect');
+        const resetAppBtn = $('resetAppBtn'), returnHomeBtn = $('returnHomeBtn'), uploadNewBtn = $('uploadNewBtn'), themeToggleBtn = $('themeToggleBtn');
+        const availableColumnsContainer = $('availableColumnsContainer'), hierarchyContainer = $('hierarchyContainer'), clearHierarchyBtn = $('clearHierarchyBtn');
+        const trimWhitespaceToggle = $('trimWhitespaceToggle'), ignoreCaseToggle = $('ignoreCaseToggle'), includeBlanksToggle = $('includeBlanksToggle');
+        const freqCountToggle = $('freqCountToggle'), uniqueCountToggle = $('uniqueCountToggle');
+        const viewTreeBtn = $('viewTreeBtn'), viewFlatBtn = $('viewFlatBtn'), treeExpandCollapseGroup = $('treeExpandCollapseGroup');
+        const expandAllBtn = $('expandAllBtn'), collapseAllBtn = $('collapseAllBtn'), filterInput = $('filterInput');
+        const treeViewContainer = $('treeViewContainer'), flatViewContainer = $('flatViewContainer'), emptyState = $('emptyState');
+        const flatTableHead = $('flatTableHead'), flatTableBody = $('flatTableBody'), hierarchySummaryText = $('hierarchySummaryText');
+        const exportCsvBtn = $('exportCsvBtn'), exportExcelBtn = $('exportExcelBtn'), alertBanner = $('alertBanner'), alertMessage = $('alertMessage');
+        const flatPivotControls = $('flatPivotControls'), horizontalPivotSelect = $('horizontalPivotSelect'), removedPivotsContainer = $('removedPivotsContainer');
 
         lucide.createIcons();
 
@@ -321,8 +310,7 @@
         dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-brand-500', 'bg-brand-50/50'); });
         ['dragleave', 'dragend'].forEach(t => dropzone.addEventListener(t, () => dropzone.classList.remove('border-brand-500', 'bg-brand-50/50')));
         dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('border-brand-500', 'bg-brand-50/50');
+            e.preventDefault(); dropzone.classList.remove('border-brand-500', 'bg-brand-50/50');
             if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
         });
         fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
@@ -340,8 +328,7 @@
                         currentWorkbook = XLSX.read(data, { type: 'array' });
                         sheetSelect.innerHTML = '';
                         currentWorkbook.SheetNames.forEach(name => {
-                            const opt = document.createElement('option');
-                            opt.value = name; opt.textContent = name;
+                            const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
                             sheetSelect.appendChild(opt);
                         });
                         sheetSelectorContainer.classList.remove('hidden');
@@ -355,8 +342,7 @@
                         const json = JSON.parse(e.target.result);
                         const arr = Array.isArray(json) ? json : [json];
                         if (arr.length > 0 && typeof arr[0] === 'object') {
-                            rawDataSet = arr;
-                            columnNames = Object.keys(arr[0]);
+                            rawDataSet = arr; columnNames = Object.keys(arr[0]);
                             activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
                             sheetSelectorContainer.classList.add('hidden');
                             setupWorkspace();
@@ -387,8 +373,7 @@
             const ws = currentWorkbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
             if (json.length > 0) {
-                rawDataSet = json;
-                columnNames = Object.keys(json[0]);
+                rawDataSet = json; columnNames = Object.keys(json[0]);
                 activeHierarchy = []; horizontalPivotIndex = -1; removedPivotValues.clear();
                 setupWorkspace();
             } else { showAlert("Sheet is empty.", "error"); }
@@ -397,8 +382,7 @@
         function setupWorkspace() {
             fileMetaEl.textContent = `Parsed ${rawDataSet.length.toLocaleString()} rows`;
             uploadSection.classList.add('hidden');
-            workspaceSection.classList.remove('hidden');
-            workspaceSection.classList.add('flex');
+            workspaceSection.classList.remove('hidden'); workspaceSection.classList.add('flex');
             uploadNewBtn.classList.remove('hidden'); uploadNewBtn.classList.add('flex');
             resetAppBtn.classList.remove('hidden'); resetAppBtn.classList.add('flex');
             renderHierarchyControls();
@@ -472,6 +456,19 @@
 
         [trimWhitespaceToggle, ignoreCaseToggle, includeBlanksToggle].forEach(el => el.addEventListener('change', recalculateAndRender));
 
+        // --- Metric Toggles (only 2) ---
+        function syncMetrics() {
+            showFreqCount = freqCountToggle.checked;
+            showUniqueCount = uniqueCountToggle.checked;
+            if (!showFreqCount && !showUniqueCount) {
+                showUniqueCount = true; uniqueCountToggle.checked = true;
+                showAlert("Enable at least one count metric.", "error");
+            } else { hideAlert(); }
+            recalculateAndRender();
+        }
+        freqCountToggle.addEventListener('change', syncMetrics);
+        uniqueCountToggle.addEventListener('change', syncMetrics);
+
         // --- Pivot Select ---
         function updatePivotSelect() {
             if (!horizontalPivotSelect) return;
@@ -532,6 +529,30 @@
             renderRemovedPivotsBadges(); recalculateAndRender();
         };
 
+        // --- Helpers ---
+        function normalizeValue(raw) {
+            if (raw === undefined || raw === null || String(raw).trim() === '') return '(Blank)';
+            let s = String(raw);
+            if (trimWhitespaceToggle.checked) s = s.trim();
+            if (ignoreCaseToggle.checked) s = s.toLowerCase();
+            return s;
+        }
+
+        // Compute uniqueCount = number of distinct leaf combinations under each node.
+        // A leaf (no children) = 1 unique combination.
+        // An internal node = sum of children's uniqueCount.
+        function computeUniqueCounts(node) {
+            if (node.children.size === 0) {
+                node.uniqueCount = 1;
+            } else {
+                node.uniqueCount = 0;
+                node.children.forEach(child => {
+                    computeUniqueCounts(child);
+                    node.uniqueCount += child.uniqueCount;
+                });
+            }
+        }
+
         // --- Processing ---
         function recalculateAndRender() {
             if (activeHierarchy.length === 0) {
@@ -544,34 +565,34 @@
             }
             emptyState.classList.add('hidden'); emptyState.classList.remove('flex');
 
-            const isTrim = trimWhitespaceToggle.checked;
-            const isIgnoreCase = ignoreCaseToggle.checked;
             const includeBlanks = includeBlanksToggle.checked;
 
-            const rootNode = { name: "Total", count: 0, children: new Map(), level: 0 };
+            const rootNode = {
+                name: "Total", count: 0, uniqueCount: 0,
+                children: new Map(), level: 0, path: ''
+            };
             processedFlatData = [];
 
             rawDataSet.forEach(row => {
                 let keys = []; let skipRow = false;
                 for (let col of activeHierarchy) {
-                    let rawVal = row[col];
+                    const rawVal = row[col];
                     if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
                         if (!includeBlanks) { skipRow = true; break; }
-                        else keys.push('(Blank)');
+                        keys.push('(Blank)');
                     } else {
-                        let val = String(rawVal);
-                        if (isTrim) val = val.trim();
-                        if (isIgnoreCase) val = val.toLowerCase();
-                        keys.push(val);
+                        keys.push(normalizeValue(rawVal));
                     }
                 }
                 if (skipRow) return;
+
                 rootNode.count++;
                 let currentNode = rootNode;
                 keys.forEach((key, idx) => {
                     if (!currentNode.children.has(key)) {
                         currentNode.children.set(key, {
-                            name: key, count: 0, children: new Map(),
+                            name: key, count: 0, uniqueCount: 0,
+                            children: new Map(),
                             level: idx + 1, columnName: activeHierarchy[idx],
                             path: keys.slice(0, idx + 1).join(' /// ')
                         });
@@ -579,10 +600,13 @@
                     currentNode = currentNode.children.get(key);
                     currentNode.count++;
                 });
+
                 processedFlatData.push({ keys, keyString: keys.join(' | ') });
             });
 
+            computeUniqueCounts(rootNode);
             processedTreeData = rootNode;
+
             generateFlatAggregations();
             renderCurrentView();
         }
@@ -611,9 +635,10 @@
                 flatPivotControls.classList.remove('hidden'); flatPivotControls.classList.add('flex');
                 renderFlatView();
             }
-            const summary = processedFlatAggregated.length;
+            const combos = processedFlatAggregated.length;
             const totalRows = processedTreeData ? processedTreeData.count : 0;
-            hierarchySummaryText.textContent = `${summary.toLocaleString()} unique combinations across ${totalRows.toLocaleString()} valid rows`;
+            hierarchySummaryText.textContent =
+                `${combos.toLocaleString()} unique combinations across ${totalRows.toLocaleString()} valid rows`;
         }
 
         // --- Tree ---
@@ -624,6 +649,7 @@
                 return;
             }
             const filterLower = currentFilter.toLowerCase();
+
             function buildNodeHtml(node) {
                 let html = '';
                 const childrenArray = Array.from(node.children.values()).sort((a, b) => b.count - a.count);
@@ -633,6 +659,21 @@
                     const hasChildren = child.children.size > 0;
                     if (matchesFilter || filterHasChildMatch(child, filterLower)) {
                         const paddingLeft = (child.level - 1) * 24;
+
+                        let metricsHtml = '';
+                        if (showFreqCount) {
+                            metricsHtml += `<div class="text-right min-w-[70px]">
+                                <span class="font-bold text-xs text-brand-600 dark:text-brand-400">${child.count.toLocaleString()}</span>
+                                <span class="text-[10px] text-slate-400 block">Frequency</span>
+                            </div>`;
+                        }
+                        if (showUniqueCount) {
+                            metricsHtml += `<div class="text-right min-w-[70px]">
+                                <span class="font-bold text-xs text-emerald-600 dark:text-emerald-400">${(child.uniqueCount || 0).toLocaleString()}</span>
+                                <span class="text-[10px] text-slate-400 block">Unique</span>
+                            </div>`;
+                        }
+
                         html += `
                             <div class="tree-node border-b border-slate-100 dark:border-slate-800/60 py-2.5 px-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                                 <div class="flex items-center justify-between" style="padding-left: ${paddingLeft}px">
@@ -643,10 +684,7 @@
                                         ${hasChildren ? `<span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded-full font-medium">${child.children.size.toLocaleString()}</span>` : ''}
                                     </div>
                                     <div class="text-right flex items-center space-x-3">
-                                        <div>
-                                            <span class="font-bold text-xs text-brand-600 dark:text-brand-400">${child.count.toLocaleString()}</span>
-                                            <span class="text-[10px] text-slate-400 block">Count</span>
-                                        </div>
+                                        ${metricsHtml}
                                     </div>
                                 </div>
                             </div>`;
@@ -655,6 +693,7 @@
                 });
                 return html;
             }
+
             treeViewContainer.innerHTML = buildNodeHtml(processedTreeData);
             lucide.createIcons();
         }
@@ -680,18 +719,14 @@
         }
 
         function getColumnUniqueBreakdown(col) {
-            const isTrim = trimWhitespaceToggle.checked;
-            const isIgnoreCase = ignoreCaseToggle.checked;
             const includeBlanks = includeBlanksToggle.checked;
             const counts = new Map();
             rawDataSet.forEach(row => {
-                let rawVal = row[col];
+                const rawVal = row[col];
                 if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
                     if (includeBlanks) counts.set('(Blank)', (counts.get('(Blank)') || 0) + 1);
                 } else {
-                    let val = String(rawVal);
-                    if (isTrim) val = val.trim();
-                    if (isIgnoreCase) val = val.toLowerCase();
+                    const val = normalizeValue(rawVal);
                     counts.set(val, (counts.get(val) || 0) + 1);
                 }
             });
@@ -706,6 +741,7 @@
             const doHorizontalPivot = horizontalPivotIndex >= 0 && horizontalPivotIndex < activeHierarchy.length;
 
             if (doHorizontalPivot) {
+                /* ================= PIVOT MODE ================= */
                 const pivotColName = activeHierarchy[horizontalPivotIndex];
                 const otherCols = activeHierarchy.filter((_, idx) => idx !== horizontalPivotIndex);
                 const allPivotValues = getColumnUniqueBreakdown(pivotColName).map(([val]) => val);
@@ -728,29 +764,26 @@
                 flatTableHead.innerHTML = `<tr>${headerHtml}</tr>`;
 
                 const rowMap = new Map();
-                const isTrim = trimWhitespaceToggle.checked;
-                const isIgnoreCase = ignoreCaseToggle.checked;
                 const includeBlanks = includeBlanksToggle.checked;
 
                 rawDataSet.forEach(row => {
                     let keysAll = []; let skipRow = false;
                     for (let col of activeHierarchy) {
-                        let rawVal = row[col];
+                        const rawVal = row[col];
                         if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
                             if (!includeBlanks) { skipRow = true; break; }
-                            else keysAll.push('(Blank)');
-                        } else {
-                            let val = String(rawVal);
-                            if (isTrim) val = val.trim();
-                            if (isIgnoreCase) val = val.toLowerCase();
-                            keysAll.push(val);
-                        }
+                            keysAll.push('(Blank)');
+                        } else keysAll.push(normalizeValue(rawVal));
                     }
                     if (skipRow) return;
+
                     const otherKeys = keysAll.filter((_, idx) => idx !== horizontalPivotIndex);
                     const pivotKey = keysAll[horizontalPivotIndex];
                     const rowKey = otherKeys.join('|||');
-                    if (!rowMap.has(rowKey)) rowMap.set(rowKey, { otherKeys, pivotCounts: new Map(), total: 0 });
+
+                    if (!rowMap.has(rowKey)) {
+                        rowMap.set(rowKey, { otherKeys, pivotCounts: new Map(), total: 0 });
+                    }
                     const entry = rowMap.get(rowKey);
                     entry.pivotCounts.set(pivotKey, (entry.pivotCounts.get(pivotKey) || 0) + 1);
                     entry.total += 1;
@@ -766,8 +799,9 @@
                 }
                 aggregatedRows.sort((a, b) => b.total - a.total);
 
+                const colSpan = otherCols.length + pivotUniqueValues.length + 2;
                 if (aggregatedRows.length === 0) {
-                    flatTableBody.innerHTML = `<tr><td colspan="${otherCols.length + pivotUniqueValues.length + 2}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
+                    flatTableBody.innerHTML = `<tr><td colspan="${colSpan}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
                     lucide.createIcons(); return;
                 }
 
@@ -816,26 +850,36 @@
                 totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-brand-700 dark:text-brand-300">${grandTotal.toLocaleString()}</td>`;
                 trTotals.innerHTML = totalsCells;
                 flatTableBody.appendChild(trTotals);
+
             } else {
+                /* ================= FLAT (NO PIVOT) MODE ================= */
                 let headerHtml = `<th class="py-3 px-4 w-12 text-center">#</th>`;
                 activeHierarchy.forEach(col => headerHtml += `<th class="py-3 px-4">${escapeHtml(col)}</th>`);
-                headerHtml += `<th class="py-3 px-4 text-right">Frequency Count</th>`;
+                if (showFreqCount) headerHtml += `<th class="py-3 px-4 text-right">Frequency Count</th>`;
+                if (showUniqueCount) headerHtml += `<th class="py-3 px-4 text-right">Unique Count</th>`;
                 flatTableHead.innerHTML = `<tr>${headerHtml}</tr>`;
 
                 const filtered = processedFlatAggregated.filter(item => !currentFilter || item.keyString.toLowerCase().includes(currentFilter.toLowerCase()));
+                const colSpan = activeHierarchy.length + 1 + (showFreqCount ? 1 : 0) + (showUniqueCount ? 1 : 0);
+
                 if (filtered.length === 0) {
-                    flatTableBody.innerHTML = `<tr><td colspan="${activeHierarchy.length + 2}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
+                    flatTableBody.innerHTML = `<tr><td colspan="${colSpan}" class="py-8 text-center text-slate-400">No matching combinations.</td></tr>`;
                     lucide.createIcons(); return;
                 }
 
                 let grandTotal = 0;
                 filtered.forEach((item, idx) => {
                     grandTotal += item.count;
+
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition";
                     let keysCells = item.keys.map(k => `<td class="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title="${escapeHtml(k)}">${escapeHtml(k)}</td>`).join('');
-                    tr.innerHTML = `<td class="py-2.5 px-4 text-center text-slate-400">${idx + 1}</td>${keysCells}
-                        <td class="py-2.5 px-4 font-bold text-right text-brand-600 dark:text-brand-400">${item.count.toLocaleString()}</td>`;
+
+                    let metricCells = '';
+                    if (showFreqCount) metricCells += `<td class="py-2.5 px-4 font-bold text-right text-brand-600 dark:text-brand-400">${item.count.toLocaleString()}</td>`;
+                    if (showUniqueCount) metricCells += `<td class="py-2.5 px-4 font-bold text-right text-emerald-600 dark:text-emerald-400">1</td>`;
+
+                    tr.innerHTML = `<td class="py-2.5 px-4 text-center text-slate-400">${idx + 1}</td>${keysCells}${metricCells}`;
                     flatTableBody.appendChild(tr);
                 });
 
@@ -848,7 +892,8 @@
                     </span></td>`;
                 totalsCells += `<td colspan="${activeHierarchy.length}" class="py-3 px-4 text-left text-[11px] text-brand-700 dark:text-brand-300 font-semibold">
                     ${filtered.length.toLocaleString()} unique ${filtered.length === 1 ? 'combination' : 'combinations'}</td>`;
-                totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-brand-700 dark:text-brand-300">${grandTotal.toLocaleString()}</td>`;
+                if (showFreqCount) totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-brand-700 dark:text-brand-300">${grandTotal.toLocaleString()}</td>`;
+                if (showUniqueCount) totalsCells += `<td class="py-3 px-4 text-right font-mono text-sm text-emerald-700 dark:text-emerald-300">${filtered.length.toLocaleString()}</td>`;
                 trTotals.innerHTML = totalsCells;
                 flatTableBody.appendChild(trTotals);
             }
@@ -868,7 +913,8 @@
                     <span class="truncate max-w-[80px]">${escapeHtml(val)}</span>
                     <span class="text-[9px] font-bold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/60 px-1 rounded">${cnt.toLocaleString()}</span>
                 </span>`).join('');
-            tr.innerHTML = `<td colspan="${activeHierarchy.length + 2}" class="py-3 px-4">
+            const colSpan = activeHierarchy.length + 1 + (showFreqCount ? 1 : 0) + (showUniqueCount ? 1 : 0);
+            tr.innerHTML = `<td colspan="${colSpan}" class="py-3 px-4">
                 <div class="flex items-start space-x-3">
                     <div class="flex-shrink-0 pt-0.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">${escapeHtml(colName)}</span>
@@ -911,29 +957,24 @@
                 const allPivotValues = getColumnUniqueBreakdown(pivotColName).map(([val]) => val);
                 const removedSet = removedPivotValues.get(pivotColName) || new Set();
                 const pivotUniqueValues = allPivotValues.filter(val => !removedSet.has(val));
-                const isTrim = trimWhitespaceToggle.checked;
-                const isIgnoreCase = ignoreCaseToggle.checked;
                 const includeBlanks = includeBlanksToggle.checked;
                 const rowMap = new Map();
 
                 rawDataSet.forEach(row => {
                     let keysAll = []; let skipRow = false;
                     for (let col of activeHierarchy) {
-                        let rawVal = row[col];
+                        const rawVal = row[col];
                         if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '') {
                             if (!includeBlanks) { skipRow = true; break; }
-                            else keysAll.push('(Blank)');
-                        } else {
-                            let val = String(rawVal);
-                            if (isTrim) val = val.trim();
-                            if (isIgnoreCase) val = val.toLowerCase();
-                            keysAll.push(val);
-                        }
+                            keysAll.push('(Blank)');
+                        } else keysAll.push(normalizeValue(rawVal));
                     }
                     if (skipRow) return;
+
                     const otherKeys = keysAll.filter((_, idx) => idx !== horizontalPivotIndex);
                     const pivotKey = keysAll[horizontalPivotIndex];
                     const rowKey = otherKeys.join('|||');
+
                     if (!rowMap.has(rowKey)) rowMap.set(rowKey, { otherKeys, pivotCounts: new Map(), total: 0 });
                     const entry = rowMap.get(rowKey);
                     entry.pivotCounts.set(pivotKey, (entry.pivotCounts.get(pivotKey) || 0) + 1);
@@ -987,14 +1028,20 @@
                     grandTotal += item.count;
                     const rowObj = {};
                     activeHierarchy.forEach((col, idx) => { rowObj[col] = item.keys[idx]; });
-                    rowObj["Frequency Count"] = item.count;
+                    if (showFreqCount) rowObj["Frequency Count"] = item.count;
+                    if (showUniqueCount) rowObj["Unique Count"] = 1;
                     exportRows.push(rowObj);
                 });
                 const totalsRowObj = {};
                 activeHierarchy.forEach((col, i) => { totalsRowObj[col] = i === 0 ? 'TOTALS' : ''; });
-                totalsRowObj["Frequency Count"] = grandTotal;
+                if (showFreqCount) totalsRowObj["Frequency Count"] = grandTotal;
+                if (showUniqueCount) totalsRowObj["Unique Count"] = filtered.length;
                 exportRows.push(totalsRowObj);
-                return { rows: exportRows, headers: [...activeHierarchy, "Frequency Count"] };
+
+                const headers = [...activeHierarchy];
+                if (showFreqCount) headers.push("Frequency Count");
+                if (showUniqueCount) headers.push("Unique Count");
+                return { rows: exportRows, headers };
             } else {
                 function traverse(node, parentVals = {}) {
                     if (!node) return;
@@ -1007,19 +1054,25 @@
                             if (child.children.size === 0 || !isExpanded) {
                                 const rowObj = {};
                                 activeHierarchy.forEach(col => { rowObj[col] = currentVals[col] !== undefined ? currentVals[col] : ""; });
-                                rowObj["Frequency Count"] = child.count;
+                                if (showFreqCount) rowObj["Frequency Count"] = child.count;
+                                if (showUniqueCount) rowObj["Unique Count"] = child.uniqueCount || 0;
                                 exportRows.push(rowObj);
                             } else traverse(child, currentVals);
                         }
                     });
                 }
                 traverse(processedTreeData);
-                const totalRows = exportRows.reduce((sum, r) => sum + (r["Frequency Count"] || 0), 0);
+
                 const totalsRowObj = {};
                 activeHierarchy.forEach((col, i) => { totalsRowObj[col] = i === 0 ? 'TOTALS' : ''; });
-                totalsRowObj["Frequency Count"] = totalRows;
+                if (showFreqCount) totalsRowObj["Frequency Count"] = exportRows.reduce((sum, r) => sum + (r["Frequency Count"] || 0), 0);
+                if (showUniqueCount) totalsRowObj["Unique Count"] = exportRows.reduce((sum, r) => sum + (r["Unique Count"] || 0), 0);
                 exportRows.push(totalsRowObj);
-                return { rows: exportRows, headers: [...activeHierarchy, "Frequency Count"] };
+
+                const headers = [...activeHierarchy];
+                if (showFreqCount) headers.push("Frequency Count");
+                if (showUniqueCount) headers.push("Unique Count");
+                return { rows: exportRows, headers };
             }
         }
 
@@ -1062,4 +1115,5 @@
         }
     </script>
 </body>
+
 </html>
