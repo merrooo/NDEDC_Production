@@ -169,6 +169,11 @@
             padding: 1px 8px; border-radius: 999px; font-weight: 700;
         }
         .db-btn.active .cnt { background: rgba(255,255,255,.25); }
+        .db-btn .cached-dot {
+            display: inline-block; width: 7px; height: 7px; border-radius: 999px;
+            background: var(--success); box-shadow: 0 0 0 2px rgba(16,185,129,.18);
+            margin-inline-start: 2px;
+        }
 
         /* ---------- Upload ---------- */
         .path-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -241,11 +246,10 @@
         }
         .search .clear:hover { color: var(--danger); }
 
-        /* Sub search — visually separated / distinct accent */
         .search.sub {
             max-width: 320px;
             padding-right: 12px;
-            border-right: 2px dashed var(--border); /* separator from main search */
+            border-right: 2px dashed var(--border);
         }
         .search.sub > i.field-icon { color: var(--sub); }
         .search.sub input:focus {
@@ -262,19 +266,6 @@
         }
 
         .toolbar-actions { display: flex; gap: 8px; }
-
-        /* Active-filters summary pill */
-        .filter-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-size: .72rem; font-weight: 600;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--sub-soft); color: var(--sub);
-            border: 1px solid rgba(139, 92, 246, .25);
-        }
-        .filter-pill button {
-            background: none; border: none; cursor: pointer;
-            color: var(--sub); font-size: .75rem; padding: 0 2px;
-        }
 
         /* ---------- Table ---------- */
         .table-wrap {
@@ -307,6 +298,17 @@
         }
 
         .table-foot { display: flex; justify-content: center; padding-top: 10px; }
+
+        .loading-bar {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 6px 12px; font-size: .74rem; color: var(--primary);
+            background: var(--primary-soft); border-radius: 8px; margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .loading-bar.cached {
+            color: var(--success);
+            background: rgba(16,185,129,.10);
+        }
 
         /* ---------- Empty state ---------- */
         .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
@@ -445,22 +447,24 @@
                 </div>
             </div>
 
-            <!-- ===== TOOLBAR with TWO independent searches ===== -->
+            <div class="loading-bar" id="loadingBar" hidden>
+                <i class="fas fa-spinner fa-spin"></i>
+                <span id="loadingText">جاري تحميل البيانات…</span>
+            </div>
+
             <div class="toolbar">
                 <div class="search-group">
 
-                    <!-- Main search -->
                     <div class="search main">
                         <i class="fas fa-magnifying-glass field-icon"></i>
-                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off">
+                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off" disabled>
                         <button class="clear" id="clearSearch" hidden><i class="fas fa-xmark"></i></button>
                     </div>
 
-                    <!-- Sub search (independent, visually separated) -->
                     <div class="search sub">
                         <span class="badge">فرعي</span>
                         <i class="fas fa-filter field-icon"></i>
-                        <input id="subSearchInput" placeholder="فلتر فرعي مستقل…" autocomplete="off">
+                        <input id="subSearchInput" placeholder="فلتر فرعي مستقل…" autocomplete="off" disabled>
                         <button class="clear" id="clearSubSearch" hidden><i class="fas fa-xmark"></i></button>
                     </div>
 
@@ -495,8 +499,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import {
-            getDatabase, ref, get, set, push, update, remove,
-            query, orderByKey, limitToLast, endAt
+            getDatabase, ref, get, set, push, update, remove
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         /* =========================================================
@@ -517,8 +520,38 @@
         const db = getDatabase(app);
         const DB_URL = firebaseConfig.databaseURL.replace(/\/+$/, '');
         const ROOT = 'reference_data';
-        const PAGE_SIZE = 100;
-        const MAX_RENDER = 500;
+
+        /* =========================================================
+           FIXED COLUMNS FOR trf_code_extra
+        ========================================================= */
+        const TRF_EXTRA_DB = 'trf_code_extra';
+        const TRF_EXTRA_COLUMNS = [
+            'Handsa Code',
+            'Handsa Name',
+            'Keta3 Code',
+            'keta3',
+            'lat',
+            'lng',
+            'trf_name',
+            'G-P',
+            'dp_name',
+            'sub_name',
+            'trf_capacity',
+            'cell_name'
+        ];
+
+        /* =========================================================
+           CAPACITY REFERENCE DB
+        ========================================================= */
+        const CAPACITY_DB_CANDIDATES = [
+            'transformer_capacity',
+            'transformer_capacities',
+            'trf_capacity',
+            'trf_capacities',
+            'capacities',
+            'capacity'
+        ];
+        const CAPACITY_FIELD = 'trf_capacity';
 
         /* =========================================================
            HELPERS
@@ -552,7 +585,7 @@
         }
 
         /* =========================================================
-           SESSION TIMER — passive
+           SESSION TIMER
         ========================================================= */
         const SESSION_MS = 5 * 60 * 1000;
         let lastActivity = Date.now();
@@ -609,17 +642,118 @@
             searchIndex: new Map(),
             fields: [],
 
-            cursor: null,
-            hasMore: false,
             loading: false,
+            dataReady: false,
 
-            /* ---- two INDEPENDENT search queries ---- */
-            searchQuery: '',        // main
-            subSearchQuery: '',     // sub (independent)
+            searchQuery: '',
+            subSearchQuery: '',
 
             fileRows: [],
             saving: false
         };
+
+        /* =========================================================
+           CACHE  —  dbName → { records, order, searchIndex, fields }
+        ========================================================= */
+        const cache = new Map();
+
+        function hasCache(name) { return cache.has(name); }
+
+        function saveToCache(name) {
+            cache.set(name, {
+                records: new Map(state.records),
+                order: state.order.slice(),
+                searchIndex: new Map(state.searchIndex),
+                fields: state.fields.slice()
+            });
+        }
+
+        function restoreFromCache(name) {
+            const c = cache.get(name);
+            if (!c) return false;
+            state.records = new Map(c.records);
+            state.order = c.order.slice();
+            state.searchIndex = new Map(c.searchIndex);
+            state.fields = c.fields.slice();
+            return true;
+        }
+
+        function invalidateCache(name) {
+            if (name) cache.delete(name);
+            else cache.clear();
+            renderDbButtons();
+        }
+
+        /* =========================================================
+           CAPACITY REFERENCE STATE
+        ========================================================= */
+        const capacityState = {
+            map: new Map(),
+            loaded: false,
+            loading: false,
+            dbName: null
+        };
+
+        function findCapacityDbName() {
+            for (const c of CAPACITY_DB_CANDIDATES) {
+                if (state.dbNames.includes(c)) return c;
+            }
+            const loose = state.dbNames.find(n => /capacit/i.test(n));
+            return loose || null;
+        }
+
+        async function loadCapacityLookup() {
+            if (capacityState.loaded) return;
+            if (capacityState.loading) {
+                while (capacityState.loading) await new Promise(r => setTimeout(r, 50));
+                return;
+            }
+
+            const name = findCapacityDbName();
+            if (!name) { capacityState.loaded = true; return; }
+
+            capacityState.loading = true;
+            capacityState.dbName = name;
+
+            try {
+                const snap = await get(ref(db, `${ROOT}/${name}`));
+                if (snap.exists()) {
+                    const val = snap.val();
+                    for (const k in val) {
+                        const rec = val[k];
+                        let display;
+                        if (rec && typeof rec === 'object') {
+                            display =
+                                rec.capacity ??
+                                rec.name ??
+                                rec.value ??
+                                rec.capacity_value ??
+                                rec.label ??
+                                rec.title ??
+                                Object.values(rec).find(
+                                    x => typeof x === 'string' || typeof x === 'number'
+                                ) ??
+                                '';
+                        } else {
+                            display = rec;
+                        }
+                        capacityState.map.set(k, String(display ?? ''));
+                    }
+                }
+                capacityState.loaded = true;
+            } catch (err) {
+                console.warn('فشل تحميل مرجع القدرة:', err);
+                capacityState.loaded = true;
+            } finally {
+                capacityState.loading = false;
+            }
+        }
+
+        function resolveCapacity(rawKey) {
+            if (rawKey == null || rawKey === '') return '';
+            const key = String(rawKey);
+            return capacityState.map.get(key) ?? key;
+        }
 
         /* =========================================================
            DB LIST
@@ -662,6 +796,7 @@
                 renderDbButtons();
                 setSync(false);
                 preloadCounts(state.dbNames);
+                loadCapacityLookup();
             } catch (err) {
                 $('dbButtons').innerHTML = '<span class="muted-sm">— تعذر تحميل القائمة —</span>';
                 toast('خطأ في تحميل القائمة: ' + err.message, 'error');
@@ -678,10 +813,11 @@
             for (const name of state.dbNames) {
                 const active = (!state.uploadAny && state.current === name) ? ' active' : '';
                 const cnt = state.counts[name];
+                const cached = hasCache(name) ? ' <span class="cached-dot" title="محفوظ في الذاكرة"></span>' : '';
                 parts.push(
                     `<button class="db-btn${active}" data-db="${esc(name)}">
                         <i class="fas fa-folder"></i> ${esc(name.replace(/_/g, ' '))}
-                        <span class="cnt">${cnt == null ? '…' : cnt}</span>
+                        <span class="cnt">${cnt == null ? '…' : cnt}</span>${cached}
                      </button>`
                 );
             }
@@ -697,6 +833,7 @@
             if (name === '__upload_any__') {
                 state.uploadAny = true;
                 state.current = null;
+                state.dataReady = false;
                 renderDbButtons();
 
                 $('emptyCard').hidden = true;
@@ -710,6 +847,7 @@
 
             state.uploadAny = false;
             state.current = name;
+            state.dataReady = false;
             renderDbButtons();
 
             $('emptyCard').hidden = true;
@@ -720,20 +858,21 @@
             $('dataTitle').textContent = name.replace(/_/g, ' ');
             resetUploadUI();
 
-            /* Reset both searches when switching DB */
             $('searchInput').value = '';
             $('subSearchInput').value = '';
             state.searchQuery = '';
             state.subSearchQuery = '';
             $('clearSearch').hidden = true;
             $('clearSubSearch').hidden = true;
+            $('searchInput').disabled = true;
+            $('subSearchInput').disabled = true;
 
-            await loadFirstPage();
+            await loadAllData();
             if (state.counts[name] == null) fetchCount(name);
         }
 
         /* =========================================================
-           PAGINATED LOADING
+           INDEX BUILDING
         ========================================================= */
         function addRecord(key, rec) {
             state.records.set(key, rec);
@@ -748,62 +887,130 @@
             for (const k in rec) {
                 const v = rec[k];
                 if (v != null && v !== '') s += v + ' ';
+
+                if (k === CAPACITY_FIELD && v != null && capacityState.map.size) {
+                    const resolved = capacityState.map.get(String(v));
+                    if (resolved) s += resolved + ' ';
+                }
             }
             return s.toLowerCase();
         }
 
         function deriveFields() {
+            const seen = new Set();
+            const fields = [];
+
             for (const key of state.order) {
                 const rec = state.records.get(key);
                 if (rec && typeof rec === 'object') {
-                    const f = Object.keys(rec);
-                    if (f.length) return f;
-                } else if (rec !== undefined) {
-                    return ['value'];
+                    for (const k of Object.keys(rec)) {
+                        if (!seen.has(k)) { seen.add(k); fields.push(k); }
+                    }
+                } else if (rec !== undefined && !seen.has('value')) {
+                    seen.add('value');
+                    fields.push('value');
                 }
             }
-            return [];
+            return fields;
         }
 
-        async function loadFirstPage() {
+        function resolveColumns() {
+            if (state.current === TRF_EXTRA_DB) {
+                return TRF_EXTRA_COLUMNS.slice();
+            }
+            return state.fields.length ? state.fields : deriveFields();
+        }
+
+        /* =========================================================
+           LOAD ALL DATA  —  cache-aware
+        ========================================================= */
+        async function loadAllData(options = {}) {
             if (!state.current) return;
 
+            const forceReload = !!options.force;
+
+            /* ---- Try cache first (unless forced) ---- */
+            if (!forceReload && hasCache(state.current)) {
+                restoreFromCache(state.current);
+                state.dataReady = true;
+
+                $('loadingBar').hidden = false;
+                $('loadingBar').classList.add('cached');
+                $('loadingText').textContent = `⚡ تم استرجاع ${state.order.length} سجل من الذاكرة`;
+                setTimeout(() => {
+                    $('loadingBar').hidden = true;
+                    $('loadingBar').classList.remove('cached');
+                }, 900);
+
+                renderTable();
+                $('searchInput').disabled = false;
+                $('subSearchInput').disabled = false;
+                return;
+            }
+
+            /* ---- Otherwise fetch from Firebase ---- */
             state.records.clear();
             state.order = [];
             state.searchIndex.clear();
             state.fields = [];
-            state.cursor = null;
-            state.hasMore = false;
+            state.dataReady = false;
             state.loading = true;
 
             setSync(true);
             $('tableHead').innerHTML = '';
             $('tableBody').innerHTML =
-                `<tr><td class="loading-cell" colspan="99">⏳ جاري تحميل البيانات…</td></tr>`;
+                `<tr><td class="loading-cell" colspan="99">⏳ جاري تحميل جميع البيانات…</td></tr>`;
             $('tableFoot').hidden = true;
+            $('loadingBar').hidden = false;
+            $('loadingBar').classList.remove('cached');
+            $('loadingText').textContent = 'جاري تحميل جميع البيانات…';
 
             try {
-                const q = query(
-                    ref(db, `${ROOT}/${state.current}`),
-                    orderByKey(),
-                    limitToLast(PAGE_SIZE + 1)
-                );
-                const snap = await get(q);
+                await loadCapacityLookup();
+
+                const snap = await get(ref(db, `${ROOT}/${state.current}`));
 
                 if (!snap.exists()) {
-                    state.hasMore = false;
-                } else {
-                    const val = snap.val();
-                    const keys = Object.keys(val).sort();
-                    state.cursor = keys[0];
-                    state.hasMore = keys.length > PAGE_SIZE;
-                    for (let i = keys.length - 1; i >= 0; i--) {
-                        addRecord(keys[i], val[keys[i]]);
-                    }
-                    state.fields = deriveFields();
+                    $('loadingBar').hidden = true;
+                    renderTable();
+                    state.dataReady = true;
+                    $('searchInput').disabled = false;
+                    $('subSearchInput').disabled = false;
+
+                    saveToCache(state.current);
+                    renderDbButtons();
+                    return;
                 }
+
+                const val = snap.val();
+                const keys = Object.keys(val).sort();
+
+                $('loadingText').textContent = `جاري فهرسة ${keys.length} سجل…`;
+
+                for (let i = keys.length - 1; i >= 0; i--) {
+                    addRecord(keys[i], val[keys[i]]);
+                }
+
+                state.fields = deriveFields();
+                state.dataReady = true;
+
+                saveToCache(state.current);
+
+                $('loadingBar').hidden = true;
                 renderTable();
+
+                $('searchInput').disabled = false;
+                $('subSearchInput').disabled = false;
+
+                const capInfo = capacityState.map.size
+                    ? ` • مرجع القدرة: ${capacityState.dbName}`
+                    : '';
+                toast(`✅ تم تحميل ${state.order.length} سجل${capInfo}`, 'success');
+
+                renderDbButtons();
+
             } catch (err) {
+                $('loadingBar').hidden = true;
                 $('tableBody').innerHTML =
                     `<tr><td class="empty-cell" colspan="99">تعذر تحميل البيانات: ${esc(err.message)}</td></tr>`;
                 toast('خطأ في التحميل: ' + err.message, 'error');
@@ -813,53 +1020,8 @@
             }
         }
 
-        async function loadMore() {
-            if (state.loading || !state.hasMore || !state.current) return;
-
-            state.loading = true;
-            const btn = $('loadMoreBtn');
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.textContent = 'جاري التحميل…';
-
-            try {
-                const q = query(
-                    ref(db, `${ROOT}/${state.current}`),
-                    orderByKey(),
-                    endAt(state.cursor),
-                    limitToLast(PAGE_SIZE + 1)
-                );
-                const snap = await get(q);
-
-                if (!snap.exists()) {
-                    state.hasMore = false;
-                } else {
-                    const val = snap.val();
-                    const keys = Object.keys(val).sort();
-                    const fresh = keys.filter(k => !state.records.has(k));
-
-                    if (fresh.length === 0) {
-                        state.hasMore = false;
-                    } else {
-                        state.cursor = fresh[0];
-                        state.hasMore = fresh.length >= PAGE_SIZE;
-                        for (let i = fresh.length - 1; i >= 0; i--) {
-                            addRecord(fresh[i], val[fresh[i]]);
-                        }
-                    }
-                }
-                renderTable();
-            } catch (err) {
-                toast('خطأ: ' + err.message, 'error');
-            } finally {
-                state.loading = false;
-                btn.disabled = false;
-                btn.innerHTML = original;
-            }
-        }
-
         /* =========================================================
-           TABLE RENDER — applies BOTH searches independently
+           TABLE RENDER
         ========================================================= */
         function renderTable() {
             const head = $('tableHead');
@@ -871,10 +1033,8 @@
 
             let keys = state.order;
 
-            /* Main filter */
             if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
-            /* Sub filter — applied on top, completely independent input */
-            if (qSub) keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+            if (qSub)  keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
 
             const total = state.order.length;
             const activeFilters = (qMain ? 1 : 0) + (qSub ? 1 : 0);
@@ -888,12 +1048,11 @@
                 body.innerHTML = `<tr><td class="empty-cell" colspan="99">${
                     activeFilters ? 'لا توجد نتائج مطابقة للفلاتر' : 'لا توجد بيانات في هذه القاعدة'
                 }</td></tr>`;
-                foot.hidden = !state.hasMore;
+                foot.hidden = true;
                 return;
             }
 
-            const fields = state.fields.length ? state.fields : deriveFields();
-            const shown = keys.slice(0, MAX_RENDER);
+            const fields = resolveColumns();
 
             const h = ['<tr><th>#</th>'];
             for (const f of fields) h.push(`<th>${esc(f)}</th>`);
@@ -901,8 +1060,8 @@
             head.innerHTML = h.join('');
 
             const out = [];
-            for (let i = 0; i < shown.length; i++) {
-                const key = shown[i];
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
                 const rec = state.records.get(key);
 
                 out.push('<tr>');
@@ -913,6 +1072,10 @@
                     if (rec && typeof rec === 'object') v = rec[f];
                     else if (f === 'value') v = rec;
                     else v = '';
+
+                    if (f === CAPACITY_FIELD && v != null && v !== '') {
+                        v = resolveCapacity(v);
+                    }
 
                     if (v === undefined || v === null) v = '';
                     else if (typeof v === 'object') v = JSON.stringify(v);
@@ -935,19 +1098,21 @@
             }
             body.innerHTML = out.join('');
 
-            foot.hidden = !state.hasMore;
+            foot.hidden = true;
         }
 
         /* =========================================================
-           SEARCH HANDLERS — two independent debounced listeners
+           SEARCH HANDLERS  (operate on cached / in-memory data)
         ========================================================= */
         const onMainSearch = debounce(() => {
+            if (!state.dataReady) return;
             state.searchQuery = $('searchInput').value.trim().toLowerCase();
             $('clearSearch').hidden = !state.searchQuery;
             renderTable();
         }, 180);
 
         const onSubSearch = debounce(() => {
+            if (!state.dataReady) return;
             state.subSearchQuery = $('subSearchInput').value.trim().toLowerCase();
             $('clearSubSearch').hidden = !state.subSearchQuery;
             renderTable();
@@ -995,12 +1160,16 @@
 
         function renderPreview(rows) {
             const wrap = $('previewWrap');
-            if (!rows.length) {
-                wrap.hidden = true;
-                return;
+            if (!rows.length) { wrap.hidden = true; return; }
+
+            const seen = new Set();
+            const fields = [];
+            for (const r of rows) {
+                for (const k in r) {
+                    if (!seen.has(k)) { seen.add(k); fields.push(k); }
+                }
             }
 
-            const fields = Object.keys(rows[0]);
             const limit = Math.min(rows.length, 30);
             const out = ['<table><thead><tr><th>#</th>'];
             for (const f of fields) out.push(`<th>${esc(f)}</th>`);
@@ -1045,19 +1214,13 @@
             if (state.saving) return;
 
             const rows = compress(state.fileRows);
-            if (!rows.length) {
-                toast('لا توجد بيانات صالحة للحفظ', 'error');
-                return;
-            }
+            if (!rows.length) { toast('لا توجد بيانات صالحة للحفظ', 'error'); return; }
 
             const target = state.uploadAny
                 ? $('uploadAnyPath').value.trim().replace(/^\/+|\/+$/g, '')
                 : `${ROOT}/${state.current}`;
 
-            if (!target) {
-                toast('يرجى إدخال المسار المستهدف', 'error');
-                return;
-            }
+            if (!target) { toast('يرجى إدخال المسار المستهدف', 'error'); return; }
 
             const confirm = await Swal.fire({
                 title: 'تأكيد الحفظ',
@@ -1086,7 +1249,6 @@
 
                 $('progressFill').style.width = '55%';
                 await update(targetRef, updates);
-
                 $('progressFill').style.width = '100%';
 
                 const secs = ((performance.now() - t0) / 1000).toFixed(1);
@@ -1095,10 +1257,18 @@
                 toast(`✅ تم حفظ ${rows.length} سجل في ${secs} ثانية`, 'success');
                 $('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
 
+                /* Invalidate cache for the target DB so next visit is fresh */
+                if (!state.uploadAny && state.current) {
+                    cache.delete(state.current);
+                } else {
+                    const tail = target.split('/').pop();
+                    if (tail) cache.delete(tail);
+                }
+
                 resetUploadUI();
 
                 if (!state.uploadAny && state.current) {
-                    await loadFirstPage();
+                    await loadAllData({ force: true });
                     fetchCount(state.current);
                 }
             } catch (err) {
@@ -1116,6 +1286,7 @@
            ADD / EDIT / DELETE
         ========================================================= */
         function currentFieldsForForm(rec) {
+            if (state.current === TRF_EXTRA_DB) return TRF_EXTRA_COLUMNS.slice();
             if (state.fields.length) return state.fields;
             if (rec && typeof rec === 'object') {
                 const f = Object.keys(rec);
@@ -1144,10 +1315,7 @@
         }
 
         async function addRecordDialog() {
-            if (!state.current) {
-                toast('اختر قاعدة بيانات أولاً', 'error');
-                return;
-            }
+            if (!state.current) { toast('اختر قاعدة بيانات أولاً', 'error'); return; }
             const fields = currentFieldsForForm(null);
 
             const res = await Swal.fire({
@@ -1174,7 +1342,8 @@
                 const collectionRef = ref(db, `${ROOT}/${state.current}`);
                 await set(push(collectionRef), res.value);
                 toast('✅ تمت إضافة السجل', 'success');
-                await loadFirstPage();
+                cache.delete(state.current);
+                await loadAllData({ force: true });
                 fetchCount(state.current);
             } catch (err) {
                 toast('خطأ: ' + err.message, 'error');
@@ -1210,8 +1379,14 @@
             try {
                 setSync(true);
                 await set(ref(db, `${ROOT}/${state.current}/${key}`), res.value);
+
+                /* Update the in-memory records & cache without reload */
+                state.records.set(key, res.value);
+                state.searchIndex.set(key, buildIndex(res.value));
+                saveToCache(state.current);
+
+                renderTable();
                 toast('✅ تم تحديث السجل', 'success');
-                await loadFirstPage();
             } catch (err) {
                 toast('خطأ: ' + err.message, 'error');
             } finally {
@@ -1240,6 +1415,8 @@
                 const idx = state.order.indexOf(key);
                 if (idx > -1) state.order.splice(idx, 1);
 
+                saveToCache(state.current);
+
                 renderTable();
                 toast('✅ تم حذف السجل', 'success');
                 fetchCount(state.current);
@@ -1251,7 +1428,7 @@
         }
 
         /* =========================================================
-           EXPORT — respects BOTH filters
+           EXPORT
         ========================================================= */
         async function exportExcel() {
             const qMain = state.searchQuery;
@@ -1259,22 +1436,23 @@
 
             let keys = state.order;
             if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
-            if (qSub) keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+            if (qSub)  keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
 
-            if (!keys.length) {
-                toast('لا توجد بيانات للتصدير', 'error');
-                return;
-            }
+            if (!keys.length) { toast('لا توجد بيانات للتصدير', 'error'); return; }
 
             try {
                 const XLSX = await loadXLSX();
-                const fields = state.fields.length ? state.fields : deriveFields();
+                const fields = resolveColumns();
 
                 const data = keys.map(k => {
                     const rec = state.records.get(k);
                     const row = { _key: k };
                     if (rec && typeof rec === 'object') {
-                        for (const f of fields) row[f] = rec[f] ?? '';
+                        for (const f of fields) {
+                            let v = rec[f] ?? '';
+                            if (f === CAPACITY_FIELD && v !== '') v = resolveCapacity(v);
+                            row[f] = v;
+                        }
                     } else {
                         row.value = rec;
                     }
@@ -1300,7 +1478,9 @@
         });
 
         $('refreshDbs').addEventListener('click', () => {
+            /* Full reset: DB list AND data cache */
             state.counts = {};
+            invalidateCache();
             loadReferenceDatabases();
         });
 
@@ -1312,15 +1492,14 @@
             else deleteRecordDialog(key);
         });
 
-        $('loadMoreBtn').addEventListener('click', loadMore);
         $('addBtn').addEventListener('click', addRecordDialog);
         $('exportBtn').addEventListener('click', exportExcel);
 
+        /* Reload button → force re-fetch from Firebase (bypasses cache) */
         $('reloadBtn').addEventListener('click', () => {
-            if (state.current) loadFirstPage();
+            if (state.current) loadAllData({ force: true });
         });
 
-        /* Main search */
         $('searchInput').addEventListener('input', onMainSearch);
         $('clearSearch').addEventListener('click', () => {
             $('searchInput').value = '';
@@ -1329,7 +1508,6 @@
             renderTable();
         });
 
-        /* Sub search (independent) */
         $('subSearchInput').addEventListener('input', onSubSearch);
         $('clearSubSearch').addEventListener('click', () => {
             $('subSearchInput').value = '';
@@ -1338,7 +1516,6 @@
             renderTable();
         });
 
-        /* Upload wiring */
         const dropzone = $('dropzone');
         dropzone.addEventListener('click', () => $('fileInput').click());
 
