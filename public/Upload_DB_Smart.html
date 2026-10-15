@@ -457,14 +457,14 @@
 
                     <div class="search main">
                         <i class="fas fa-magnifying-glass field-icon"></i>
-                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off" disabled>
+                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off">
                         <button class="clear" id="clearSearch" hidden><i class="fas fa-xmark"></i></button>
                     </div>
 
                     <div class="search sub">
                         <span class="badge">فرعي</span>
                         <i class="fas fa-filter field-icon"></i>
-                        <input id="subSearchInput" placeholder="فلتر فرعي مستقل…" autocomplete="off" disabled>
+                        <input id="subSearchInput" placeholder="فلتر فرعي مستقل…" autocomplete="off">
                         <button class="clear" id="clearSubSearch" hidden><i class="fas fa-xmark"></i></button>
                     </div>
 
@@ -645,6 +645,7 @@
             loading: false,
             dataReady: false,
 
+            /* ✅ البحث أصبح عاماً (global) — يبقى محفوظاً عند التنقل بين القواعد */
             searchQuery: '',
             subSearchQuery: '',
 
@@ -826,6 +827,7 @@
 
         /* =========================================================
            SELECT DATABASE
+           ✅ لا نمسح البحث — يبقى عاماً ويُطبَّق على القاعدة الجديدة
         ========================================================= */
         async function selectDb(name) {
             touch();
@@ -858,17 +860,45 @@
             $('dataTitle').textContent = name.replace(/_/g, ' ');
             resetUploadUI();
 
-            $('searchInput').value = '';
-            $('subSearchInput').value = '';
-            state.searchQuery = '';
-            state.subSearchQuery = '';
-            $('clearSearch').hidden = true;
-            $('clearSubSearch').hidden = true;
-            $('searchInput').disabled = true;
-            $('subSearchInput').disabled = true;
+            /* ✅ البحث يبقى كما هو (global) */
+            syncSearchUI();
 
             await loadAllData();
             if (state.counts[name] == null) fetchCount(name);
+        }
+
+        /* =========================================================
+           GLOBAL SEARCH HELPERS
+        ========================================================= */
+        function syncSearchUI() {
+            /* المزامنة بين حقول الإدخال والحالة الداخلية (بدون مسح) */
+            const mainVal = $('searchInput').value.trim();
+            const subVal = $('subSearchInput').value.trim();
+
+            state.searchQuery = mainVal.toLowerCase();
+            state.subSearchQuery = subVal.toLowerCase();
+
+            $('clearSearch').hidden = !mainVal;
+            $('clearSubSearch').hidden = !subVal;
+        }
+
+        function hasActiveFilters() {
+            return !!(state.searchQuery || state.subSearchQuery);
+        }
+
+        function filteredKeys() {
+            const qMain = state.searchQuery;
+            const qSub = state.subSearchQuery;
+
+            let keys = state.order;
+
+            if (qMain) {
+                keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qMain));
+            }
+            if (qSub) {
+                keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qSub));
+            }
+            return keys;
         }
 
         /* =========================================================
@@ -943,8 +973,7 @@
                 }, 900);
 
                 renderTable();
-                $('searchInput').disabled = false;
-                $('subSearchInput').disabled = false;
+                notifyFiltersApplied();
                 return;
             }
 
@@ -974,9 +1003,6 @@
                     $('loadingBar').hidden = true;
                     renderTable();
                     state.dataReady = true;
-                    $('searchInput').disabled = false;
-                    $('subSearchInput').disabled = false;
-
                     saveToCache(state.current);
                     renderDbButtons();
                     return;
@@ -999,15 +1025,13 @@
                 $('loadingBar').hidden = true;
                 renderTable();
 
-                $('searchInput').disabled = false;
-                $('subSearchInput').disabled = false;
-
                 const capInfo = capacityState.map.size
                     ? ` • مرجع القدرة: ${capacityState.dbName}`
                     : '';
                 toast(`✅ تم تحميل ${state.order.length} سجل${capInfo}`, 'success');
 
                 renderDbButtons();
+                notifyFiltersApplied();
 
             } catch (err) {
                 $('loadingBar').hidden = true;
@@ -1020,6 +1044,13 @@
             }
         }
 
+        /* إشعار صغير عند تطبيق بحث عام على قاعدة جديدة */
+        function notifyFiltersApplied() {
+            if (!hasActiveFilters()) return;
+            const n = filteredKeys().length;
+            toast(`🔎 تم تطبيق البحث على "${state.current.replace(/_/g, ' ')}" — ${n} نتيجة`, 'info', 2200);
+        }
+
         /* =========================================================
            TABLE RENDER
         ========================================================= */
@@ -1028,16 +1059,10 @@
             const body = $('tableBody');
             const foot = $('tableFoot');
 
-            const qMain = state.searchQuery;
-            const qSub = state.subSearchQuery;
-
-            let keys = state.order;
-
-            if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
-            if (qSub)  keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+            const keys = filteredKeys();
 
             const total = state.order.length;
-            const activeFilters = (qMain ? 1 : 0) + (qSub ? 1 : 0);
+            const activeFilters = (state.searchQuery ? 1 : 0) + (state.subSearchQuery ? 1 : 0);
 
             $('loadedChip').textContent = activeFilters
                 ? `${keys.length} / ${total}`
@@ -1103,19 +1128,18 @@
 
         /* =========================================================
            SEARCH HANDLERS  (operate on cached / in-memory data)
+           ✅ يخزّن النص حتى لو لم تُحمّل البيانات بعد
         ========================================================= */
         const onMainSearch = debounce(() => {
-            if (!state.dataReady) return;
             state.searchQuery = $('searchInput').value.trim().toLowerCase();
             $('clearSearch').hidden = !state.searchQuery;
-            renderTable();
+            if (state.dataReady) renderTable();
         }, 180);
 
         const onSubSearch = debounce(() => {
-            if (!state.dataReady) return;
             state.subSearchQuery = $('subSearchInput').value.trim().toLowerCase();
             $('clearSubSearch').hidden = !state.subSearchQuery;
-            renderTable();
+            if (state.dataReady) renderTable();
         }, 180);
 
         /* =========================================================
@@ -1257,7 +1281,6 @@
                 toast(`✅ تم حفظ ${rows.length} سجل في ${secs} ثانية`, 'success');
                 $('uploadStatus').textContent = `✅ تم الحفظ (${speed} سجل/ثانية)`;
 
-                /* Invalidate cache for the target DB so next visit is fresh */
                 if (!state.uploadAny && state.current) {
                     cache.delete(state.current);
                 } else {
@@ -1380,7 +1403,6 @@
                 setSync(true);
                 await set(ref(db, `${ROOT}/${state.current}/${key}`), res.value);
 
-                /* Update the in-memory records & cache without reload */
                 state.records.set(key, res.value);
                 state.searchIndex.set(key, buildIndex(res.value));
                 saveToCache(state.current);
@@ -1428,15 +1450,10 @@
         }
 
         /* =========================================================
-           EXPORT
+           EXPORT  —  ✅ يصدّر النتائج المفلترة الحالية
         ========================================================= */
         async function exportExcel() {
-            const qMain = state.searchQuery;
-            const qSub = state.subSearchQuery;
-
-            let keys = state.order;
-            if (qMain) keys = keys.filter(k => state.searchIndex.get(k).includes(qMain));
-            if (qSub)  keys = keys.filter(k => state.searchIndex.get(k).includes(qSub));
+            const keys = filteredKeys();
 
             if (!keys.length) { toast('لا توجد بيانات للتصدير', 'error'); return; }
 
@@ -1478,7 +1495,6 @@
         });
 
         $('refreshDbs').addEventListener('click', () => {
-            /* Full reset: DB list AND data cache */
             state.counts = {};
             invalidateCache();
             loadReferenceDatabases();
@@ -1495,7 +1511,6 @@
         $('addBtn').addEventListener('click', addRecordDialog);
         $('exportBtn').addEventListener('click', exportExcel);
 
-        /* Reload button → force re-fetch from Firebase (bypasses cache) */
         $('reloadBtn').addEventListener('click', () => {
             if (state.current) loadAllData({ force: true });
         });
