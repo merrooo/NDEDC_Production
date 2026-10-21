@@ -363,6 +363,41 @@
             opacity: 0.5;
         }
 
+        /* Custom Export Dropdown */
+        .export-dropdown .dropdown-menu {
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.25);
+            padding: 6px;
+            min-width: 240px;
+        }
+        .export-dropdown .dropdown-item {
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.15s;
+        }
+        .export-dropdown .dropdown-item:hover {
+            background: #f1f5f9;
+        }
+        .export-dropdown .dropdown-item .icon-wrap {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+        }
+        .export-dropdown .dropdown-item .icon-wrap.blue  { background: #eff6ff; color: #2563eb; }
+        .export-dropdown .dropdown-item .icon-wrap.green { background: #dcfce7; color: #166534; }
+        .export-dropdown .dropdown-item .icon-wrap.red   { background: #fee2e2; color: #991b1b; }
+
         @media (max-width: 768px) {
             .swap-icon { transform: rotate(90deg); }
         }
@@ -609,9 +644,45 @@
                         <i class="fas fa-table text-success me-2"></i>
                         Proximity Results (<span id="proxOutputCount">0</span> records)
                     </h5>
-                    <button type="button" id="proxExportBtn" class="btn btn-primary fw-bold">
-                        <i class="fas fa-file-excel me-1"></i> Download Excel
-                    </button>
+
+                    <!-- Export Dropdown -->
+                    <div class="dropdown export-dropdown">
+                        <button class="btn btn-primary fw-bold dropdown-toggle d-flex align-items-center gap-2"
+                                type="button" id="proxExportDropdown"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-excel"></i> Download Excel
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="proxExportDropdown">
+                            <li>
+                                <button class="dropdown-item" type="button" onclick="proxExportSelectedToExcel('all')">
+                                    <span class="icon-wrap blue"><i class="fas fa-table"></i></span>
+                                    <div>
+                                        <div>Export All (Color Coded)</div>
+                                        <small class="text-muted fw-normal">Matched green · Not matched red</small>
+                                    </div>
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button class="dropdown-item" type="button" onclick="proxExportSelectedToExcel('matched')">
+                                    <span class="icon-wrap green"><i class="fas fa-check-circle"></i></span>
+                                    <div>
+                                        <div>Export Matched Only</div>
+                                        <small class="text-muted fw-normal">All rows colored green</small>
+                                    </div>
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" type="button" onclick="proxExportSelectedToExcel('unmatched')">
+                                    <span class="icon-wrap red"><i class="fas fa-times-circle"></i></span>
+                                    <div>
+                                        <div>Export Not Matched Only</div>
+                                        <small class="text-muted fw-normal">All rows colored red</small>
+                                    </div>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
                 <div style="max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;">
                     <table class="table table-bordered table-sm m-0" id="proxResultsTable">
@@ -651,7 +722,8 @@
 
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ⚡ xlsx-js-style (fork of xlsx with full style support) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -694,6 +766,87 @@
                 `;
                 container.appendChild(wrapper);
             });
+        }
+
+        /* ============================================================
+           STYLED EXCEL BUILDER (shared for both modules)
+           mode: 'all' | 'matched' | 'unmatched'
+           ============================================================ */
+        function buildStyledSheet(headers, rows, statusKey, mode) {
+            /* Build AOA */
+            const aoa = [headers.slice()];
+            rows.forEach(r => {
+                aoa.push(headers.map(h => {
+                    const raw = r[h];
+                    const v = (raw === undefined || raw === null) ? '' : String(raw);
+                    if (/^\d{11,}$/.test(v)) return '\u200C' + v; // avoid scientific notation
+                    return v;
+                }));
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+            /* Column widths */
+            ws['!cols'] = headers.map(h => ({ wch: Math.min(Math.max(h.length + 2, 14), 42) }));
+
+            /* Header row style */
+            for (let c = 0; c < headers.length; c++) {
+                const addr = XLSX.utils.encode_cell({ r: 0, c });
+                if (!ws[addr]) continue;
+                ws[addr].s = {
+                    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                    fill: { patternType: 'solid', fgColor: { rgb: '1E293B' } },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: {
+                        top:    { style: 'thin', color: { rgb: '0F172A' } },
+                        bottom: { style: 'thin', color: { rgb: '0F172A' } },
+                        left:   { style: 'thin', color: { rgb: '0F172A' } },
+                        right:  { style: 'thin', color: { rgb: '0F172A' } }
+                    }
+                };
+            }
+
+            /* Data rows style */
+            const statusIdx = headers.indexOf(statusKey);
+            for (let i = 0; i < rows.length; i++) {
+                const rIdx = i + 1;
+                const statusVal = rows[i][statusKey] || '';
+                const isMatched = statusVal && statusVal !== '#N/A' && statusVal !== 'NO_MATCH';
+
+                let rowBg, statusBg, statusColor;
+                if (mode === 'matched') {
+                    rowBg = 'DCFCE7'; statusBg = '86EFAC'; statusColor = '166534';
+                } else if (mode === 'unmatched') {
+                    rowBg = 'FEE2E2'; statusBg = 'FCA5A5'; statusColor = '991B1B';
+                } else {
+                    rowBg = isMatched ? 'DCFCE7' : 'FEE2E2';
+                    statusBg = isMatched ? '86EFAC' : 'FCA5A5';
+                    statusColor = isMatched ? '166534' : '991B1B';
+                }
+
+                for (let c = 0; c < headers.length; c++) {
+                    const addr = XLSX.utils.encode_cell({ r: rIdx, c });
+                    if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+                    ws[addr].s = {
+                        fill: { patternType: 'solid', fgColor: { rgb: rowBg } },
+                        alignment: { vertical: 'center' },
+                        border: {
+                            top:    { style: 'thin', color: { rgb: 'E2E8F0' } },
+                            bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+                            left:   { style: 'thin', color: { rgb: 'E2E8F0' } },
+                            right:  { style: 'thin', color: { rgb: 'E2E8F0' } }
+                        }
+                    };
+
+                    if (c === statusIdx) {
+                        ws[addr].s.font = { bold: true, sz: 11, color: { rgb: statusColor } };
+                        ws[addr].s.alignment.horizontal = 'center';
+                        ws[addr].s.fill.fgColor.rgb = statusBg;
+                    }
+                }
+            }
+            return ws;
         }
 
         /* ============================================================
@@ -824,11 +977,25 @@
                 dom: 'Bfrtip',
                 buttons: [
                     {
-                        extend: 'excelHtml5',
-                        title: 'Smart_Merge_Results',
+                        /* ⚡ Export dropdown with 3 modes */
+                        extend: 'collection',
+                        text: '<i class="fas fa-file-excel me-1"></i> Export <i class="fas fa-caret-down ms-1"></i>',
                         className: 'btn btn-success btn-sm fw-bold',
-                        text: '<i class="fas fa-file-excel me-1"></i> Excel',
-                        exportOptions: { format: { body: (v) => (typeof v === 'string' && v.length > 10) ? '\u200C' + v : v } }
+                        autoClose: true,
+                        buttons: [
+                            {
+                                text: '<i class="fas fa-table me-2 text-primary"></i> Export All (Color Coded)',
+                                action: function () { smartExportExcel('all'); }
+                            },
+                            {
+                                text: '<i class="fas fa-check-circle me-2 text-success"></i> Export Matched Only',
+                                action: function () { smartExportExcel('matched'); }
+                            },
+                            {
+                                text: '<i class="fas fa-times-circle me-2 text-danger"></i> Export Not Matched Only',
+                                action: function () { smartExportExcel('unmatched'); }
+                            }
+                        ]
                     },
                     {
                         text: '<i class="fas fa-expand-arrows-alt me-1"></i> Fullscreen',
@@ -842,6 +1009,45 @@
         }
 
         /* ============================================================
+           SMART MERGE — STYLED EXCEL EXPORT
+           mode: 'all' | 'matched' | 'unmatched'
+           ============================================================ */
+        function smartExportExcel(mode = 'all') {
+            if (!smartResult || !smartResult.length) {
+                alert('No results to export. Run the merge first.');
+                return;
+            }
+
+            let rowsToExport, sheetName, filenameSuffix;
+            if (mode === 'matched') {
+                rowsToExport = smartResult.filter(r => r.Status && r.Status !== '#N/A');
+                sheetName = 'Matched_Only';
+                filenameSuffix = 'Matched';
+            } else if (mode === 'unmatched') {
+                rowsToExport = smartResult.filter(r => !r.Status || r.Status === '#N/A');
+                sheetName = 'Not_Matched_Only';
+                filenameSuffix = 'Not_Matched';
+            } else {
+                rowsToExport = smartResult;
+                sheetName = 'All_Results';
+                filenameSuffix = 'All';
+            }
+
+            if (!rowsToExport.length) {
+                alert(`No ${filenameSuffix.toLowerCase()} rows to export.`);
+                return;
+            }
+
+            const headers = Object.keys(smartResult[0]);
+            const ws = buildStyledSheet(headers, rowsToExport, 'Status', mode);
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            const filename = `Smart_Merge_${filenameSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, filename, { cellStyles: true });
+        }
+
+        /* ============================================================
            PROCESS 2: PROXIMITY RANGE MERGE
            ============================================================ */
         let proxMasterData = [], proxSearchData = [];
@@ -851,7 +1057,7 @@
         document.getElementById('proxMasterFile').addEventListener('change', (e) => proxParseExcel(e, 'master'), false);
         document.getElementById('proxSearchFile').addEventListener('change', (e) => proxParseExcel(e, 'search'), false);
         document.getElementById('proxProcessBtn').addEventListener('click', proxExecuteRangeMerge, false);
-        document.getElementById('proxExportBtn').addEventListener('click', proxExportSelectedToExcel, false);
+        /* proxExportBtn was replaced by dropdown — no direct listener needed */
 
         function proxParseExcel(e, fileType) {
             const file = e.target.files[0];
@@ -1007,7 +1213,6 @@
                 activeColumns.push({ id: '_system_offset', title: 'Proximity_Offset' });
             }
             document.querySelectorAll('.column-chk:checked').forEach(chk => {
-                // Only prox checkboxes
                 if (!chk.classList.contains('master-chk') && !chk.classList.contains('search-chk')) return;
                 const fileType = chk.getAttribute('data-file');
                 const colName = chk.getAttribute('data-col');
@@ -1057,21 +1262,54 @@
             proxLogStatus('Done! Processed records based on specified directional lookup rules.', 'success');
         }
 
-        function proxExportSelectedToExcel() {
+        /* ============================================================
+           PROXIMITY — STYLED EXCEL EXPORT (with mode)
+           mode: 'all' | 'matched' | 'unmatched'
+           ============================================================ */
+        function proxExportSelectedToExcel(mode = 'all') {
             if (proxResults.length === 0) return;
+
             const activeCols = proxGetSelectedColumns();
             if (activeCols.length === 0) { alert('Please check column boxes first.'); return; }
 
-            const exportedRows = proxResults.map(row => {
-                let cleanedRow = {};
-                activeCols.forEach(col => { cleanedRow[col.title] = row[col.id]; });
-                return cleanedRow;
+            let rowsToExport, sheetName, filenameSuffix;
+            if (mode === 'matched') {
+                rowsToExport = proxResults.filter(r => r._system_status === 'MATCHED');
+                sheetName = 'Matched_Only';
+                filenameSuffix = 'Matched';
+            } else if (mode === 'unmatched') {
+                rowsToExport = proxResults.filter(r => r._system_status !== 'MATCHED');
+                sheetName = 'Not_Matched_Only';
+                filenameSuffix = 'Not_Matched';
+            } else {
+                rowsToExport = proxResults;
+                sheetName = 'Proximity_All';
+                filenameSuffix = 'All';
+            }
+
+            if (!rowsToExport.length) {
+                alert(`No ${filenameSuffix.toLowerCase()} rows to export.`);
+                return;
+            }
+
+            /* --- Build headers/rows aligned to selected columns --- */
+            const headers = activeCols.map(c => c.title);
+            const statusKey = 'Merge_Status';
+
+            const alignedRows = rowsToExport.map(row => {
+                const obj = {};
+                activeCols.forEach(col => {
+                    obj[col.title] = row[col.id];
+                });
+                return obj;
             });
 
-            const ws = XLSX.utils.json_to_sheet(exportedRows);
+            const ws = buildStyledSheet(headers, alignedRows, statusKey, mode);
+
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Proximity_Outputs');
-            XLSX.writeFile(wb, 'Focused_Proximity_Output.xlsx');
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            const filename = `Proximity_${filenameSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, filename, { cellStyles: true });
         }
 
         function proxLogStatus(msg, type) {
