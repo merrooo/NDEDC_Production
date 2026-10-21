@@ -457,7 +457,7 @@
 
                     <div class="search main">
                         <i class="fas fa-magnifying-glass field-icon"></i>
-                        <input id="searchInput" placeholder="بحث رئيسي…" autocomplete="off">
+                        <input id="searchInput" placeholder="بحث رئيسي… (Enter للبحث الفوري)" autocomplete="off">
                         <button class="clear" id="clearSearch" hidden><i class="fas fa-xmark"></i></button>
                     </div>
 
@@ -522,34 +522,28 @@
         const ROOT = 'reference_data';
 
         /* =========================================================
+           PAGINATION
+        ========================================================= */
+        const PAGE_SIZE = 100;           // عدد الصفوف المرسومة في المرة
+        const INDEX_CHUNK = 300;         // عدد السجلات المفهرسة قبل إعطاء المتصفح فرصة
+        const SEARCH_DEBOUNCE = 400;     // انتظار 400ms بعد آخر ضغطة قبل البحث
+
+        /* =========================================================
            FIXED COLUMNS FOR trf_code_extra
         ========================================================= */
         const TRF_EXTRA_DB = 'trf_code_extra';
         const TRF_EXTRA_COLUMNS = [
-            'Handsa Code',
-            'Handsa Name',
-            'Keta3 Code',
-            'keta3',
-            'lat',
-            'lng',
-            'trf_name',
-            'G-P',
-            'dp_name',
-            'sub_name',
-            'trf_capacity',
-            'cell_name'
+            'Handsa Code', 'Handsa Name', 'Keta3 Code', 'keta3',
+            'lat', 'lng', 'trf_name', 'G-P', 'dp_name',
+            'sub_name', 'trf_capacity', 'cell_name'
         ];
 
         /* =========================================================
            CAPACITY REFERENCE DB
         ========================================================= */
         const CAPACITY_DB_CANDIDATES = [
-            'transformer_capacity',
-            'transformer_capacities',
-            'trf_capacity',
-            'trf_capacities',
-            'capacities',
-            'capacity'
+            'transformer_capacity', 'transformer_capacities', 'trf_capacity',
+            'trf_capacities', 'capacities', 'capacity'
         ];
         const CAPACITY_FIELD = 'trf_capacity';
 
@@ -560,6 +554,8 @@
 
         const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]);
+
+        const nextTick = () => new Promise(r => setTimeout(r, 0));
 
         function debounce(fn, wait) {
             let t;
@@ -645,16 +641,20 @@
             loading: false,
             dataReady: false,
 
-            /* ✅ البحث أصبح عاماً (global) — يبقى محفوظاً عند التنقل بين القواعد */
+            /* البحث عام ويبقى عند التنقل */
             searchQuery: '',
             subSearchQuery: '',
+
+            /* ✅ حالة الـ Pagination */
+            renderedCount: 0,
+            lastFilteredKeyCount: 0,
 
             fileRows: [],
             saving: false
         };
 
         /* =========================================================
-           CACHE  —  dbName → { records, order, searchIndex, fields }
+           CACHE
         ========================================================= */
         const cache = new Map();
 
@@ -688,19 +688,13 @@
         /* =========================================================
            CAPACITY REFERENCE STATE
         ========================================================= */
-        const capacityState = {
-            map: new Map(),
-            loaded: false,
-            loading: false,
-            dbName: null
-        };
+        const capacityState = { map: new Map(), loaded: false, loading: false, dbName: null };
 
         function findCapacityDbName() {
             for (const c of CAPACITY_DB_CANDIDATES) {
                 if (state.dbNames.includes(c)) return c;
             }
-            const loose = state.dbNames.find(n => /capacit/i.test(n));
-            return loose || null;
+            return state.dbNames.find(n => /capacit/i.test(n)) || null;
         }
 
         async function loadCapacityLookup() {
@@ -709,13 +703,11 @@
                 while (capacityState.loading) await new Promise(r => setTimeout(r, 50));
                 return;
             }
-
             const name = findCapacityDbName();
             if (!name) { capacityState.loaded = true; return; }
 
             capacityState.loading = true;
             capacityState.dbName = name;
-
             try {
                 const snap = await get(ref(db, `${ROOT}/${name}`));
                 if (snap.exists()) {
@@ -724,17 +716,9 @@
                         const rec = val[k];
                         let display;
                         if (rec && typeof rec === 'object') {
-                            display =
-                                rec.capacity ??
-                                rec.name ??
-                                rec.value ??
-                                rec.capacity_value ??
-                                rec.label ??
-                                rec.title ??
-                                Object.values(rec).find(
-                                    x => typeof x === 'string' || typeof x === 'number'
-                                ) ??
-                                '';
+                            display = rec.capacity ?? rec.name ?? rec.value ??
+                                rec.capacity_value ?? rec.label ?? rec.title ??
+                                Object.values(rec).find(x => typeof x === 'string' || typeof x === 'number') ?? '';
                         } else {
                             display = rec;
                         }
@@ -752,8 +736,7 @@
 
         function resolveCapacity(rawKey) {
             if (rawKey == null || rawKey === '') return '';
-            const key = String(rawKey);
-            return capacityState.map.get(key) ?? key;
+            return capacityState.map.get(String(rawKey)) ?? String(rawKey);
         }
 
         /* =========================================================
@@ -773,7 +756,7 @@
                 const data = await res.json();
                 state.counts[name] = data ? Object.keys(data).length : 0;
                 updateCountBadge(name);
-            } catch (_) { /* silent */ }
+            } catch (_) { }
         }
 
         function updateCountBadge(name) {
@@ -783,9 +766,7 @@
 
         async function preloadCounts(names) {
             const queue = [...names];
-            const worker = async () => {
-                while (queue.length) await fetchCount(queue.shift());
-            };
+            const worker = async () => { while (queue.length) await fetchCount(queue.shift()); };
             await Promise.all([worker(), worker(), worker()]);
         }
 
@@ -827,7 +808,6 @@
 
         /* =========================================================
            SELECT DATABASE
-           ✅ لا نمسح البحث — يبقى عاماً ويُطبَّق على القاعدة الجديدة
         ========================================================= */
         async function selectDb(name) {
             touch();
@@ -837,7 +817,6 @@
                 state.current = null;
                 state.dataReady = false;
                 renderDbButtons();
-
                 $('emptyCard').hidden = true;
                 $('uploadCard').hidden = false;
                 $('dataCard').hidden = true;
@@ -860,7 +839,6 @@
             $('dataTitle').textContent = name.replace(/_/g, ' ');
             resetUploadUI();
 
-            /* ✅ البحث يبقى كما هو (global) */
             syncSearchUI();
 
             await loadAllData();
@@ -871,13 +849,10 @@
            GLOBAL SEARCH HELPERS
         ========================================================= */
         function syncSearchUI() {
-            /* المزامنة بين حقول الإدخال والحالة الداخلية (بدون مسح) */
             const mainVal = $('searchInput').value.trim();
             const subVal = $('subSearchInput').value.trim();
-
             state.searchQuery = mainVal.toLowerCase();
             state.subSearchQuery = subVal.toLowerCase();
-
             $('clearSearch').hidden = !mainVal;
             $('clearSubSearch').hidden = !subVal;
         }
@@ -889,15 +864,9 @@
         function filteredKeys() {
             const qMain = state.searchQuery;
             const qSub = state.subSearchQuery;
-
             let keys = state.order;
-
-            if (qMain) {
-                keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qMain));
-            }
-            if (qSub) {
-                keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qSub));
-            }
+            if (qMain) keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qMain));
+            if (qSub) keys = keys.filter(k => (state.searchIndex.get(k) || '').includes(qSub));
             return keys;
         }
 
@@ -917,7 +886,6 @@
             for (const k in rec) {
                 const v = rec[k];
                 if (v != null && v !== '') s += v + ' ';
-
                 if (k === CAPACITY_FIELD && v != null && capacityState.map.size) {
                     const resolved = capacityState.map.get(String(v));
                     if (resolved) s += resolved + ' ';
@@ -929,7 +897,6 @@
         function deriveFields() {
             const seen = new Set();
             const fields = [];
-
             for (const key of state.order) {
                 const rec = state.records.get(key);
                 if (rec && typeof rec === 'object') {
@@ -937,29 +904,25 @@
                         if (!seen.has(k)) { seen.add(k); fields.push(k); }
                     }
                 } else if (rec !== undefined && !seen.has('value')) {
-                    seen.add('value');
-                    fields.push('value');
+                    seen.add('value'); fields.push('value');
                 }
             }
             return fields;
         }
 
         function resolveColumns() {
-            if (state.current === TRF_EXTRA_DB) {
-                return TRF_EXTRA_COLUMNS.slice();
-            }
+            if (state.current === TRF_EXTRA_DB) return TRF_EXTRA_COLUMNS.slice();
             return state.fields.length ? state.fields : deriveFields();
         }
 
         /* =========================================================
-           LOAD ALL DATA  —  cache-aware
+           LOAD ALL DATA — chunked indexing
         ========================================================= */
         async function loadAllData(options = {}) {
             if (!state.current) return;
-
             const forceReload = !!options.force;
 
-            /* ---- Try cache first (unless forced) ---- */
+            /* --- Cache first --- */
             if (!forceReload && hasCache(state.current)) {
                 restoreFromCache(state.current);
                 state.dataReady = true;
@@ -977,18 +940,18 @@
                 return;
             }
 
-            /* ---- Otherwise fetch from Firebase ---- */
+            /* --- Reset --- */
             state.records.clear();
             state.order = [];
             state.searchIndex.clear();
             state.fields = [];
             state.dataReady = false;
             state.loading = true;
+            state.renderedCount = 0;
 
             setSync(true);
             $('tableHead').innerHTML = '';
-            $('tableBody').innerHTML =
-                `<tr><td class="loading-cell" colspan="99">⏳ جاري تحميل جميع البيانات…</td></tr>`;
+            $('tableBody').innerHTML = `<tr><td class="loading-cell" colspan="99">⏳ جاري تحميل جميع البيانات…</td></tr>`;
             $('tableFoot').hidden = true;
             $('loadingBar').hidden = false;
             $('loadingBar').classList.remove('cached');
@@ -1001,33 +964,40 @@
 
                 if (!snap.exists()) {
                     $('loadingBar').hidden = true;
-                    renderTable();
                     state.dataReady = true;
                     saveToCache(state.current);
+                    renderTable();
                     renderDbButtons();
                     return;
                 }
 
                 const val = snap.val();
-                const keys = Object.keys(val).sort();
+                /* الأحدث أولاً (Firebase push keys = ترتيب زمني) */
+                const keys = Object.keys(val).reverse();
+                const total = keys.length;
 
-                $('loadingText').textContent = `جاري فهرسة ${keys.length} سجل…`;
+                $('loadingText').textContent = `جاري فهرسة ${total} سجل…`;
 
-                for (let i = keys.length - 1; i >= 0; i--) {
-                    addRecord(keys[i], val[keys[i]]);
+                /* ✅ فهرسة على دفعات — كل دفعة تُعطي المتصفح فرصة للتنفس */
+                for (let i = 0; i < total; i += INDEX_CHUNK) {
+                    const end = Math.min(i + INDEX_CHUNK, total);
+                    for (let j = i; j < end; j++) {
+                        addRecord(keys[j], val[keys[j]]);
+                    }
+                    if (end < total) {
+                        $('loadingText').textContent = `جاري فهرسة ${end} / ${total}…`;
+                        await nextTick();
+                    }
                 }
 
                 state.fields = deriveFields();
                 state.dataReady = true;
-
                 saveToCache(state.current);
 
                 $('loadingBar').hidden = true;
                 renderTable();
 
-                const capInfo = capacityState.map.size
-                    ? ` • مرجع القدرة: ${capacityState.dbName}`
-                    : '';
+                const capInfo = capacityState.map.size ? ` • مرجع القدرة: ${capacityState.dbName}` : '';
                 toast(`✅ تم تحميل ${state.order.length} سجل${capInfo}`, 'success');
 
                 renderDbButtons();
@@ -1044,7 +1014,6 @@
             }
         }
 
-        /* إشعار صغير عند تطبيق بحث عام على قاعدة جديدة */
         function notifyFiltersApplied() {
             if (!hasActiveFilters()) return;
             const n = filteredKeys().length;
@@ -1052,15 +1021,14 @@
         }
 
         /* =========================================================
-           TABLE RENDER
+           TABLE RENDER — with pagination
         ========================================================= */
-        function renderTable() {
+        function renderTable(append = false) {
             const head = $('tableHead');
             const body = $('tableBody');
             const foot = $('tableFoot');
 
             const keys = filteredKeys();
-
             const total = state.order.length;
             const activeFilters = (state.searchQuery ? 1 : 0) + (state.subSearchQuery ? 1 : 0);
 
@@ -1074,18 +1042,29 @@
                     activeFilters ? 'لا توجد نتائج مطابقة للفلاتر' : 'لا توجد بيانات في هذه القاعدة'
                 }</td></tr>`;
                 foot.hidden = true;
+                state.renderedCount = 0;
+                state.lastFilteredKeyCount = 0;
                 return;
             }
 
             const fields = resolveColumns();
 
-            const h = ['<tr><th>#</th>'];
-            for (const f of fields) h.push(`<th>${esc(f)}</th>`);
-            h.push('<th></th></tr>');
-            head.innerHTML = h.join('');
+            /* --- Head + reset (فقط عند أول رسم أو عند تغيّر الفلتر) --- */
+            if (!append) {
+                const h = ['<tr><th>#</th>'];
+                for (const f of fields) h.push(`<th>${esc(f)}</th>`);
+                h.push('<th></th></tr>');
+                head.innerHTML = h.join('');
+                body.innerHTML = '';
+                state.renderedCount = 0;
+            }
+
+            /* --- Slice --- */
+            const start = state.renderedCount;
+            const end = Math.min(start + PAGE_SIZE, keys.length);
 
             const out = [];
-            for (let i = 0; i < keys.length; i++) {
+            for (let i = start; i < end; i++) {
                 const key = keys[i];
                 const rec = state.records.get(key);
 
@@ -1098,9 +1077,7 @@
                     else if (f === 'value') v = rec;
                     else v = '';
 
-                    if (f === CAPACITY_FIELD && v != null && v !== '') {
-                        v = resolveCapacity(v);
-                    }
+                    if (f === CAPACITY_FIELD && v != null && v !== '') v = resolveCapacity(v);
 
                     if (v === undefined || v === null) v = '';
                     else if (typeof v === 'object') v = JSON.stringify(v);
@@ -1121,26 +1098,35 @@
                 );
                 out.push('</tr>');
             }
-            body.innerHTML = out.join('');
 
-            foot.hidden = true;
+            body.insertAdjacentHTML('beforeend', out.join(''));
+            state.renderedCount = end;
+            state.lastFilteredKeyCount = keys.length;
+
+            /* --- Load More button --- */
+            if (end < keys.length) {
+                foot.hidden = false;
+                $('loadMoreBtn').innerHTML =
+                    `<i class="fas fa-chevron-down"></i> عرض المزيد (${keys.length - end} متبقي)`;
+            } else {
+                foot.hidden = true;
+            }
         }
 
         /* =========================================================
-           SEARCH HANDLERS  (operate on cached / in-memory data)
-           ✅ يخزّن النص حتى لو لم تُحمّل البيانات بعد
+           SEARCH HANDLERS  (debounced 400ms + Enter)
         ========================================================= */
         const onMainSearch = debounce(() => {
             state.searchQuery = $('searchInput').value.trim().toLowerCase();
             $('clearSearch').hidden = !state.searchQuery;
             if (state.dataReady) renderTable();
-        }, 180);
+        }, SEARCH_DEBOUNCE);
 
         const onSubSearch = debounce(() => {
             state.subSearchQuery = $('subSearchInput').value.trim().toLowerCase();
             $('clearSubSearch').hidden = !state.subSearchQuery;
             if (state.dataReady) renderTable();
-        }, 180);
+        }, SEARCH_DEBOUNCE);
 
         /* =========================================================
            UPLOAD
@@ -1188,11 +1174,7 @@
 
             const seen = new Set();
             const fields = [];
-            for (const r of rows) {
-                for (const k in r) {
-                    if (!seen.has(k)) { seen.add(k); fields.push(k); }
-                }
-            }
+            for (const r of rows) for (const k in r) if (!seen.has(k)) { seen.add(k); fields.push(k); }
 
             const limit = Math.min(rows.length, 30);
             const out = ['<table><thead><tr><th>#</th>'];
@@ -1402,11 +1384,9 @@
             try {
                 setSync(true);
                 await set(ref(db, `${ROOT}/${state.current}/${key}`), res.value);
-
                 state.records.set(key, res.value);
                 state.searchIndex.set(key, buildIndex(res.value));
                 saveToCache(state.current);
-
                 renderTable();
                 toast('✅ تم تحديث السجل', 'success');
             } catch (err) {
@@ -1431,14 +1411,11 @@
             try {
                 setSync(true);
                 await remove(ref(db, `${ROOT}/${state.current}/${key}`));
-
                 state.records.delete(key);
                 state.searchIndex.delete(key);
                 const idx = state.order.indexOf(key);
                 if (idx > -1) state.order.splice(idx, 1);
-
                 saveToCache(state.current);
-
                 renderTable();
                 toast('✅ تم حذف السجل', 'success');
                 fetchCount(state.current);
@@ -1450,11 +1427,10 @@
         }
 
         /* =========================================================
-           EXPORT  —  ✅ يصدّر النتائج المفلترة الحالية
+           EXPORT
         ========================================================= */
         async function exportExcel() {
             const keys = filteredKeys();
-
             if (!keys.length) { toast('لا توجد بيانات للتصدير', 'error'); return; }
 
             try {
@@ -1515,7 +1491,18 @@
             if (state.current) loadAllData({ force: true });
         });
 
+        /* ✅ Load More */
+        $('loadMoreBtn').addEventListener('click', () => renderTable(true));
+
+        /* ✅ Search + Enter */
         $('searchInput').addEventListener('input', onMainSearch);
+        $('searchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                state.searchQuery = e.target.value.trim().toLowerCase();
+                $('clearSearch').hidden = !state.searchQuery;
+                if (state.dataReady) renderTable();
+            }
+        });
         $('clearSearch').addEventListener('click', () => {
             $('searchInput').value = '';
             state.searchQuery = '';
@@ -1524,6 +1511,13 @@
         });
 
         $('subSearchInput').addEventListener('input', onSubSearch);
+        $('subSearchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                state.subSearchQuery = e.target.value.trim().toLowerCase();
+                $('clearSubSearch').hidden = !state.subSearchQuery;
+                if (state.dataReady) renderTable();
+            }
+        });
         $('clearSubSearch').addEventListener('click', () => {
             $('subSearchInput').value = '';
             state.subSearchQuery = '';
