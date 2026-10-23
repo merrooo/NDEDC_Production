@@ -37,7 +37,6 @@
 
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
 
-        /* TOOLBAR */
         .top-toolbar {
             background: var(--bg-card);
             border-bottom: 1px solid var(--border);
@@ -158,6 +157,38 @@
         }
         .file-label-btn:hover { background: #f1f5f9; border-color: var(--primary); color: var(--primary); }
 
+        .global-search-input {
+            padding: 5px 9px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 11.5px;
+            font-family: inherit;
+            width: 170px;
+            outline: none;
+            transition: all 0.15s;
+            background: white;
+            color: var(--text-dark);
+        }
+        .global-search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(34, 24, 228, 0.15);
+            width: 220px;
+        }
+        .global-search-input::placeholder { color: var(--text-muted); }
+        .clear-search-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 3px 6px;
+            font-size: 13px;
+            line-height: 1;
+            border-radius: 4px;
+            display: none;
+        }
+        .clear-search-btn.visible { display: inline-flex; }
+        .clear-search-btn:hover { background: #f1f5f9; color: var(--danger); }
+
         .toolbar-info {
             display: flex;
             align-items: center;
@@ -204,7 +235,6 @@
             white-space: nowrap;
         }
 
-        /* GRID */
         .grid-area {
             flex: 1;
             display: flex;
@@ -314,6 +344,11 @@
 
         tbody tr:hover td { background: #f8fafc; }
 
+        td.search-match {
+            background: #fef3c7 !important;
+            font-weight: 600;
+        }
+
         .checkbox-col { width: 32px; text-align: center; padding: 0; cursor: default; }
 
         .row-num-col {
@@ -384,7 +419,6 @@
             background: white;
         }
 
-        /* BOTTOM BAR WITH PAGINATION */
         .bottom-bar {
             display: flex;
             align-items: center;
@@ -416,7 +450,6 @@
 
         .fill-hint { font-size: 9px; color: var(--text-muted); font-style: italic; }
 
-        /* PAGINATION */
         .pagination {
             display: flex;
             align-items: center;
@@ -480,7 +513,6 @@
             font-weight: 700;
         }
 
-        /* LOG */
         .log-section {
             background: #0f172a;
             color: #cbd5e1;
@@ -516,7 +548,6 @@
         .log-warning { color: #fbbf24; }
         .log-error { color: #f87171; }
 
-        /* FILTER POPUP */
         .filter-popup {
             position: fixed;
             z-index: 10000;
@@ -639,12 +670,24 @@
             font-family: inherit;
             border: none;
         }
-        .filter-apply-btn { background: var(--primary); color: white; }
-        .filter-apply-btn:hover { background: var(--primary-hover); }
+        .filter-apply-btn { background: var(--success); color: white; }
+        .filter-apply-btn:hover { background: #047857; }
         .filter-cancel-btn { background: white; color: var(--text-dark); border: 1px solid var(--border); }
         .filter-cancel-btn:hover { background: #f1f5f9; }
 
-        /* Loading */
+        /* ★ Preview hint inside popup */
+        .filter-preview-hint {
+            padding: 4px 8px;
+            background: #eff6ff;
+            border-bottom: 1px solid #dbeafe;
+            font-size: 10px;
+            color: var(--primary);
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+        .filter-preview-hint.active { display: block; }
+
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -702,6 +745,13 @@
                     <label for="excelFile" class="file-label-btn">📁 Upload</label>
                     <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display:none;">
                     <button id="exportBtn" class="tb-btn primary" disabled>💾 Export</button>
+                </div>
+
+                <div class="action-group">
+                    <span class="action-group-label">Search</span>
+                    <input type="text" id="globalSearchInput" class="global-search-input"
+                        placeholder="🔍 Search all columns..." autocomplete="off" spellcheck="false">
+                    <button type="button" id="clearSearchBtn" class="clear-search-btn" title="Clear search">✕</button>
                 </div>
 
                 <div class="action-group">
@@ -772,7 +822,10 @@
             <span class="count" id="filterCount">0</span>
         </div>
         <div class="filter-search-wrap">
-            <input type="text" class="filter-search" id="filterSearch" placeholder="🔍 Search...">
+            <input type="text" class="filter-search" id="filterSearch" placeholder="🔍 Search values...">
+        </div>
+        <div class="filter-preview-hint" id="filterPreviewHint">
+            ⚡ Live preview — table updates as you type/check
         </div>
         <div class="filter-popup-actions">
             <button type="button" id="filterSelectAllBtn">All</button>
@@ -780,8 +833,8 @@
         </div>
         <div class="filter-popup-list" id="filterList"></div>
         <div class="filter-popup-footer">
-            <button type="button" class="filter-apply-btn" id="filterApplyBtn">Apply</button>
-            <button type="button" class="filter-cancel-btn" id="filterCancelBtn">Cancel</button>
+            <button type="button" class="filter-apply-btn" id="filterApplyBtn">✓ Done</button>
+            <button type="button" class="filter-cancel-btn" id="filterCancelBtn">↺ Cancel</button>
         </div>
     </div>
 
@@ -801,6 +854,7 @@
         const MIN_ROW_HEIGHT = 20;
         const MAX_ROW_HEIGHT = 200;
         const FILTER_LIST_CAP = 300;
+        const SEARCH_DEBOUNCE_MS = 200;
 
         /* ============================================================
            STATE
@@ -826,6 +880,18 @@
 
         let currentPage = 1;
         let totalPages = 1;
+
+        let globalSearchTerm = '';
+        let searchDebounceTimer = null;
+
+        let currentFilterValues = [];
+        let currentFilterCounts = null;
+
+        /* ★ NEW: snapshot of active filters when popup opens (for Cancel) */
+        let filterOriginalState = null;
+
+        /* ★ NEW: live text filter while in popup — separate from checkbox filters */
+        let pendingFilterSearchText = '';
 
         /* ============================================================
            DOM
@@ -855,6 +921,9 @@
         const fillHandle = document.getElementById("fillHandle");
         const paginationControls = document.getElementById("paginationControls");
 
+        const globalSearchInput = document.getElementById("globalSearchInput");
+        const clearSearchBtn = document.getElementById("clearSearchBtn");
+
         const filterPopup = document.getElementById("filterPopup");
         const filterColName = document.getElementById("filterColName");
         const filterCount = document.getElementById("filterCount");
@@ -864,6 +933,7 @@
         const filterClearBtn = document.getElementById("filterClearBtn");
         const filterApplyBtn = document.getElementById("filterApplyBtn");
         const filterCancelBtn = document.getElementById("filterCancelBtn");
+        const filterPreviewHint = document.getElementById("filterPreviewHint");
 
         /* ============================================================
            HELPERS
@@ -947,7 +1017,7 @@
         }
 
         /* ============================================================
-           FILTERS
+           FILTERS + GLOBAL SEARCH
            ============================================================ */
         function invalidateUniqueCache(colIdx) {
             if (colIdx !== undefined && colIdx !== null) uniqueCache.delete(colIdx);
@@ -975,24 +1045,43 @@
         }
 
         function recomputeFilteredIndices() {
-            if (activeFilters.size === 0) {
+            const hasSearch = globalSearchTerm !== '';
+            if (activeFilters.size === 0 && !hasSearch) {
                 filteredRowIndices = null;
                 updateFilterBadge();
                 return;
             }
             const n = currentGridData.length;
             const filters = Array.from(activeFilters.entries());
+            const searchLower = globalSearchTerm.toLowerCase();
+            const headers = currentHeaders;
+            const headersLen = headers.length;
             const result = [];
             for (let i = 0; i < n; i++) {
                 const row = currentGridData[i];
                 let pass = true;
+
                 for (let f = 0; f < filters.length; f++) {
                     const [colIdx, allowed] = filters[f];
-                    const h = currentHeaders[colIdx];
+                    const h = headers[colIdx];
                     const v = row[h];
                     const key = (v === undefined || v === null) ? "" : String(v);
                     if (!allowed.has(key)) { pass = false; break; }
                 }
+                if (!pass) continue;
+
+                if (searchLower) {
+                    let found = false;
+                    for (let c = 0; c < headersLen; c++) {
+                        const v = row[headers[c]];
+                        if (v !== undefined && v !== null && String(v).toLowerCase().includes(searchLower)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) pass = false;
+                }
+
                 if (pass) result.push(i);
             }
             filteredRowIndices = result;
@@ -1008,23 +1097,33 @@
         }
 
         function updateFilterBadge() {
-            const count = activeFilters.size;
+            const hasSearch = globalSearchTerm !== '';
+            const count = activeFilters.size + (hasSearch ? 1 : 0);
             if (count === 0) filterBadge.classList.remove('active');
             else {
                 filterBadge.classList.add('active');
                 filterBadgeText.textContent = count + ' filter' + (count > 1 ? 's' : '');
             }
             clearAllFiltersBtn.disabled = count === 0;
+
+            if (clearSearchBtn) {
+                if (hasSearch) clearSearchBtn.classList.add('visible');
+                else clearSearchBtn.classList.remove('visible');
+            }
         }
 
         function clearAllFilters() {
-            if (activeFilters.size === 0) return;
+            if (activeFilters.size === 0 && !globalSearchTerm) return;
             activeFilters.clear();
+            globalSearchTerm = '';
+            if (globalSearchInput) globalSearchInput.value = '';
+            clearTimeout(searchDebounceTimer);
             recomputeFilteredIndices();
             currentPage = 1;
             renderTable();
-            addLog("All filters cleared", "success");
+            addLog("All filters & search cleared", "success");
         }
+        window.clearAllFilters = clearAllFilters;
 
         /* ============================================================
            PAGINATION
@@ -1044,25 +1143,18 @@
 
             const parts = [];
             parts.push(`<span class="page-info">${startRow.toLocaleString()}–${endRow.toLocaleString()} of ${totalRows.toLocaleString()}</span>`);
+            parts.push(`<button class="nav-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>«</button>`);
+            parts.push(`<button class="nav-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`);
 
-            /* First & Prev */
-            parts.push(`<button class="nav-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''} title="First page">«</button>`);
-            parts.push(`<button class="nav-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} title="Previous page">‹</button>`);
-
-            /* Page numbers with ellipsis */
             const pageNums = buildPageNumbers(currentPage, totalPages);
             for (let i = 0; i < pageNums.length; i++) {
                 const p = pageNums[i];
-                if (p === '…') {
-                    parts.push(`<span class="ellipsis">…</span>`);
-                } else {
-                    parts.push(`<button class="${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`);
-                }
+                if (p === '…') parts.push(`<span class="ellipsis">…</span>`);
+                else parts.push(`<button class="${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`);
             }
 
-            /* Next & Last */
-            parts.push(`<button class="nav-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} title="Next page">›</button>`);
-            parts.push(`<button class="nav-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} title="Last page">»</button>`);
+            parts.push(`<button class="nav-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`);
+            parts.push(`<button class="nav-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`);
 
             paginationControls.innerHTML = parts.join('');
         }
@@ -1090,6 +1182,7 @@
             renderBody();
             renderPagination();
         }
+        window.goToPage = goToPage;
 
         /* ============================================================
            RENDER
@@ -1134,9 +1227,6 @@
             }
         }
 
-        /* ============================================================
-           RENDER BODY — one page only
-           ============================================================ */
         function renderBody() {
             const totalRows = getTotalFilteredRows();
 
@@ -1173,6 +1263,7 @@
 
             const headers = currentHeaders;
             const headersLen = headers.length;
+            const searchLower = globalSearchTerm.toLowerCase();
             const parts = [];
 
             for (let pos = startPos; pos < endPos; pos++) {
@@ -1198,6 +1289,8 @@
                     } else if (previewHorizontal && previewHorizontal.row === realIdx && c !== fillSource.col
                         && c >= previewHorizontal.min && c <= previewHorizontal.max) {
                         cls = ' class="fill-preview"';
+                    } else if (searchLower && String(val).toLowerCase().includes(searchLower)) {
+                        cls = ' class="search-match"';
                     }
 
                     parts.push('<td data-r="', realIdx, '" data-c="', c, '"', cls, '>', escapeHtml(val), '</td>');
@@ -1260,7 +1353,7 @@
             if (!fi) return;
             e.stopPropagation();
             const colIdx = parseInt(fi.dataset.col);
-            if (openFilterCol === colIdx) closeFilterPopup();
+            if (openFilterCol === colIdx) closeFilterPopup(false);
             else openFilter(colIdx, fi);
         });
 
@@ -1276,7 +1369,7 @@
         function onRowResizeStart(e, handleEl) {
             e.preventDefault();
             e.stopPropagation();
-            closeFilterPopup();
+            closeFilterPopup(false);
             deselectFill();
             rowResize = { startY: e.clientY, startHeight: ROW_HEIGHT, handleEl };
             handleEl.classList.add('active');
@@ -1306,21 +1399,35 @@
         }
 
         /* ============================================================
-           FILTER POPUP
+           ★★★ FILTER POPUP WITH LIVE PREVIEW ★★★
            ============================================================ */
+
         function openFilter(colIdx, anchorEl) {
-            closeFilterPopup();
+            closeFilterPopup(false);
             openFilterCol = colIdx;
-            const { values, counts } = getUniqueValues(colIdx);
+
+            /* Save original state for Cancel */
+            filterOriginalState = new Map();
+            activeFilters.forEach((set, k) => filterOriginalState.set(k, new Set(set)));
+
+            const data = getUniqueValues(colIdx);
+            currentFilterValues = data.values;
+            currentFilterCounts = data.counts;
+
             const existing = activeFilters.get(colIdx);
-            pendingFilterValues = existing ? new Set(existing) : new Set(values);
+            pendingFilterValues = existing ? new Set(existing) : new Set(data.values);
+
+            pendingFilterSearchText = '';
+            filterSearch.value = '';
             filterColName.textContent = currentHeaders[colIdx];
-            filterSearch.value = "";
-            filterCount.textContent = values.length + ' value' + (values.length !== 1 ? 's' : '');
-            renderFilterList(values, counts);
+            filterCount.textContent = data.values.length + ' value' + (data.values.length !== 1 ? 's' : '');
+            renderFilterList();
+
+            /* Show preview hint */
+            if (filterPreviewHint) filterPreviewHint.classList.add('active');
 
             const rect = anchorEl.getBoundingClientRect();
-            const popupWidth = 260, popupHeight = 400;
+            const popupWidth = 260, popupHeight = 420;
             let left = Math.max(8, Math.min(rect.right - popupWidth, window.innerWidth - popupWidth - 8));
             let top = rect.bottom + 4;
             if (top + popupHeight > window.innerHeight - 8) top = Math.max(8, window.innerHeight - popupHeight - 8);
@@ -1331,16 +1438,41 @@
             setTimeout(() => filterSearch.focus(), 30);
         }
 
-        function closeFilterPopup() {
+        /**
+         * Close the popup.
+         * @param {boolean} revert - if true, revert filters to the saved snapshot (Cancel behavior)
+         */
+        function closeFilterPopup(revert) {
+            if (revert && filterOriginalState) {
+                activeFilters = new Map();
+                filterOriginalState.forEach((set, k) => activeFilters.set(k, new Set(set)));
+                recomputeFilteredIndices();
+                currentPage = 1;
+                renderTable();
+                addLog("Filter reverted", "info");
+            }
             filterPopup.classList.remove('open');
             openFilterCol = null;
             pendingFilterValues = new Set();
+            currentFilterValues = [];
+            currentFilterCounts = null;
+            pendingFilterSearchText = '';
+            filterOriginalState = null;
+            if (filterPreviewHint) filterPreviewHint.classList.remove('active');
         }
 
-        function renderFilterList(values, counts) {
+        function renderFilterList() {
             const searchTerm = (filterSearch.value || "").trim().toLowerCase();
-            let visible = searchTerm ? values.filter(v => v.toLowerCase().includes(searchTerm)) : values;
-            const capped = visible.slice(0, FILTER_LIST_CAP);
+            const allValues = currentFilterValues;
+            const counts = currentFilterCounts || new Map();
+
+            let visibleIndices = [];
+            for (let i = 0; i < allValues.length; i++) {
+                if (!searchTerm || allValues[i].toLowerCase().includes(searchTerm)) {
+                    visibleIndices.push(i);
+                }
+            }
+            const capped = visibleIndices.slice(0, FILTER_LIST_CAP);
 
             if (capped.length === 0) {
                 filterList.innerHTML = '<div class="filter-empty-note">No values match</div>';
@@ -1348,97 +1480,180 @@
             }
 
             const parts = [];
-            for (let i = 0; i < capped.length; i++) {
-                const v = capped[i];
+            for (let j = 0; j < capped.length; j++) {
+                const origIdx = capped[j];
+                const v = allValues[origIdx];
                 const checked = pendingFilterValues.has(v);
                 const cnt = counts.get(v) || 0;
                 const display = v === "" ? "(empty)" : v;
-                parts.push('<label class="filter-item"><input type="checkbox" data-val="' + escapeHtml(v) + '"' + (checked ? ' checked' : '') + '><span class="val">' + escapeHtml(display) + '</span><span class="val-count">' + cnt + '</span></label>');
+
+                parts.push(
+                    '<label class="filter-item">' +
+                        '<input type="checkbox" data-val-idx="' + origIdx + '"' + (checked ? ' checked' : '') + '>' +
+                        '<span class="val">' + escapeHtml(display) + '</span>' +
+                        '<span class="val-count">' + cnt + '</span>' +
+                    '</label>'
+                );
             }
-            if (visible.length > FILTER_LIST_CAP) {
-                parts.push('<div class="filter-empty-note">… ' + (visible.length - FILTER_LIST_CAP) + ' more — refine search</div>');
+            if (visibleIndices.length > FILTER_LIST_CAP) {
+                parts.push('<div class="filter-empty-note">… ' + (visibleIndices.length - FILTER_LIST_CAP) + ' more — refine search</div>');
             }
             filterList.innerHTML = parts.join('');
         }
 
-        function unescapeHtml(s) {
-            return String(s)
-                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"').replace(/&#039;/g, "'");
-        }
-
-        filterList.addEventListener('change', (e) => {
-            if (e.target.type !== 'checkbox') return;
-            const realVal = unescapeHtml(e.target.dataset.val);
-            if (e.target.checked) pendingFilterValues.add(realVal);
-            else pendingFilterValues.delete(realVal);
-        });
-
-        function applyFilterFromPopup() {
+        /**
+         * ★ LIVE PREVIEW — the heart of the change.
+         * Combines checkbox selection + popup search text into an effective filter set
+         * for the current column, applies it to activeFilters, and re-renders the main table.
+         */
+        function applyLivePreview() {
             if (openFilterCol === null) return;
             const colIdx = openFilterCol;
-            const { values } = getUniqueValues(colIdx);
+            const searchTerm = (filterSearch.value || '').trim().toLowerCase();
+            const valuesCount = currentFilterValues.length;
+            const keptCount = pendingFilterValues.size;
 
-            if (pendingFilterValues.size === values.length) {
-                if (activeFilters.has(colIdx)) {
-                    activeFilters.delete(colIdx);
-                    addLog(`Filter removed from "${currentHeaders[colIdx]}"`, "info");
+            /* Determine effective filter set for this column */
+            let effectiveSet = null;
+
+            if (searchTerm !== '') {
+                /* Search text is active → intersect with checked values */
+                const matched = new Set();
+                for (const v of currentFilterValues) {
+                    if (v.toLowerCase().includes(searchTerm) && pendingFilterValues.has(v)) {
+                        matched.add(v);
+                    }
                 }
-            } else if (pendingFilterValues.size === 0) {
-                addLog(`⚠️ No values selected`, "warning");
-                closeFilterPopup();
-                return;
+                /* If everything is checked AND all match the search, that's effectively "all" — no filter needed */
+                if (matched.size === 0) {
+                    /* No matches → filter shows nothing. Use empty set to signal "0 rows" */
+                    effectiveSet = new Set();
+                } else if (matched.size === valuesCount && keptCount === valuesCount) {
+                    /* Everything checked, everything matches — but only if all values match the search. Else it's a real filter. */
+                    /* Actually if all values match the search, effectiveSet === all values === valuesCount → no filter needed */
+                    effectiveSet = null; /* no filter */
+                } else {
+                    effectiveSet = matched;
+                }
             } else {
-                activeFilters.set(colIdx, new Set(pendingFilterValues));
-                addLog(`Filter on "${currentHeaders[colIdx]}" — ${pendingFilterValues.size} kept`, "success");
+                /* No search — checkbox filter only */
+                if (keptCount === 0) {
+                    /* Nothing checked → no filter (show all) */
+                    effectiveSet = null;
+                } else if (keptCount === valuesCount) {
+                    /* All checked → no filter */
+                    effectiveSet = null;
+                } else {
+                    /* Partial → filter to those */
+                    effectiveSet = new Set(pendingFilterValues);
+                }
             }
 
+            /* Apply to activeFilters */
+            if (effectiveSet === null) {
+                activeFilters.delete(colIdx);
+            } else {
+                activeFilters.set(colIdx, effectiveSet);
+            }
+
+            /* Recompute everything and re-render */
             recomputeFilteredIndices();
             currentPage = 1;
+            tableWrapper.scrollTop = 0;
             renderTable();
-            closeFilterPopup();
+
+            /* Update the header filter-icon state */
+            const icon = tableHeader.querySelector('.filter-icon[data-col="' + colIdx + '"]');
+            if (icon) {
+                if (activeFilters.has(colIdx)) icon.classList.add('filtered');
+                else icon.classList.remove('filtered');
+            }
         }
 
+        /* Filter checkbox toggle → live preview */
+        filterList.addEventListener('change', (e) => {
+            if (e.target.type !== 'checkbox') return;
+            const idxAttr = e.target.dataset.valIdx;
+            if (idxAttr === undefined) return;
+            const idx = parseInt(idxAttr);
+            if (isNaN(idx) || idx < 0 || idx >= currentFilterValues.length) return;
+            const realVal = currentFilterValues[idx];
+            if (e.target.checked) pendingFilterValues.add(realVal);
+            else pendingFilterValues.delete(realVal);
+            applyLivePreview();
+        });
+
+        /* Filter search typing → live preview + update value list */
         filterSearch.addEventListener('input', () => {
             if (openFilterCol === null) return;
-            const { values, counts } = getUniqueValues(openFilterCol);
-            renderFilterList(values, counts);
+            pendingFilterSearchText = filterSearch.value;
+            renderFilterList();
+            applyLivePreview();
         });
 
+        /* "All" → check all visible, apply live */
         filterSelectAllBtn.addEventListener('click', () => {
             if (openFilterCol === null) return;
-            const { values, counts } = getUniqueValues(openFilterCol);
             const searchTerm = (filterSearch.value || "").trim().toLowerCase();
-            const visible = searchTerm ? values.filter(v => v.toLowerCase().includes(searchTerm)) : values;
-            visible.forEach(v => pendingFilterValues.add(v));
-            renderFilterList(values, counts);
+            for (let i = 0; i < currentFilterValues.length; i++) {
+                const v = currentFilterValues[i];
+                if (!searchTerm || v.toLowerCase().includes(searchTerm)) {
+                    pendingFilterValues.add(v);
+                }
+            }
+            renderFilterList();
+            applyLivePreview();
         });
 
+        /* "None" → uncheck all visible, apply live */
         filterClearBtn.addEventListener('click', () => {
             if (openFilterCol === null) return;
-            const { values, counts } = getUniqueValues(openFilterCol);
             const searchTerm = (filterSearch.value || "").trim().toLowerCase();
-            const visible = searchTerm ? values.filter(v => v.toLowerCase().includes(searchTerm)) : values;
-            visible.forEach(v => pendingFilterValues.delete(v));
-            renderFilterList(values, counts);
+            for (let i = 0; i < currentFilterValues.length; i++) {
+                const v = currentFilterValues[i];
+                if (!searchTerm || v.toLowerCase().includes(searchTerm)) {
+                    pendingFilterValues.delete(v);
+                }
+            }
+            renderFilterList();
+            applyLivePreview();
         });
 
-        filterApplyBtn.addEventListener('click', applyFilterFromPopup);
-        filterCancelBtn.addEventListener('click', closeFilterPopup);
+        /* Done → just close (state already applied live) */
+        filterApplyBtn.addEventListener('click', () => {
+            if (openFilterCol === null) return;
+            const colIdx = openFilterCol;
+            if (activeFilters.has(colIdx)) {
+                const count = activeFilters.get(colIdx).size;
+                addLog(`✓ Filter active on "${currentHeaders[colIdx]}" — ${count} value(s) selected`, "success");
+            } else {
+                addLog(`Filter cleared on "${currentHeaders[colIdx]}"`, "info");
+            }
+            closeFilterPopup(false);
+        });
 
+        /* Cancel → revert to snapshot and close */
+        filterCancelBtn.addEventListener('click', () => {
+            closeFilterPopup(true);
+        });
+
+        /* Click outside → treat as "cancel" */
         document.addEventListener('mousedown', (e) => {
             if (!filterPopup.classList.contains('open')) return;
             if (filterPopup.contains(e.target)) return;
             if (e.target.classList.contains('filter-icon')) return;
-            closeFilterPopup();
+            closeFilterPopup(true);
         });
 
         tableWrapper.addEventListener('scroll', () => {
-            if (filterPopup.classList.contains('open')) closeFilterPopup();
+            if (filterPopup.classList.contains('open')) {
+                /* Don't cancel on scroll — just reposition or close without revert */
+                /* Actually keep it simple: do nothing on scroll, popup stays in place */
+            }
         }, { passive: true });
 
         window.addEventListener('resize', () => {
-            if (filterPopup.classList.contains('open')) closeFilterPopup();
+            if (filterPopup.classList.contains('open')) closeFilterPopup(true);
             updateFillHandlePosition();
         });
 
@@ -1467,7 +1682,7 @@
                 const newVal = cleanTextValue(input.value);
                 currentGridData[rIdx][currentHeaders[cIdx]] = newVal;
                 invalidateUniqueCache(cIdx);
-                if (activeFilters.size > 0) recomputeFilteredIndices();
+                if (activeFilters.size > 0 || globalSearchTerm) recomputeFilteredIndices();
                 renderBody();
             };
             input.onblur = save;
@@ -1620,7 +1835,7 @@
                 count++;
             }
             invalidateUniqueCache(fillSource.col);
-            if (activeFilters.size > 0) recomputeFilteredIndices();
+            if (activeFilters.size > 0 || globalSearchTerm) recomputeFilteredIndices();
             addLog(`Filled ${count} cell(s) ▼ with "${value === "" ? "(empty)" : value}"`, "success");
         }
 
@@ -1637,13 +1852,18 @@
                 invalidateUniqueCache(c);
                 count++;
             }
-            if (activeFilters.size > 0) recomputeFilteredIndices();
+            if (activeFilters.size > 0 || globalSearchTerm) recomputeFilteredIndices();
             addLog(`Filled ${count} cell(s) ▶ with "${value === "" ? "(empty)" : value}"`, "success");
         }
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !fillDragging) {
-                if (filterPopup.classList.contains('open')) return;
+                if (filterPopup.classList.contains('open')) {
+                    /* Close filter popup with revert (cancel behavior) */
+                    closeFilterPopup(true);
+                    return;
+                }
+                if (document.activeElement === globalSearchInput) return;
                 deselectFill();
             }
         });
@@ -1665,7 +1885,6 @@
 
         function updateSelectAllState() {
             if (selectAllCheckbox) {
-                /* "Select Page" checkbox reflects current page selection */
                 const totalRows = getTotalFilteredRows();
                 const startPos = (currentPage - 1) * ROWS_PER_PAGE;
                 const endPos = Math.min(startPos + ROWS_PER_PAGE, totalRows);
@@ -1683,7 +1902,7 @@
                 if (btn) btn.disabled = !enabled;
             });
             if (!enabled) clearAllFiltersBtn.disabled = true;
-            else clearAllFiltersBtn.disabled = activeFilters.size === 0;
+            else clearAllFiltersBtn.disabled = (activeFilters.size === 0 && !globalSearchTerm);
         }
 
         /* ============================================================
@@ -1731,8 +1950,7 @@
             currentHeaders.forEach(h => newRow[h] = "");
             currentGridData.push(newRow);
             invalidateUniqueCache();
-            if (activeFilters.size > 0) recomputeFilteredIndices();
-            /* Jump to last page to show new row */
+            if (activeFilters.size > 0 || globalSearchTerm) recomputeFilteredIndices();
             currentPage = computeTotalPages();
             addLog("Added new row", "success");
             renderTable();
@@ -1754,7 +1972,6 @@
             renderTable();
         };
 
-        /* "Select Page" — selects only the current page */
         selectAllCheckbox.onchange = (e) => {
             const totalRows = getTotalFilteredRows();
             const startPos = (currentPage - 1) * ROWS_PER_PAGE;
@@ -1788,6 +2005,55 @@
         };
 
         clearAllFiltersBtn.onclick = clearAllFilters;
+
+        /* ============================================================
+           GLOBAL SEARCH
+           ============================================================ */
+        function runGlobalSearch() {
+            globalSearchTerm = (globalSearchInput.value || '').trim();
+            recomputeFilteredIndices();
+            currentPage = 1;
+            tableWrapper.scrollTop = 0;
+            renderTable();
+            updateControls(currentHeaders.length > 0);
+        }
+
+        if (globalSearchInput) {
+            globalSearchInput.addEventListener('input', () => {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(runGlobalSearch, SEARCH_DEBOUNCE_MS);
+            });
+
+            globalSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    clearTimeout(searchDebounceTimer);
+                    runGlobalSearch();
+                }
+                if (e.key === 'Escape') {
+                    globalSearchInput.value = '';
+                    globalSearchTerm = '';
+                    clearTimeout(searchDebounceTimer);
+                    recomputeFilteredIndices();
+                    currentPage = 1;
+                    renderTable();
+                    updateControls(currentHeaders.length > 0);
+                }
+            });
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                if (!globalSearchInput) return;
+                globalSearchInput.value = '';
+                globalSearchTerm = '';
+                clearTimeout(searchDebounceTimer);
+                recomputeFilteredIndices();
+                currentPage = 1;
+                renderTable();
+                updateControls(currentHeaders.length > 0);
+                globalSearchInput.focus();
+            });
+        }
 
         /* ============================================================
            FILE LOAD
@@ -1839,6 +2105,10 @@
                 updateFilterBadge();
                 deselectFill();
                 tableWrapper.scrollTop = 0;
+
+                globalSearchTerm = '';
+                if (globalSearchInput) globalSearchInput.value = '';
+                if (clearSearchBtn) clearSearchBtn.classList.remove('visible');
 
                 currentPage = 1;
                 columnWidths = currentHeaders.map(() => 120);

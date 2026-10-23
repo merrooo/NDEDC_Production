@@ -14,3 +14,16 @@ https://console.firebase.google.com/project/calcalibration-dev-r4t8/overview
 >firebase login
 >firebase init
 >npx firebase-tools deploy
+
+
+or 
+
+
+
+>npm install -g firebase-tools
+>npx firebase login
+>npx firebase use --add
+
+ What alias do you want to use for this project? (e.g. staging)
+>public
+>npx firebase-tools deploy
