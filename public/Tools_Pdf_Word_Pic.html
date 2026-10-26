@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photos ⇄ Word / PDF Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ================= BASE (Word tool look & feel) ================= */
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#0f172a;
+     font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:18px 18px 40px}
+header{display:flex;justify-content:space-between;align-items:center;
+       gap:12px;flex-wrap:wrap;margin-bottom:12px}
+header h1{margin:0;font-size:19px;font-weight:700}
+.home-btn{display:inline-flex;align-items:center;gap:7px;
+  background:#fff;border:1px solid #cbd5e1;border-radius:9px;
+  padding:8px 14px;font-size:13px;font-weight:600;color:#334155;
+  cursor:pointer;text-decoration:none;transition:.15s;
+  box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.home-btn:hover{background:#eff6ff;border-color:#2563eb;color:#1e40af}
+.home-btn svg{width:15px;height:15px;flex-shrink:0}
+
+/* ---- tabs ---- */
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab-btn{padding:9px 18px;border:1px solid #cbd5e1;background:#fff;
+  border-radius:10px;font-size:13px;font-weight:600;color:#475569;
+  cursor:pointer;transition:.15s}
+.tab-btn:hover{background:#eff6ff;border-color:#93c5fd;color:#1e40af}
+.tab-btn.active{background:#2563eb;border-color:#2563eb;color:#fff;
+  box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;
+      box-shadow:0 1px 2px rgba(15,23,42,.05)}
+
+.top-grid{display:grid;grid-template-columns:minmax(240px,1fr) auto;
+  gap:12px;margin-bottom:12px;align-items:stretch}
+@media (max-width:900px){.top-grid{grid-template-columns:1fr}}
+
+#drop{border:2px dashed #cbd5e1;border-radius:10px;padding:16px 14px;
+  text-align:center;cursor:pointer;transition:.15s;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;min-height:70px}
+#drop:hover,#drop.hover{border-color:#2563eb;background:#eff6ff}
+#drop strong{display:block;font-size:14px;margin-bottom:2px}
+#drop span{color:#64748b;font-size:12px}
+
+.controls-card{padding:12px 14px}
+.ctrl-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
+.ctrl-row + .ctrl-row{margin-top:10px;padding-top:10px;border-top:1px solid #eef2f7}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10.5px;font-weight:700;color:#475569;
+  text-transform:uppercase;letter-spacing:.04em}
+select,input[type=number]{padding:7px 9px;border:1px solid #cbd5e1;
+  border-radius:8px;background:#fff;font-size:13px;min-width:100px}
+input[type=number]{width:90px}
+input[type=checkbox]{min-width:auto;width:16px;height:16px;padding:0}
+.field .sub{font-size:9.5px;color:#94a3b8;font-weight:600;
+  text-transform:none;letter-spacing:0}
+.inline-check{display:flex;align-items:center;gap:6px;padding-bottom:6px}
+.inline-check label{font-size:12.5px;font-weight:600;color:#334155;
+  text-transform:none;letter-spacing:0;cursor:pointer}
+.size-info{font-size:11.5px;color:#16a34a;font-weight:600;
+  align-self:center;white-space:nowrap}
+.size-info.warn{color:#f59e0b}
+
+.main-grid{display:grid;grid-template-columns:minmax(340px,40%) 1fr;
+  gap:12px;align-items:start}
+@media (max-width:900px){.main-grid{grid-template-columns:1fr}}
+
+.thumbs-card{display:flex;flex-direction:column;gap:10px;
+  max-height:calc(100vh - 220px);min-height:420px}
+.thumbs-head{display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap}
+.thumbs-head h2{margin:0;font-size:13px;font-weight:700;color:#0f172a}
+.thumbs-head .btns{display:flex;gap:6px;flex-wrap:wrap}
+.thumb-scroll{flex:1;overflow-y:auto;padding-right:4px;
+  border-top:1px solid #eef2f7;padding-top:10px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.thumb{position:relative;border:1px solid #e2e8f0;border-radius:8px;
+  overflow:hidden;background:#f8fafc;cursor:grab;aspect-ratio:1/1;transition:.15s}
+.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.thumb .pick{position:absolute;top:4px;left:4px;width:16px;height:16px;
+  accent-color:#2563eb;cursor:pointer;z-index:2;margin:0}
+.thumb .num{position:absolute;bottom:4px;left:4px;background:rgba(15,23,42,.72);
+  color:#fff;font-size:10px;padding:1px 6px;border-radius:20px}
+.thumb .rm{position:absolute;top:4px;right:4px;width:18px;height:18px;border:0;
+  border-radius:50%;background:rgba(15,23,42,.72);color:#fff;cursor:pointer;
+  font-size:12px;line-height:1;padding:0;z-index:2}
+.thumb .rm:hover{background:#dc2626}
+.thumb.err img{filter:grayscale(1) opacity(.35)}
+.thumb .badge{position:absolute;left:4px;right:4px;bottom:4px;background:#dc2626;
+  color:#fff;font-size:9px;padding:2px 4px;border-radius:5px;
+  text-align:center;line-height:1.15}
+.thumb .save-tag{position:absolute;bottom:4px;right:4px;background:#16a34a;
+  color:#fff;font-size:9px;padding:1px 5px;border-radius:20px;font-weight:600}
+.thumb .up-tag{position:absolute;bottom:4px;right:4px;background:#f59e0b;
+  color:#fff;font-size:9px;padding:1px 5px;border-radius:20px;font-weight:600}
+.thumb.over{outline:2px solid #2563eb;outline-offset:1px}
+.thumb.active{outline:2px solid #2563eb;outline-offset:1px;
+  box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.thumb.unsel{opacity:.4}
+
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button.primary{background:#2563eb;color:#fff;border:0;border-radius:9px;
+  padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer}
+button.primary:disabled{background:#94a3b8;cursor:not-allowed}
+button.primary.pdf{background:#dc2626}
+button.primary.pdf:disabled{background:#94a3b8}
+button.ghost{background:#fff;border:1px solid #cbd5e1;border-radius:8px;
+  padding:6px 12px;font-size:12.5px;cursor:pointer;color:#334155}
+button.ghost:hover{background:#f8fafc}
+.progress{flex:1;min-width:120px;height:6px;background:#e2e8f0;border-radius:99px;
+  overflow:hidden;display:none}
+.progress.on{display:block}
+.progress i{display:block;height:100%;width:0;background:#2563eb;transition:width .2s}
+#status{font-size:12px;color:#475569;min-height:16px}
+.err-box{display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;
+  padding:8px 10px;border-radius:8px;font-size:12px}
+
+.preview-card{display:flex;flex-direction:column;gap:8px}
+.preview-toolbar{display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap}
+.preview-toolbar h2{margin:0;font-size:13px;font-weight:700}
+.preview-toolbar .nav{display:flex;gap:4px;align-items:center}
+.nav button{background:#fff;border:1px solid #cbd5e1;border-radius:7px;
+  width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;color:#334155}
+.nav button:hover:not(:disabled){background:#f1f5f9}
+.nav button:disabled{opacity:.4;cursor:not-allowed}
+.nav .pageinfo{font-size:11.5px;color:#475569;min-width:60px;text-align:center}
+
+.preview-stage{background:#e2e8f0;border-radius:10px;padding:14px;
+  display:flex;align-items:center;justify-content:center;
+  height:calc(100vh - 220px);min-height:480px;overflow:hidden;position:relative}
+.preview-stage .stage-inner{display:flex;align-items:center;justify-content:center;
+  width:100%;height:100%}
+.page{background:#fff;box-shadow:0 6px 18px rgba(15,23,42,.18);
+  position:relative;display:flex;align-items:center;justify-content:center}
+.page .content{position:absolute;display:flex;align-items:center;justify-content:center;
+  overflow:hidden}
+.page .content img{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.page .content.stretch img{width:100%!important;height:100%!important;
+  max-width:none;max-height:none}
+.page .guide{position:absolute;border:1px dashed #cbd5e1;pointer-events:none}
+.page .page-no{position:absolute;top:-18px;left:0;font-size:10.5px;
+  color:#64748b;font-weight:600}
+.placeholder{color:#64748b;font-size:12.5px;text-align:center;line-height:1.6;padding:20px}
+
+/* ================= PDF STUDIO (scoped, from Convert_Pic_pdf) ================= */
+.pdfstudio{--primary:#2563eb;--primary-hover:#1d4ed8;--success:#10b981;
+  --success-hover:#059669;--danger:#ef4444;--danger-hover:#dc2626;
+  --text-muted:#64748b;--border-color:#e2e8f0}
+.pdfstudio .editor-box{background:#fff;padding:32px 28px;border-radius:18px;
+  box-shadow:0 10px 25px -5px rgba(0,0,0,.08);border:1px solid #e2e8f0}
+.pdfstudio h2{font-size:1.5rem;margin:0 0 6px;text-align:center;font-weight:700}
+.pdfstudio .subtitle{font-size:.92rem;color:#64748b;margin:0 0 26px;text-align:center}
+.pdfstudio .upload-area{background:#f8fafc;border:2px dashed #cbd5e1;border-radius:16px;
+  padding:36px 20px;text-align:center;cursor:pointer;transition:.25s;margin-bottom:20px}
+.pdfstudio .upload-area:hover{background:#f0fdf4;border-color:#10b981}
+.pdfstudio .upload-icon{font-size:2.6rem;margin-bottom:10px;display:block}
+.pdfstudio .upload-area h3{font-size:1.05rem;margin:0 0 4px}
+.pdfstudio .upload-area p{color:#64748b;font-size:.85rem;margin:0}
+.pdfstudio input[type="file"]{display:none}
+.pdfstudio .controls{display:flex;gap:12px;justify-content:center;
+  flex-wrap:wrap;margin-bottom:24px}
+.pdfstudio button{padding:11px 20px;border-radius:10px;border:none;font-weight:600;
+  cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:8px;
+  font-size:.9rem;background:#fff;border:1px solid #e2e8f0;color:#0f172a}
+.pdfstudio button:hover:not(:disabled){transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.pdfstudio .btn-primary{background:#2563eb;color:#fff;border-color:#2563eb}
+.pdfstudio .btn-primary:hover:not(:disabled){background:#1d4ed8}
+.pdfstudio .btn-success{background:#10b981;color:#fff;border-color:#10b981}
+.pdfstudio .btn-success:hover:not(:disabled){background:#059669}
+.pdfstudio .btn-danger{background:#ef4444;color:#fff;border-color:#ef4444}
+.pdfstudio .btn-danger:hover:not(:disabled){background:#dc2626}
+.pdfstudio button:disabled{opacity:.4;cursor:not-allowed;transform:none!important;
+  box-shadow:none!important}
+.pdfstudio .btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px}
+.pdfstudio .file-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;
+  padding:12px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0}
+.pdfstudio .file-tag{display:inline-flex;align-items:center;gap:8px;background:#fff;
+  padding:6px 12px;border-radius:8px;font-size:.82rem;border:1px solid #e2e8f0;
+  font-weight:500}
+.pdfstudio .file-tag .remove{cursor:pointer;color:#ef4444;font-weight:bold}
+.pdfstudio .preview-section{background:#f8fafc;border-radius:16px;padding:20px;
+  border:1px solid #e2e8f0}
+.pdfstudio .preview-header{display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.pdfstudio .preview-header h3{font-size:1.05rem;font-weight:600;margin:0}
+.pdfstudio .preview-header-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pdfstudio .badge{background:#e0f2fe;color:#2563eb;padding:4px 12px;
+  border-radius:20px;font-size:.8rem;font-weight:700}
+.pdfstudio .master-file-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+  padding:18px;margin-bottom:16px;box-shadow:0 4px 6px -1px rgba(0,0,0,.05)}
+.pdfstudio .master-card-header{display:flex;align-items:center;padding-bottom:12px;
+  margin-bottom:14px;border-bottom:1px solid #e2e8f0}
+.pdfstudio .master-card-title{font-weight:700;font-size:1rem;display:flex;
+  align-items:center;gap:10px}
+.pdfstudio .master-card-title input[type="checkbox"]{width:18px;height:18px;
+  cursor:pointer;accent-color:#2563eb}
+.pdfstudio .thumb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));
+  gap:12px}
+.pdfstudio .thumb-item{background:#f8fafc;border-radius:10px;overflow:hidden;
+  border:1px solid #e2e8f0;position:relative;transition:.2s}
+.pdfstudio .thumb-item:hover{border-color:#2563eb}
+.pdfstudio .thumb-item.selected{border-color:#2563eb;
+  box-shadow:0 0 0 2px #2563eb;background:#eff6ff}
+.pdfstudio .thumb-item img{width:100%;height:115px;object-fit:cover;display:block}
+.pdfstudio .thumb-checkbox{position:absolute;top:6px;left:6px;
+  background:rgba(255,255,255,.95);border-radius:6px;padding:2px;display:flex;
+  box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.pdfstudio .thumb-checkbox input{width:16px;height:16px;cursor:pointer;
+  accent-color:#2563eb;margin:0}
+.pdfstudio .thumb-info{padding:6px;font-size:.75rem;color:#64748b;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdfstudio .empty-state{text-align:center;padding:40px 20px;color:#64748b}
+.pdfstudio .empty-state .icon{font-size:2.8rem;margin-bottom:8px;opacity:.6}
+
+@media (max-width:768px){
+  .pdfstudio .controls{flex-direction:column;align-items:stretch}
+  .pdfstudio .controls button{width:100%;justify-content:center}
+  .pdfstudio .preview-header{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Photos ⇄ Word / PDF Studio</h1>
+    <a class="home-btn" href="Control_Excel.html" title="Back to Control Excel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1V9.5z"/>
+      </svg>
+      Home
+    </a>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tabWord">📝 Photos → Word / PDF</button>
+    <button class="tab-btn" data-tab="tabPdf2Img">🖼️ PDF → Images</button>
+    <button class="tab-btn" data-tab="tabImg2Pdf">📄 Images → PDF</button>
+  </div>
+
+  <!-- ============================================================
+       TAB 1 : PHOTOS → WORD / PDF
+       ============================================================ -->
+  <div id="tabWord" class="tab-content active">
+
+    <div class="top-grid">
+      <div class="card">
+        <div id="drop">
+          <strong>Click or drop photos here</strong>
+          <span>Multiple files · JPG, PNG, GIF, BMP, WebP…</span>
+        </div>
+        <input id="file" type="file" multiple hidden
+               accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.avif,.svg,.tif,.tiff,.heic,.heif">
+        <input id="pdfImport" type="file" multiple accept=".pdf,application/pdf" hidden>
+      </div>
+
+      <div class="card controls-card">
+        <div class="ctrl-row">
+          <div class="inline-check">
+            <input type="checkbox" id="applyAll" checked>
+            <label for="applyAll">Apply to all</label>
+          </div>
+          <div class="field">
+            <label for="pageSize">Page size</label>
+            <select id="pageSize">
+              <option value="A4" selected>A4</option>
+              <option value="Letter">Letter</option>
+              <option value="Legal">Legal</option>
+              <option value="A3">A3</option>
+              <option value="A5">A5</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="orientation">Orientation</label>
+            <select id="orientation">
+              <option value="portrait" selected>Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sizing">Image sizing</label>
+            <select id="sizing">
+              <option value="fit" selected>Fit (keeps ratio)</option>
+              <option value="stretch">Stretch to fill</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="perPage">Photos per page</label>
+            <select id="perPage">
+              <option value="1">1 per page</option>
+              <option value="2" selected>2 per page</option>
+              <option value="4">4 per page (2×2)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="field">
+            <label for="marginH">Margin H <span class="sub">(in)</span></label>
+            <input id="marginH" type="number" min="0" max="4" step="0.05" value="0.5">
+          </div>
+          <div class="field">
+            <label for="marginV">Margin V <span class="sub">(in)</span></label>
+            <input id="marginV" type="number" min="0" max="4" step="0.05" value="0.5">
+          </div>
+          <div class="field">
+            <label for="gap">Gap <span class="sub">(in)</span></label>
+            <input id="gap" type="number" min="0" max="2" step="0.05" value="0.15">
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <div class="inline-check">
+            <input type="checkbox" id="optimize" checked>
+            <label for="optimize">Optimize</label>
+          </div>
+          <div class="field" id="optFields">
+            <label for="resolution">Resolution</label>
+            <select id="resolution">
+              <option value="0.25">Min (25%)</option>
+              <option value="0.5">50%</option>
+              <option value="1" selected>100% (original)</option>
+              <option value="1.5">150% (upscale)</option>
+              <option value="2">200% (upscale)</option>
+            </select>
+          </div>
+          <div class="field" id="optFieldsQ">
+            <label for="quality">JPEG quality</label>
+            <select id="quality">
+              <option value="50">Min (50%)</option>
+              <option value="75">75%</option>
+              <option value="85" selected>85% (recommended)</option>
+              <option value="92">92%</option>
+              <option value="100">Max (100%)</option>
+            </select>
+          </div>
+          <div class="size-info" id="sizeInfo"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="card thumbs-card" id="panel" style="display:none">
+        <div class="thumbs-head">
+          <h2>Selected photos <span style="color:#64748b;font-weight:500" id="count"></span></h2>
+          <div class="btns">
+            <button class="ghost" id="pdfImportBtn" title="Import pages of a PDF as photos">📄 + PDF</button>
+            <button class="ghost" id="addMore">+ Add</button>
+            <button class="ghost" id="selAll">Select all</button>
+            <button class="ghost" id="selNone">None</button>
+            <button class="ghost" id="clearBtn">Clear</button>
+          </div>
+        </div>
+        <div class="thumb-scroll">
+          <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="exportBtn">Export Word (.docx)</button>
+          <button class="primary pdf" id="exportPdfBtn">Export PDF</button>
+          <div class="progress" id="progress"><i id="bar"></i></div>
+        </div>
+        <div id="status"></div>
+        <div class="err-box" id="errBox"></div>
+      </div>
+
+      <div class="card preview-card">
+        <div class="preview-toolbar">
+          <h2>Live preview</h2>
+          <div class="nav">
+            <button id="prevBtn" title="Previous page" disabled>‹</button>
+            <span class="pageinfo" id="pageInfo">— / —</span>
+            <button id="nextBtn" title="Next page" disabled>›</button>
+          </div>
+        </div>
+        <div class="preview-stage" id="previewStage">
+          <div class="stage-inner" id="previewHost">
+            <div class="placeholder">Upload photos to see the live preview.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 2 : PDF → IMAGES
+       ============================================================ -->
+  <div id="tabPdf2Img" class="tab-content pdfstudio">
+    <div class="editor-box">
+      <h2>PDF → Image Converter</h2>
+      <p class="subtitle">Extract pages and download them as separate images or a merged PDF</p>
+
+      <div class="upload-area" onclick="document.getElementById('pdfFileInput').click()">
+        <span class="upload-icon">📂</span>
+        <h3>Drag &amp; Drop your PDF file here</h3>
+        <p>or click to browse and select files from your device</p>
+        <input type="file" id="pdfFileInput" accept=".pdf" multiple onchange="handlePdfUpload(event)">
+      </div>
+
+      <div id="pdfFileList" style="display:none" class="file-list"></div>
+
+      <div class="controls">
+        <button class="btn-primary" id="downloadSelectedPdfImagesBtn" disabled
+                onclick="downloadSelectedPdfImages()">
+          📦 Download Selected Images (<span id="pdfSelectedCount1">0</span>)
+        </button>
+        <button class="btn-success" id="downloadSelectedPdfAsMergedBtn" disabled
+                onclick="downloadSelectedPdfAsMerged()">
+          📁 Download Selected as One Combined PDF (<span id="pdfSelectedCount2">0</span>)
+        </button>
+        <button class="btn-danger" id="clearPdfBtn" disabled onclick="clearPdfSession()">
+          🗑 Clear All Data
+        </button>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-header">
+          <h3>🖼️ Loaded Images Preview Board</h3>
+          <div class="preview-header-controls">
+            <button class="btn-sm" onclick="toggleGlobalSelection('pdf', true)">☑️ Select All</button>
+            <button class="btn-sm" onclick="toggleGlobalSelection('pdf', false)">◻️ Deselect All</button>
+            <span class="badge" id="pdfBadge">0 Images Loaded</span>
+          </div>
+        </div>
+        <div id="pdfPreviewContent">
+          <div class="empty-state">
+            <div class="icon">✨</div>
+            <p>Upload a PDF file to preview and extract images</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 3 : IMAGES → PDF
+       ============================================================ -->
+  <div id="tabImg2Pdf" class="tab-content pdfstudio">
+    <div class="editor-box">
+      <h2>Images → PDF Converter</h2>
+      <p class="subtitle">Convert multiple uploaded images directly into a single or separate PDF documents</p>
+
+      <div class="upload-area" onclick="document.getElementById('imageFileInput').click()">
+        <span class="upload-icon">🖼️</span>
+        <h3>Drag &amp; Drop your Images here</h3>
+        <p>or click to browse PNG, JPG, JPEG files from your device</p>
+        <input type="file" id="imageFileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+      </div>
+
+      <div id="imgFileList" style="display:none" class="file-list"></div>
+
+      <div class="controls">
+        <button class="btn-primary" id="downloadCombinedPdfBtn" disabled
+                onclick="convertSelectedImagesToSinglePdf()">
+          📄 Download Selected as One Single PDF (<span id="imgSelectedCount1">0</span>)
+        </button>
+        <button class="btn-success" id="downloadSeparatedPdfBtn" disabled
+                onclick="convertSelectedImagesToSeparatedPdfs()">
+          📁 Download Selected as Separate PDF Files (<span id="imgSelectedCount2">0</span>)
+        </button>
+        <button class="btn-danger" id="clearImgBtn" disabled onclick="clearImgSession()">
+          🗑 Clear All Data
+        </button>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-header">
+          <h3>📄 Loaded Images Preview Board</h3>
+          <div class="preview-header-controls">
+            <button class="btn-sm" onclick="toggleGlobalSelection('img', true)">☑️ Select All</button>
+            <button class="btn-sm" onclick="toggleGlobalSelection('img', false)">◻️ Deselect All</button>
+            <span class="badge" id="imgBadge">0 Images Loaded</span>
+          </div>
+        </div>
+        <div id="imgPreviewContent">
+          <div class="empty-state">
+            <div class="icon">✨</div>
+            <p>Upload image files to aggregate and convert into PDF</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED HELPERS
+   ================================================================ */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID()
+                                     : 'id' + Math.random().toString(36).slice(2));
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('load fail'));
+    document.head.appendChild(s);
+  });
+}
+
+function loadImage(src){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload  = () => res(img);
+    img.onerror = () => rej(new Error('decode'));
+    img.src = src;
+  });
+}
+function fmtSize(bytes){
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+function fitBox(iw, ih, bw, bh, mode){
+  if (mode === 'stretch') return { w: bw, h: bh };
+  const s = Math.min(bw / iw, bh / ih);
+  return { w: iw * s, h: ih * s };
+}
+
+/* --- lazy libraries --- */
+let docxLib = null;
+async function ensureDocx(){
+  if (docxLib) return docxLib;
+  if (window.docx && window.docx.Document) return (docxLib = window.docx);
+  const cdns = [
+    'https://cdn.jsdelivr.net/npm/docx@9.5.1/build/index.umd.js',
+    'https://unpkg.com/docx@9.5.1/build/index.umd.js',
+    'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
+  ];
+  for (const url of cdns){
+    try { await loadScript(url);
+      if (window.docx && window.docx.Document) return (docxLib = window.docx);
+    } catch(e){}
+  }
+  throw new Error('Could not load the Word engine (docx). Check your internet connection and reload.');
+}
+
+let jspdfLib = null;
+async function ensureJsPdf(){
+  if (jspdfLib) return jspdfLib;
+  if (window.jspdf && window.jspdf.jsPDF) return (jspdfLib = window.jspdf.jsPDF);
+  const cdns = [
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  ];
+  for (const url of cdns){
+    try { await loadScript(url);
+      if (window.jspdf && window.jspdf.jsPDF) return (jspdfLib = window.jspdf.jsPDF);
+    } catch(e){}
+  }
+  throw new Error('Could not load the PDF engine (jsPDF). Check your internet connection and reload.');
+}
+
+let jszipLib = null;
+async function ensureJSZip(){
+  if (jszipLib) return jszipLib;
+  if (window.JSZip) return (jszipLib = window.JSZip);
+  const cdns = [
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'
+  ];
+  for (const url of cdns){
+    try { await loadScript(url);
+      if (window.JSZip) return (jszipLib = window.JSZip);
+    } catch(e){}
+  }
+  return null;
+}
+
+/* pdf.js worker */
+if (window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+}
+
+/* ================================================================
+   TAB SWITCHING
+   ================================================================ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    btn.classList.add('active');
+  });
+});
+
+/* ================================================================
+   TAB 1 :  PHOTOS → WORD / PDF
+   ================================================================ */
+const els = {
+  drop:        document.getElementById('drop'),
+  file:        document.getElementById('file'),
+  pdfImport:   document.getElementById('pdfImport'),
+  pdfImportBtn:document.getElementById('pdfImportBtn'),
+  grid:        document.getElementById('grid'),
+  panel:       document.getElementById('panel'),
+  count:       document.getElementById('count'),
+  pageSize:    document.getElementById('pageSize'),
+  orient:      document.getElementById('orientation'),
+  marginH:     document.getElementById('marginH'),
+  marginV:     document.getElementById('marginV'),
+  gap:         document.getElementById('gap'),
+  perPage:     document.getElementById('perPage'),
+  sizing:      document.getElementById('sizing'),
+  applyAll:    document.getElementById('applyAll'),
+  optimize:    document.getElementById('optimize'),
+  optFields:   document.getElementById('optFields'),
+  optFieldsQ:  document.getElementById('optFieldsQ'),
+  resolution:  document.getElementById('resolution'),
+  quality:     document.getElementById('quality'),
+  sizeInfo:    document.getElementById('sizeInfo'),
+  exportBtn:   document.getElementById('exportBtn'),
+  exportPdfBtn:document.getElementById('exportPdfBtn'),
+  clearBtn:    document.getElementById('clearBtn'),
+  addMore:     document.getElementById('addMore'),
+  selAll:      document.getElementById('selAll'),
+  selNone:     document.getElementById('selNone'),
+  progress:    document.getElementById('progress'),
+  bar:         document.getElementById('bar'),
+  status:      document.getElementById('status'),
+  errBox:      document.getElementById('errBox'),
+  previewStage:document.getElementById('previewStage'),
+  previewHost: document.getElementById('previewHost'),
+  prevBtn:     document.getElementById('prevBtn'),
+  nextBtn:     document.getElementById('nextBtn'),
+  pageInfo:    document.getElementById('pageInfo')
+};
+
+const state = { items: [], pageIndex: 0 };
+let dragId = null;
+
+/* ---------- page geometry ---------- */
+const PAGE_SIZES = {
+  A4:     [8.27, 11.69],
+  Letter: [8.5,  11],
+  Legal:  [8.5,  14],
+  A3:     [11.69, 16.54],
+  A5:     [5.83, 8.27]
+};
+
+function clampNum(v, min, max, def){
+  const n = parseFloat(v);
+  if (isNaN(n)) return def;
+  if (n < min) return min;
+  if (n > max) return max;
+  return Math.round(n * 100) / 100;
+}
+const clampMargin = v => clampNum(v, 0, 4, 0);
+
+function readToolbarSettings(){
+  return {
+    pageSize:    els.pageSize.value,
+    orientation: els.orient.value,
+    sizing:      els.sizing.value,
+    marginH:     clampNum(els.marginH.value, 0, 4, 0.5),
+    marginV:     clampNum(els.marginV.value, 0, 4, 0.5)
+  };
+}
+function writeToolbarSettings(s){
+  els.pageSize.value = s.pageSize;
+  els.orient.value   = s.orientation;
+  els.sizing.value   = s.sizing;
+  els.marginH.value  = s.marginH;
+  els.marginV.value  = s.marginV;
+}
+function settingsForItem(item){
+  if (!item) return readToolbarSettings();
+  if (els.applyAll.checked) return readToolbarSettings();
+  return {
+    pageSize:    item.pageSize,
+    orientation: item.orientation,
+    sizing:      item.sizing,
+    marginH:     item.marginH,
+    marginV:     item.marginV
+  };
+}
+
+const perPageCount = () => parseInt(els.perPage.value, 10) || 1;
+const gapInches    = () => clampNum(els.gap.value, 0, 2, 0.15);
+
+/**
+ * Computes the grid used inside one page.
+ *  n = 1 → 1×1     n = 2 → 1 column × 2 rows     n = 4 → 2×2
+ */
+function layoutFor(s){
+  const [pw, ph] = PAGE_SIZES[s.pageSize] || PAGE_SIZES.A4;
+  const landscape = s.orientation === 'landscape';
+  const pageW = landscape ? ph : pw;
+  const pageH = landscape ? pw : ph;
+
+  const n     = perPageCount();
+  const gap   = gapInches();
+  const cols  = n >= 4 ? 2 : 1;
+  const rows  = n === 1 ? 1 : 2;
+
+  const contentW = Math.max(0.1, pageW - s.marginH * 2);
+  const contentH = Math.max(0.1, pageH - s.marginV * 2);
+  const cellW = cols === 1 ? contentW : Math.max(0.1, (contentW - gap) / 2);
+  const cellH = rows === 1 ? contentH : Math.max(0.1, (contentH - gap) / 2);
+
+  return {
+    pageW, pageH, landscape, n, gap, cols, rows,
+    mH: s.marginH, mV: s.marginV,
+    contentW, contentH, cellW, cellH
+  };
+}
+function cellRect(L, k){
+  const r = Math.floor(k / L.cols);
+  const c = k % L.cols;
+  return {
+    x: L.mH + c * (L.cellW + L.gap),
+    y: L.mV + r * (L.cellH + L.gap),
+    w: L.cellW,
+    h: L.cellH
+  };
+}
+
+/* ---------- selection helpers ---------- */
+const usableItems = () => state.items.filter(i => !i.error && i.selected);
+const pageCount   = () => Math.ceil(usableItems().length / perPageCount()) || 1;
+
+/* ---------- adding files ---------- */
+async function addFiles(fileList){
+  const files = Array.from(fileList);
+  const defaults = readToolbarSettings();
+
+  for (const file of files){
+    const item = {
+      id: uid(), file,
+      url: URL.createObjectURL(file),
+      width: 0, height: 0, error: null, selected: true,
+      pageSize:    defaults.pageSize,
+      orientation: defaults.orientation,
+      sizing:      defaults.sizing,
+      marginH:     defaults.marginH,
+      marginV:     defaults.marginV
+    };
+    try {
+      const img = await loadImage(item.url);
+      item.width  = img.naturalWidth;
+      item.height = img.naturalHeight;
+      if (!item.width || !item.height) throw new Error('no size');
+    } catch(e){
+      item.error = 'Bad format';
+      item.selected = false;
+    }
+    state.items.push(item);
+  }
+  render();
+  updateSizeInfo();
+}
+
+/* ---------- import PDF pages (logic from Convert_Pic_pdf) ---------- */
+async function importPdfPages(files){
+  if (!window.pdfjsLib){
+    showError('PDF engine (pdf.js) could not be loaded. Check your internet connection.');
+    return;
+  }
+  const defaults = readToolbarSettings();
+  els.errBox.style.display = 'none';
+
+  for (const file of files){
+    try {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let p = 1; p <= pdf.numPages; p++){
+        els.status.textContent = `Rendering ${file.name} — page ${p} / ${pdf.numPages}…`;
+        await new Promise(r => setTimeout(r, 0));
+
+        const page = await pdf.getPage(p);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport, background: '#ffffff' }).promise;
+
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+        const name = `${file.name.replace(/\.pdf$/i, '')}_p${p}.jpg`;
+        const f = new File([blob], name, { type: 'image/jpeg' });
+
+        state.items.push({
+          id: uid(), file: f,
+          url: URL.createObjectURL(f),
+          width: canvas.width, height: canvas.height,
+          error: null, selected: true,
+          pageSize: defaults.pageSize, orientation: defaults.orientation,
+          sizing: defaults.sizing, marginH: defaults.marginH, marginV: defaults.marginV
+        });
+      }
+    } catch (e){
+      console.error(e);
+      showError(`Could not read "${file.name}": ${e.message || e}`);
+    }
+  }
+  els.status.textContent = '';
+  render();
+  updateSizeInfo();
+}
+
+/* ---------- thumbnail rendering ---------- */
+function render(){
+  els.grid.innerHTML = '';
+  els.panel.style.display = state.items.length ? '' : 'none';
+  els.count.textContent = `(${state.items.length})`;
+
+  const usable = usableItems();
+  const n = perPageCount();
+  const curPage = state.pageIndex;
+  const currentIds = new Set(
+    usable.slice(curPage * n, curPage * n + n).map(i => i.id)
+  );
+
+  state.items.forEach((item, i) => {
+    const d = document.createElement('div');
+    d.className = 'thumb'
+      + (item.error ? ' err' : '')
+      + (!item.error && !item.selected ? ' unsel' : '')
+      + (currentIds.has(item.id) ? ' active' : '');
+    d.draggable = true;
+    d.dataset.id = item.id;
+
+    const img = document.createElement('img');
+    img.src = item.url; img.alt = '';
+    d.appendChild(img);
+
+    if (!item.error){
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'pick';
+      cb.checked = item.selected;
+      cb.title = 'Include in export';
+      cb.addEventListener('click', e => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        item.selected = cb.checked;
+        const idx = usableItems().findIndex(x => x.id === item.id);
+        if (item.selected && idx > -1) state.pageIndex = Math.floor(idx / perPageCount());
+        render();
+      });
+      d.appendChild(cb);
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = i + 1;
+      d.appendChild(num);
+    }
+
+    const rm = document.createElement('button');
+    rm.className = 'rm'; rm.textContent = '×'; rm.title = 'Remove';
+    rm.onclick = (e) => { e.stopPropagation(); removeItem(item.id); };
+    d.appendChild(rm);
+
+    if (item.error){
+      const b = document.createElement('div');
+      b.className = 'badge'; b.textContent = item.error;
+      d.appendChild(b);
+    } else if (item.optimizedSize){
+      if (item.optimizedSize < item.file.size){
+        const tag = document.createElement('span');
+        tag.className = 'save-tag';
+        tag.textContent = `-${Math.round((1 - item.optimizedSize / item.file.size) * 100)}%`;
+        d.appendChild(tag);
+      } else if (item.optimizedSize > item.file.size){
+        const tag = document.createElement('span');
+        tag.className = 'up-tag';
+        tag.textContent = '↑';
+        tag.title = 'Upscaled';
+        d.appendChild(tag);
+      }
+    }
+
+    d.addEventListener('click', () => {
+      const list = usableItems();
+      const idx = list.findIndex(x => x.id === item.id);
+      if (idx > -1) state.pageIndex = Math.floor(idx / perPageCount());
+      if (!els.applyAll.checked && !item.error) writeToolbarSettings(item);
+      render();
+    });
+
+    d.addEventListener('dragstart', e => {
+      dragId = item.id;
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', item.id); } catch(_) {}
+    });
+    d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('over'));
+    d.addEventListener('drop', e => {
+      e.preventDefault(); d.classList.remove('over');
+      if (dragId && dragId !== item.id) reorder(dragId, item.id);
+    });
+
+    els.grid.appendChild(d);
+  });
+
+  renderPreview();
+}
+
+function removeItem(id){
+  const i = state.items.findIndex(x => x.id === id);
+  if (i > -1){
+    URL.revokeObjectURL(state.items[i].url);
+    state.items.splice(i, 1);
+    render();
+    updateSizeInfo();
+  }
+}
+function reorder(fromId, toId){
+  const from = state.items.findIndex(x => x.id === fromId);
+  const to   = state.items.findIndex(x => x.id === toId);
+  if (from < 0 || to < 0) return;
+  const [moved] = state.items.splice(from, 1);
+  state.items.splice(to, 0, moved);
+  render();
+}
+
+/* ---------- live preview ---------- */
+function renderPreview(){
+  const host = els.previewHost;
+  host.innerHTML = '';
+
+  const usable = usableItems();
+  if (!usable.length){
+    host.innerHTML = '<div class="placeholder">Upload photos to see the live preview.</div>';
+    els.pageInfo.textContent = '— / —';
+    els.prevBtn.disabled = els.nextBtn.disabled = true;
+    return;
+  }
+
+  const n = perPageCount();
+  const total = Math.ceil(usable.length / n);
+  if (state.pageIndex >= total) state.pageIndex = 0;
+  if (state.pageIndex < 0) state.pageIndex = 0;
+
+  const pageItems = usable.slice(state.pageIndex * n, state.pageIndex * n + n);
+  const s = settingsForItem(pageItems[0]);
+  const L = layoutFor(s);
+
+  /* fit the paper inside the stage */
+  const stage = els.previewStage;
+  const pad = 44;
+  const availW = Math.max(200, stage.clientWidth  - pad);
+  const availH = Math.max(200, stage.clientHeight - pad);
+
+  const aspect = L.pageW / L.pageH;
+  let paperW = availW;
+  let paperH = paperW / aspect;
+  if (paperH > availH){ paperH = availH; paperW = paperH * aspect; }
+
+  const sc = paperW / L.pageW;                 // px per inch
+
+  const page = document.createElement('div');
+  page.className = 'page';
+  page.style.width  = paperW + 'px';
+  page.style.height = paperH + 'px';
+
+  const label = document.createElement('div');
+  label.className = 'page-no';
+  label.textContent = `Page ${state.pageIndex + 1} of ${total}` +
+                      ` · ${n} photo${n > 1 ? 's' : ''}` +
+                      (L.landscape ? ' · landscape' : ' · portrait');
+  page.appendChild(label);
+
+  pageItems.forEach((item, k) => {
+    const r = cellRect(L, k);
+    const box = document.createElement('div');
+    box.className = 'content' + (s.sizing === 'stretch' ? ' stretch' : '');
+    box.style.left   = (r.x * sc) + 'px';
+    box.style.top    = (r.y * sc) + 'px';
+    box.style.width  = (r.w * sc) + 'px';
+    box.style.height = (r.h * sc) + 'px';
+
+    const img = document.createElement('img');
+    img.src = item.url; img.alt = '';
+    box.appendChild(img);
+    page.appendChild(box);
+
+    const guide = document.createElement('div');
+    guide.className = 'guide';
+    guide.style.left   = (r.x * sc) + 'px';
+    guide.style.top    = (r.y * sc) + 'px';
+    guide.style.width  = (r.w * sc) + 'px';
+    guide.style.height = (r.h * sc) + 'px';
+    page.appendChild(guide);
+  });
+
+  host.appendChild(page);
+
+  els.pageInfo.textContent = `${state.pageIndex + 1} / ${total}`;
+  els.prevBtn.disabled = total < 2;
+  els.nextBtn.disabled = total < 2;
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderPreview, 80);
+});
+
+els.prevBtn.addEventListener('click', () => {
+  const total = pageCount();
+  state.pageIndex = (state.pageIndex - 1 + total) % total;
+  render();
+});
+els.nextBtn.addEventListener('click', () => {
+  const total = pageCount();
+  state.pageIndex = (state.pageIndex + 1) % total;
+  render();
+});
+
+/* ---------- optimisation settings ---------- */
+function getOptimizeSettings(){
+  return {
+    enabled: els.optimize.checked,
+    scale:   parseFloat(els.resolution.value) || 1,
+    quality: parseInt(els.quality.value, 10) / 100
+  };
+}
+function toggleOptimizeUI(){
+  const off = !els.optimize.checked;
+  els.optFields.style.opacity  = off ? .45 : 1;
+  els.optFields.style.pointerEvents = off ? 'none' : '';
+  els.optFieldsQ.style.opacity = off ? .45 : 1;
+  els.optFieldsQ.style.pointerEvents = off ? 'none' : '';
+}
+
+els.optimize.addEventListener('change', () => {
+  toggleOptimizeUI();
+  embCache.clear();
+  render();
+  updateSizeInfo();
+});
+els.resolution.addEventListener('change', () => { embCache.clear(); updateSizeInfo(); });
+els.quality.addEventListener('change',    () => { embCache.clear(); updateSizeInfo(); });
+
+let sizeInfoTimer = null;
+function updateSizeInfo(){
+  clearTimeout(sizeInfoTimer);
+  sizeInfoTimer = setTimeout(doUpdateSizeInfo, 120);
+}
+async function doUpdateSizeInfo(){
+  const usable = usableItems();
+  if (!usable.length){
+    els.sizeInfo.textContent = '';
+    els.sizeInfo.classList.remove('warn');
+    return;
+  }
+  const item = usable[0];
+  const original = item.file.size;
+
+  if (!els.optimize.checked){
+    els.sizeInfo.textContent = `Original: ${fmtSize(original)}`;
+    els.sizeInfo.classList.remove('warn');
+    return;
+  }
+  try {
+    const emb = await toEmbeddable(item, { skipCache: true });
+    const opt = emb.blob.size;
+    const diff = opt - original;
+    const pct = original > 0 ? Math.round((diff / original) * 100) : 0;
+    if (diff >= 0){
+      els.sizeInfo.textContent = `~${fmtSize(opt)} (+${pct}%) · upscaled`;
+      els.sizeInfo.classList.add('warn');
+    } else {
+      els.sizeInfo.textContent = `~${fmtSize(opt)} (saves ~${-pct}%)`;
+      els.sizeInfo.classList.remove('warn');
+    }
+  } catch(e){
+    els.sizeInfo.textContent = '';
+  }
+}
+
+/* ---------- image → embeddable bytes ---------- */
+const embCache = new Map();
+function cacheKey(item){
+  const o = getOptimizeSettings();
+  return `${item.id}|${o.enabled}|${o.scale}|${o.quality}`;
+}
+async function toEmbeddable(item, opts = {}){
+  const key = cacheKey(item);
+  if (!opts.skipCache && embCache.has(key)) return embCache.get(key);
+
+  const img = await loadImage(item.url);
+  const naturalW = img.naturalWidth;
+  const naturalH = img.naturalHeight;
+
+  const o = getOptimizeSettings();
+  let w = naturalW, h = naturalH;
+  if (o.enabled && o.scale !== 1){
+    w = Math.max(1, Math.round(naturalW * o.scale));
+    h = Math.max(1, Math.round(naturalH * o.scale));
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const usePng = /png/i.test(item.file.type) || /\.png$/i.test(item.file.name);
+  if (!usePng){ ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const encodeType = usePng ? 'image/png' : 'image/jpeg';
+  const encodeQuality = o.enabled ? o.quality : 0.92;
+
+  const blob = await new Promise(r => canvas.toBlob(r, encodeType, encodeQuality));
+  if (!blob) throw new Error('Could not process image');
+
+  const result = { blob, type: usePng ? 'png' : 'jpg', width: naturalW, height: naturalH, canvas };
+  embCache.set(key, result);
+  item.optimizedSize = o.enabled ? blob.size : null;
+  return result;
+}
+
+/* ---------- shared export helpers ---------- */
+function setProgress(ratio, text){
+  els.progress.classList.add('on');
+  els.bar.style.width = Math.round(ratio * 100) + '%';
+  if (text) els.status.textContent = text;
+}
+function showError(msg){
+  els.errBox.textContent = msg;
+  els.errBox.style.display = 'block';
+}
+function baseName(){
+  const first = usableItems()[0] || state.items[0];
+  const n = first ? first.file.name : 'photos';
+  return n.replace(/\.[^.]+$/, '');
+}
+function setExporting(on){
+  els.exportBtn.disabled = on;
+  els.exportPdfBtn.disabled = on;
+}
+
+/* ---------- post-process .docx for landscape ---------- */
+async function fixLandscapeInDocx(blob){
+  const JSZip = await ensureJSZip();
+  if (!JSZip) return blob;
+  try {
+    const zip = await JSZip.loadAsync(blob);
+    const file = zip.file('word/document.xml');
+    if (!file) return blob;
+
+    let xml = await file.async('string');
+    xml = xml.replace(/<w:pgSz\b[^>]*\/>/g, (tag) => {
+      const wMatch = tag.match(/\bw:w="(\d+)"/);
+      const hMatch = tag.match(/\bw:h="(\d+)"/);
+      const oMatch = tag.match(/\bw:orient="([^"]+)"/);
+      if (!wMatch || !hMatch) return tag;
+      let w = parseInt(wMatch[1], 10);
+      let h = parseInt(hMatch[1], 10);
+      const orient = oMatch ? oMatch[1] : (w > h ? 'landscape' : 'portrait');
+      if (orient === 'landscape' && w < h){ const t = w; w = h; h = t; }
+      else if (orient === 'portrait' && w > h){ const t = w; w = h; h = t; }
+      let newTag = tag.replace(/\bw:w="\d+"/, `w:w="${w}"`).replace(/\bw:h="\d+"/, `w:h="${h}"`);
+      if (/\bw:orient="[^"]+"/.test(newTag)){
+        newTag = newTag.replace(/\bw:orient="[^"]+"/, `w:orient="${orient}"`);
+      } else {
+        newTag = newTag.replace(/\/>$/, ` w:orient="${orient}"/>`);
+      }
+      return newTag;
+    });
+    zip.file('word/document.xml', xml);
+    return await zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+  } catch (e){
+    console.warn('docx post-fix failed:', e);
+    return blob;
+  }
+}
+
+/* ---------- build the docx children for ONE page ---------- */
+async function buildDocxPageChildren(pageItems, s, L, D){
+  const { Paragraph, TextRun, ImageRun, AlignmentType, convertInchesToTwip,
+          Table, TableRow, TableCell, WidthType, VerticalAlign, BorderStyle } = D;
+
+  const px = v => Math.max(1, Math.round(v));
+
+  /* pre-compute the encodings + display sizes */
+  const made = [];
+  for (const it of pageItems){
+    const emb = await toEmbeddable(it);
+    // 6 px of safety so nothing overflows the cell
+    const size = fitBox(emb.width, emb.height,
+                        L.cellW * 96 - 6, L.cellH * 96 - 6, s.sizing);
+    made.push({ emb, size, buf: await emb.blob.arrayBuffer() });
+  }
+
+  const imgRun = m => new ImageRun({
+    type: m.emb.type,
+    data: m.buf,
+    transformation: { width: px(m.size.w), height: px(m.size.h) }
+  });
+
+  const children = [];
+
+  if (L.n === 1){
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 0 },
+      children: [imgRun(made[0])]
+    }));
+  }
+  else if (L.n === 2){
+    const totalH = made[0].size.h + made[1].size.h + L.gap * 96;
+    const extra  = Math.max(0, L.contentH * 96 - totalH);
+    made.forEach((m, i) => {
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: {
+          before: convertInchesToTwip(i === 0 ? (extra / 2) / 96 : L.gap),
+          after: 0
+        },
+        children: [imgRun(m)]
+      }));
+    });
+  }
+  else { /* 2 × 2 table */
+    const rows = [];
+    for (let r = 0; r < 2; r++){
+      const cells = [];
+      for (let c = 0; c < 2; c++){
+        const idx = r * 2 + c;
+        const base = {
+          width: { size: convertInchesToTwip(L.cellW), type: WidthType.DXA },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          verticalAlign: VerticalAlign.CENTER
+        };
+        if (!made[idx]){
+          cells.push(new TableCell({ ...base, children: [new Paragraph({ children: [] })] }));
+        } else {
+          cells.push(new TableCell({
+            ...base,
+            children: [new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 0, after: 0 },
+              children: [imgRun(made[idx])]
+            })]
+          }));
+        }
+      }
+      rows.push(new TableRow({ children: cells }));
+    }
+    const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+    children.push(new Table({
+      rows,
+      width: { size: convertInchesToTwip(L.contentW), type: WidthType.DXA },
+      borders: { top: none, bottom: none, left: none, right: none,
+                 insideHorizontal: none, insideVertical: none }
+    }));
+    /* Word needs a paragraph after the final table */
+    children.push(new Paragraph({
+      spacing: { before: 0, after: 0 },
+      children: [new TextRun({ text: '', size: 2 })]
+    }));
+  }
+
+  return children;
+}
+
+/* ---------- export → Word ---------- */
+async function exportDocx(){
+  els.errBox.style.display = 'none';
+  const usable = usableItems();
+  const skipped = state.items.length - usable.length;
+  if (!usable.length){ showError('No photos selected.'); return; }
+
+  setExporting(true);
+  setProgress(0.02, 'Loading Word engine…');
+
+  try {
+    const docx = await ensureDocx();
+    const D = docx;
+    const { Document, Packer, convertInchesToTwip, PageOrientation } = docx;
+
+    const n = perPageCount();
+    const totalPages = Math.ceil(usable.length / n);
+    const sections = [];
+
+    for (let p = 0; p < totalPages; p++){
+      setProgress(p / totalPages, `Building page ${p + 1} / ${totalPages}…`);
+      await new Promise(r => setTimeout(r, 0));
+
+      const pageItems = usable.slice(p * n, p * n + n);
+      const s = settingsForItem(pageItems[0]);
+      const L = layoutFor(s);
+
+      const children = await buildDocxPageChildren(pageItems, s, L, D);
+
+      sections.push({
+        properties: {
+          page: {
+            size: {
+              width:  convertInchesToTwip(L.pageW),
+              height: convertInchesToTwip(L.pageH),
+              orientation: L.landscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT
+            },
+            margin: {
+              top:    convertInchesToTwip(s.marginV),
+              bottom: convertInchesToTwip(s.marginV),
+              left:   convertInchesToTwip(s.marginH),
+              right:  convertInchesToTwip(s.marginH)
+            }
+          }
+        },
+        children
+      });
+    }
+
+    setProgress(0.97, 'Building .docx…');
+    const doc = new Document({ sections });
+    const rawBlob = await Packer.toBlob(doc);
+
+    setProgress(0.985, 'Fixing page orientation…');
+    const fixedBlob = await fixLandscapeInDocx(rawBlob);
+
+    download(fixedBlob, `${baseName()}-photos.docx`);
+
+    setProgress(1, `Done ✔  ${totalPages} page(s)` + (skipped ? ` · ${skipped} skipped` : ''));
+    if (skipped) showError(`${skipped} file(s) skipped (unselected or unreadable).`);
+  } catch (err){
+    console.error(err);
+    showError(err.message || 'Error creating document.');
+    els.progress.classList.remove('on');
+    els.status.textContent = '';
+  } finally {
+    setExporting(false);
+  }
+}
+
+/* ---------- export → PDF ---------- */
+async function exportPdf(){
+  els.errBox.style.display = 'none';
+  const usable = usableItems();
+  const skipped = state.items.length - usable.length;
+  if (!usable.length){ showError('No photos selected.'); return; }
+
+  setExporting(true);
+  setProgress(0.02, 'Loading PDF engine…');
+
+  try {
+    const JsPDF = await ensureJsPdf();
+
+    const n = perPageCount();
+    const totalPages = Math.ceil(usable.length / n);
+    let pdf = null;
+
+    for (let p = 0; p < totalPages; p++){
+      setProgress(p / totalPages, `Building page ${p + 1} / ${totalPages}…`);
+      await new Promise(r => setTimeout(r, 0));
+
+      const pageItems = usable.slice(p * n, p * n + n);
+      const s = settingsForItem(pageItems[0]);
+      const L = layoutFor(s);
+      const orient = L.landscape ? 'landscape' : 'portrait';
+
+      if (!pdf){
+        pdf = new JsPDF({ unit: 'in', format: [L.pageW, L.pageH], orientation: orient, compress: true });
+      } else {
+        pdf.addPage([L.pageW, L.pageH], orient);
+      }
+
+      for (let k = 0; k < pageItems.length; k++){
+        const item = pageItems[k];
+        const emb = await toEmbeddable(item);
+        const r = cellRect(L, k);
+
+        const iw = emb.width / 96;      // inches @ 96dpi
+        const ih = emb.height / 96;
+        let drawW, drawH;
+
+        if (s.sizing === 'stretch'){
+          drawW = r.w; drawH = r.h;
+        } else {
+          const sc = Math.min(r.w / iw, r.h / ih);
+          drawW = iw * sc;
+          drawH = ih * sc;
+        }
+        const x = r.x + (r.w - drawW) / 2;
+        const y = r.y + (r.h - drawH) / 2;
+
+        const q = els.optimize.checked ? parseInt(els.quality.value, 10) / 100 : 0.92;
+        const dataUrl = emb.canvas.toDataURL(
+          emb.type === 'png' ? 'image/png' : 'image/jpeg', q);
+        const fmt = emb.type === 'png' ? 'PNG' : 'JPEG';
+
+        pdf.addImage(dataUrl, fmt, x, y, drawW, drawH, undefined, 'FAST');
+      }
+    }
+
+    setProgress(0.97, 'Building PDF…');
+    const blob = pdf.output('blob');
+    download(blob, `${baseName()}-photos.pdf`);
+
+    setProgress(1, `Done ✔  ${totalPages} page(s)` + (skipped ? ` · ${skipped} skipped` : ''));
+    if (skipped) showError(`${skipped} file(s) skipped (unselected or unreadable).`);
+  } catch (err){
+    console.error(err);
+    showError(err.message || 'Error creating PDF.');
+    els.progress.classList.remove('on');
+    els.status.textContent = '';
+  } finally {
+    setExporting(false);
+  }
+}
+
+/* ---------- toolbar events ---------- */
+['change','input'].forEach(ev => {
+  els.pageSize.addEventListener(ev, onToolbarChange);
+  els.orient.addEventListener(ev, onToolbarChange);
+  els.sizing.addEventListener(ev, onToolbarChange);
+  els.marginH.addEventListener(ev, onToolbarChange);
+  els.marginV.addEventListener(ev, onToolbarChange);
+});
+els.perPage.addEventListener('change', () => {
+  state.pageIndex = 0;
+  render();
+});
+els.gap.addEventListener('change', () => { renderPreview(); });
+els.gap.addEventListener('input',  () => { renderPreview(); });
+
+function onToolbarChange(){
+  const s = readToolbarSettings();
+  if (els.applyAll.checked){
+    state.items.forEach(it => {
+      it.pageSize    = s.pageSize;
+      it.orientation = s.orientation;
+      it.sizing      = s.sizing;
+      it.marginH     = s.marginH;
+      it.marginV     = s.marginV;
+    });
+  } else {
+    const usable = usableItems();
+    const n = perPageCount();
+    const pageItems = usable.slice(state.pageIndex * n, state.pageIndex * n + n);
+    pageItems.forEach(it => {
+      it.pageSize    = s.pageSize;
+      it.orientation = s.orientation;
+      it.sizing      = s.sizing;
+      it.marginH     = s.marginH;
+      it.marginV     = s.marginV;
+    });
+  }
+  renderPreview();
+}
+
+els.applyAll.addEventListener('change', () => {
+  if (els.applyAll.checked){
+    const s = readToolbarSettings();
+    state.items.forEach(it => {
+      it.pageSize    = s.pageSize;
+      it.orientation = s.orientation;
+      it.sizing      = s.sizing;
+      it.marginH     = s.marginH;
+      it.marginV     = s.marginV;
+    });
+  } else {
+    const usable = usableItems();
+    const n = perPageCount();
+    const pageItems = usable.slice(state.pageIndex * n, state.pageIndex * n + n);
+    if (pageItems.length) writeToolbarSettings(pageItems[0]);
+  }
+  render();
+});
+
+els.marginH.addEventListener('blur', () => {
+  els.marginH.value = clampNum(els.marginH.value, 0, 4, 0.5); onToolbarChange();
+});
+els.marginV.addEventListener('blur', () => {
+  els.marginV.value = clampNum(els.marginV.value, 0, 4, 0.5); onToolbarChange();
+});
+els.gap.addEventListener('blur', () => {
+  els.gap.value = clampNum(els.gap.value, 0, 2, 0.15); renderPreview();
+});
+
+/* ---------- file input / drag & drop ---------- */
+els.drop.addEventListener('click', () => els.file.click());
+els.addMore.addEventListener('click', () => els.file.click());
+els.pdfImportBtn.addEventListener('click', () => els.pdfImport.click());
+
+els.file.addEventListener('change', e => {
+  if (e.target.files && e.target.files.length) addFiles(e.target.files);
+  e.target.value = '';
+});
+els.pdfImport.addEventListener('change', e => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (files.length) importPdfPages(files);
+});
+
+['dragenter','dragover'].forEach(ev =>
+  els.drop.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.add('hover'); }));
+['dragleave','drop'].forEach(ev =>
+  els.drop.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.remove('hover'); }));
+
+els.drop.addEventListener('drop', e => {
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  const all = Array.from(dt.files || []);
+  const pdfs = all.filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+  const imgs = all.filter(f => !pdfs.includes(f));
+  if (imgs.length) addFiles(imgs);
+  if (pdfs.length) importPdfPages(pdfs);
+});
+
+els.selAll.addEventListener('click', () => {
+  state.items.forEach(i => { if (!i.error) i.selected = true; });
+  render(); updateSizeInfo();
+});
+els.selNone.addEventListener('click', () => {
+  state.items.forEach(i => { i.selected = false; });
+  state.pageIndex = 0;
+  render(); updateSizeInfo();
+});
+
+els.clearBtn.addEventListener('click', () => {
+  state.items.forEach(i => URL.revokeObjectURL(i.url));
+  state.items = [];
+  state.pageIndex = 0;
+  embCache.clear();
+  render();
+  updateSizeInfo();
+  els.progress.classList.remove('on');
+  els.status.textContent = '';
+  els.errBox.style.display = 'none';
+});
+
+els.exportBtn.addEventListener('click', exportDocx);
+els.exportPdfBtn.addEventListener('click', exportPdf);
+
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+/* ================================================================
+   TAB 2 & 3 :  PDF ⇄ IMAGES  (logic from Convert_Pic_pdf.html)
+   ================================================================ */
+let pdfStore = { files: [], images: [], selected: new Set() };
+let imgStore = { files: [], images: [], selected: new Set() };
+
+/* ---------- shared board rendering ---------- */
+function renderFileList(elementId, fileArray, removeName) {
+  const listContainer = document.getElementById(elementId);
+  if (!fileArray.length) { listContainer.style.display = 'none'; return; }
+  listContainer.style.display = 'flex';
+  listContainer.innerHTML = fileArray.map((f, i) => `
+    <span class="file-tag">
+      📎 ${f.name}
+      <span class="remove" onclick="${removeName}(${i})">✕</span>
+    </span>`).join('');
+}
+
+function renderPreviewBoard(containerId, store, storeKey) {
+  const container = document.getElementById(containerId);
+  if (!store.images.length) return;
+
+  const groups = {};
+  store.images.forEach(img => {
+    if (!groups[img.fileId]) groups[img.fileId] = { name: img.originalName, items: [] };
+    groups[img.fileId].items.push(img);
+  });
+
+  let html = '';
+  Object.keys(groups).forEach(fileId => {
+    const group = groups[fileId];
+    const allSelected = group.items.every(img => store.selected.has(img.index));
+
+    html += `
+      <div class="master-file-card">
+        <div class="master-card-header">
+          <div class="master-card-title">
+            <input type="checkbox"
+                   id="${storeKey}_master_cb_${fileId}"
+                   ${allSelected ? 'checked' : ''}
+                   onchange="toggleGroupSelection('${storeKey}', '${fileId}', this.checked)">
+            <span>📄 ${group.name}</span>
+            <span style="color:#64748b;font-size:.85rem;font-weight:normal;">(${group.items.length} Item)</span>
+          </div>
+        </div>
+        <div class="thumb-grid">`;
+
+    group.items.forEach(img => {
+      const checked = store.selected.has(img.index) ? 'checked' : '';
+      html += `
+        <div class="thumb-item ${checked ? 'selected' : ''}" id="${storeKey}_thumb_${img.index}">
+          <div class="thumb-checkbox">
+            <input type="checkbox" data-store="${storeKey}" data-file-id="${fileId}"
+                   data-index="${img.index}" ${checked}
+                   onchange="toggleSingleSelection('${storeKey}', '${fileId}', ${img.index})">
+          </div>
+          <img src="${img.dataUrl}" alt="Page ${img.pageNumber}">
+          <div class="thumb-info">Page ${img.pageNumber} of ${img.totalPages}</div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleGlobalSelection(storeKey, selectAll) {
+  const store = storeKey === 'pdf' ? pdfStore : imgStore;
+  if (!store.images.length) return;
+
+  if (selectAll) store.images.forEach(img => store.selected.add(img.index));
+  else store.selected.clear();
+
+  document.querySelectorAll(`input[data-store="${storeKey}"]`).forEach(cb => cb.checked = selectAll);
+
+  store.images.forEach(img => {
+    const thumb = document.getElementById(`${storeKey}_thumb_${img.index}`);
+    if (thumb) thumb.classList.toggle('selected', selectAll);
+  });
+
+  document.querySelectorAll(`[id^="${storeKey}_master_cb_"]`).forEach(m => m.checked = selectAll);
+  updateControlUI(storeKey);
+}
+
+function toggleSingleSelection(storeKey, fileId, index) {
+  const store = storeKey === 'pdf' ? pdfStore : imgStore;
+  if (store.selected.has(index)) store.selected.delete(index);
+  else store.selected.add(index);
+
+  const thumb = document.getElementById(`${storeKey}_thumb_${index}`);
+  if (thumb) thumb.classList.toggle('selected', store.selected.has(index));
+
+  const groupCheckboxes = document.querySelectorAll(
+    `input[data-store="${storeKey}"][data-file-id="${fileId}"]`);
+  const allChecked = Array.from(groupCheckboxes).every(cb => cb.checked);
+  const masterCb = document.getElementById(`${storeKey}_master_cb_${fileId}`);
+  if (masterCb) masterCb.checked = allChecked;
+
+  updateControlUI(storeKey);
+}
+
+function toggleGroupSelection(storeKey, fileId, selectAll) {
+  const store = storeKey === 'pdf' ? pdfStore : imgStore;
+  const checkboxes = document.querySelectorAll(
+    `input[data-store="${storeKey}"][data-file-id="${fileId}"]`);
+
+  checkboxes.forEach(cb => {
+    const idx = parseInt(cb.getAttribute('data-index'), 10);
+    cb.checked = selectAll;
+    if (selectAll) store.selected.add(idx);
+    else store.selected.delete(idx);
+
+    const thumb = document.getElementById(`${storeKey}_thumb_${idx}`);
+    if (thumb) thumb.classList.toggle('selected', selectAll);
+  });
+
+  const masterCb = document.getElementById(`${storeKey}_master_cb_${fileId}`);
+  if (masterCb) masterCb.checked = selectAll;
+
+  updateControlUI(storeKey);
+}
+
+function updateControlUI(storeKey) {
+  const isPdf = storeKey === 'pdf';
+  const store = isPdf ? pdfStore : imgStore;
+
+  if (isPdf) {
+    document.getElementById('pdfBadge').textContent = `${store.images.length} Images Loaded`;
+    document.getElementById('pdfSelectedCount1').textContent = store.selected.size;
+    document.getElementById('pdfSelectedCount2').textContent = store.selected.size;
+    document.getElementById('downloadSelectedPdfImagesBtn').disabled = store.selected.size === 0;
+    document.getElementById('downloadSelectedPdfAsMergedBtn').disabled = store.selected.size === 0;
+    document.getElementById('clearPdfBtn').disabled = store.files.length === 0;
+  } else {
+    document.getElementById('imgBadge').textContent = `${store.images.length} Images Loaded`;
+    document.getElementById('imgSelectedCount1').textContent = store.selected.size;
+    document.getElementById('imgSelectedCount2').textContent = store.selected.size;
+    document.getElementById('downloadCombinedPdfBtn').disabled = store.selected.size === 0;
+    document.getElementById('downloadSeparatedPdfBtn').disabled = store.selected.size === 0;
+    document.getElementById('clearImgBtn').disabled = store.files.length === 0;
+  }
+}
+
+/* ---------- PDF → Images ---------- */
+async function handlePdfUpload(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  if (!window.pdfjsLib){
+    alert('PDF engine (pdf.js) could not be loaded. Check your internet connection.');
+    return;
+  }
+
+  files.forEach(file => {
+    if (!pdfStore.files.some(f => f.name === file.name && f.size === file.size)) {
+      pdfStore.files.push(file);
+    }
+  });
+
+  renderFileList('pdfFileList', pdfStore.files, 'removePdfFile');
+
+  const allImages = [];
+  for (let fIdx = 0; fIdx < pdfStore.files.length; fIdx++) {
+    const file = pdfStore.files[fIdx];
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    for (let pNum = 1; pNum <= pdf.numPages; pNum++) {
+      const page = await pdf.getPage(pNum);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: ctx, viewport, background: 'white' }).promise;
+
+      allImages.push({
+        fileId: `pdf_${fIdx}`,
+        fileName: file.name.replace(/\.pdf$/i, ''),
+        originalName: file.name,
+        pageNumber: pNum,
+        totalPages: pdf.numPages,
+        dataUrl: canvas.toDataURL('image/png'),
+        width: viewport.width,
+        height: viewport.height,
+        index: allImages.length
+      });
+    }
+  }
+
+  pdfStore.images = allImages;
+  pdfStore.selected = new Set(allImages.map(i => i.index));
+  renderPreviewBoard('pdfPreviewContent', pdfStore, 'pdf');
+  updateControlUI('pdf');
+}
+
+function removePdfFile(index) {
+  pdfStore.files.splice(index, 1);
+  if (!pdfStore.files.length) { clearPdfSession(false); return; }
+  renderFileList('pdfFileList', pdfStore.files, 'removePdfFile');
+  pdfStore.images = [];
+  pdfStore.selected.clear();
+  handlePdfUpload({ target: { files: [] } });
+  /* re-render from remaining files */
+  if (pdfStore.files.length) {
+    const dt = { target: { files: pdfStore.files.slice() } };
+    handlePdfUpload(dt);
+  }
+}
+
+function clearPdfSession(confirmReq = true) {
+  if (confirmReq && !confirm('Are you sure you want to clear all data?')) return;
+  pdfStore = { files: [], images: [], selected: new Set() };
+  document.getElementById('pdfFileInput').value = '';
+  document.getElementById('pdfFileList').style.display = 'none';
+  document.getElementById('pdfPreviewContent').innerHTML =
+    `<div class="empty-state"><div class="icon">✨</div><p>Upload a PDF file to preview and extract images</p></div>`;
+  updateControlUI('pdf');
+}
+
+/* ---------- Images → PDF ---------- */
+async function handleImageUpload(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    if (!imgStore.files.some(f => f.name === file.name && f.size === file.size)) {
+      imgStore.files.push(file);
+    }
+  });
+
+  renderFileList('imgFileList', imgStore.files, 'removeImgFile');
+
+  const allImages = [];
+  for (let fIdx = 0; fIdx < imgStore.files.length; fIdx++) {
+    const file = imgStore.files[fIdx];
+    const dataUrl = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    const dims = await new Promise(resolve => {
+      const i = new Image();
+      i.onload = () => resolve({ w: i.width, h: i.height });
+      i.onerror = () => resolve({ w: 800, h: 600 });
+      i.src = dataUrl;
+    });
+
+    allImages.push({
+      fileId: `img_file_${fIdx}`,
+      fileName: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+      originalName: file.name,
+      pageNumber: 1,
+      totalPages: 1,
+      dataUrl,
+      width: dims.w,
+      height: dims.h,
+      index: allImages.length
+    });
+  }
+
+  imgStore.images = allImages;
+  imgStore.selected = new Set(allImages.map(i => i.index));
+  renderPreviewBoard('imgPreviewContent', imgStore, 'img');
+  updateControlUI('img');
+}
+
+function removeImgFile(index) {
+  imgStore.files.splice(index, 1);
+  if (!imgStore.files.length) { clearImgSession(false); return; }
+  renderFileList('imgFileList', imgStore.files, 'removeImgFile');
+  imgStore.images = [];
+  imgStore.selected.clear();
+  handleImageUpload({ target: { files: imgStore.files.slice() } });
+}
+
+function clearImgSession(confirmReq = true) {
+  if (confirmReq && !confirm('Are you sure you want to clear all data?')) return;
+  imgStore = { files: [], images: [], selected: new Set() };
+  document.getElementById('imageFileInput').value = '';
+  document.getElementById('imgFileList').style.display = 'none';
+  document.getElementById('imgPreviewContent').innerHTML =
+    `<div class="empty-state"><div class="icon">✨</div><p>Upload image files to aggregate and convert into PDF</p></div>`;
+  updateControlUI('img');
+}
+
+/* ---------- download engines ---------- */
+function triggerBatchDownload(images) {
+  images.forEach((img, idx) => {
+    setTimeout(() => {
+      const link = document.createElement('a');
+      link.href = img.dataUrl;
+      link.download = `${img.fileName}_Page_${img.pageNumber}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }, idx * 200);
+  });
+}
+
+function downloadSelectedPdfImages() {
+  triggerBatchDownload(pdfStore.images.filter(i => pdfStore.selected.has(i.index)));
+}
+
+async function downloadSelectedPdfAsMerged() {
+  const selected = pdfStore.images.filter(i => pdfStore.selected.has(i.index));
+  if (selected.length) await generatePdfFromImageSet(selected, 'Merged_Selected_Pages.pdf');
+}
+
+async function generatePdfFromImageSet(images, outputFilename) {
+  if (!images.length) return;
+  const JsPDF = await ensureJsPdf();
+  let pdfDoc = null;
+
+  images.forEach((img, idx) => {
+    const orientation = img.width > img.height ? 'l' : 'p';
+    if (idx === 0) {
+      pdfDoc = new JsPDF({ orientation, unit: 'px', format: [img.width, img.height] });
+    } else {
+      pdfDoc.addPage([img.width, img.height], orientation);
+    }
+    pdfDoc.addImage(img.dataUrl, 'PNG', 0, 0, img.width, img.height);
+  });
+
+  pdfDoc.save(outputFilename);
+}
+
+async function convertSelectedImagesToSinglePdf() {
+  const selected = imgStore.images.filter(i => imgStore.selected.has(i.index));
+  if (selected.length) await generatePdfFromImageSet(selected, 'Combined_Selected_Images.pdf');
+}
+
+function convertSelectedImagesToSeparatedPdfs() {
+  const selected = imgStore.images.filter(i => imgStore.selected.has(i.index));
+  selected.forEach((img, idx) => {
+    setTimeout(() => {
+      generatePdfFromImageSet([img], `${img.fileName}_Page_${img.pageNumber}.pdf`);
+    }, idx * 250);
+  });
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+toggleOptimizeUI();
+render();
+renderPreview();
+</script>
+</body>
+</html>
