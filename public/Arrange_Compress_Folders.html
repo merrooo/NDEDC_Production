@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Local Organizer & Compression Suite</title>
+    <!-- Modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#035485',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- JSZip Library for client-side compression -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* Custom scrollbar for log & file lists */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+
+        <!-- Header -->
+        <header class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <!-- ===== RETURN HOME BUTTON (Option B) ===== -->
+                <button type="button" onclick="goHome()"
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-sky-600 transition-colors mb-3 group">
+                    <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Return Home
+                </button>
+                <!-- ========================================= -->
+
+                <div class="inline-flex items-center gap-2 bg-sky-50 text-sky-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-sky-100 mb-2">
+                    <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span> 100% Client-Side Private Storage
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                    Local Disk Organizer <span class="text-sky-600">&</span> Compressor
+                </h1>
+                <p class="text-sm sm:text-base text-slate-500 mt-1">
+                    Organize disk directories, compress files of any type, and write archives directly to your hard drive without server uploads.
+                </p>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <span>Zero Server Transfers • Direct System Write</span>
+            </div>
+        </header>
+
+        <!-- API Compatibility Banner -->
+        <div id="apiNotice" class="hidden bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <strong>Browser Notice:</strong> Your browser does not support standard Native File System Access API (<code>showDirectoryPicker</code>). In-place folder disk writing works best on Chrome, Edge, or Opera on Desktop. File compression to direct ZIP download is fully functional on all browsers.
+            </div>
+        </div>
+
+        <!-- SECTION 1: IN-PLACE FOLDER ORGANIZER -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-bold text-base">1</div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Direct In-Place Directory Organizer</h2>
+                        <p class="text-xs text-slate-500">Categorize loose root files inside a PC folder automatically</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <!-- Select Directory Dropzone -->
+                <div id="orgPickerZone" onclick="selectOrganizerDirectory()" class="border-2 border-dashed border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2 group">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 flex items-center justify-center transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800">Click to pick a local disk folder</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Grants read & write permissions to organize root files directly inside your hard drive</p>
+                    </div>
+                    <button type="button" class="mt-2 text-xs font-semibold px-4 py-2 bg-slate-100 text-slate-700 rounded-lg group-hover:bg-sky-600 group-hover:text-white transition-colors pointer-events-none">
+                        Browse PC Directory
+                    </button>
+                </div>
+
+                <!-- Active Folder Inspector -->
+                <div id="orgDetails" class="hidden space-y-5">
+                    <div class="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                            </svg>
+                            <div>
+                                <span class="text-xs text-slate-400 font-medium">Target Folder</span>
+                                <h3 id="orgFolderName" class="text-base font-bold text-slate-800 break-all">Selected Folder</h3>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="orgFileCountBadge" class="text-xs font-bold bg-sky-100 text-sky-700 px-3 py-1 rounded-full">0 Loose Files</span>
+                            <button onclick="selectOrganizerDirectory()" class="text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1 rounded-lg hover:bg-slate-100">Change</button>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="orgCategoryGrid">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Organizer Options -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                        <label class="flex items-center gap-3 cursor-pointer text-xs sm:text-sm font-semibold text-slate-700">
+                            <input type="checkbox" id="orgCompressToggle" onchange="toggleOrgCompressOptions()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
+                            <span>Compress organized folder into a ZIP file in-place after sorting</span>
+                        </label>
+                        <div id="orgCleanupSubOption" class="pl-7 opacity-50 pointer-events-none transition-opacity">
+                            <label class="flex items-center gap-3 cursor-pointer text-xs font-medium text-slate-600">
+                                <input type="checkbox" id="orgCleanupToggle" disabled class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                                <span>Delete uncompressed original source files/folders after ZIP is written</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Trigger -->
+                    <div class="flex flex-wrap gap-3">
+                        <button id="startOrgBtn" onclick="runFolderOrganizer()" class="flex-1 min-w-[200px] bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm text-sm transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Run Folder Organizer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: DEDICATED FILE & FOLDER COMPRESSOR TOOL -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-base">2</div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Universal File & Folder Compression Tool</h2>
+                        <p class="text-xs text-slate-500">Compress any combination of uploaded files or folder trees into a single ZIP archive</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Upload Dropzone & Controls -->
+                <div id="compressDropZone" class="border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 rounded-xl p-6 text-center transition-all duration-200 flex flex-col items-center justify-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800">Drag & drop files or folders here</p>
+                        <p class="text-xs text-slate-400 mt-1">Supports all file types: Images, Videos, Audio, PDF, Office Docs, Zip, Code, Exe, etc.</p>
+                    </div>
+
+                    <!-- Hidden Inputs for Files and Directory -->
+                    <input type="file" id="compressFileInput" multiple class="hidden" onchange="handleFileInputSelect(event)">
+                    <input type="file" id="compressFolderInput" webkitdirectory directory multiple class="hidden" onchange="handleFileInputSelect(event)">
+
+                    <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+                        <button type="button" onclick="document.getElementById('compressFileInput').click()" class="text-xs font-semibold px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition">
+                            + Select Files
+                        </button>
+                        <button type="button" onclick="document.getElementById('compressFolderInput').click()" class="text-xs font-semibold px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 rounded-lg transition">
+                            + Select Entire Folder
+                        </button>
+                    </div>
+                </div>
+
+                <!-- File Queue & Staging Area -->
+                <div id="stagingArea" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Queue for Compression</h3>
+                        <div class="flex items-center gap-3 text-xs">
+                            <span class="font-semibold text-slate-600" id="totalStagingCount">0 files</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="font-semibold text-indigo-600" id="totalStagingSize">0 MB</span>
+                            <button onclick="clearStagingQueue()" class="text-rose-600 hover:text-rose-700 font-semibold ml-2">Clear Queue</button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Staged Files List -->
+                    <div class="max-h-52 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white" id="stagedFileList">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Compression Settings -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">ZIP Archive Name</label>
+                            <div class="flex items-center">
+                                <input type="text" id="customZipName" value="Archive_Compressed" class="text-xs w-full bg-white border border-slate-300 rounded-l-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <span class="bg-slate-200 text-slate-600 text-xs font-medium px-3 py-2 rounded-r-lg border border-l-0 border-slate-300">.zip</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Save Option</label>
+                            <select id="compressionSaveMode" class="text-xs w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="download">Standard Browser Download (Instant Save)</option>
+                                <option value="inplace">Write Directly to Local Disk Folder (File System Access)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Compression Execution Button -->
+                    <button id="startCompressBtn" onclick="runZipCompression()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold py-3 px-4 rounded-xl shadow-sm text-sm transition flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1a2 2 0 01-2 2M5 8v10a2 2 0 002 2h14a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        Compress Staged Files Now
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SHARED PROGRESS MONITOR -->
+        <div id="progressCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3">
+            <div class="flex items-center justify-between text-sm font-semibold">
+                <span id="progressLabel" class="text-slate-800">Processing...</span>
+                <span id="progressPercentage" class="text-sky-600">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div id="progressBarFill" class="bg-sky-600 h-full w-0 transition-all duration-200 rounded-full"></div>
+            </div>
+        </div>
+
+        <!-- ACTIVITY LOG BOX -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Activity Console</h3>
+                <button onclick="clearConsoleLogs()" class="text-xs text-slate-400 hover:text-slate-600">Clear Log</button>
+            </div>
+            <div id="consoleLogBox" class="bg-slate-900 text-slate-200 font-mono text-xs p-4 h-44 overflow-y-auto space-y-1">
+                <div class="text-slate-500">[System Ready] Choose an operation above...</div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ============================================================
+        // RETURN HOME CONFIGURATION — change this to your home page
+        // ============================================================
+        const HOME_URL = 'index.html';
+
+        // Category Definitions for Organizer
+        const CATEGORIES = {
+            'Photos_Images': { icon: '📷', bg: 'bg-blue-50 text-blue-700 border-blue-200', exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', '.tiff', '.heic'] },
+            'Documents': { icon: '📄', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', exts: ['.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.csv', '.rtf'] },
+            'Audio_Music': { icon: '🎵', bg: 'bg-pink-50 text-pink-700 border-pink-200', exts: ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma'] },
+            'Videos': { icon: '🎬', bg: 'bg-amber-50 text-amber-700 border-amber-200', exts: ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'] },
+            'Archives': { icon: '📦', bg: 'bg-purple-50 text-purple-700 border-purple-200', exts: ['.zip', '.rar', '.7z', '.tar', '.gz', '.iso'] },
+            'Executables': { icon: '⚙️', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200', exts: ['.exe', '.msi', '.bat', '.cmd', '.sh', '.app', '.dmg'] },
+            'Code_Scripts': { icon: '💻', bg: 'bg-teal-50 text-teal-700 border-teal-200', exts: ['.html', '.css', '.js', '.json', '.py', '.cpp', '.java', '.php', '.ts'] },
+            'Others': { icon: '📁', bg: 'bg-slate-50 text-slate-700 border-slate-200', exts: [] }
+        };
+
+        // ============================================================
+        // Formats that are ALREADY compressed — DEFLATE gives no benefit
+        // and may even produce a slightly larger output. STORE them as-is.
+        // ============================================================
+        const ALREADY_COMPRESSED = new Set([
+            // Images
+            'jpg','jpeg','png','gif','webp','heic','heif','avif','bmp','tiff','tif',
+            // Video
+            'mp4','mkv','mov','avi','webm','wmv','flv','m4v','mpg','mpeg','3gp',
+            // Audio
+            'mp3','aac','m4a','ogg','oga','flac','wma','opus',
+            // Archives & compressed containers
+            'zip','rar','7z','gz','bz2','xz','tar','apk','jar','iso','cab','lz','zst',
+            // Modern Office (these are ZIP files internally)
+            'docx','xlsx','pptx','odt','ods','odp','epub',
+            // PDFs & installers
+            'pdf','exe','msi','dmg'
+        ]);
+
+        // Global State Variables
+        let orgDirHandle = null;
+        let orgFileList = [];
+        let stagedCompressFiles = []; // Array of File objects
+        let isTaskRunning = false;
+
+        // Check Native API Compatibility on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!('showDirectoryPicker' in window)) {
+                document.getElementById('apiNotice').classList.remove('hidden');
+            }
+            setupDragAndDrop();
+        });
+
+        // Warn before tab-close / refresh while a task is running
+        window.addEventListener('beforeunload', (e) => {
+            if (isTaskRunning) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // ----------------------------------------------------
+        // RETURN HOME
+        // ----------------------------------------------------
+        function goHome() {
+            if (isTaskRunning) {
+                alert('A task is still running. Please wait for it to finish before leaving.');
+                return;
+            }
+            if (stagedCompressFiles.length > 0) {
+                const ok = confirm(
+                    `You have ${stagedCompressFiles.length} file(s) staged that have not been compressed yet.\n\nLeave anyway?`
+                );
+                if (!ok) return;
+            }
+            window.location.href = HOME_URL;
+        }
+
+        // ----------------------------------------------------
+        // ORGANIZER LOGIC (File System Access API)
+        // ----------------------------------------------------
+        async function selectOrganizerDirectory() {
+            if (!('showDirectoryPicker' in window)) {
+                alert("Your browser does not support standard Directory Picker. Please use Chrome/Edge or use the Compressor tool below.");
+                return;
+            }
+
+            try {
+                orgDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                document.getElementById('orgFolderName').innerText = orgDirHandle.name;
+                await scanOrganizerDirectory();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    logToConsole(`Error selecting directory: ${err.message}`, 'error');
+                }
+            }
+        }
+
+        async function scanOrganizerDirectory() {
+            orgFileList = [];
+            const categoryCounts = {};
+            Object.keys(CATEGORIES).forEach(c => categoryCounts[c] = 0);
+
+            logToConsole(`Scanning folder "${orgDirHandle.name}"...`, 'info');
+
+            for await (const entry of orgDirHandle.values()) {
+                if (entry.kind === 'file') {
+                    const ext = getExtension(entry.name);
+                    const category = getCategoryForExtension(ext);
+                    
+                    orgFileList.push({
+                        name: entry.name,
+                        handle: entry,
+                        category: category,
+                        ext: ext
+                    });
+
+                    categoryCounts[category]++;
+                }
+            }
+
+            renderOrgCategoryGrid(categoryCounts);
+            document.getElementById('orgFileCountBadge').innerText = `${orgFileList.length} Loose File(s)`;
+            document.getElementById('orgDetails').classList.remove('hidden');
+
+            logToConsole(`Scan complete. Found ${orgFileList.length} loose root file(s).`, 'success');
+        }
+
+        function renderOrgCategoryGrid(counts) {
+            const grid = document.getElementById('orgCategoryGrid');
+            grid.innerHTML = '';
+
+            for (const [catName, config] of Object.entries(CATEGORIES)) {
+                const count = counts[catName] || 0;
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border ${config.bg} flex items-center gap-3`;
+                card.innerHTML = `
+                    <div class="text-xl">${config.icon}</div>
+                    <div class="min-w-0">
+                        <div class="text-xs font-bold truncate">${catName.replace('_', ' ')}</div>
+                        <div class="text-[11px] opacity-80">${count} file${count === 1 ? '' : 's'}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function toggleOrgCompressOptions() {
+            const isChecked = document.getElementById('orgCompressToggle').checked;
+            const sub = document.getElementById('orgCleanupSubOption');
+            const toggle = document.getElementById('orgCleanupToggle');
+
+            if (isChecked) {
+                sub.classList.remove('opacity-50', 'pointer-events-none');
+                toggle.removeAttribute('disabled');
+            } else {
+                sub.classList.add('opacity-50', 'pointer-events-none');
+                toggle.checked = false;
+                toggle.setAttribute('disabled', 'true');
+            }
+        }
+
+        async function runFolderOrganizer() {
+            if (!orgDirHandle || isTaskRunning) return;
+
+            if (orgFileList.length === 0) {
+                logToConsole('No loose files found to organize.', 'warning');
+                if (document.getElementById('orgCompressToggle').checked) {
+                    await compressFolderInPlace(orgDirHandle, document.getElementById('orgCleanupToggle').checked);
+                }
+                return;
+            }
+
+            setProcessingState(true, 'Organizing files...');
+            const total = orgFileList.length;
+            let completed = 0;
+
+            const subDirHandles = {};
+
+            for (const fileItem of orgFileList) {
+                try {
+                    const category = fileItem.category;
+                    if (!subDirHandles[category]) {
+                        subDirHandles[category] = await orgDirHandle.getDirectoryHandle(category, { create: true });
+                    }
+
+                    const targetSubDir = subDirHandles[category];
+                    let finalName = fileItem.name;
+
+                    // Handle filename collision
+                    let exists = false;
+                    try {
+                        await targetSubDir.getFileHandle(finalName);
+                        exists = true;
+                    } catch (e) {}
+
+                    if (exists) {
+                        const nameNoExt = fileItem.name.substring(0, fileItem.name.lastIndexOf('.')) || fileItem.name;
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        finalName = `${nameNoExt}_${timestamp}${fileItem.ext}`;
+                    }
+
+                    const fileData = await fileItem.handle.getFile();
+                    const newFileHandle = await targetSubDir.getFileHandle(finalName, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(fileData);
+                    await writable.close();
+
+                    await orgDirHandle.removeEntry(fileItem.name);
+                    logToConsole(`Moved: "${fileItem.name}" ➔ ${category}/${finalName}`, 'success');
+                } catch (err) {
+                    logToConsole(`Failed moving "${fileItem.name}": ${err.message}`, 'error');
+                }
+
+                completed++;
+                updateProgress(Math.round((completed / total) * (document.getElementById('orgCompressToggle').checked ? 50 : 100)), `Organizing ${completed}/${total}...`);
+            }
+
+            logToConsole('Organization process completed!', 'success');
+
+            if (document.getElementById('orgCompressToggle').checked) {
+                await compressFolderInPlace(orgDirHandle, document.getElementById('orgCleanupToggle').checked);
+            }
+
+            finishProcessingState(async () => await scanOrganizerDirectory());
+        }
+
+        // ----------------------------------------------------
+        // DEDICATED COMPRESSOR LOGIC
+        // ----------------------------------------------------
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('compressDropZone');
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/60');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/60');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const items = e.dataTransfer.items;
+                if (items) {
+                    const files = [];
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+                        if (item) {
+                            traverseFileTree(item, files);
+                        } else {
+                            const file = items[i].getAsFile();
+                            if (file) stagedCompressFiles.push(file);
+                        }
+                    }
+                    setTimeout(() => updateStagingQueue(), 300);
+                } else {
+                    const files = Array.from(e.dataTransfer.files);
+                    addFilesToStaging(files);
+                }
+            });
+        }
+
+        function traverseFileTree(item, fileArray, path = '') {
+            if (item.isFile) {
+                item.file((file) => {
+                    file.relativePath = path + file.name;
+                    stagedCompressFiles.push(file);
+                    updateStagingQueue();
+                });
+            } else if (item.isDirectory) {
+                const dirReader = item.createReader();
+                dirReader.readEntries((entries) => {
+                    for (let i = 0; i < entries.length; i++) {
+                        traverseFileTree(entries[i], fileArray, path + item.name + '/');
+                    }
+                });
+            }
+        }
+
+        function handleFileInputSelect(event) {
+            const files = Array.from(event.target.files);
+            addFilesToStaging(files);
+            event.target.value = ''; // Reset input
+        }
+
+        function addFilesToStaging(files) {
+            files.forEach(f => {
+                // Preserving relative path if present from directory upload
+                if (!f.relativePath) {
+                    f.relativePath = f.webkitRelativePath || f.name;
+                }
+                stagedCompressFiles.push(f);
+            });
+            updateStagingQueue();
+        }
+
+        function updateStagingQueue() {
+            const container = document.getElementById('stagedFileList');
+            const stagingArea = document.getElementById('stagingArea');
+
+            if (stagedCompressFiles.length === 0) {
+                stagingArea.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            stagingArea.classList.remove('hidden');
+            container.innerHTML = '';
+
+            let totalBytes = 0;
+
+            stagedCompressFiles.forEach((file, index) => {
+                totalBytes += file.size;
+                const ext = getExtension(file.name).replace('.', '');
+                const noGain = ALREADY_COMPRESSED.has(ext);
+                const row = document.createElement('div');
+                row.className = 'p-3 text-xs flex items-center justify-between hover:bg-slate-50 transition';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0 pr-2">
+                        <span class="text-base">${getFileEmoji(file.name)}</span>
+                        <div class="min-w-0">
+                            <p class="font-medium text-slate-800 truncate" title="${escapeHtml(file.relativePath || file.name)}">${escapeHtml(file.relativePath || file.name)}</p>
+                            <p class="text-[10px] text-slate-400">
+                                ${formatBytes(file.size)}
+                                ${noGain ? '<span class="ml-1 text-amber-600 font-semibold">• already compressed</span>' : ''}
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="removeStagedFile(${index})" class="text-slate-400 hover:text-rose-600 transition p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(row);
+            });
+
+            document.getElementById('totalStagingCount').innerText = `${stagedCompressFiles.length} file(s)`;
+            document.getElementById('totalStagingSize').innerText = formatBytes(totalBytes);
+        }
+
+        function removeStagedFile(index) {
+            stagedCompressFiles.splice(index, 1);
+            updateStagingQueue();
+        }
+
+        function clearStagingQueue() {
+            stagedCompressFiles = [];
+            updateStagingQueue();
+        }
+
+        async function runZipCompression() {
+            if (stagedCompressFiles.length === 0 || isTaskRunning) return;
+
+            // ---------------------------------------------------------
+            // GUARD: block pointless compression when nothing can shrink
+            // ---------------------------------------------------------
+            const allIncompressible = stagedCompressFiles.every(f =>
+                ALREADY_COMPRESSED.has(getExtension(f.name).replace('.', ''))
+            );
+
+            if (allIncompressible) {
+                const proceed = confirm(
+                    'All selected files are already compressed (video / image / audio / zip / office / PDF).\n\n' +
+                    'The resulting ZIP will be the same size or slightly larger than the originals.\n\n' +
+                    'Continue anyway?'
+                );
+                if (!proceed) return;
+            }
+
+            const mode = document.getElementById('compressionSaveMode').value;
+            const customName = document.getElementById('customZipName').value.trim() || 'Archive';
+            const zipFileName = `${customName}.zip`;
+
+            setProcessingState(true, 'Preparing ZIP compression...');
+            logToConsole(`Starting compression of ${stagedCompressFiles.length} item(s)...`, 'info');
+
+            try {
+                const zip = new JSZip();
+                let noGainCount = 0;
+                let deflateCount = 0;
+
+                stagedCompressFiles.forEach(file => {
+                    const path = file.relativePath || file.name;
+                    const ext = getExtension(file.name).replace('.', '');
+                    const isAlreadyCompressed = ALREADY_COMPRESSED.has(ext);
+
+                    if (isAlreadyCompressed) {
+                        noGainCount++;
+                        // STORE = no DEFLATE → no wasted CPU, no size bloat
+                        zip.file(path, file, { compression: 'STORE' });
+                    } else {
+                        deflateCount++;
+                        zip.file(path, file, {
+                            compression: 'DEFLATE',
+                            compressionOptions: { level: 6 }
+                        });
+                    }
+                });
+
+                if (noGainCount > 0) {
+                    logToConsole(
+                        `${noGainCount} file(s) are already compressed — stored as-is (no size reduction possible).`,
+                        'warning'
+                    );
+                }
+                if (deflateCount > 0) {
+                    logToConsole(`${deflateCount} file(s) will be DEFLATE-compressed.`, 'info');
+                }
+
+                updateProgress(30, 'Generating binary ZIP archive...');
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' }, (metadata) => {
+                    const percent = 30 + Math.round(metadata.percent * 0.6);
+                    updateProgress(percent, `Compressing... ${Math.round(metadata.percent)}%`);
+                });
+
+                if (mode === 'inplace' && ('showDirectoryPicker' in window)) {
+                    logToConsole('Select directory to write ZIP archive directly onto disk...', 'info');
+                    const targetDir = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    
+                    const fileHandle = await targetDir.getFileHandle(zipFileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(zipBlob);
+                    await writable.close();
+
+                    logToConsole(`Archive "${zipFileName}" successfully saved to disk directory!`, 'success');
+                } else {
+                    // Standard Download Trigger
+                    logToConsole(`Triggering direct browser download for "${zipFileName}"...`, 'info');
+                    const url = URL.createObjectURL(zipBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = zipFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    logToConsole(`Download triggered successfully for "${zipFileName}"!`, 'success');
+                }
+
+                updateProgress(100, 'Done!');
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    logToConsole(`Compression error: ${err.message}`, 'error');
+                }
+            }
+
+            finishProcessingState();
+        }
+
+        // Shared In-Place Compression Helper for Organizer
+        async function compressFolderInPlace(dirHandle, cleanOriginals = false) {
+            logToConsole(`Building ZIP archive for directory "${dirHandle.name}"...`, 'info');
+            const zip = new JSZip();
+            const topLevelEntries = [];
+
+            async function addDirectoryToZip(currentHandle, currentPath = '') {
+                for await (const entry of currentHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.endsWith('.zip')) continue;
+
+                    const relPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        const ext = getExtension(entry.name).replace('.', '');
+                        if (ALREADY_COMPRESSED.has(ext)) {
+                            zip.file(relPath, file, { compression: 'STORE' });
+                        } else {
+                            zip.file(relPath, file, { compression: 'DEFLATE', compressionOptions: { level: 6 } });
+                        }
+                    } else if (entry.kind === 'directory') {
+                        const sub = await currentHandle.getDirectoryHandle(entry.name);
+                        await addDirectoryToZip(sub, relPath);
+                    }
+                }
+            }
+
+            try {
+                for await (const entry of dirHandle.values()) {
+                    if (!entry.name.endsWith('.zip')) topLevelEntries.push(entry);
+                }
+
+                await addDirectoryToZip(dirHandle);
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' }, (metadata) => {
+                    const percent = 50 + Math.round(metadata.percent * 0.4);
+                    updateProgress(percent, `Compressing Directory... ${Math.round(metadata.percent)}%`);
+                });
+
+                const zipName = `${dirHandle.name}_Organized.zip`;
+                const zipHandle = await dirHandle.getFileHandle(zipName, { create: true });
+                const writable = await zipHandle.createWritable();
+                await writable.write(zipBlob);
+                await writable.close();
+
+                logToConsole(`Created ZIP archive "${zipName}" in-place!`, 'success');
+
+                if (cleanOriginals) {
+                    logToConsole('Cleaning up source uncompressed files...', 'warning');
+                    for (const entry of topLevelEntries) {
+                        try {
+                            await dirHandle.removeEntry(entry.name, { recursive: true });
+                            logToConsole(`Deleted original: ${entry.name}`, 'info');
+                        } catch (e) {
+                            logToConsole(`Could not remove "${entry.name}": ${e.message}`, 'error');
+                        }
+                    }
+                }
+            } catch (err) {
+                logToConsole(`Folder compression error: ${err.message}`, 'error');
+            }
+        }
+
+        // ----------------------------------------------------
+        // UTILITY & UI HELPERS
+        // ----------------------------------------------------
+        function getCategoryForExtension(ext) {
+            if (!ext) return 'Others';
+            for (const [catName, config] of Object.entries(CATEGORIES)) {
+                if (config.exts.includes(ext.toLowerCase())) return catName;
+            }
+            return 'Others';
+        }
+
+        function getExtension(filename) {
+            const lastDot = filename.lastIndexOf('.');
+            return lastDot !== -1 ? filename.substring(lastDot).toLowerCase() : '';
+        }
+
+        function getFileEmoji(filename) {
+            const cat = getCategoryForExtension(getExtension(filename));
+            return CATEGORIES[cat] ? CATEGORIES[cat].icon : '📄';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function setProcessingState(running, label = 'Processing...') {
+            isTaskRunning = running;
+            const progressCard = document.getElementById('progressCard');
+            const startOrgBtn = document.getElementById('startOrgBtn');
+            const startCompressBtn = document.getElementById('startCompressBtn');
+
+            if (running) {
+                progressCard.classList.remove('hidden');
+                updateProgress(0, label);
+                startOrgBtn.disabled = true;
+                startCompressBtn.disabled = true;
+                startOrgBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                startCompressBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function finishProcessingState(callback) {
+            setTimeout(async () => {
+                isTaskRunning = false;
+                document.getElementById('progressCard').classList.add('hidden');
+                const startOrgBtn = document.getElementById('startOrgBtn');
+                const startCompressBtn = document.getElementById('startCompressBtn');
+                
+                startOrgBtn.disabled = false;
+                startCompressBtn.disabled = false;
+                startOrgBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                startCompressBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if (callback) await callback();
+            }, 1000);
+        }
+
+        function updateProgress(percent, label) {
+            document.getElementById('progressBarFill').style.width = `${percent}%`;
+            document.getElementById('progressPercentage').innerText = `${percent}%`;
+            document.getElementById('progressLabel').innerText = label;
+        }
+
+        function logToConsole(message, type = 'info') {
+            const box = document.getElementById('consoleLogBox');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+
+            let color = 'text-slate-300';
+            if (type === 'success') color = 'text-emerald-400';
+            if (type === 'warning') color = 'text-amber-400';
+            if (type === 'error') color = 'text-rose-400';
+
+            div.className = color;
+            div.innerHTML = `<span class="text-slate-500">[${time}]</span> ${escapeHtml(message)}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearConsoleLogs() {
+            document.getElementById('consoleLogBox').innerHTML = '<div class="text-slate-500">[Console cleared] Ready...</div>';
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
