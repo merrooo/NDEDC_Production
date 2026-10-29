@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Summary 1R — Background Processor</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+<body>
+<script>
+/* ==========================================================
+   CONSTANTS
+   ========================================================== */
+const SELECTED_TYPES = ['A4', 'A5'];
+const DAILY_TARGET_DIVISOR = 20;
+
+const GROUPS = [
+    { name: "شمال الدقهلية", sectors: ["هندسة مدينة شربين", "هندسة قري شربين", "هندسة دكرنس", "هندسة جمصة", "هندسة قري بلقاس", "هندسة مدينة بلقاس", "هندسة الستامونى", "هندسة بني عبيد", "هندسة منية النصر", "هندسة ميت سلسيل", "هندسة الجمالية", "هندسة قري المنزلة", "هندسة مدينة المنزلة", "هندسة المطرية"] },
+    { name: "دمياط", sectors: ["هندسة شمال دمياط", "هندسة جنوب دمياط", "هندسة عزبة البرج", "هندسة كفر سعد", "هندسة كفر البخ", "هندسة كفر البطيخ", "هندسة راس البر", "هندسة دمياط الجديدة", "هندسة الزرقا", "هندسة فارسكور", "هندسة الروضة", "هندسة الشعراء"] },
+    { name: "جنوب الدقهلية", sectors: ["هندسة شرق المنصورة", "هندسة غرب المنصورة", "هندسة طلخا", "هندسة نبروه", "هندسة قري المنصورة 1", "هندسة قري المنصورة 2", "هندسة اجا", "هندسة مدينة السنبلاوين", "هندسة قري السنبلاوين", "هندسة تمي الامديد", "هندسة مدينة ميت غمر", "هندسة قري ميت غمر", "هندسة كوم النور"] },
+    { name: "كفر الشيخ", sectors: ["هندسة مدينة كفر الشيخ", "هندسة غرب كفر الشيخ", "هندسة شرق كفر الشيخ", "هندسة قلين", "هندسة قرى سيدي سالم", "هندسة مدينة سيدي سالم", "هندسة الرياض", "هندسة مدينة دسوق", "هندسة قرى شمال دسوق", "هندسة قرى جنوب دسوق", "هندسة فوه", "هندسة مطوبس", "هندسة مدينة الحامول", "هندسة قرى الحامول", "هندسة بيلا", "هندسة بلطيم", "هندسة برج البرلس"] }
+];
+
+/* ==========================================================
+   UTILITIES
+   ========================================================== */
+const toSafe = v => v == null ? "" : String(v).trim();
+
+function fileDateStamp() {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}-${mm}-${d.getFullYear()}`;
+}
+
+function formatExcelDate(val) {
+    if (!val) return "";
+    if (!isNaN(val) && parseFloat(val) > 20000) {
+        const d = XLSX.SSF.parse_date_code(parseFloat(val));
+        return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+    }
+    const d = new Date(val);
+    if (!isNaN(d.getTime()))
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return String(val).trim();
+}
+
+function dateStr(daysAgo) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* ==========================================================
+   COLUMN DETECTION
+   ========================================================== */
+function detectColumn(headers, patterns, containsAll = []) {
+    const norm = s => String(s || '').toLowerCase().replace(/[\s_\-]/g, '').trim();
+    const normPatterns = patterns.map(norm);
+
+    for (const p of normPatterns) {
+        const idx = headers.findIndex(h => norm(h) === p);
+        if (idx !== -1) return idx;
+    }
+    if (containsAll.length > 0) {
+        const normAll = containsAll.map(norm);
+        const idx = headers.findIndex(h => normAll.every(p => norm(h).includes(p)));
+        if (idx !== -1) return idx;
+    }
+    for (const p of normPatterns) {
+        const idx = headers.findIndex(h => norm(h).includes(p));
+        if (idx !== -1) return idx;
+    }
+    return -1;
+}
+
+function detectActualColumns(headers) {
+    return {
+        sectorIdx: detectColumn(headers, [
+            'Disco Branch', 'DiscoBranch', 'Disco_Branch', 'Branch',
+            'الفرع', 'فرع', 'القطاع', 'قطاع', 'القطاعات'
+        ]),
+        typeIdx: detectColumn(headers, ['TYPE', 'Type', 'type', 'النوع', 'نوع']),
+        dateIdx: detectColumn(headers, [
+            'Date', 'Installation Date', 'InstallationDate', 'Installation_Date',
+            'تاريخ التركيب', 'تاريخ_التركيب', 'تاريخ'
+        ])
+    };
+}
+
+function detectTargetColumns(headers) {
+    const sectorIdx = detectColumn(headers, ['القطاعات', 'القطاع', 'قطاع', 'Sector', 'Disco Branch', 'Branch']);
+    let valueIdx = detectColumn(headers, [], ['a4', 'a5']);
+
+    let a4Idx = -1, a5Idx = -1;
+    if (valueIdx === -1) {
+        const norm = s => String(s || '').toLowerCase().replace(/[\s_\-]/g, '').trim();
+        a4Idx = headers.findIndex(h => norm(h) === 'a4');
+        a5Idx = headers.findIndex(h => norm(h) === 'a5');
+    }
+    return { sectorIdx, valueIdx, a4Idx, a5Idx };
+}
+
+/* ==========================================================
+   SUMMARY COMPUTATION
+   ========================================================== */
+function getTargetMap(targetCols, rawDataTarget) {
+    const map = new Map();
+    if (targetCols.sectorIdx === -1) return map;
+    if (targetCols.valueIdx === -1 && targetCols.a4Idx === -1 && targetCols.a5Idx === -1) return map;
+
+    for (const row of rawDataTarget) {
+        const key = toSafe(row[targetCols.sectorIdx]);
+        if (!key) continue;
+
+        let val = 0;
+        if (targetCols.valueIdx !== -1) {
+            val = parseFloat(toSafe(row[targetCols.valueIdx]).replace(/,/g, '')) || 0;
+        } else {
+            const v4 = targetCols.a4Idx !== -1 ? (parseFloat(toSafe(row[targetCols.a4Idx]).replace(/,/g, '')) || 0) : 0;
+            const v5 = targetCols.a5Idx !== -1 ? (parseFloat(toSafe(row[targetCols.a5Idx]).replace(/,/g, '')) || 0) : 0;
+            val = v4 + v5;
+        }
+        map.set(key, (map.get(key) || 0) + val);
+    }
+    return map;
+}
+
+function computeSummary(actualCols, targetCols, rawDataActual, rawDataTarget) {
+    if (actualCols.sectorIdx === -1 || actualCols.typeIdx === -1 || actualCols.dateIdx === -1) return null;
+    if (targetCols.sectorIdx === -1) return null;
+    if (targetCols.valueIdx === -1 && targetCols.a4Idx === -1 && targetCols.a5Idx === -1) return null;
+
+    const sIdx = actualCols.sectorIdx;
+    const tIdx = actualCols.typeIdx;
+    const dIdx = actualCols.dateIdx;
+
+    const targetMap = getTargetMap(targetCols, rawDataTarget);
+    const sectorData = new Map();
+
+    const dateColumns = [
+        { label: 'اليوم', value: dateStr(0) },
+        { label: 'الأمس', value: dateStr(1) },
+        { label: 'قبل يومين', value: dateStr(2) }
+    ];
+
+    for (const row of rawDataActual) {
+        const sector = toSafe(row[sIdx]) || 'غير محدد';
+        const typeVal = toSafe(row[tIdx]).toUpperCase();
+        const rowDate = formatExcelDate(row[dIdx]);
+
+        if (!sectorData.has(sector)) {
+            const obj = { executed: 0, totalAll: 0 };
+            dateColumns.forEach(c => obj[c.value] = 0);
+            sectorData.set(sector, obj);
+        }
+        const stat = sectorData.get(sector);
+        stat.totalAll++;
+
+        if (SELECTED_TYPES.includes(typeVal)) {
+            stat.executed++;
+            dateColumns.forEach(c => { if (c.value === rowDate) stat[c.value]++; });
+        }
+    }
+
+    for (const [sector] of targetMap) {
+        if (!sectorData.has(sector)) {
+            const obj = { executed: 0, totalAll: 0 };
+            dateColumns.forEach(c => obj[c.value] = 0);
+            sectorData.set(sector, obj);
+        }
+    }
+
+    const rows = [];
+    const totals = { target: 0, executed: 0, balance: 0, balanceRaw: 0, totalAll: 0, date: {} };
+    dateColumns.forEach(c => totals.date[c.value] = 0);
+
+    for (const [sector, stat] of sectorData.entries()) {
+        const target = targetMap.get(sector) || 0;
+        const executed = stat.executed;
+        const balanceRaw = target - executed;
+        const balance = Math.max(0, balanceRaw);
+        const ratio = target > 0 ? executed / target : 0;
+        const dailyTarget = Math.round(balance / DAILY_TARGET_DIVISOR);
+
+        const row = { sector, target, executed, balance, balanceRaw, ratio, dailyTarget, totalAll: stat.totalAll, date: {} };
+        dateColumns.forEach(c => { row.date[c.value] = stat[c.value] || 0; });
+
+        totals.target += target;
+        totals.executed += executed;
+        totals.balanceRaw += balanceRaw;
+        totals.totalAll += stat.totalAll;
+        dateColumns.forEach(c => totals.date[c.value] += row.date[c.value]);
+
+        rows.push(row);
+    }
+
+    totals.balance = Math.max(0, totals.balanceRaw);
+    totals.ratio = rows.length ? rows.reduce((s, r) => s + r.ratio, 0) / rows.length : 0;
+    totals.dailyTarget = Math.round(totals.balance / DAILY_TARGET_DIVISOR);
+
+    rows.sort((a, b) => a.sector.localeCompare(b.sector, 'ar'));
+
+    return { rows, totals, dateColumns };
+}
+
+/* ==========================================================
+   BUILD EXPORT DATA (flat + grouped)
+   ========================================================== */
+function buildExportDataFromSummary(sum) {
+    if (!sum) return null;
+    const { rows, totals, dateColumns } = sum;
+
+    const headers = [
+        'القطاعات', 'المستهدف (A4,A5)', 'المنفذ (A4,A5)', 'المتبقي',
+        'نسبة التنفيذ', 'المستهدف اليومي'
+    ];
+    dateColumns.forEach(c => headers.push(`${c.label} (A4,A5)`));
+    headers.push('إجمالي المنفذ');
+
+    const data = [headers];
+    const rowTypes = ['header'];
+
+    const sectorRowMap = {};
+    rows.forEach(r => { sectorRowMap[r.sector] = r; });
+
+    for (const group of GROUPS) {
+        const groupRows = [];
+        const gTotals = { target: 0, executed: 0, balanceRaw: 0, totalAll: 0, date: {} };
+        dateColumns.forEach(c => gTotals.date[c.value] = 0);
+
+        for (const sector of group.sectors) {
+            const r = sectorRowMap[sector];
+            if (!r) continue;
+            groupRows.push(r);
+            gTotals.target += r.target || 0;
+            gTotals.executed += r.executed || 0;
+            gTotals.balanceRaw += r.balanceRaw || 0;
+            gTotals.totalAll += r.totalAll || 0;
+            dateColumns.forEach(c => gTotals.date[c.value] += r.date[c.value] || 0);
+        }
+        if (groupRows.length === 0) continue;
+
+        gTotals.balance = Math.max(0, gTotals.balanceRaw);
+        gTotals.ratio = groupRows.reduce((s, r) => s + r.ratio, 0) / groupRows.length;
+        gTotals.dailyTarget = Math.round(gTotals.balance / DAILY_TARGET_DIVISOR);
+
+        groupRows.forEach(r => {
+            const row = [r.sector, r.target, r.executed, r.balance, r.ratio, r.dailyTarget];
+            dateColumns.forEach(c => row.push(r.date[c.value] || 0));
+            row.push(r.totalAll);
+            data.push(row);
+            rowTypes.push('sector');
+        });
+
+        const subtotal = [
+            `إجمالي ${group.name}`,
+            gTotals.target, gTotals.executed, gTotals.balance,
+            gTotals.ratio, gTotals.dailyTarget
+        ];
+        dateColumns.forEach(c => subtotal.push(gTotals.date[c.value] || 0));
+        subtotal.push(gTotals.totalAll);
+        data.push(subtotal);
+        rowTypes.push('groupTotal');
+    }
+
+    const grand = [
+        'الإجمالي العام',
+        totals.target, totals.executed, totals.balance,
+        totals.ratio, totals.dailyTarget
+    ];
+    dateColumns.forEach(c => grand.push(totals.date[c.value] || 0));
+    grand.push(totals.totalAll);
+    data.push(grand);
+    rowTypes.push('grandTotal');
+
+    return { data, rowTypes, percentCol: 4, dailyCol: 5, numCols: headers.length };
+}
+
+/* ==========================================================
+   EXCEL STYLING (RTL + light fills)
+   ========================================================== */
+function applyExcelStyles(ws, rowTypes, percentCol, dailyCol, numCols) {
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const border = {
+        top: { style: 'thin', color: { rgb: '999999' } },
+        bottom: { style: 'thin', color: { rgb: '999999' } },
+        left: { style: 'thin', color: { rgb: '999999' } },
+        right: { style: 'thin', color: { rgb: '999999' } }
+    };
+    const thickBorder = {
+        top: { style: 'medium', color: { rgb: '1F3864' } },
+        bottom: { style: 'medium', color: { rgb: '1F3864' } },
+        left: { style: 'thin', color: { rgb: '999999' } },
+        right: { style: 'thin', color: { rgb: '999999' } }
+    };
+    const FILL_HEADER = 'D9E2F3';
+    const FILL_GROUP  = 'D9E2F3';
+    const FILL_GRAND  = 'BDD7EE';
+    const TEXT_DARK   = '1F3864';
+
+    for (let R = range.s.r; R <= range.e.r; R++) {
+        const type = rowTypes[R];
+        for (let C = range.s.c; C <= range.e.c; C++) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+            if (type !== 'header' && C === percentCol && typeof ws[addr].v === 'number') {
+                ws[addr].z = '0%';
+            } else if (type !== 'header' && typeof ws[addr].v === 'number' && C !== 0) {
+                ws[addr].z = '#,##0';
+            }
+
+            const isHeader = type === 'header';
+            const isTotal = (type === 'groupTotal' || type === 'grandTotal');
+
+            let style = {
+                alignment: {
+                    horizontal: C === 0 ? 'right' : 'center',
+                    vertical: 'center',
+                    readingOrder: 2,
+                    wrapText: false
+                },
+                border: { ...border },
+                font: {
+                    name: 'Cairo',
+                    sz: isHeader ? 11 : 10,
+                    bold: true,
+                    color: { rgb: (isHeader || isTotal) ? TEXT_DARK : '000000' }
+                }
+            };
+
+            if (isHeader) {
+                style.fill = { patternType: 'solid', fgColor: { rgb: FILL_HEADER } };
+                style.border = { ...thickBorder };
+            }
+            if (isTotal) {
+                style.fill = { patternType: 'solid', fgColor: { rgb: type === 'grandTotal' ? FILL_GRAND : FILL_GROUP } };
+                style.border = { ...thickBorder };
+            }
+
+            ws[addr].s = style;
+        }
+    }
+
+    ws['!cols'] = [];
+    for (let C = 0; C < numCols; C++) ws['!cols'].push({ wch: C === 0 ? 30 : 14 });
+
+    ws['!rows'] = [];
+    for (let R = range.s.r; R <= range.e.r; R++) {
+        const t = rowTypes[R];
+        ws['!rows'].push({ hpt: t === 'header' ? 28 : t === 'grandTotal' ? 24 : 20 });
+    }
+
+    ws['!views'] = [{ RTL: true }];
+}
+
+/* ==========================================================
+   AUTO-PROCESS (triggered from Excel_Summary_1.html iframe)
+   ========================================================== */
+(function autoProcessFromSummary() {
+    if (sessionStorage.getItem('autoExport_flag') !== '1') return;
+
+    // Only run when embedded in an iframe
+    if (window.parent === window) {
+        sessionStorage.removeItem('autoExport_flag');
+        return;
+    }
+
+    try {
+        const aH = JSON.parse(sessionStorage.getItem('autoExport_actualHeaders') || '[]');
+        const aD = JSON.parse(sessionStorage.getItem('autoExport_actualData') || '[]');
+        const tH = JSON.parse(sessionStorage.getItem('autoExport_targetHeaders') || '[]');
+        const tD = JSON.parse(sessionStorage.getItem('autoExport_targetData') || '[]');
+        const hints = JSON.parse(sessionStorage.getItem('autoExport_hints') || '{}');
+
+        if (aD.length === 0 || tD.length === 0) {
+            window.parent.postMessage({ type: 'autoExport_error', message: 'البيانات غير موجودة' }, '*');
+            return;
+        }
+
+        // Resolve columns: hints first, then auto-detect
+        const autoActual = detectActualColumns(aH);
+        const actualCols = {
+            sectorIdx: hints.actualSector ? aH.indexOf(hints.actualSector) : -1,
+            typeIdx:   hints.actualType   ? aH.indexOf(hints.actualType)   : -1,
+            dateIdx:   hints.actualDate   ? aH.indexOf(hints.actualDate)   : -1
+        };
+        if (actualCols.sectorIdx === -1) actualCols.sectorIdx = autoActual.sectorIdx;
+        if (actualCols.typeIdx   === -1) actualCols.typeIdx   = autoActual.typeIdx;
+        if (actualCols.dateIdx   === -1) actualCols.dateIdx   = autoActual.dateIdx;
+
+        const autoTarget = detectTargetColumns(tH);
+        const targetCols = {
+            sectorIdx: hints.targetJoin  ? tH.indexOf(hints.targetJoin)  : -1,
+            valueIdx:  hints.targetValue ? tH.indexOf(hints.targetValue) : -1,
+            a4Idx: -1, a5Idx: -1
+        };
+        if (targetCols.sectorIdx === -1) targetCols.sectorIdx = autoTarget.sectorIdx;
+        if (targetCols.valueIdx === -1 && autoTarget.valueIdx !== -1) targetCols.valueIdx = autoTarget.valueIdx;
+        if (targetCols.valueIdx === -1) {
+            targetCols.a4Idx = autoTarget.a4Idx;
+            targetCols.a5Idx = autoTarget.a5Idx;
+        }
+
+        // Compute + build workbook
+        const sum = computeSummary(actualCols, targetCols, aD, tD);
+        if (!sum) {
+            window.parent.postMessage({ type: 'autoExport_error', message: 'فشل بناء التقرير' }, '*');
+            return;
+        }
+
+        const exportData = buildExportDataFromSummary(sum);
+        if (!exportData) {
+            window.parent.postMessage({ type: 'autoExport_error', message: 'فشل بناء بيانات التصدير' }, '*');
+            return;
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(exportData.data);
+        applyExcelStyles(ws, exportData.rowTypes, exportData.percentCol, exportData.dailyCol, exportData.numCols);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
+
+        const filename = `التركيب اليومي_${fileDateStamp()}.xlsx`;
+        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+        window.parent.postMessage({ type: 'autoExport_done', buffer, filename }, '*', [buffer]);
+
+    } catch (err) {
+        console.error(err);
+        window.parent.postMessage({ type: 'autoExport_error', message: err.message }, '*');
+    }
+})();
+</script>
+</body>
+</html>
