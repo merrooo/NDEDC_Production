@@ -1,1825 +1,1334 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Excel Processor — Merge & Split</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-main: #f8fafc;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --accent-success: #10b981;
-            --accent-violet: #7c3aed;
-            --accent-amber: #f59e0b;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body {
-            height: 100%;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-main);
-            color: var(--text-dark);
-            overflow: hidden;
-        }
-
-        .master-layout {
-            display: flex;
-            height: 100vh;
-            width: 100%;
-            overflow: hidden;
-        }
-
-        /* ========== SIDEBAR ========== */
-        .sidebar {
-            width: 420px;
-            min-width: 420px;
-            max-width: 420px;
-            background: #f1f5f9;
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 16px;
-            gap: 12px;
-            flex-shrink: 0;
-            min-height: 0;
-        }
-
-        /* ========== APP HEADER ========== */
-        .sidebar-top {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-            flex-shrink: 0;
-        }
-
-        .back-link {
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--primary);
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .back-link:hover { text-decoration: underline; }
-
-        .sidebar-top h2 {
-            font-size: 1.05rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            line-height: 1.3;
-        }
-        .sidebar-top p {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 4px;
-            line-height: 1.4;
-        }
-
-        /* ========== MODE SELECTOR ========== */
-        .mode-selector {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            padding: 12px;
-            flex-shrink: 0;
-        }
-
-        .mode-selector-title {
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            padding-left: 2px;
-        }
-
-        .mode-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 11px 12px;
-            background: white;
-            border: 1.5px solid var(--border-color);
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text-dark);
-            cursor: pointer;
-            transition: 0.15s;
-            text-align: left;
-            margin-bottom: 6px;
-        }
-        .mode-btn:last-child { margin-bottom: 0; }
-
-        .mode-btn:hover {
-            border-color: #cbd5e1;
-            background: #f8fafc;
-        }
-
-        .mode-btn.active {
-            border-color: var(--primary);
-            background: #eff6ff;
-            color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .mode-btn.active .mode-icon {
-            background: var(--primary);
-            color: white;
-        }
-
-        .mode-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            background: #f1f5f9;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            flex-shrink: 0;
-            transition: 0.15s;
-        }
-
-        .mode-btn-text { flex: 1; min-width: 0; }
-        .mode-btn-title { display: block; line-height: 1.2; }
-        .mode-btn-desc {
-            display: block;
-            font-size: 10.5px;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-top: 2px;
-            line-height: 1.3;
-        }
-        .mode-btn.active .mode-btn-desc { color: #60a5fa; }
-
-        /* ========== STEP CARD ========== */
-        .step-card {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            overflow: hidden;
-            transition: box-shadow 0.2s;
-            flex-shrink: 0;
-            display: none;
-        }
-        .step-card.visible { display: block; }
-        .step-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-
-        /* Highlight shared upload card */
-        .step-card.shared {
-            border: 1.5px solid var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
-        }
-
-        .step-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-            border-bottom: 1px solid var(--border-color);
-            min-width: 0;
-        }
-
-        .step-number {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
-        .step-number.green { background: var(--accent-success); }
-        .step-number.violet { background: var(--accent-violet); }
-        .step-number.amber { background: var(--accent-amber); }
-
-        .step-title-wrap { flex: 1 1 auto; min-width: 0; }
-        .step-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-dark);
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .step-subtitle {
-            font-size: 10px;
-            font-weight: 500;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .step-body {
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 0;
-        }
-
-        /* ========== FORM ========== */
-        .compact-select, .compact-input {
-            width: 100%;
-            padding: 9px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 12.5px;
-            background: #fff;
-            outline: none;
-            font-family: inherit;
-            color: var(--text-dark);
-            transition: border-color 0.15s;
-            min-width: 0;
-        }
-        .compact-select:focus, .compact-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        .compact-select:disabled, .compact-input:disabled {
-            background: #f8fafc;
-            cursor: not-allowed;
-            color: #94a3b8;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 12.5px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.15s;
-            font-family: inherit;
-            width: 100%;
-            text-align: center;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .btn:hover:not(:disabled) {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-        .btn:disabled {
-            background: #cbd5e1;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .btn:active:not(:disabled) { transform: translateY(0); }
-
-        .btn.green { background: var(--accent-success); }
-        .btn.green:hover:not(:disabled) { background: #047857; }
-        .btn.violet { background: var(--accent-violet); }
-        .btn.violet:hover:not(:disabled) { background: #6d28d9; }
-        .btn.amber { background: var(--accent-amber); }
-        .btn.amber:hover:not(:disabled) { background: #d97706; }
-        .btn.outline {
-            background: white;
-            color: var(--primary);
-            border: 1.5px solid var(--primary);
-        }
-        .btn.outline:hover:not(:disabled) { background: #eff6ff; }
-
-        /* ========== LIST ========== */
-        .list-card {
-            background: #fdfdfd;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            max-height: 160px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 4px;
-        }
-        .list-card.tall { max-height: 200px; }
-
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            font-size: 11.5px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.1s;
-            min-width: 0;
-        }
-        .checkbox-item:hover { background: #f1f5f9; }
-        .checkbox-item input {
-            cursor: pointer;
-            flex-shrink: 0;
-            accent-color: var(--primary);
-            width: 14px;
-            height: 14px;
-        }
-        .checkbox-item span {
-            flex: 1 1 auto;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .empty-note {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 11px;
-            padding: 16px 10px;
-            font-style: italic;
-            line-height: 1.4;
-        }
-
-        .mini-utils {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 4px;
-        }
-        .mini-utils button {
-            background: none;
-            border: none;
-            color: var(--primary);
-            font-size: 10.5px;
-            font-weight: 700;
-            cursor: pointer;
-            padding: 0;
-            font-family: inherit;
-        }
-        .mini-utils button:hover { text-decoration: underline; }
-
-        /* ========== RADIO ========== */
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            background: #f8fafc;
-            border: 1px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .radio-group label {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            padding: 5px 4px;
-            line-height: 1.35;
-            border-radius: 6px;
-        }
-        .radio-group label:hover { background: white; }
-        .radio-group input {
-            cursor: pointer;
-            accent-color: var(--primary);
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .radio-group .radio-desc {
-            display: block;
-            font-size: 10.5px;
-            color: var(--text-muted);
-            margin-top: 2px;
-            line-height: 1.3;
-        }
-
-        /* ========== CHECK ROW ========== */
-        .check-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            padding: 6px 8px;
-            border-radius: 6px;
-            transition: background 0.1s;
-        }
-        .check-row:hover { background: #f8fafc; }
-        .check-row input {
-            accent-color: var(--primary);
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-        }
-
-        /* ========== STATUS PILL ========== */
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: #eff6ff;
-            color: var(--primary);
-            font-size: 10px;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 10px;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .status-pill.success {
-            background: #d1fae5;
-            color: #047857;
-        }
-
-        /* ========== MAIN ========== */
-        .main-content {
-            flex: 1 1 auto;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            background: #f1f5f9;
-            padding: 20px;
-            overflow: hidden;
-            gap: 14px;
-            min-height: 0;
-        }
-
-        .compact-header {
-            background: white;
-            padding: 14px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            border: 1px solid var(--border-color);
-            flex-shrink: 0;
-            gap: 12px;
-            min-width: 0;
-        }
-        .compact-header-left { min-width: 0; flex: 1 1 auto; }
-        .compact-header h1 {
-            font-size: 16px;
-            font-weight: 800;
-            line-height: 1.2;
-        }
-        .compact-header .subtitle {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 2px;
-            line-height: 1.3;
-        }
-        .file-badge {
-            font-size: 11px;
-            color: var(--text-muted);
-            background: #f1f5f9;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            flex-shrink: 0;
-            max-width: 260px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .grid-container {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: hidden;
-        }
-        .grid-toolbar {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fafafa;
-            flex-shrink: 0;
-            gap: 12px;
-        }
-        .grid-toolbar-title {
-            font-weight: 700;
-            font-size: 12.5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .grid-stats {
-            background: #eff6ff;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--primary);
-            white-space: nowrap;
-        }
-
-        .table-wrapper {
-            overflow: auto;
-            flex: 1 1 auto;
-            min-height: 0;
-        }
-        #dataTable { width: 100%; border-collapse: collapse; font-size: 12px; }
-        #dataTable th {
-            background: #f8fafc;
-            position: sticky;
-            top: 0;
-            padding: 10px 12px;
-            border-bottom: 2px solid var(--border-color);
-            text-align: left;
-            z-index: 5;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-        #dataTable td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            white-space: nowrap;
-            color: #334155;
-        }
-        #dataTable tr:hover td { background: #f8fafc; }
-
-        .log-section {
-            background: #0f172a;
-            color: #cbd5e1;
-            border-radius: 10px;
-            padding: 12px 16px;
-            height: 90px;
-            flex-shrink: 0;
-            overflow-y: auto;
-            font-family: 'Monaco', 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .progress-bar {
-            background: #e2e8f0;
-            border-radius: 10px;
-            height: 6px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .progress-fill {
-            background: var(--primary);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        /* Scrollbars */
-        .sidebar::-webkit-scrollbar,
-        .list-card::-webkit-scrollbar,
-        .table-wrapper::-webkit-scrollbar,
-        .log-section::-webkit-scrollbar { width: 7px; height: 7px; }
-        .sidebar::-webkit-scrollbar-track,
-        .list-card::-webkit-scrollbar-track { background: transparent; }
-        .sidebar::-webkit-scrollbar-thumb,
-        .list-card::-webkit-scrollbar-thumb,
-        .table-wrapper::-webkit-scrollbar-thumb,
-        .log-section::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        .sidebar::-webkit-scrollbar-thumb:hover,
-        .list-card::-webkit-scrollbar-thumb:hover,
-        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        @media (max-width: 900px) {
-            .master-layout { flex-direction: column; overflow: auto; }
-            .sidebar {
-                width: 100%;
-                min-width: 0;
-                max-width: none;
-                height: auto;
-                overflow: visible;
-            }
-            .main-content { overflow: visible; }
-            html, body { overflow: auto; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Excel Processor — Merge &amp; Split</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+--primary:#2563eb;--primary-hover:#1d4ed8;--bg-main:#f8fafc;--text-dark:#0f172a;--text-muted:#64748b;--border-color:#e2e8f0;--accent-success:#10b981;--accent-violet:#7c3aed;--accent-amber:#f59e0b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg-main);color:var(--text-dark);overflow:hidden}
+.master-layout{display:flex;height:100vh;width:100%;overflow:hidden}
+.sidebar{width:440px;min-width:440px;max-width:440px;background:#f1f5f9;border-right:1px solid var(--border-color);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:16px;gap:12px;flex-shrink:0;min-height:0}
+.sidebar-top{background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border-color);box-shadow:0 1px 2px rgba(0,0,0,.04);flex-shrink:0}
+.back-link{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--primary);font-size:12px;font-weight:600;margin-bottom:10px}
+.back-link:hover{text-decoration:underline}
+.sidebar-top h2{font-size:1.05rem;font-weight:800;display:flex;align-items:center;gap:8px;line-height:1.3}
+.sidebar-top p{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4}
+.mode-selector{background:#fff;border-radius:12px;border:1px solid var(--border-color);box-shadow:0 1px 3px rgba(0,0,0,.04);padding:12px;flex-shrink:0}
+.mode-selector-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:8px;padding-left:2px}
+.mode-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;background:#fff;border:1.5px solid var(--border-color);border-radius:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-dark);cursor:pointer;transition:.15s;text-align:left;margin-bottom:6px}
+.mode-btn:last-child{margin-bottom:0}
+.mode-btn:hover{border-color:#cbd5e1;background:#f8fafc}
+.mode-btn.active{border-color:var(--primary);background:#eff6ff;color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.mode-btn.active .mode-icon{background:var(--primary);color:#fff}
+.mode-icon{width:30px;height:30px;border-radius:8px;background:#f1f5f9;color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:.15s}
+.mode-btn-text{flex:1;min-width:0}
+.mode-btn-title{display:block;line-height:1.2}
+.mode-btn-desc{display:block;font-size:10.5px;font-weight:500;color:var(--text-muted);margin-top:2px;line-height:1.3}
+.mode-btn.active .mode-btn-desc{color:#60a5fa}
+.step-card{background:#fff;border-radius:12px;border:1px solid var(--border-color);box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden;transition:box-shadow .2s;flex-shrink:0;display:none}
+.step-card.visible{display:block}
+.step-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.step-card.shared{border:1.5px solid var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.step-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#f8fafc 0%,#fff 100%);border-bottom:1px solid var(--border-color);min-width:0}
+.step-number{width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.step-number.green{background:var(--accent-success)}
+.step-number.violet{background:var(--accent-violet)}
+.step-number.amber{background:var(--accent-amber)}
+.step-title-wrap{flex:1 1 auto;min-width:0}
+.step-title{font-size:13px;font-weight:700;color:var(--text-dark);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-subtitle{font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-body{padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.compact-select,.compact-input{width:100%;padding:9px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:12.5px;background:#fff;outline:none;font-family:inherit;color:var(--text-dark);transition:border-color .15s;min-width:0}
+.compact-select:focus,.compact-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.compact-select:disabled,.compact-input:disabled{background:#f8fafc;cursor:not-allowed;color:#94a3b8}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;width:100%;text-align:center;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn:hover:not(:disabled){background:var(--primary-hover);transform:translateY(-1px)}
+.btn:disabled{background:#cbd5e1;cursor:not-allowed;transform:none}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn.green{background:var(--accent-success)}
+.btn.green:hover:not(:disabled){background:#047857}
+.btn.violet{background:var(--accent-violet)}
+.btn.violet:hover:not(:disabled){background:#6d28d9}
+.btn.amber{background:var(--accent-amber)}
+.btn.amber:hover:not(:disabled){background:#d97706}
+.btn.outline{background:#fff;color:var(--primary);border:1.5px solid var(--primary)}
+.btn.outline:hover:not(:disabled){background:#eff6ff}
+.btn.danger{background:#fff;color:#dc2626;border:1.5px solid #fecaca}
+.btn.danger:hover:not(:disabled){background:#fef2f2;border-color:#f87171}
+.list-card{background:#fdfdfd;border:1px solid var(--border-color);border-radius:8px;max-height:170px;overflow-y:auto;overflow-x:hidden;padding:4px}
+.list-card.tall{max-height:210px}
+.checkbox-item{display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:11.5px;cursor:pointer;border-radius:5px;transition:background .1s;min-width:0}
+.checkbox-item:hover{background:#f1f5f9}
+.checkbox-item input{cursor:pointer;flex-shrink:0;accent-color:var(--primary);width:14px;height:14px}
+.checkbox-item span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.group-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;padding:8px 8px 3px;border-top:1px solid #f1f5f9;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group-title:first-child{border-top:none;margin-top:0}
+.empty-note{text-align:center;color:#94a3b8;font-size:11px;padding:16px 10px;font-style:italic;line-height:1.4}
+.mini-utils{display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+.mini-utils button{background:none;border:none;color:var(--primary);font-size:10.5px;font-weight:700;cursor:pointer;padding:0;font-family:inherit}
+.mini-utils button:hover{text-decoration:underline}
+.radio-group{display:flex;flex-direction:column;gap:4px;background:#f8fafc;border:1px dashed var(--border-color);border-radius:8px;padding:10px}
+.radio-group label{display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;padding:5px 4px;line-height:1.35;border-radius:6px}
+.radio-group label:hover{background:#fff}
+.radio-group input{cursor:pointer;accent-color:var(--primary);flex-shrink:0;margin-top:2px}
+.radio-group .radio-desc{display:block;font-size:10.5px;color:var(--text-muted);margin-top:2px;line-height:1.3}
+.check-row{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;border-radius:6px;transition:background .1s}
+.check-row:hover{background:#f8fafc}
+.check-row input{accent-color:var(--primary);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.status-pill{display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:var(--primary);font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;flex-shrink:0;white-space:nowrap}
+.status-pill.success{background:#d1fae5;color:#047857}
+.field-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+.hint-text{font-size:10.5px;color:var(--text-muted);line-height:1.4;text-align:center}
+.lib-warning{display:none;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-bottom:4px}
+.lib-loading{display:none;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-bottom:4px;font-weight:600}
+.main-content{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#f1f5f9;padding:20px;overflow:hidden;gap:14px;min-height:0}
+.compact-header{background:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border-color);flex-shrink:0;gap:12px;min-width:0}
+.compact-header-left{min-width:0;flex:1 1 auto}
+.compact-header h1{font-size:16px;font-weight:800;line-height:1.2}
+.compact-header .subtitle{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.3}
+.file-badge{font-size:11px;color:var(--text-muted);background:#f1f5f9;padding:5px 12px;border-radius:20px;font-weight:600;flex-shrink:0;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid-container{background:#fff;border-radius:12px;border:1px solid var(--border-color);display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+.grid-toolbar{padding:12px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;background:#fafafa;flex-shrink:0;gap:12px}
+.grid-toolbar-title{font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.grid-stats{background:#eff6ff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:var(--primary);white-space:nowrap}
+.table-wrapper{overflow:auto;flex:1 1 auto;min-height:0}
+#dataTable{width:100%;border-collapse:collapse;font-size:12px}
+#dataTable th{background:#f8fafc;position:sticky;top:0;padding:10px 12px;border-bottom:2px solid var(--border-color);text-align:left;z-index:5;font-weight:700;white-space:nowrap}
+#dataTable td{padding:8px 12px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:#334155}
+#dataTable tr:hover td{background:#f8fafc}
+.log-section{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px 16px;height:90px;flex-shrink:0;overflow-y:auto;font-family:'Monaco','Courier New',monospace;font-size:11px;line-height:1.5}
+.progress-bar{background:#e2e8f0;border-radius:10px;height:6px;overflow:hidden;flex-shrink:0}
+.progress-fill{background:var(--primary);height:100%;width:0%;transition:width .3s}
+.sidebar::-webkit-scrollbar,.list-card::-webkit-scrollbar,.table-wrapper::-webkit-scrollbar,.log-section::-webkit-scrollbar{width:7px;height:7px}
+.sidebar::-webkit-scrollbar-track,.list-card::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb,.list-card::-webkit-scrollbar-thumb,.table-wrapper::-webkit-scrollbar-thumb,.log-section::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+.sidebar::-webkit-scrollbar-thumb:hover,.list-card::-webkit-scrollbar-thumb:hover,.table-wrapper::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+@media (max-width:900px){
+.master-layout{flex-direction:column;overflow:auto}
+.sidebar{width:100%;min-width:0;max-width:none;height:auto;overflow:visible}
+.main-content{overflow:visible}
+html,body{overflow:auto}
+}
+</style>
 </head>
-
 <body>
-    <div class="master-layout">
-        <!-- ============== SIDEBAR ============== -->
-        <div class="sidebar">
+<div class="master-layout">
+<!-- ============== SIDEBAR ============== -->
+<div class="sidebar">
+<div class="sidebar-top">
+<a href="Control_Excel.html" class="back-link"><span>←</span> Return Home</a>
+<h2>⚡ Excel Processor</h2>
+<p>Load once — merge or split — every split exports by original name</p>
+</div>
 
-            <!-- App Header -->
-            <div class="sidebar-top">
-                <a href="Control_Excel.html" class="back-link">
-                    <span>←</span> Return Home
-                </a>
-                <h2>⚡ Excel Processor</h2>
-                <p>Pick a workflow — merge multiple files or split one file</p>
-            </div>
+<!-- Library loading banner -->
+<div class="lib-loading" id="libLoading">
+⏳ Loading Excel engine, please wait...
+</div>
 
-            <!-- MODE SELECTOR -->
-            <div class="mode-selector">
-                <div class="mode-selector-title">1. Choose Workflow</div>
+<!-- Library warning banner -->
+<div class="lib-warning" id="libWarning">
+⚠️ <b>Excel engine could not be loaded.</b> Your network may be blocking all CDNs.
+Download <code>xlsx.full.min.js</code> manually and place it next to this HTML file,
+then reload. <a href="#" onclick="location.reload();return false;" style="color:#991b1b;font-weight:700;">↻ Refresh</a>
+</div>
 
-                <button class="mode-btn active" data-mode="mergeOne" onclick="setMode('mergeOne')">
-                    <div class="mode-icon">🔗</div>
-                    <div class="mode-btn-text">
-                        <span class="mode-btn-title">Merge → One Sheet</span>
-                        <span class="mode-btn-desc">Combine files &amp; sheets into a single table</span>
-                    </div>
-                </button>
+<!-- STEP 1: SHARED UPLOAD -->
+<div class="step-card shared visible">
+<div class="step-header">
+<div class="step-number">1</div>
+<div class="step-title-wrap">
+<div class="step-title">Load Files</div>
+<div class="step-subtitle">Single or multiple — feeds all workflows</div>
+</div>
+<span class="status-pill" id="upStatus">Empty</span>
+</div>
+<div class="step-body">
+<label for="fileInput" class="btn outline" id="fileInputLabel" style="cursor:pointer;opacity:.5;pointer-events:none;">
+📁 Choose File(s)
+</label>
+<input type="file" id="fileInput" accept=".xlsx, .xls, .csv" multiple style="display:none;" disabled>
+<div class="mini-utils" id="upUtils" style="display:none;">
+<button type="button" onclick="selectAllFiles(true)">✓ Select All</button>
+<button type="button" onclick="selectAllFiles(false)">✗ Deselect All</button>
+</div>
+<div class="list-card" id="upList" style="display:none;"></div>
+<div class="hint-text" id="upHint">Loaded files are shared across every workflow below</div>
+</div>
+</div>
 
-                <button class="mode-btn" data-mode="mergeMulti" onclick="setMode('mergeMulti')">
-                    <div class="mode-icon">📚</div>
-                    <div class="mode-btn-text">
-                        <span class="mode-btn-title">Merge → Multi Sheets</span>
-                        <span class="mode-btn-desc">Keep output as multiple sheets</span>
-                    </div>
-                </button>
+<!-- STEP 2: WORKFLOW SELECTOR -->
+<div class="mode-selector">
+<div class="mode-selector-title">2. Choose Workflow</div>
 
-                <button class="mode-btn" data-mode="split" onclick="setMode('split')">
-                    <div class="mode-icon">✂️</div>
-                    <div class="mode-btn-text">
-                        <span class="mode-btn-title">Split File</span>
-                        <span class="mode-btn-desc">Split one file by column values</span>
-                    </div>
-                </button>
+<button class="mode-btn active" data-mode="m1" onclick="setMode('m1')">
+<div class="mode-icon">🔗</div>
+<div class="mode-btn-text">
+<span class="mode-btn-title">1 · Files → One Sheet</span>
+<span class="mode-btn-desc">Combine all files into a single table</span>
+</div>
+</button>
 
-                <!-- ===== NEW MODE BUTTON ===== -->
-                <button class="mode-btn" data-mode="splitSheets" onclick="setMode('splitSheets')">
-                    <div class="mode-icon">🗂️</div>
-                    <div class="mode-btn-text">
-                        <span class="mode-btn-title">Split Sheets → Files</span>
-                        <span class="mode-btn-desc">One file per worksheet, named by sheet</span>
-                    </div>
-                </button>
-            </div>
+<button class="mode-btn" data-mode="m2" onclick="setMode('m2')">
+<div class="mode-icon">📑</div>
+<div class="mode-btn-text">
+<span class="mode-btn-title">2 · Sheets → One Sheet</span>
+<span class="mode-btn-desc">Combine selected sheets into a single table</span>
+</div>
+</button>
 
-            <!-- ===================================================== -->
-            <!-- SHARED LOAD FILES CARD — visible for merge modes only -->
-            <!-- ===================================================== -->
-            <div class="step-card shared merge-only visible" data-shared="merge">
-                <div class="step-header">
-                    <div class="step-number">2</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Load Files</div>
-                        <div class="step-subtitle">Shared upload for both merge modes</div>
-                    </div>
-                    <span class="status-pill" id="mergeFileStatus">Empty</span>
-                </div>
-                <div class="step-body">
-                    <label for="mergeFilesInput" class="btn outline" style="cursor:pointer;">
-                        📁 Choose File(s)
-                    </label>
-                    <input type="file" id="mergeFilesInput" accept=".xlsx, .xls, .csv" multiple style="display:none;">
+<button class="mode-btn" data-mode="m3" onclick="setMode('m3')">
+<div class="mode-icon">📚</div>
+<div class="mode-btn-text">
+<span class="mode-btn-title">3 · Files → Multi Sheets</span>
+<span class="mode-btn-desc">Combine files but keep multiple sheets</span>
+</div>
+</button>
 
-                    <div class="mini-utils" id="mergeFileUtils" style="display:none;">
-                        <button type="button" onclick="mergeSelectAll(true)">✓ Select All</button>
-                        <button type="button" onclick="mergeSelectAll(false)">✗ Deselect All</button>
-                    </div>
-                    <div class="list-card" id="mergeFilesList" style="display:none;"></div>
-                    <div id="mergeFilesHint" style="font-size:10.5px; color:var(--text-muted); text-align:center; line-height:1.4;">
-                        Loaded files can be used in either merge mode
-                    </div>
-                </div>
-            </div>
+<button class="mode-btn" data-mode="m4" onclick="setMode('m4')">
+<div class="mode-icon">✂️</div>
+<div class="mode-btn-text">
+<span class="mode-btn-title">4 · Split Sheets by Column</span>
+<span class="mode-btn-desc">Each sheet → own file, named {file}_{sheet}.xlsx</span>
+</div>
+</button>
 
-            <!-- ============================================ -->
-            <!-- MODE 1 SPECIFIC CARDS                        -->
-            <!-- ============================================ -->
-            <div class="step-card visible" data-mode="mergeOne">
-                <div class="step-header">
-                    <div class="step-number">3</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Merge Options</div>
-                        <div class="step-subtitle">Add source tracking columns</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <label class="check-row">
-                        <input type="checkbox" id="m1AddFileName" checked>
-                        <span>Add <b>Source_File_Name</b> column</span>
-                    </label>
-                    <label class="check-row">
-                        <input type="checkbox" id="m1AddSheetName" checked>
-                        <span>Add <b>Source_Sheet_Name</b> column</span>
-                    </label>
-                </div>
-            </div>
+<button class="mode-btn" data-mode="m5" onclick="setMode('m5')">
+<div class="mode-icon">🗂️</div>
+<div class="mode-btn-text">
+<span class="mode-btn-title">5 · Split Files by Column</span>
+<span class="mode-btn-desc">Each file → own file, named {original}.xlsx</span>
+</div>
+</button>
+</div>
 
-            <div class="step-card visible" data-mode="mergeOne">
-                <div class="step-header">
-                    <div class="step-number green">4</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Export</div>
-                        <div class="step-subtitle">Save single-sheet workbook</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <input type="text" id="m1FileName" class="compact-input" placeholder="Filename (optional)">
-                    <button id="m1ExportBtn" class="btn green" disabled>🚀 Export One Sheet</button>
-                </div>
-            </div>
+<!-- MODE 1 — FILES → ONE SHEET -->
+<div class="step-card" data-mode="m1">
+<div class="step-header">
+<div class="step-number">3</div>
+<div class="step-title-wrap">
+<div class="step-title">Files to Merge</div>
+<div class="step-subtitle">All selected files are appended</div>
+</div>
+<span class="status-pill" id="m1FileCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="selectAllFiles(true)">✓ All</button>
+<button type="button" onclick="selectAllFiles(false)">✗ None</button>
+</div>
+<div class="list-card" id="m1FileList"><p class="empty-note">Load files first</p></div>
+<label class="check-row">
+<input type="checkbox" id="m1FirstSheetOnly">
+<span>Use <b>only first sheet</b> of each file</span>
+</label>
+<label class="check-row">
+<input type="checkbox" id="m1AddFile" checked>
+<span>Add <b>Source_File_Name</b> column</span>
+</label>
+<label class="check-row">
+<input type="checkbox" id="m1AddSheet" checked>
+<span>Add <b>Source_Sheet_Name</b> column</span>
+</label>
+</div>
+</div>
+<div class="step-card" data-mode="m1">
+<div class="step-header">
+<div class="step-number green">4</div>
+<div class="step-title-wrap">
+<div class="step-title">Export</div>
+<div class="step-subtitle">Name the output workbook</div>
+</div>
+</div>
+<div class="step-body">
+<div class="field-label">Output file name</div>
+<input type="text" id="m1Name" class="compact-input" placeholder="Merged_One_Sheet">
+<button id="m1ExportBtn" class="btn green" disabled>🚀 Export One Sheet</button>
+<button id="clearAllBtn" class="btn danger" onclick="clearAllFiles()">🗑 Clear All Files</button>
+</div>
+</div>
 
-            <!-- ============================================ -->
-            <!-- MODE 2 SPECIFIC CARDS                        -->
-            <!-- ============================================ -->
-            <div class="step-card" data-mode="mergeMulti">
-                <div class="step-header">
-                    <div class="step-number">3</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Output Structure</div>
-                        <div class="step-subtitle">How to organize sheets</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="m2Structure" value="perFile" checked>
-                            <div>
-                                <b>One sheet per file</b>
-                                <span class="radio-desc">All sheets inside each file are combined into a single output sheet</span>
-                            </div>
-                        </label>
-                        <label>
-                            <input type="radio" name="m2Structure" value="perSheet">
-                            <div>
-                                <b>Keep original sheets</b>
-                                <span class="radio-desc">Each source sheet becomes its own output sheet (files prefixed)</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-            </div>
+<!-- MODE 2 — SHEETS → ONE SHEET -->
+<div class="step-card" data-mode="m2">
+<div class="step-header">
+<div class="step-number">3</div>
+<div class="step-title-wrap">
+<div class="step-title">Sheets to Merge</div>
+<div class="step-subtitle">Pick any sheets from any file</div>
+</div>
+<span class="status-pill" id="m2SheetCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="selectAllSheets(true)">✓ All</button>
+<button type="button" onclick="selectAllSheets(false)">✗ None</button>
+</div>
+<div class="list-card tall" id="m2SheetList"><p class="empty-note">Load files first</p></div>
+<label class="check-row">
+<input type="checkbox" id="m2AddFile" checked>
+<span>Add <b>Source_File_Name</b> column</span>
+</label>
+<label class="check-row">
+<input type="checkbox" id="m2AddSheet" checked>
+<span>Add <b>Source_Sheet_Name</b> column</span>
+</label>
+</div>
+</div>
+<div class="step-card" data-mode="m2">
+<div class="step-header">
+<div class="step-number green">4</div>
+<div class="step-title-wrap">
+<div class="step-title">Export</div>
+<div class="step-subtitle">Name the output workbook</div>
+</div>
+</div>
+<div class="step-body">
+<div class="field-label">Output file name</div>
+<input type="text" id="m2Name" class="compact-input" placeholder="Sheets_To_One_Sheet">
+<button id="m2ExportBtn" class="btn green" disabled>🚀 Export One Sheet</button>
+</div>
+</div>
 
-            <div class="step-card" data-mode="mergeMulti">
-                <div class="step-header">
-                    <div class="step-number green">4</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Export</div>
-                        <div class="step-subtitle">Save multi-sheet workbook</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <input type="text" id="m2FileName" class="compact-input" placeholder="Filename (optional)">
-                    <button id="m2ExportBtn" class="btn green" disabled>🚀 Export Multi Sheets</button>
-                </div>
-            </div>
+<!-- MODE 3 — FILES → MULTI SHEETS -->
+<div class="step-card" data-mode="m3">
+<div class="step-header">
+<div class="step-number">3</div>
+<div class="step-title-wrap">
+<div class="step-title">Files to Merge</div>
+<div class="step-subtitle">Output keeps several sheets</div>
+</div>
+<span class="status-pill" id="m3FileCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="selectAllFiles(true)">✓ All</button>
+<button type="button" onclick="selectAllFiles(false)">✗ None</button>
+</div>
+<div class="list-card" id="m3FileList"><p class="empty-note">Load files first</p></div>
+</div>
+</div>
+<div class="step-card" data-mode="m3">
+<div class="step-header">
+<div class="step-number violet">4</div>
+<div class="step-title-wrap">
+<div class="step-title">Output Structure</div>
+<div class="step-subtitle">How to organize the sheets</div>
+</div>
+</div>
+<div class="step-body">
+<div class="radio-group">
+<label>
+<input type="radio" name="m3Structure" value="perFile" checked>
+<div>
+<b>One sheet per file</b>
+<span class="radio-desc">All sheets inside each file stacked into a single output sheet</span>
+</div>
+</label>
+<label>
+<input type="radio" name="m3Structure" value="perSheet">
+<div>
+<b>Keep original sheets</b>
+<span class="radio-desc">Each source sheet becomes its own output sheet (file prefixed)</span>
+</div>
+</label>
+</div>
+</div>
+</div>
+<div class="step-card" data-mode="m3">
+<div class="step-header">
+<div class="step-number green">5</div>
+<div class="step-title-wrap">
+<div class="step-title">Export</div>
+<div class="step-subtitle">Name the output workbook</div>
+</div>
+</div>
+<div class="step-body">
+<div class="field-label">Output file name</div>
+<input type="text" id="m3Name" class="compact-input" placeholder="Merged_Multi_Sheets">
+<button id="m3ExportBtn" class="btn green" disabled>🚀 Export Multi Sheets</button>
+</div>
+</div>
 
-            <!-- ============================================ -->
-            <!-- MODE 3 (SPLIT) — HAS ITS OWN SINGLE UPLOAD   -->
-            <!-- ============================================ -->
-            <div class="step-card" data-mode="split">
-                <div class="step-header">
-                    <div class="step-number">2</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Load File</div>
-                        <div class="step-subtitle">Single file to split</div>
-                    </div>
-                    <span class="status-pill" id="spFileStatus">Empty</span>
-                </div>
-                <div class="step-body">
-                    <label for="splitFile" class="btn outline" style="cursor:pointer;">📁 Choose File</label>
-                    <input type="file" id="splitFile" accept=".xlsx, .xls, .csv" style="display:none;">
-                    <div id="spFileName" style="font-size:11px; color:var(--text-muted); text-align:center; word-break:break-word;">
-                        No file loaded yet
-                    </div>
-                </div>
-            </div>
+<!-- MODE 4 — SPLIT SHEETS BY COLUMN -->
+<div class="step-card" data-mode="m4">
+<div class="step-header">
+<div class="step-number">3</div>
+<div class="step-title-wrap">
+<div class="step-title">Sheets to Split</div>
+<div class="step-subtitle">Every selected sheet is processed</div>
+</div>
+<span class="status-pill" id="m4SheetCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="selectAllSheets(true)">✓ All</button>
+<button type="button" onclick="selectAllSheets(false)">✗ None</button>
+</div>
+<div class="list-card" id="m4SheetList"><p class="empty-note">Load files first</p></div>
+</div>
+</div>
+<div class="step-card" data-mode="m4">
+<div class="step-header">
+<div class="step-number">4</div>
+<div class="step-title-wrap">
+<div class="step-title">Split Column</div>
+<div class="step-subtitle">Grouping key</div>
+</div>
+</div>
+<div class="step-body">
+<select id="m4Column" class="compact-select" disabled><option value="">Load files first</option></select>
+<div class="hint-text" id="m4ColHint">Values will appear in step 5</div>
+</div>
+</div>
+<div class="step-card" data-mode="m4">
+<div class="step-header">
+<div class="step-number amber">5</div>
+<div class="step-title-wrap">
+<div class="step-title">Values to Keep</div>
+<div class="step-subtitle">Each value → one sheet inside the output</div>
+</div>
+<span class="status-pill" id="m4ValueCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="toggleAllValues('m4', true)">✓ All</button>
+<button type="button" onclick="toggleAllValues('m4', false)">✗ None</button>
+</div>
+<div class="list-card tall" id="m4ValueList"><p class="empty-note">Select a split column first</p></div>
+</div>
+</div>
+<div class="step-card" data-mode="m4">
+<div class="step-header">
+<div class="step-number green">6</div>
+<div class="step-title-wrap">
+<div class="step-title">Export</div>
+<div class="step-subtitle">Each sheet becomes its own file</div>
+</div>
+</div>
+<div class="step-body">
+<div class="field-label">Output mode</div>
+<div class="radio-group">
+<label>
+<input type="radio" name="m4ExportMode" value="perSource" checked>
+<div>
+<b>📦 Per-sheet files</b>
+<span class="radio-desc">One file per sheet, named <code>{file}_{sheet}.xlsx</code> — each contains one sheet per value</span>
+</div>
+</label>
+<label>
+<input type="radio" name="m4ExportMode" value="combined">
+<div>
+<b>📄 Combined workbook</b>
+<span class="radio-desc">One workbook with one sheet per unique value</span>
+</div>
+</label>
+</div>
+<div class="field-label">ZIP / combined name</div>
+<input type="text" id="m4Archive" class="compact-input" placeholder="Sheets_Split">
+<button id="m4ExportBtn" class="btn green" disabled>🚀 Split Sheets</button>
+</div>
+</div>
 
-            <div class="step-card" data-mode="split">
-                <div class="step-header">
-                    <div class="step-number">3</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Split Key</div>
-                        <div class="step-subtitle">Grouping column</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <select id="spSplitColumn" class="compact-select" disabled>
-                        <option value="">Upload a file first</option>
-                    </select>
-                    <div id="spSplitPreview" style="font-size:10.5px; color:var(--text-muted); text-align:center;">
-                        Values will appear in Step 5
-                    </div>
-                </div>
-            </div>
+<!-- MODE 5 — SPLIT FILES BY COLUMN -->
+<div class="step-card" data-mode="m5">
+<div class="step-header">
+<div class="step-number">3</div>
+<div class="step-title-wrap">
+<div class="step-title">Files to Split</div>
+<div class="step-subtitle">Every selected file is processed</div>
+</div>
+<span class="status-pill" id="m5FileCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="selectAllFiles(true)">✓ All</button>
+<button type="button" onclick="selectAllFiles(false)">✗ None</button>
+</div>
+<div class="list-card" id="m5FileList"><p class="empty-note">Load files first</p></div>
+</div>
+</div>
+<div class="step-card" data-mode="m5">
+<div class="step-header">
+<div class="step-number">4</div>
+<div class="step-title-wrap">
+<div class="step-title">Split Column</div>
+<div class="step-subtitle">Grouping key (same in every file)</div>
+</div>
+</div>
+<div class="step-body">
+<select id="m5Column" class="compact-select" disabled><option value="">Load files first</option></select>
+<div class="hint-text" id="m5ColHint">Values will appear in step 5</div>
+</div>
+</div>
+<div class="step-card" data-mode="m5">
+<div class="step-header">
+<div class="step-number amber">5</div>
+<div class="step-title-wrap">
+<div class="step-title">Values to Keep</div>
+<div class="step-subtitle">Each value → one sheet inside the output</div>
+</div>
+<span class="status-pill" id="m5ValueCount">0</span>
+</div>
+<div class="step-body">
+<div class="mini-utils">
+<button type="button" onclick="toggleAllValues('m5', true)">✓ All</button>
+<button type="button" onclick="toggleAllValues('m5', false)">✗ None</button>
+</div>
+<div class="list-card tall" id="m5ValueList"><p class="empty-note">Select a split column first</p></div>
+</div>
+</div>
+<div class="step-card" data-mode="m5">
+<div class="step-header">
+<div class="step-number green">6</div>
+<div class="step-title-wrap">
+<div class="step-title">Export</div>
+<div class="step-subtitle">Each file becomes its own file</div>
+</div>
+</div>
+<div class="step-body">
+<div class="field-label">Output mode</div>
+<div class="radio-group">
+<label>
+<input type="radio" name="m5ExportMode" value="perSource" checked>
+<div>
+<b>📦 Per-file files</b>
+<span class="radio-desc">One file per source file, named <code>{original}.xlsx</code> — each contains one sheet per value</span>
+</div>
+</label>
+<label>
+<input type="radio" name="m5ExportMode" value="combined">
+<div>
+📄 Combined workbook
+<span class="radio-desc">One workbook with one sheet per file × value</span>
+</div>
+</label>
+</div>
+<div class="field-label">ZIP / combined name</div>
+<input type="text" id="m5Archive" class="compact-input" placeholder="Files_Split">
+<button id="m5ExportBtn" class="btn green" disabled>🚀 Split Files</button>
+</div>
+</div>
 
-            <div class="step-card" data-mode="split">
-                <div class="step-header">
-                    <div class="step-number">4</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Output Columns</div>
-                        <div class="step-subtitle">Columns to keep</div>
-                    </div>
-                    <span class="status-pill" id="spColCount">0</span>
-                </div>
-                <div class="step-body">
-                    <div class="mini-utils">
-                        <button type="button" onclick="spToggleAllCols(true)">✓ All</button>
-                        <button type="button" onclick="spToggleAllCols(false)">✗ None</button>
-                    </div>
-                    <div class="list-card" id="spColList">
-                        <p class="empty-note">Waiting for data...</p>
-                    </div>
-                </div>
-            </div>
+</div>
 
-            <div class="step-card" data-mode="split">
-                <div class="step-header">
-                    <div class="step-number">5</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Filter Values</div>
-                        <div class="step-subtitle">Values to include</div>
-                    </div>
-                    <span class="status-pill" id="spValCount">0</span>
-                </div>
-                <div class="step-body">
-                    <div class="mini-utils">
-                        <button type="button" onclick="spToggleAllVals(true)">✓ All</button>
-                        <button type="button" onclick="spToggleAllVals(false)">✗ None</button>
-                    </div>
-                    <div class="list-card tall" id="spValList">
-                        <p class="empty-note">Select a split column first</p>
-                    </div>
-                    <div style="margin-top:4px;">
-                        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px;">
-                            Export Mode
-                        </div>
-                        <div class="radio-group">
-                            <label>
-                                <input type="radio" name="spExportMode" value="split" checked>
-                                <div>
-                                    <b>📦 Separate files (ZIP)</b>
-                                    <span class="radio-desc">One Excel file per unique value</span>
-                                </div>
-                            </label>
-                            <label>
-                                <input type="radio" name="spExportMode" value="combined">
-                                <div>
-                                    <b>📄 Combined (one file)</b>
-                                    <span class="radio-desc">All values in a single Excel file</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- ============== MAIN CONTENT ============== -->
+<div class="main-content">
+<div class="compact-header">
+<div class="compact-header-left">
+<h1 id="mainTitle">📊 Data Preview</h1>
+<div class="subtitle" id="mainSubtitle">Load files to see a preview</div>
+</div>
+<div class="file-badge" id="headerBadge">No file</div>
+</div>
+<div class="grid-container">
+<div class="grid-toolbar">
+<div class="grid-toolbar-title"><span>📋</span> Table Preview</div>
+<span class="grid-stats" id="gridStats">0 rows</span>
+</div>
+<div class="table-wrapper">
+<table id="dataTable">
+<thead id="tableHeader"></thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+</div>
+<div class="progress-bar" id="progressSection" style="display:none;">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+<div class="log-section" id="logSection">
+<div>&gt; Ready. Pick a workflow above.</div>
+</div>
+</div>
+</div>
 
-            <div class="step-card" data-mode="split">
-                <div class="step-header">
-                    <div class="step-number green">6</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Export</div>
-                        <div class="step-subtitle">Generate split output</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <input type="text" id="spFileNameInput" class="compact-input" placeholder="Custom filename (optional)">
-                    <button id="spExportBtn" class="btn green" disabled>🚀 START EXPORT</button>
-                </div>
-            </div>
+<script>
+/* ================================================================ */
+/* ============ LIBRARY LOADER — reliable multi-CDN =============== */
+/* ================================================================ */
+(function loadLibraries() {
+  const XLSX_CDNS = [
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+  const JSZIP_CDNS = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'
+  ];
+  const libLoading = document.getElementById('libLoading');
+  const libWarning = document.getElementById('libWarning');
+  const fileInputLabel = document.getElementById('fileInputLabel');
+  const fileInputEl = document.getElementById('fileInput');
 
-            <!-- ============================================ -->
-            <!-- MODE 4 (SPLIT SHEETS → FILES)                 -->
-            <!-- ============================================ -->
-            <div class="step-card" data-mode="splitSheets">
-                <div class="step-header">
-                    <div class="step-number">2</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Load Workbook</div>
-                        <div class="step-subtitle">Multi-sheet file to explode</div>
-                    </div>
-                    <span class="status-pill" id="ssFileStatus">Empty</span>
-                </div>
-                <div class="step-body">
-                    <label for="ssFile" class="btn outline" style="cursor:pointer;">📁 Choose File</label>
-                    <input type="file" id="ssFile" accept=".xlsx, .xls, .csv" style="display:none;">
-                    <div id="ssFileName" style="font-size:11px; color:var(--text-muted); text-align:center; word-break:break-word;">
-                        No file loaded yet
-                    </div>
-                </div>
-            </div>
+  libLoading.style.display = 'block';
 
-            <div class="step-card" data-mode="splitSheets">
-                <div class="step-header">
-                    <div class="step-number violet">3</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Sheets → Files</div>
-                        <div class="step-subtitle">Each sheet becomes one file</div>
-                    </div>
-                    <span class="status-pill" id="ssSheetCount">0</span>
-                </div>
-                <div class="step-body">
-                    <div class="mini-utils">
-                        <button type="button" onclick="ssToggleAll(true)">✓ All</button>
-                        <button type="button" onclick="ssToggleAll(false)">✗ None</button>
-                    </div>
-                    <div class="list-card tall" id="ssSheetList">
-                        <p class="empty-note">Waiting for data...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-card" data-mode="splitSheets">
-                <div class="step-header">
-                    <div class="step-number amber">4</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Output Mode</div>
-                        <div class="step-subtitle">How to deliver the files</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="ssExportMode" value="zip" checked>
-                            <div>
-                                <b>📦 ZIP archive</b>
-                                <span class="radio-desc">All sheet files packed into one .zip (recommended)</span>
-                            </div>
-                        </label>
-                        <label>
-                            <input type="radio" name="ssExportMode" value="individual">
-                            <div>
-                                <b>📄 Individual downloads</b>
-                                <span class="radio-desc">One .xlsx download per sheet — your browser may ask to allow multiple downloads</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-card" data-mode="splitSheets">
-                <div class="step-header">
-                    <div class="step-number green">5</div>
-                    <div class="step-title-wrap">
-                        <div class="step-title">Export</div>
-                        <div class="step-subtitle">Generate one file per sheet</div>
-                    </div>
-                </div>
-                <div class="step-body">
-                    <input type="text" id="ssFileNameInput" class="compact-input" placeholder="Filename prefix (optional)">
-                    <button id="ssExportBtn" class="btn green" disabled>🚀 Export Sheets as Files</button>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ============== MAIN CONTENT ============== -->
-        <div class="main-content">
-            <div class="compact-header">
-                <div class="compact-header-left">
-                    <h1 id="mainTitle">📊 Data Preview</h1>
-                    <div class="subtitle" id="mainSubtitle">Load files to see preview</div>
-                </div>
-                <div class="file-badge" id="headerBadge">No file</div>
-            </div>
-
-            <div class="grid-container">
-                <div class="grid-toolbar">
-                    <div class="grid-toolbar-title"><span>📋</span> Table Preview</div>
-                    <span class="grid-stats" id="gridStats">0 rows</span>
-                </div>
-                <div class="table-wrapper">
-                    <table id="dataTable">
-                        <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="progress-bar" id="progressSection" style="display:none;">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-
-            <div class="log-section" id="logSection">
-                <div>> Ready. Pick a workflow above.</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        /* ============ STATE ============ */
-        let currentMode = 'mergeOne';
-
-        // Preview
-        let currentGridData = [];
-        let currentHeaders = [];
-
-        // Shared merge state (used by Mode 1 & Mode 2)
-        let mergeFiles = [];               // [{ fileName, sheets: [{ name, matrix }] }]
-        let mergeChecked = new Map();      // fileName -> bool
-
-        // Split state
-        let spData = [];
-        let spHeaders = [];
-
-        /* ============ DOM ============ */
-        const logSection = document.getElementById('logSection');
-        const progressFill = document.getElementById('progressFill');
-        const headerBadge = document.getElementById('headerBadge');
-        const mainTitle = document.getElementById('mainTitle');
-        const mainSubtitle = document.getElementById('mainSubtitle');
-
-        // Shared merge upload
-        const mergeFilesInput = document.getElementById('mergeFilesInput');
-        const mergeFilesList = document.getElementById('mergeFilesList');
-        const mergeFilesUtils = document.getElementById('mergeFileUtils');
-        const mergeFilesHint = document.getElementById('mergeFilesHint');
-        const mergeFileStatus = document.getElementById('mergeFileStatus');
-
-        // Mode 1
-        const m1AddFileName = document.getElementById('m1AddFileName');
-        const m1AddSheetName = document.getElementById('m1AddSheetName');
-        const m1FileName = document.getElementById('m1FileName');
-        const m1ExportBtn = document.getElementById('m1ExportBtn');
-
-        // Mode 2
-        const m2FileName = document.getElementById('m2FileName');
-        const m2ExportBtn = document.getElementById('m2ExportBtn');
-
-        // Split
-        const spFileInput = document.getElementById('splitFile');
-        const spFileName = document.getElementById('spFileName');
-        const spSplitColumn = document.getElementById('spSplitColumn');
-        const spSplitPreview = document.getElementById('spSplitPreview');
-        const spColList = document.getElementById('spColList');
-        const spValList = document.getElementById('spValList');
-        const spColCount = document.getElementById('spColCount');
-        const spValCount = document.getElementById('spValCount');
-        const spFileNameInput = document.getElementById('spFileNameInput');
-        const spExportBtn = document.getElementById('spExportBtn');
-        const spFileStatus = document.getElementById('spFileStatus');
-
-        /* ============ UTILS ============ */
-        function addLog(msg, color = "#cbd5e1") {
-            const entry = document.createElement("div");
-            entry.style.color = color;
-            entry.textContent = `> ${msg}`;
-            logSection.appendChild(entry);
-            logSection.scrollTop = logSection.scrollHeight;
-            while (logSection.children.length > 60) logSection.removeChild(logSection.firstChild);
+  function loadFrom(urls, checkName) {
+    return new Promise((resolve, reject) => {
+      if (typeof window[checkName] !== 'undefined') return resolve(true);
+      let i = 0;
+      function tryNext() {
+        if (i >= urls.length) return reject(new Error(checkName + ' could not be loaded'));
+        const url = urls[i++];
+        const s = document.createElement('script');
+        s.src = url;
+        s.async = false;
+        let settled = false;
+        function verify() {
+          if (settled) return;
+          settled = true;
+          if (typeof window[checkName] !== 'undefined') resolve(true);
+          else tryNext(); // CDN returned a 200 but library missing
         }
-
-        function escHtml(s) {
-            return String(s).replace(/[&<>"']/g, m =>
-                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
-        }
-
-        function setProgress(pct) {
-            document.getElementById('progressSection').style.display = pct > 0 ? 'block' : 'none';
-            progressFill.style.width = pct + '%';
-        }
-
-        /* ============ MODE SWITCHER ============ */
-        function setMode(mode) {
-            currentMode = mode;
-
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mode === mode);
-            });
-
-            // Shared merge upload card — visible for both merge modes
-            document.querySelectorAll('.step-card[data-shared="merge"]').forEach(card => {
-                card.classList.toggle('visible', mode === 'mergeOne' || mode === 'mergeMulti');
-            });
-
-            // Mode-specific cards
-            document.querySelectorAll('.step-card[data-mode]').forEach(card => {
-                card.classList.toggle('visible', card.dataset.mode === mode);
-            });
-
-            // Update main header
-            if (mode === 'mergeOne') {
-                mainTitle.textContent = '📊 Merge Preview — One Sheet';
-                mainSubtitle.textContent = 'All files & sheets will be combined into one table';
-            } else if (mode === 'mergeMulti') {
-                mainTitle.textContent = '📚 Merge Preview — Multi Sheets';
-                mainSubtitle.textContent = 'Files will be kept as separate sheets';
-            } else if (mode === 'splitSheets') {
-                mainTitle.textContent = '🗂️ Sheet Split Preview';
-                mainSubtitle.textContent = 'Every worksheet will be exported as its own file';
-            } else {
-                mainTitle.textContent = '✂️ Split Preview';
-                mainSubtitle.textContent = 'Split one file by column values';
-            }
-
-            // Refresh preview state
-            refreshPreviewForMode();
-        }
-
-        function refreshPreviewForMode() {
-            /* ---- NEW: sheet-split preview ---- */
-            if (currentMode === 'splitSheets') {
-                const first = ssSheets.find(s => ssChecked.get(s.name) !== false);
-                if (first && first.matrix.length > 0) {
-                    currentHeaders = first.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
-                    currentGridData = first.matrix.slice(1).map(row => {
-                        const obj = {};
-                        currentHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
-                        return obj;
-                    });
-                } else {
-                    currentHeaders = [];
-                    currentGridData = [];
-                }
-                renderTable();
-                return;
-            }
-
-            if (currentMode === 'split') {
-                // Split preview
-                currentHeaders = spHeaders;
-                currentGridData = spData;
-                renderTable();
-            } else {
-                // Merge preview — show first selected file's first sheet
-                const first = mergeFiles.find(f => mergeChecked.get(f.fileName));
-                if (first && first.sheets.length > 0) {
-                    const s = first.sheets[0];
-                    currentHeaders = s.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
-                    currentGridData = s.matrix.slice(1).map(row => {
-                        const obj = {};
-                        currentHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
-                        return obj;
-                    });
-                    renderTable();
-                } else {
-                    currentHeaders = [];
-                    currentGridData = [];
-                    renderTable();
-                }
-            }
-        }
-
-        /* ============ TABLE ============ */
-        function renderTable() {
-            const thead = document.getElementById('tableHeader');
-            const tbody = document.getElementById('tableBody');
-            const stats = document.getElementById('gridStats');
-
-            if (currentHeaders.length === 0) {
-                thead.innerHTML = '';
-                tbody.innerHTML = '';
-                stats.textContent = '0 rows';
-                return;
-            }
-
-            thead.innerHTML = `<tr>${currentHeaders.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr>`;
-            const preview = currentGridData.slice(0, 100);
-            tbody.innerHTML = preview.map(row =>
-                `<tr>${currentHeaders.map(h => `<td>${escHtml(row[h] ?? '')}</td>`).join('')}</tr>`
-            ).join('');
-
-            if (currentGridData.length > 100) {
-                tbody.innerHTML += `<tr><td colspan="${currentHeaders.length}" style="text-align:center;color:#94a3b8;font-style:italic;">... and ${currentGridData.length - 100} more rows</td></tr>`;
-            }
-
-            stats.textContent = `${currentGridData.length} rows`;
-        }
-
-        /* ================================================================ */
-        /* ============ SHARED MERGE UPLOAD (Modes 1 & 2) ================= */
-        /* ================================================================ */
-        mergeFilesInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            e.target.value = '';
-            if (files.length === 0) return;
-
-            addLog(`📂 Reading ${files.length} file(s)...`);
-            setProgress(5);
-
-            mergeFiles = [];
-            mergeChecked.clear();
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                try {
-                    const buf = await file.arrayBuffer();
-                    const wb = XLSX.read(buf, { type: 'array' });
-
-                    const sheets = [];
-                    for (const sheetName of wb.SheetNames) {
-                        const matrix = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
-                        if (matrix.length === 0) continue;
-                        sheets.push({ name: sheetName, matrix });
-                    }
-
-                    if (sheets.length > 0) {
-                        mergeFiles.push({ fileName: file.name, sheets });
-                        mergeChecked.set(file.name, true);
-                    }
-                } catch (err) {
-                    addLog(`❌ Error reading ${file.name}: ${err.message}`, '#f87171');
-                }
-                setProgress(5 + ((i + 1) / files.length) * 90);
-            }
-
-            if (mergeFiles.length === 0) {
-                addLog('⚠️ No valid files loaded.', '#fbbf24');
-                setProgress(0);
-                return;
-            }
-
-            renderMergeFileList();
-            updateMergeStatus();
-            refreshPreviewForMode();
-
-            setProgress(100);
-            setTimeout(() => setProgress(0), 800);
-
-            addLog(`✅ Loaded ${mergeFiles.length} file(s). Ready for either merge mode.`, '#4ade80');
-        });
-
-        function renderMergeFileList() {
-            if (mergeFiles.length === 0) {
-                mergeFilesList.style.display = 'none';
-                mergeFilesUtils.style.display = 'none';
-                mergeFilesHint.style.display = 'block';
-                mergeFilesHint.textContent = 'Loaded files can be used in either merge mode';
-                return;
-            }
-
-            mergeFilesList.style.display = 'block';
-            mergeFilesUtils.style.display = 'flex';
-            mergeFilesHint.style.display = 'none';
-
-            mergeFilesList.innerHTML = '';
-            mergeFiles.forEach(f => {
-                const checked = mergeChecked.get(f.fileName) !== false;
-                const safeName = f.fileName.replace(/'/g, "\\'");
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-                label.innerHTML = `
-                    <input type="checkbox" ${checked ? 'checked' : ''}
-                           onchange="toggleMergeFile('${safeName}', this.checked)">
-                    <span title="${escHtml(f.fileName)}">${escHtml(f.fileName)}
-                        <small style="color:#94a3b8">(${f.sheets.length} sheet${f.sheets.length > 1 ? 's' : ''})</small>
-                    </span>
-                `;
-                mergeFilesList.appendChild(label);
-            });
-        }
-
-        function toggleMergeFile(fileName, checked) {
-            mergeChecked.set(fileName, checked);
-            updateMergeStatus();
-            refreshPreviewForMode();
-        }
-
-        function mergeSelectAll(checked) {
-            mergeFiles.forEach(f => mergeChecked.set(f.fileName, checked));
-            renderMergeFileList();
-            updateMergeStatus();
-            refreshPreviewForMode();
-        }
-
-        function updateMergeStatus() {
-            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName)).length;
-
-            if (mergeFiles.length === 0) {
-                mergeFileStatus.textContent = 'Empty';
-                mergeFileStatus.classList.remove('success');
-            } else {
-                mergeFileStatus.textContent = `${active}/${mergeFiles.length}`;
-                mergeFileStatus.classList.toggle('success', active > 0);
-            }
-
-            const anyChecked = active > 0;
-            m1ExportBtn.disabled = !anyChecked;
-            m2ExportBtn.disabled = !anyChecked;
-
-            headerBadge.textContent = mergeFiles.length > 0
-                ? `${active} of ${mergeFiles.length} file(s) selected`
-                : 'No file';
-        }
-
-        /* ============ MODE 1: EXPORT ONE SHEET ============ */
-        m1ExportBtn.addEventListener('click', () => {
-            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName));
-            if (active.length === 0) return addLog('⚠️ Select at least one file.', '#fbbf24');
-
-            addLog('🔗 Merging all selected files & sheets into one table...');
-            setProgress(20);
-
-            let masterHeader = null;
-            const allRows = [];
-            let totalRows = 0;
-
-            active.forEach(file => {
-                file.sheets.forEach(sheet => {
-                    const header = sheet.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
-                    if (!masterHeader) masterHeader = header;
-
-                    for (let r = 1; r < sheet.matrix.length; r++) {
-                        const rowObj = {};
-                        masterHeader.forEach((h, ci) => {
-                            rowObj[h] = sheet.matrix[r][ci] !== undefined ? sheet.matrix[r][ci] : '';
-                        });
-                        if (m1AddFileName.checked) rowObj['Source_File_Name'] = file.fileName;
-                        if (m1AddSheetName.checked) rowObj['Source_Sheet_Name'] = sheet.name;
-                        allRows.push(rowObj);
-                        totalRows++;
-                    }
-                });
-            });
-
-            if (allRows.length === 0) {
-                addLog('⚠️ No data rows found.', '#fbbf24');
-                setProgress(0);
-                return;
-            }
-
-            const finalHeaders = [...masterHeader];
-            if (m1AddFileName.checked) finalHeaders.push('Source_File_Name');
-            if (m1AddSheetName.checked) finalHeaders.push('Source_Sheet_Name');
-
-            const ws = XLSX.utils.json_to_sheet(allRows, { header: finalHeaders });
-            ws['!cols'] = finalHeaders.map(h => {
-                let max = h.length;
-                for (let i = 0; i < Math.min(allRows.length, 500); i++) {
-                    const v = String(allRows[i][h] ?? '');
-                    if (v.length > max) max = v.length;
-                }
-                return { wch: Math.min(max + 3, 50) };
-            });
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Merged_Data');
-
-            const name = (m1FileName.value.trim() || 'Merged_One_Sheet').replace(/[\\/:*?"<>|]/g, '_');
-            XLSX.writeFile(wb, `${name}.xlsx`);
-
-            setProgress(100);
-            setTimeout(() => setProgress(0), 800);
-            addLog(`✅ Exported "${name}.xlsx" with ${totalRows} rows from ${active.length} file(s).`, '#4ade80');
-        });
-
-        /* ============ MODE 2: EXPORT MULTI SHEETS ============ */
-        m2ExportBtn.addEventListener('click', () => {
-            const active = mergeFiles.filter(f => mergeChecked.get(f.fileName));
-            if (active.length === 0) return addLog('⚠️ Select at least one file.', '#fbbf24');
-
-            setProgress(20);
-            const structure = document.querySelector('input[name="m2Structure"]:checked').value;
-            const wb = XLSX.utils.book_new();
-            const usedNames = new Set();
-
-            function safeSheetName(name) {
-                let base = String(name).replace(/[\\/?*\[\]:]/g, '_').substring(0, 28);
-                if (!base) base = 'Sheet';
-                let final = base, i = 2;
-                while (usedNames.has(final)) { final = `${base}_${i++}`; }
-                usedNames.add(final);
-                return final;
-            }
-
-            if (structure === 'perFile') {
-                active.forEach((file, idx) => {
-                    let combinedHeader = null;
-                    const combinedRows = [];
-
-                    file.sheets.forEach(sheet => {
-                        const header = sheet.matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
-                        if (!combinedHeader) combinedHeader = header;
-                        for (let r = 1; r < sheet.matrix.length; r++) {
-                            const obj = {};
-                            combinedHeader.forEach((h, ci) => obj[h] = sheet.matrix[r][ci] ?? '');
-                            combinedRows.push(obj);
-                        }
-                    });
-
-                    if (combinedHeader && combinedRows.length > 0) {
-                        const ws = XLSX.utils.json_to_sheet(combinedRows, { header: combinedHeader });
-                        XLSX.utils.book_append_sheet(wb, ws, safeSheetName(file.fileName.replace(/\.[^.]+$/, '')));
-                    }
-                    setProgress(20 + ((idx + 1) / active.length) * 70);
-                });
-            } else {
-                active.forEach(file => {
-                    const fileBase = file.fileName.replace(/\.[^.]+$/, '');
-                    file.sheets.forEach(sheet => {
-                        const ws = XLSX.utils.aoa_to_sheet(sheet.matrix);
-                        const prefix = active.length > 1 ? `${fileBase}_` : '';
-                        XLSX.utils.book_append_sheet(wb, ws, safeSheetName(prefix + sheet.name));
-                    });
-                });
-            }
-
-            if (wb.SheetNames.length === 0) {
-                addLog('⚠️ No sheets to write.', '#fbbf24');
-                setProgress(0);
-                return;
-            }
-
-            const name = (m2FileName.value.trim() || 'Merged_Multi_Sheets').replace(/[\\/:*?"<>|]/g, '_');
-            XLSX.writeFile(wb, `${name}.xlsx`);
-
-            setProgress(100);
-            setTimeout(() => setProgress(0), 800);
-            addLog(`✅ Exported "${name}.xlsx" with ${wb.SheetNames.length} sheet(s).`, '#4ade80');
-        });
-
-        /* ================================================================ */
-        /* ============ MODE 3: SPLIT FILE (own upload) =================== */
-        /* ================================================================ */
-        spFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            e.target.value = '';
-            if (!file) return;
-
-            spFileName.textContent = file.name;
-            headerBadge.textContent = file.name;
-            addLog(`📂 Split mode: Reading ${file.name}...`);
-
-            try {
-                const buf = await file.arrayBuffer();
-                const wb = XLSX.read(buf, { type: 'array' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-                if (matrix.length === 0) throw new Error('Empty sheet');
-
-                spHeaders = matrix[0].map((h, i) => String(h || `Col_${i + 1}`).trim());
-                spData = matrix.slice(1).map(row => {
-                    const obj = {};
-                    spHeaders.forEach((h, i) => obj[h] = row[i] ?? '');
-                    return obj;
-                });
-
-                spSplitColumn.disabled = false;
-                spSplitColumn.innerHTML = '<option value="">-- Choose split key --</option>' +
-                    spHeaders.map(h => `<option value="${escHtml(h)}">${escHtml(h)}</option>`).join('');
-                spSplitPreview.textContent = 'Values will appear in Step 5';
-
-                spValList.innerHTML = '<p class="empty-note">Select a split column first</p>';
-                spValCount.textContent = '0';
-
-                renderSpColCheckboxes();
-
-                if (currentMode === 'split') {
-                    currentHeaders = spHeaders;
-                    currentGridData = spData;
-                    renderTable();
-                }
-
-                spFileStatus.textContent = '1 file';
-                spFileStatus.classList.add('success');
-                spExportBtn.disabled = false;
-
-                addLog(`✅ Loaded "${file.name}" — ${spData.length} rows, ${spHeaders.length} columns.`, '#4ade80');
-            } catch (err) {
-                addLog(`❌ Error: ${err.message}`, '#f87171');
-            }
-        });
-
-        function renderSpColCheckboxes() {
-            spColList.innerHTML = '';
-            spHeaders.forEach(h => {
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-                label.innerHTML = `
-                    <input type="checkbox" class="sp-col-check" value="${escHtml(h)}" checked
-                           onchange="updateSpCounts()">
-                    <span title="${escHtml(h)}">${escHtml(h)}</span>
-                `;
-                spColList.appendChild(label);
-            });
-            updateSpCounts();
-        }
-
-        spSplitColumn.addEventListener('change', () => {
-            const col = spSplitColumn.value;
-            if (!col) {
-                spValList.innerHTML = '<p class="empty-note">Select a split column first</p>';
-                spSplitPreview.textContent = 'Values will appear in Step 5';
-                updateSpCounts();
-                return;
-            }
-            const vals = [...new Set(spData.map(row => String(row[col] ?? '').trim()))]
-                .filter(v => v !== '').sort();
-
-            spValList.innerHTML = '';
-            vals.forEach(v => {
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-                label.innerHTML = `
-                    <input type="checkbox" class="sp-val-check" value="${escHtml(v)}" checked
-                           onchange="updateSpCounts()">
-                    <span title="${escHtml(v)}">${escHtml(v)}</span>
-                `;
-                spValList.appendChild(label);
-            });
-
-            if (vals.length === 0) {
-                spValList.innerHTML = '<p class="empty-note">No values in this column</p>';
-            }
-            spSplitPreview.textContent = `${vals.length} unique value(s) found`;
-            updateSpCounts();
-        });
-
-        function spToggleAllCols(checked) {
-            document.querySelectorAll('.sp-col-check').forEach(c => c.checked = checked);
-            updateSpCounts();
-        }
-        function spToggleAllVals(checked) {
-            document.querySelectorAll('.sp-val-check').forEach(c => c.checked = checked);
-            updateSpCounts();
-        }
-        function updateSpCounts() {
-            const colsTotal = document.querySelectorAll('.sp-col-check').length;
-            const colsChecked = document.querySelectorAll('.sp-col-check:checked').length;
-            const valsTotal = document.querySelectorAll('.sp-val-check').length;
-            const valsChecked = document.querySelectorAll('.sp-val-check:checked').length;
-
-            spColCount.textContent = colsTotal > 0 ? `${colsChecked}/${colsTotal}` : '0';
-            spValCount.textContent = valsTotal > 0 ? `${valsChecked}/${valsTotal}` : '0';
-        }
-
-        spExportBtn.addEventListener('click', async () => {
-            const splitCol = spSplitColumn.value;
-            const vals = Array.from(document.querySelectorAll('.sp-val-check:checked')).map(c => c.value);
-            const cols = Array.from(document.querySelectorAll('.sp-col-check:checked')).map(c => c.value);
-            const mode = document.querySelector('input[name="spExportMode"]:checked').value;
-            const prefix = (spFileNameInput.value.trim() || '').replace(/[\\/:*?"<>|]/g, '_');
-
-            if (!splitCol) return addLog('⚠️ Step 3: Pick a split column.', '#fbbf24');
-            if (vals.length === 0) return addLog('⚠️ Step 5: Pick at least one value.', '#fbbf24');
-            if (cols.length === 0) return addLog('⚠️ Step 4: Pick at least one column.', '#fbbf24');
-
-            setProgress(10);
-
-            function buildData(allowedVals) {
-                const allowed = new Set(allowedVals);
-                return spData
-                    .filter(row => allowed.has(String(row[splitCol] ?? '').trim()))
-                    .map(row => {
-                        const obj = {};
-                        cols.forEach(c => obj[c] = row[c]);
-                        return obj;
-                    });
-            }
-
-            try {
-                if (mode === 'combined') {
-                    const data = buildData(vals);
-                    const ws = XLSX.utils.json_to_sheet(data, { header: cols });
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-                    const name = prefix || 'Combined_Export';
-                    XLSX.writeFile(wb, `${name}.xlsx`);
-                    setProgress(100);
-                    addLog(`✅ Combined export — ${data.length} rows.`, '#4ade80');
-                } else {
-                    const zip = new JSZip();
-                    vals.forEach((v, i) => {
-                        const data = buildData([v]);
-                        const ws = XLSX.utils.json_to_sheet(data, { header: cols });
-                        const wb = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(wb, ws, 'Data');
-                        const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-                        const fileName = (prefix ? `${prefix}_${v}` : v).replace(/[\\/:*?"<>|]/g, '_');
-                        zip.file(`${fileName}.xlsx`, wbout);
-                        setProgress(10 + ((i + 1) / vals.length) * 85);
-                    });
-                    const content = await zip.generateAsync({ type: 'blob' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = (prefix ? `${prefix}_Archive` : 'Split_Export') + '.zip';
-                    link.click();
-                    setProgress(100);
-                    addLog(`✅ ZIP export — ${vals.length} file(s).`, '#4ade80');
-                }
-            } catch (err) {
-                addLog(`❌ Error: ${err.message}`, '#f87171');
-            }
-            setTimeout(() => setProgress(0), 800);
-        });
-
-        /* ================================================================ */
-        /* ============ MODE 4: SPLIT SHEETS → SEPARATE FILES ============ */
-        /* ================================================================ */
-        let ssSheets = [];            // [{ name, matrix }]
-        let ssChecked = new Map();    // sheetName -> bool
-        let ssSourceName = '';
-
-        const ssFileInput      = document.getElementById('ssFile');
-        const ssFileNameEl     = document.getElementById('ssFileName');
-        const ssSheetList      = document.getElementById('ssSheetList');
-        const ssSheetCount     = document.getElementById('ssSheetCount');
-        const ssFileStatus     = document.getElementById('ssFileStatus');
-        const ssFileNameInput  = document.getElementById('ssFileNameInput');
-        const ssExportBtn      = document.getElementById('ssExportBtn');
-
-        /* --- filename helpers --- */
-        function ssSafeFile(name) {
-            return String(name)
-                .replace(/[\\/:*?"<>|]/g, '_')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .substring(0, 80) || 'Sheet';
-        }
-        function ssSafeTab(name) {
-            const base = String(name).replace(/[\\/?*\[\]:]/g, '_').substring(0, 31);
-            return base || 'Sheet';
-        }
-
-        /* --- upload --- */
-        ssFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            e.target.value = '';
-            if (!file) return;
-
-            ssSourceName = file.name;
-            ssFileNameEl.textContent = file.name;
-            headerBadge.textContent = file.name;
-            addLog(`📂 Sheet-split: reading ${file.name}...`);
-            setProgress(10);
-
-            try {
-                const buf = await file.arrayBuffer();
-                const wb = XLSX.read(buf, { type: 'array' });
-
-                ssSheets = [];
-                ssChecked.clear();
-
-                wb.SheetNames.forEach(n => {
-                    const matrix = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' });
-                    ssSheets.push({ name: n, matrix });
-                    ssChecked.set(n, true);
-                });
-
-                if (ssSheets.length === 0) throw new Error('Workbook has no sheets');
-
-                // pre-fill the prefix with the source filename
-                if (!ssFileNameInput.value.trim()) {
-                    ssFileNameInput.value = file.name.replace(/\.[^.]+$/, '');
-                }
-
-                renderSsSheetList();
-
-                ssFileStatus.textContent = `${ssSheets.length} sheet${ssSheets.length > 1 ? 's' : ''}`;
-                ssFileStatus.classList.add('success');
-
-                if (currentMode === 'splitSheets') refreshPreviewForMode();
-
-                setProgress(100);
-                setTimeout(() => setProgress(0), 800);
-                addLog(`✅ Loaded ${ssSheets.length} sheet(s) from "${file.name}".`, '#4ade80');
-            } catch (err) {
-                addLog(`❌ Error: ${err.message}`, '#f87171');
-                setProgress(0);
-            }
-        });
-
-        /* --- sheet checkbox list --- */
-        function renderSsSheetList() {
-            ssSheetList.innerHTML = '';
-
-            if (ssSheets.length === 0) {
-                ssSheetList.innerHTML = '<p class="empty-note">Waiting for data...</p>';
-                updateSsCounts();
-                return;
-            }
-
-            ssSheets.forEach(s => {
-                const rows = Math.max(s.matrix.length - 1, 0);
-
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.checked = ssChecked.get(s.name) !== false;
-                cb.addEventListener('change', () => {
-                    ssChecked.set(s.name, cb.checked);
-                    updateSsCounts();
-                    if (currentMode === 'splitSheets') refreshPreviewForMode();
-                });
-
-                const span = document.createElement('span');
-                span.title = s.name;
-                span.innerHTML = `${escHtml(s.name)} <small style="color:#94a3b8">(${rows} row${rows === 1 ? '' : 's'})</small>`;
-
-                label.appendChild(cb);
-                label.appendChild(span);
-                ssSheetList.appendChild(label);
-            });
-
-            updateSsCounts();
-        }
-
-        function ssToggleAll(checked) {
-            ssSheets.forEach(s => ssChecked.set(s.name, checked));
-            renderSsSheetList();
-            if (currentMode === 'splitSheets') refreshPreviewForMode();
-        }
-
-        function updateSsCounts() {
-            const total = ssSheets.length;
-            const checked = ssSheets.filter(s => ssChecked.get(s.name) !== false).length;
-
-            ssSheetCount.textContent = total > 0 ? `${checked}/${total}` : '0';
-            ssExportBtn.disabled = checked === 0;
-        }
-
-        /* --- export --- */
-        ssExportBtn.addEventListener('click', async () => {
-            const chosen = ssSheets.filter(s => ssChecked.get(s.name) !== false);
-            if (chosen.length === 0) return addLog('⚠️ Select at least one sheet.', '#fbbf24');
-
-            const prefix = (ssFileNameInput.value.trim() || '').replace(/[\\/:*?"<>|]/g, '_');
-            const mode = document.querySelector('input[name="ssExportMode"]:checked').value;
-
-            const buildSheetWb = (sheet) => {
-                const wb = XLSX.utils.book_new();
-                const aoa = sheet.matrix.length ? sheet.matrix : [['']];
-                const ws = XLSX.utils.aoa_to_sheet(aoa);
-                XLSX.utils.book_append_sheet(wb, ws, ssSafeTab(sheet.name));
-                return wb;
-            };
-
-            const baseNameFor = (sheet) => (prefix ? `${prefix}_` : '') + ssSafeFile(sheet.name) + '.xlsx';
-
-            // avoid duplicate file names inside one export
-            const used = new Set();
-            const uniqueNameFor = (sheet) => {
-                let n = baseNameFor(sheet), k = 2;
-                while (used.has(n)) n = baseNameFor(sheet).replace(/\.xlsx$/i, `_${k++}.xlsx`);
-                used.add(n);
-                return n;
-            };
-
-            setProgress(10);
-
-            try {
-                if (mode === 'zip') {
-                    const zip = new JSZip();
-                    chosen.forEach((s, i) => {
-                        const wb = buildSheetWb(s);
-                        const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-                        zip.file(uniqueNameFor(s), out);
-                        setProgress(10 + ((i + 1) / chosen.length) * 85);
-                    });
-
-                    const blob = await zip.generateAsync({ type: 'blob' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = (prefix || 'Sheets') + '_Archive.zip';
-                    link.click();
-                    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
-
-                    addLog(`✅ ZIP export — ${chosen.length} sheet file(s) packed.`, '#4ade80');
-                } else {
-                    chosen.forEach((s, i) => {
-                        XLSX.writeFile(buildSheetWb(s), uniqueNameFor(s));
-                        setProgress(10 + ((i + 1) / chosen.length) * 85);
-                    });
-                    addLog(`✅ Exported ${chosen.length} separate file(s) — check your downloads folder.`, '#4ade80');
-                }
-            } catch (err) {
-                addLog(`❌ Error: ${err.message}`, '#f87171');
-            }
-
-            setProgress(100);
-            setTimeout(() => setProgress(0), 800);
-        });
-
-        /* ============ INIT ============ */
-        setMode('mergeOne');
-        logSection.innerHTML = '';
-        addLog('⚡ Ready. Pick a workflow, then load your files.', '#4ade80');
-    </script>
+        s.onload = verify;
+        s.onerror = () => { if (!settled) { settled = true; tryNext(); } };
+        // Verify after 6s in case CDN stalls without firing events
+        setTimeout(verify, 6000);
+        document.head.appendChild(s);
+      }
+      tryNext();
+    });
+  }
+
+  // Load XLSX first (required), then JSZip (optional)
+  loadFrom(XLSX_CDNS, 'XLSX').then(() => {
+    libLoading.style.display = 'none';
+    fileInputEl.disabled = false;
+    fileInputLabel.style.opacity = '1';
+    fileInputLabel.style.pointerEvents = 'auto';
+    addLogSafe('✅ Excel engine ready. Upload is enabled.', '#4ade80');
+    loadFrom(JSZIP_CDNS, 'JSZip').catch(() => {
+      addLogSafe('⚠️ JSZip not loaded — multi-file ZIP exports will fall back to individual downloads.', '#fbbf24');
+    });
+  }).catch(err => {
+    libLoading.style.display = 'none';
+    libWarning.style.display = 'block';
+    addLogSafe('❌ ' + err.message + '. Check your network or use a local xlsx.full.min.js file.', '#f87171');
+  });
+
+  // Local reference so we can log even before main script initialises
+  function addLogSafe(msg, color) {
+    const log = document.getElementById('logSection');
+    if (!log) return;
+    const d = document.createElement('div');
+    d.style.color = color || '#cbd5e1';
+    d.textContent = '> ' + msg;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  }
+})();
+</script>
+
+<script>
+/* ============================ STATE ============================= */
+let uid = 0;
+let currentMode = 'm1';
+let loadedFiles = [];
+let fileChecked = new Map();
+let sheetChecked = new Map();
+const m4Values = new Map();
+const m5Values = new Map();
+let currentHeaders = [];
+let currentGridData = [];
+
+/* ============================= DOM ============================== */
+const logSection     = document.getElementById('logSection');
+const progressFill   = document.getElementById('progressFill');
+const headerBadge    = document.getElementById('headerBadge');
+const mainTitle      = document.getElementById('mainTitle');
+const mainSubtitle   = document.getElementById('mainSubtitle');
+const fileInput      = document.getElementById('fileInput');
+const upList         = document.getElementById('upList');
+const upUtils        = document.getElementById('upUtils');
+const upHint         = document.getElementById('upHint');
+const upStatus       = document.getElementById('upStatus');
+const clearAllBtn    = document.getElementById('clearAllBtn');
+const m1FileList     = document.getElementById('m1FileList');
+const m1FileCount    = document.getElementById('m1FileCount');
+const m1FirstSheetOnly = document.getElementById('m1FirstSheetOnly');
+const m1AddFile      = document.getElementById('m1AddFile');
+const m1AddSheet     = document.getElementById('m1AddSheet');
+const m1Name         = document.getElementById('m1Name');
+const m1ExportBtn    = document.getElementById('m1ExportBtn');
+const m2SheetList    = document.getElementById('m2SheetList');
+const m2SheetCount   = document.getElementById('m2SheetCount');
+const m2AddFile      = document.getElementById('m2AddFile');
+const m2AddSheet     = document.getElementById('m2AddSheet');
+const m2Name         = document.getElementById('m2Name');
+const m2ExportBtn    = document.getElementById('m2ExportBtn');
+const m3FileList     = document.getElementById('m3FileList');
+const m3FileCount    = document.getElementById('m3FileCount');
+const m3Name         = document.getElementById('m3Name');
+const m3ExportBtn    = document.getElementById('m3ExportBtn');
+const m4SheetList    = document.getElementById('m4SheetList');
+const m4SheetCount   = document.getElementById('m4SheetCount');
+const m4Column       = document.getElementById('m4Column');
+const m4ColHint      = document.getElementById('m4ColHint');
+const m4ValueList    = document.getElementById('m4ValueList');
+const m4ValueCount   = document.getElementById('m4ValueCount');
+const m4Archive      = document.getElementById('m4Archive');
+const m4ExportBtn    = document.getElementById('m4ExportBtn');
+const m5FileList     = document.getElementById('m5FileList');
+const m5FileCount    = document.getElementById('m5FileCount');
+const m5Column       = document.getElementById('m5Column');
+const m5ColHint      = document.getElementById('m5ColHint');
+const m5ValueList    = document.getElementById('m5ValueList');
+const m5ValueCount   = document.getElementById('m5ValueCount');
+const m5Archive      = document.getElementById('m5Archive');
+const m5ExportBtn    = document.getElementById('m5ExportBtn');
+
+/* =========================== UTILS ============================== */
+function addLog(msg, color = '#cbd5e1') {
+  const entry = document.createElement('div');
+  entry.style.color = color;
+  entry.textContent = '> ' + msg;
+  logSection.appendChild(entry);
+  logSection.scrollTop = logSection.scrollHeight;
+  while (logSection.children.length > 80) logSection.removeChild(logSection.firstChild);
+}
+function escHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function setProgress(pct){document.getElementById('progressSection').style.display=pct>0?'block':'none';progressFill.style.width=pct+'%';}
+function sanitizeName(s){return String(s||'').replace(/[\\/:*?"<>|]/g,'_').trim();}
+function safeSheetName(name){const n=String(name??'').replace(/[\\/?*\[\]:]/g,'_').trim().substring(0,31);return n||'Sheet';}
+function uniqueSheetName(wb,base){let name=safeSheetName(base);if(!wb.SheetNames.includes(name))return name;const root=name.substring(0,28);let i=2;while(wb.SheetNames.includes(root+'_'+i))i++;return root+'_'+i;}
+function downloadBlob(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+function sheetHeaders(sheet){const raw=(sheet.matrix&&sheet.matrix[0])||[];const used=new Map();return raw.map((h,i)=>{let base=String(h??'').trim()||('Column_'+(i+1));if(!used.has(base)){used.set(base,1);return base;}let n=used.get(base)+1;let cand=base+'_'+n;while(used.has(cand)){n++;cand=base+'_'+n;}used.set(base,n);used.set(cand,1);return cand;});}
+function isBlankRow(raw){if(!raw||!raw.length)return true;for(let i=0;i<raw.length;i++){const v=raw[i];if(v!==''&&v!==null&&v!==undefined)return false;}return true;}
+function sheetRows(sheet){const hdrs=sheetHeaders(sheet);const rows=[];for(let r=1;r<sheet.matrix.length;r++){const raw=sheet.matrix[r];if(isBlankRow(raw))continue;const o={};hdrs.forEach((h,i)=>o[h]=raw[i]??'');rows.push(o);}return{headers:hdrs,rows};}
+function collectRows(sheetPairs,opts){opts=opts||{};const headerOrder=[];const seen=new Set();const rows=[];sheetPairs.forEach(pair=>{const file=pair.file;const sheet=pair.sheet;const{headers,rows:srows}=sheetRows(sheet);headers.forEach(h=>{if(!seen.has(h)){seen.add(h);headerOrder.push(h);}});srows.forEach(o=>{if(opts.addFile)o['Source_File_Name']=file.name;if(opts.addSheet)o['Source_Sheet_Name']=sheet.name;rows.push(o);});});const headers=headerOrder.slice();if(opts.addFile)headers.push('Source_File_Name');if(opts.addSheet)headers.push('Source_Sheet_Name');return{headers,rows};}
+function autoWidth(headers,rows){return headers.map(h=>{let max=String(h).length;const lim=Math.min(rows.length,300);for(let i=0;i<lim;i++){const v=String(rows[i][h]??'');if(v.length>max)max=v.length;}return{wch:Math.min(Math.max(max+2,8),50)};});}
+function fileBaseName(name){return String(name||'').replace(/\.[^.]+$/,'');}
+function xlsxReady(){return typeof XLSX !== 'undefined';}
+function jszipReady(){return typeof JSZip !== 'undefined';}
+
+/* ======================== SELECTION ============================= */
+function selectedFiles(){return loadedFiles.filter(f=>fileChecked.get(f.id)!==false);}
+function selectedSheetPairs(){const out=[];loadedFiles.forEach(f=>{f.sheets.forEach(s=>{if(sheetChecked.get(s.id)!==false)out.push({file:f,sheet:s});});});return out;}
+function fileSheetPairs(files){const out=[];files.forEach(f=>f.sheets.forEach(s=>out.push({file:f,sheet:s})));return out;}
+function unionHeaders(pairs){const seen=new Set();const out=[];pairs.forEach(p=>{sheetHeaders(p.sheet).forEach(h=>{if(!seen.has(h)){seen.add(h);out.push(h);}});});return out;}
+function pairsToRows(pairs){const rows=[];pairs.forEach(p=>{const{rows:srows}=sheetRows(p.sheet);rows.push(...srows);});return rows;}
+function uniqueColumnValues(rows,col){const set=new Set();rows.forEach(r=>{const v=String(r[col]??'').trim();if(v!=='')set.add(v);});return Array.from(set).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));}
+
+/* ========================= FILE LOADING ========================= */
+fileInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (!files.length) return;
+
+  if (!xlsxReady()) {
+    addLog('❌ Excel engine still loading. Please wait a moment and try again.', '#f87171');
+    return;
+  }
+
+  addLog('📂 Reading ' + files.length + ' file(s)...');
+  setProgress(5);
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheets = wb.SheetNames.map(n => {
+        const matrix = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' });
+        return { id: 's' + (uid++), name: n, matrix };
+      }).filter(s => s.matrix.length > 0);
+      if (!sheets.length) throw new Error('no non-empty sheets');
+      const rec = { id: 'f' + (uid++), name: file.name, sheets };
+      loadedFiles.push(rec);
+      fileChecked.set(rec.id, true);
+      sheets.forEach(s => sheetChecked.set(s.id, true));
+      addLog('   ✔ ' + file.name + ' — ' + sheets.length + ' sheet(s)', '#4ade80');
+    } catch (err) {
+      addLog('   ❌ ' + file.name + ': ' + err.message, '#f87171');
+    }
+    setProgress(5 + ((i + 1) / files.length) * 90);
+  }
+  refreshAll();
+  setProgress(100);
+  setTimeout(() => setProgress(0), 700);
+});
+
+function toggleFile(id, checked) {
+  fileChecked.set(id, checked);
+  const f = loadedFiles.find(x => x.id === id);
+  if (f) f.sheets.forEach(s => sheetChecked.set(s.id, checked));
+  refreshAll();
+}
+function toggleSheet(id, checked) {
+  sheetChecked.set(id, checked);
+  refreshAll();
+}
+function selectAllFiles(checked) {
+  loadedFiles.forEach(f => {
+    fileChecked.set(f.id, checked);
+    f.sheets.forEach(s => sheetChecked.set(s.id, checked));
+  });
+  refreshAll();
+}
+function selectAllSheets(checked) {
+  loadedFiles.forEach(f => f.sheets.forEach(s => sheetChecked.set(s.id, checked)));
+  refreshAll();
+}
+function clearAllFiles() {
+  if (!loadedFiles.length) return;
+  loadedFiles = [];
+  fileChecked.clear();
+  sheetChecked.clear();
+  m4Values.clear();
+  m5Values.clear();
+  addLog('🗑 Cleared all loaded files.', '#fbbf24');
+  refreshAll();
+}
+
+/* ========================= RENDERING ============================ */
+function renderFileListInto(container) {
+  container.innerHTML = '';
+  if (!loadedFiles.length) { container.innerHTML = '<p class="empty-note">Load files first</p>'; return; }
+  loadedFiles.forEach(f => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = fileChecked.get(f.id) !== false;
+    cb.addEventListener('change', () => toggleFile(f.id, cb.checked));
+    const span = document.createElement('span');
+    span.title = f.name;
+    span.innerHTML = escHtml(f.name) + ' <small style="color:#94a3b8">(' + f.sheets.length + ' sheet' + (f.sheets.length > 1 ? 's' : '') + ')</small>';
+    label.appendChild(cb); label.appendChild(span);
+    container.appendChild(label);
+  });
+}
+
+function renderSheetListInto(container) {
+  container.innerHTML = '';
+  if (!loadedFiles.length) { container.innerHTML = '<p class="empty-note">Load files first</p>'; return; }
+  loadedFiles.forEach(f => {
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = f.name;
+    title.title = f.name;
+    container.appendChild(title);
+    f.sheets.forEach(s => {
+      const rows = Math.max(s.matrix.length - 1, 0);
+      const label = document.createElement('label');
+      label.className = 'checkbox-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = sheetChecked.get(s.id) !== false;
+      cb.addEventListener('change', () => toggleSheet(s.id, cb.checked));
+      const span = document.createElement('span');
+      span.title = s.name;
+      span.innerHTML = escHtml(s.name) + ' <small style="color:#94a3b8">(' + rows + ' row' + (rows === 1 ? '' : 's') + ')</small>';
+      label.appendChild(cb); label.appendChild(span);
+      container.appendChild(label);
+    });
+  });
+}
+
+function renderUploadCard() {
+  if (!loadedFiles.length) {
+    upList.style.display = 'none';
+    upUtils.style.display = 'none';
+    upHint.style.display = 'block';
+    upStatus.textContent = 'Empty';
+    upStatus.classList.remove('success');
+    return;
+  }
+  upList.style.display = 'block';
+  upUtils.style.display = 'flex';
+  upHint.style.display = 'none';
+  upList.innerHTML = '';
+  loadedFiles.forEach(f => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = fileChecked.get(f.id) !== false;
+    cb.addEventListener('change', () => toggleFile(f.id, cb.checked));
+    const span = document.createElement('span');
+    span.title = f.name;
+    span.innerHTML = escHtml(f.name) + ' <small style="color:#94a3b8">(' + f.sheets.length + ' sheet' + (f.sheets.length > 1 ? 's' : '') + ')</small>';
+    label.appendChild(cb); label.appendChild(span);
+    upList.appendChild(label);
+  });
+  const active = selectedFiles().length;
+  upStatus.textContent = active + '/' + loadedFiles.length;
+  upStatus.classList.toggle('success', active > 0);
+}
+
+function fillColumnSelect(selectEl, headers, hintEl) {
+  const prev = selectEl.value;
+  selectEl.innerHTML = '<option value="">-- Choose split column --</option>' +
+    headers.map(h => '<option value="' + escHtml(h) + '">' + escHtml(h) + '</option>').join('');
+  selectEl.disabled = headers.length === 0;
+  if (prev && headers.includes(prev)) selectEl.value = prev;
+  else if (headers.length) { selectEl.value = ''; hintEl.textContent = 'Values will appear below'; }
+  else hintEl.textContent = 'Nothing selected';
+}
+
+function renderValueList(container, countEl, values, stateMap) {
+  container.innerHTML = '';
+  if (!values.length) {
+    container.innerHTML = '<p class="empty-note">No values for this column</p>';
+    countEl.textContent = '0';
+    return;
+  }
+  values.forEach(v => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = stateMap.get(v) !== false;
+    cb.addEventListener('change', () => {
+      stateMap.set(v, cb.checked);
+      updateValueCount(container, countEl);
+      updateStatuses();
+    });
+    const span = document.createElement('span');
+    span.title = v; span.textContent = v;
+    label.appendChild(cb); label.appendChild(span);
+    container.appendChild(label);
+  });
+  updateValueCount(container, countEl);
+}
+function updateValueCount(container, countEl) {
+  const total = container.querySelectorAll('input[type="checkbox"]').length;
+  const checked = container.querySelectorAll('input[type="checkbox"]:checked').length;
+  countEl.textContent = total ? (checked + '/' + total) : '0';
+}
+function toggleAllValues(which, checked) {
+  const container = which === 'm4' ? m4ValueList : m5ValueList;
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = checked; });
+  const col = which === 'm4' ? m4Column.value : m5Column.value;
+  const pairs = which === 'm4' ? selectedSheetPairs() : fileSheetPairs(selectedFiles());
+  const rows = pairsToRows(pairs);
+  const values = col ? uniqueColumnValues(rows, col) : [];
+  const stateMap = which === 'm4' ? m4Values : m5Values;
+  values.forEach(v => stateMap.set(v, checked));
+  updateValueCount(container, which === 'm4' ? m4ValueCount : m5ValueCount);
+  updateStatuses();
+}
+function checkedValues(container) {
+  const out = [];
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.checked) {
+      const span = cb.parentElement.querySelector('span');
+      out.push(span ? span.textContent : cb.value);
+    }
+  });
+  return out;
+}
+
+function refreshSplitOptions(which) {
+  if (which === 'm4') {
+    const pairs = selectedSheetPairs();
+    const headers = unionHeaders(pairs);
+    fillColumnSelect(m4Column, headers, m4ColHint);
+    const col = m4Column.value;
+    const rows = pairsToRows(pairs);
+    const values = col ? uniqueColumnValues(rows, col) : [];
+    renderValueList(m4ValueList, m4ValueCount, values, m4Values);
+    m4ColHint.textContent = col ? values.length + ' unique value(s) found' : (headers.length ? 'Choose a column above' : 'Nothing selected');
+  } else {
+    const pairs = fileSheetPairs(selectedFiles());
+    const headers = unionHeaders(pairs);
+    fillColumnSelect(m5Column, headers, m5ColHint);
+    const col = m5Column.value;
+    const rows = pairsToRows(pairs);
+    const values = col ? uniqueColumnValues(rows, col) : [];
+    renderValueList(m5ValueList, m5ValueCount, values, m5Values);
+    m5ColHint.textContent = col ? values.length + ' unique value(s) found' : (headers.length ? 'Choose a column above' : 'Nothing selected');
+  }
+}
+m4Column.addEventListener('change', () => { m4Values.clear(); refreshSplitOptions('m4'); updateStatuses(); });
+m5Column.addEventListener('change', () => { m5Values.clear(); refreshSplitOptions('m5'); updateStatuses(); });
+
+function updateStatuses() {
+  const files = selectedFiles();
+  const pairs = selectedSheetPairs();
+  const totalSheets = loadedFiles.reduce((a, f) => a + f.sheets.length, 0);
+  m1FileCount.textContent = files.length + '/' + loadedFiles.length;
+  m3FileCount.textContent = files.length + '/' + loadedFiles.length;
+  m5FileCount.textContent = files.length + '/' + loadedFiles.length;
+  m2SheetCount.textContent = pairs.length + '/' + totalSheets;
+  m4SheetCount.textContent = pairs.length + '/' + totalSheets;
+  m1ExportBtn.disabled = files.length === 0;
+  m2ExportBtn.disabled = pairs.length === 0;
+  m3ExportBtn.disabled = files.length === 0;
+  const m4Ready = !!m4Column.value && checkedValues(m4ValueList).length > 0;
+  const m5Ready = !!m5Column.value && checkedValues(m5ValueList).length > 0;
+  m4ExportBtn.disabled = !m4Ready;
+  m5ExportBtn.disabled = !m5Ready;
+  clearAllBtn.disabled = loadedFiles.length === 0;
+  headerBadge.textContent = loadedFiles.length ? loadedFiles.length + ' file(s) · ' + files.length + ' selected' : 'No file';
+}
+
+function getPreviewSheet() {
+  if (currentMode === 'm2' || currentMode === 'm4') {
+    const pairs = selectedSheetPairs();
+    return pairs.length ? pairs[0].sheet : null;
+  }
+  const files = selectedFiles();
+  if (!files.length) return null;
+  return files[0].sheets[0] || null;
+}
+function refreshPreview() {
+  const sheet = getPreviewSheet();
+  if (!sheet || !sheet.matrix.length) {
+    currentHeaders = []; currentGridData = []; renderTable(); return;
+  }
+  const { headers, rows } = sheetRows(sheet);
+  currentHeaders = headers;
+  currentGridData = rows;
+  renderTable();
+}
+function renderTable() {
+  const thead = document.getElementById('tableHeader');
+  const tbody = document.getElementById('tableBody');
+  const stats = document.getElementById('gridStats');
+  if (!currentHeaders.length) {
+    thead.innerHTML = ''; tbody.innerHTML = ''; stats.textContent = '0 rows'; return;
+  }
+  thead.innerHTML = '<tr>' + currentHeaders.map(h => '<th>' + escHtml(h) + '</th>').join('') + '</tr>';
+  const preview = currentGridData.slice(0, 100);
+  tbody.innerHTML = preview.map(row => '<tr>' + currentHeaders.map(h => '<td>' + escHtml(row[h] ?? '') + '</td>').join('') + '</tr>').join('');
+  if (currentGridData.length > 100) {
+    tbody.innerHTML += '<tr><td colspan="' + currentHeaders.length + '" style="text-align:center;color:#94a3b8;font-style:italic;">... and ' + (currentGridData.length - 100) + ' more rows</td></tr>';
+  }
+  stats.textContent = currentGridData.length + ' rows';
+}
+
+function refreshAll() {
+  renderUploadCard();
+  renderFileListInto(m1FileList);
+  renderFileListInto(m3FileList);
+  renderFileListInto(m5FileList);
+  renderSheetListInto(m2SheetList);
+  renderSheetListInto(m4SheetList);
+  refreshSplitOptions('m4');
+  refreshSplitOptions('m5');
+  updateStatuses();
+  refreshPreview();
+}
+
+/* ========================= MODE SWITCH ========================== */
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+  document.querySelectorAll('.step-card[data-mode]').forEach(card => card.classList.toggle('visible', card.dataset.mode === mode));
+  const titles = {
+    m1: ['📊 Merge Preview — Files → One Sheet', 'All selected files are stacked into a single table'],
+    m2: ['📊 Merge Preview — Sheets → One Sheet', 'All selected sheets are stacked into a single table'],
+    m3: ['📚 Merge Preview — Files → Multi Sheets', 'Files stay separated as multiple output sheets'],
+    m4: ['✂️ Split Preview — Sheets by Column', 'Each selected sheet is split into its own file'],
+    m5: ['🗂️ Split Preview — Files by Column', 'Each selected file is split into its own file']
+  };
+  const t = titles[mode] || titles.m1;
+  mainTitle.textContent = t[0];
+  mainSubtitle.textContent = t[1];
+  refreshPreview();
+}
+
+/* ==================== BUILD RESULTS (shared) ==================== */
+function buildResults(workflowId) {
+  switch (workflowId) {
+    case 'm1': return buildResultsM1();
+    case 'm2': return buildResultsM2();
+    case 'm3': return buildResultsM3();
+    case 'm4': return buildResultsM4();
+    case 'm5': return buildResultsM5();
+  }
+  return [];
+}
+
+function buildResultsM1() {
+  const files = selectedFiles();
+  if (!files.length) return [];
+  const onlyFirst = m1FirstSheetOnly.checked;
+  const addFile = m1AddFile.checked;
+  const addSheet = m1AddSheet.checked;
+  const pairs = [];
+  files.forEach(f => {
+    const sheets = onlyFirst ? f.sheets.slice(0, 1) : f.sheets;
+    sheets.forEach(s => pairs.push({ file: f, sheet: s }));
+  });
+  const { headers, rows } = collectRows(pairs, { addFile, addSheet });
+  if (!rows.length) return [];
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+  ws['!cols'] = autoWidth(headers, rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Merged_Data');
+  const name = sanitizeName(m1Name.value.trim()) || 'Merged_One_Sheet';
+  return [{ filename: name + '.xlsx', wb }];
+}
+
+function buildResultsM2() {
+  const pairs = selectedSheetPairs();
+  if (!pairs.length) return [];
+  const addFile = m2AddFile.checked;
+  const addSheet = m2AddSheet.checked;
+  const { headers, rows } = collectRows(pairs, { addFile, addSheet });
+  if (!rows.length) return [];
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+  ws['!cols'] = autoWidth(headers, rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Merged_Data');
+  const name = sanitizeName(m2Name.value.trim()) || 'Sheets_To_One_Sheet';
+  return [{ filename: name + '.xlsx', wb }];
+}
+
+function buildResultsM3() {
+  const files = selectedFiles();
+  if (!files.length) return [];
+  const structure = document.querySelector('input[name="m3Structure"]:checked').value;
+  const wb = XLSX.utils.book_new();
+  if (structure === 'perFile') {
+    files.forEach(f => {
+      const pairs = f.sheets.map(s => ({ file: f, sheet: s }));
+      const { headers, rows } = collectRows(pairs, {});
+      if (!headers.length) return;
+      const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+      ws['!cols'] = autoWidth(headers, rows);
+      XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, fileBaseName(f.name)));
+    });
+  } else {
+    files.forEach(f => {
+      const base = fileBaseName(f.name);
+      const prefix = files.length > 1 ? base + '_' : '';
+      f.sheets.forEach(s => {
+        const aoa = s.matrix.length ? s.matrix : [['']];
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, prefix + s.name));
+      });
+    });
+  }
+  if (!wb.SheetNames.length) return [];
+  const name = sanitizeName(m3Name.value.trim()) || 'Merged_Multi_Sheets';
+  return [{ filename: name + '.xlsx', wb }];
+}
+
+function buildResultsM4() {
+  const col = m4Column.value;
+  const vals = checkedValues(m4ValueList);
+  if (!col || !vals.length) return [];
+  const allowed = new Set(vals);
+  const mode = document.querySelector('input[name="m4ExportMode"]:checked').value;
+  const results = [];
+
+  if (mode === 'combined') {
+    const pairs = selectedSheetPairs();
+    const { headers, rows } = collectRows(pairs, {});
+    const groups = new Map();
+    rows.forEach(r => {
+      const v = String(r[col] ?? '').trim();
+      if (!allowed.has(v)) return;
+      if (!groups.has(v)) groups.set(v, []);
+      groups.get(v).push(r);
+    });
+    const wb = XLSX.utils.book_new();
+    groups.forEach((rs, v) => {
+      if (!rs.length) return;
+      const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
+      ws['!cols'] = autoWidth(headers, rs);
+      XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
+    });
+    if (!wb.SheetNames.length) return [];
+    const name = sanitizeName(m4Archive.value.trim()) || 'Sheets_Split';
+    results.push({ filename: name + '.xlsx', wb });
+  } else {
+    selectedSheetPairs().forEach(p => {
+      const { headers, rows } = sheetRows(p.sheet);
+      const groups = new Map();
+      rows.forEach(r => {
+        const v = String(r[col] ?? '').trim();
+        if (!allowed.has(v)) return;
+        if (!groups.has(v)) groups.set(v, []);
+        groups.get(v).push(r);
+      });
+      if (!groups.size) return;
+      const wb = XLSX.utils.book_new();
+      groups.forEach((rs, v) => {
+        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
+        ws['!cols'] = autoWidth(headers, rs);
+        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
+      });
+      const base = fileBaseName(p.file.name);
+      results.push({
+        filename: sanitizeName(base + '_' + p.sheet.name) + '.xlsx',
+        wb
+      });
+    });
+  }
+  return results;
+}
+
+function buildResultsM5() {
+  const files = selectedFiles();
+  const col = m5Column.value;
+  const vals = checkedValues(m5ValueList);
+  if (!files.length || !col || !vals.length) return [];
+  const allowed = new Set(vals);
+  const mode = document.querySelector('input[name="m5ExportMode"]:checked').value;
+  const results = [];
+
+  if (mode === 'combined') {
+    const wb = XLSX.utils.book_new();
+    files.forEach(f => {
+      const pairs = f.sheets.map(s => ({ file: f, sheet: s }));
+      const { headers, rows } = collectRows(pairs, {});
+      const groups = new Map();
+      rows.forEach(r => {
+        const v = String(r[col] ?? '').trim();
+        if (!allowed.has(v)) return;
+        if (!groups.has(v)) groups.set(v, []);
+        groups.get(v).push(r);
+      });
+      const base = fileBaseName(f.name);
+      groups.forEach((rs, v) => {
+        if (!rs.length) return;
+        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
+        ws['!cols'] = autoWidth(headers, rs);
+        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, base + '_' + v));
+      });
+    });
+    if (!wb.SheetNames.length) return [];
+    const name = sanitizeName(m5Archive.value.trim()) || 'Files_Split';
+    results.push({ filename: name + '.xlsx', wb });
+  } else {
+    files.forEach(f => {
+      const pairs = f.sheets.map(s => ({ file: f, sheet: s }));
+      const { headers, rows } = collectRows(pairs, {});
+      const groups = new Map();
+      rows.forEach(r => {
+        const v = String(r[col] ?? '').trim();
+        if (!allowed.has(v)) return;
+        if (!groups.has(v)) groups.set(v, []);
+        groups.get(v).push(r);
+      });
+      if (!groups.size) return;
+      const wb = XLSX.utils.book_new();
+      groups.forEach((rs, v) => {
+        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
+        ws['!cols'] = autoWidth(headers, rs);
+        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
+      });
+      const base = fileBaseName(f.name);
+      results.push({
+        filename: sanitizeName(base) + '.xlsx',
+        wb
+      });
+    });
+  }
+  return results;
+}
+
+/* ===================== DOWNLOAD RESULTS ========================= */
+async function downloadResults(results, archiveName) {
+  if (!results || !results.length) {
+    addLog('⚠️ Nothing to export.', '#fbbf24');
+    return;
+  }
+  if (!xlsxReady()) {
+    addLog('❌ Excel engine still loading. Please wait and try again.', '#f87171');
+    return;
+  }
+
+  const used = new Map();
+  results.forEach(r => {
+    let name = r.filename;
+    if (!used.has(name)) { used.set(name, 1); return; }
+    const count = used.get(name) + 1;
+    used.set(name, count);
+    r.filename = name.replace(/\.xlsx$/i, '_' + count + '.xlsx');
+  });
+
+  if (results.length === 1) {
+    XLSX.writeFile(results[0].wb, results[0].filename);
+    addLog('✅ Exported "' + results[0].filename + '"', '#4ade80');
+    return;
+  }
+
+  if (!jszipReady()) {
+    addLog('⚠️ JSZip not loaded — saving ' + results.length + ' files individually.', '#fbbf24');
+    results.forEach(r => XLSX.writeFile(r.wb, r.filename));
+    return;
+  }
+
+  const zip = new JSZip();
+  results.forEach(r => {
+    const out = XLSX.write(r.wb, { type: 'array', bookType: 'xlsx' });
+    zip.file(r.filename, out);
+  });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const zipName = (sanitizeName(archiveName) || 'Excel_Export') + '.zip';
+  downloadBlob(blob, zipName);
+  addLog('✅ Exported ' + results.length + ' file(s) as "' + zipName + '"', '#4ade80');
+}
+
+/* ================= INDIVIDUAL EXPORT BUTTONS =================== */
+m1ExportBtn.addEventListener('click', async () => {
+  const files = selectedFiles();
+  if (!files.length) return addLog('⚠️ Select at least one file.', '#fbbf24');
+  addLog('🔗 Merging ' + files.length + ' file(s) into one sheet...');
+  setProgress(20);
+  const results = buildResultsM1();
+  await downloadResults(results, m1Name.value.trim() || 'Merged_One_Sheet');
+  setProgress(100); setTimeout(() => setProgress(0), 800);
+});
+
+m2ExportBtn.addEventListener('click', async () => {
+  const pairs = selectedSheetPairs();
+  if (!pairs.length) return addLog('⚠️ Select at least one sheet.', '#fbbf24');
+  addLog('🔗 Merging ' + pairs.length + ' sheet(s) into one sheet...');
+  setProgress(20);
+  const results = buildResultsM2();
+  await downloadResults(results, m2Name.value.trim() || 'Sheets_To_One_Sheet');
+  setProgress(100); setTimeout(() => setProgress(0), 800);
+});
+
+m3ExportBtn.addEventListener('click', async () => {
+  const files = selectedFiles();
+  if (!files.length) return addLog('⚠️ Select at least one file.', '#fbbf24');
+  addLog('📚 Merging ' + files.length + ' file(s) into multi-sheet output...');
+  setProgress(20);
+  const results = buildResultsM3();
+  await downloadResults(results, m3Name.value.trim() || 'Merged_Multi_Sheets');
+  setProgress(100); setTimeout(() => setProgress(0), 800);
+});
+
+m4ExportBtn.addEventListener('click', async () => {
+  const pairs = selectedSheetPairs();
+  const col = m4Column.value;
+  if (!pairs.length) return addLog('⚠️ Step 3: select at least one sheet.', '#fbbf24');
+  if (!col) return addLog('⚠️ Step 4: choose a split column.', '#fbbf24');
+  if (!checkedValues(m4ValueList).length) return addLog('⚠️ Step 5: choose at least one value.', '#fbbf24');
+  addLog('✂️ Splitting sheets by "' + col + '"...');
+  setProgress(15);
+  const results = buildResultsM4();
+  await downloadResults(results, m4Archive.value.trim() || 'Sheets_Split');
+  setProgress(100); setTimeout(() => setProgress(0), 800);
+});
+
+m5ExportBtn.addEventListener('click', async () => {
+  const files = selectedFiles();
+  const col = m5Column.value;
+  if (!files.length) return addLog('⚠️ Step 3: select at least one file.', '#fbbf24');
+  if (!col) return addLog('⚠️ Step 4: choose a split column.', '#fbbf24');
+  if (!checkedValues(m5ValueList).length) return addLog('⚠️ Step 5: choose at least one value.', '#fbbf24');
+  addLog('🗂️ Splitting files by "' + col + '"...');
+  setProgress(15);
+  const results = buildResultsM5();
+  await downloadResults(results, m5Archive.value.trim() || 'Files_Split');
+  setProgress(100); setTimeout(() => setProgress(0), 800);
+});
+
+/* ============================= INIT ============================= */
+setMode('m1');
+logSection.innerHTML = '';
+addLog('⏳ Loading Excel engine...', '#60a5fa');
+</script>
 </body>
-
 </html>
