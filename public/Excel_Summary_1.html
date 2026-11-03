@@ -480,13 +480,19 @@
 
         .restore-btn:hover { background: #047857 }
 
-        .table-wrapper { overflow-x: auto; background: #fff; padding: 0 }
+        .table-wrapper {
+            overflow-x: auto;
+            background: #fff;
+            padding: 0;
+            width: 100%
+        }
 
         table {
             border-collapse: collapse;
             table-layout: fixed;
             background: #fff;
             font-size: 12px;
+            width: 100%;
         }
 
         thead th {
@@ -779,7 +785,6 @@
         const clampBalance = raw => raw > 0 ? raw : 0;
         const calcRatioRaw = (actual, target) => target > 0 ? actual / target : 0;
 
-        /* ----- DD-MM-YYYY filename helper ----- */
         function fileDateStamp() {
             const d = new Date();
             const dd = String(d.getDate()).padStart(2, '0');
@@ -943,7 +948,9 @@
 
             if (!sum) {
                 document.getElementById('tableColgroup').innerHTML = '';
-                document.getElementById('summaryTable').style.width = '100%';
+                const tblEmpty = document.getElementById('summaryTable');
+                tblEmpty.style.width = '100%';
+                tblEmpty.style.minWidth = '';
                 document.getElementById('tableHeader').innerHTML = '<tr><th>⚠️ يرجى تحديد الأعمدة والـ TYPE لبدء التقرير</th></tr>';
                 document.getElementById('tableBody').innerHTML = '';
                 document.getElementById('groupExportButtons').innerHTML = '';
@@ -955,11 +962,16 @@
             const typeSuffix = getTypeSuffix();
 
             const totalCols = 6 + dateColumns.length + 2;
-            const firstW = 250, otherW = 110;
+            const firstW = 230, otherW = 96;
+
             let cg = `<col style="width:${firstW}px">`;
             for (let i = 1; i < totalCols; i++) cg += `<col style="width:${otherW}px">`;
             document.getElementById('tableColgroup').innerHTML = cg;
-            document.getElementById('summaryTable').style.width = (firstW + (totalCols - 1) * otherW) + 'px';
+
+            const tbl = document.getElementById('summaryTable');
+            const minWidth = firstW + (totalCols - 1) * otherW;
+            tbl.style.width = '100%';
+            tbl.style.minWidth = minWidth + 'px';
 
             let h = `<tr>
         <th>القطاعات</th>
@@ -1196,7 +1208,7 @@
             };
         }
 
-        // ===== STYLE: Same design as Excel_Summary_1R.html (RTL + light colors) =====
+        // ===== EXCEL STYLES =====
         function applyExcelStyles(ws, rowTypes, percentCol, dailyCol, a123Col, allCol, numCols) {
             const range = XLSX.utils.decode_range(ws['!ref']);
             const border = {
@@ -1212,7 +1224,6 @@
                 right: { style: 'thin', color: { rgb: '999999' } }
             };
 
-            /* ===== Same palette as Excel_Summary_1R.html ===== */
             const FILL_HEADER = 'D9E2F3';
             const FILL_GROUP  = 'D9E2F3';
             const FILL_GRAND  = 'BDD7EE';
@@ -1280,7 +1291,6 @@
                 ws['!rows'].push({ hpt: t === 'header' ? 28 : t === 'grandTotal' ? 24 : 20 });
             }
 
-            /* ===== RTL sheet view ===== */
             ws['!views'] = [{ RTL: true }];
         }
 
@@ -1364,6 +1374,130 @@
             document.getElementById('targetValueColumnSelect').innerHTML = opts;
         }
 
+        // ===== AUTO COLUMN DETECTION =====
+        const normH = s => String(s == null ? '' : s).toLowerCase()
+            .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+            .replace(/[\u064B-\u065F\u0670]/g, '').replace(/\s+/g, ' ').trim();
+
+        // Added 'branch' / 'disco' / 'site' to match "Disco Branch"
+        const SECTOR_KEYWORDS       = [['branch'], ['disco branch'], ['disco'], ['site'], ['قطاع'], ['موقع'], ['هندسه'], ['اداره'], ['منطقه'], ['فرع']];
+        const TYPE_KEYWORDS         = [['type'], ['نوع'], ['حساب فرعي'], ['حساب'], ['فئه'], ['صنف']];
+        const DATE_KEYWORDS         = [['date'], ['تاريخ التركيب'], ['تاريخ']];
+        // Added a4 / a5 variants to match "A4-A5"
+        const TARGET_VALUE_KEYWORDS = [['a4-a5'], ['a4+a5'], ['a4 a5'], ['a4'], ['a5'], ['مستهدف'], ['target'], ['عدد'], ['قيمه'], ['كميه']];
+
+        function pickColumn(headers, groups) {
+            let best = '', bestScore = 0;
+            headers.forEach((h, i) => {
+                const n = normH(h);
+                if (!n) return;
+                let score = 0;
+                groups.forEach((kws, gi) => {
+                    const w = groups.length - gi;
+                    if (kws.some(k => n.includes(normH(k)))) score = Math.max(score, w);
+                });
+                if (score > bestScore) { bestScore = score; best = String(i); }
+            });
+            return best;
+        }
+
+        // ===== FALLBACK DETECTORS (used when keyword match fails) =====
+        function fallbackSector(headers, data) {
+            for (let i = 0; i < headers.length; i++) {
+                const sample = data.slice(0, 30).map(r => toSafe(r[i])).filter(Boolean);
+                if (sample.length < 3) continue;
+                const textCount = sample.filter(v => isNaN(parseFloat(v)) || !isFinite(parseFloat(v))).length;
+                if (textCount / sample.length > 0.8) return String(i);
+            }
+            return '0';
+        }
+        function fallbackType(headers, data) {
+            for (let i = 0; i < headers.length; i++) {
+                const sample = data.slice(0, 60).map(r => toSafe(r[i]).toUpperCase()).filter(Boolean);
+                if (sample.length < 3) continue;
+                const matchCount = sample.filter(v => /^[A-Z]\d{1,2}$/.test(v)).length;
+                if (matchCount / sample.length > 0.5) return String(i);
+            }
+            return '';
+        }
+        function fallbackDate(headers, data) {
+            for (let i = 0; i < headers.length; i++) {
+                const sample = data.slice(0, 30).map(r => toSafe(r[i])).filter(Boolean);
+                if (sample.length < 3) continue;
+                const dateCount = sample.filter(v => /^\d{4}-\d{2}-\d{2}$/.test(formatExcelDate(v))).length;
+                if (dateCount / sample.length > 0.5) return String(i);
+            }
+            return '';
+        }
+        function fallbackTargetValue(headers, data, excludeIdx) {
+            for (let i = headers.length - 1; i >= 0; i--) {
+                if (String(i) === String(excludeIdx)) continue;
+                const sample = data.slice(0, 30).map(r => toSafe(r[i])).filter(Boolean);
+                if (sample.length < 3) continue;
+                const numCount = sample.filter(v => !isNaN(parseFloat(v)) && isFinite(parseFloat(v))).length;
+                if (numCount / sample.length > 0.5) return String(i);
+            }
+            return '';
+        }
+
+        // FIX: Auto-select columns immediately after each file upload
+        function autoSelectActualColumns() {
+            let sectorIdx = pickColumn(headersActual, SECTOR_KEYWORDS);
+            let typeIdx   = pickColumn(headersActual, TYPE_KEYWORDS);
+            let dateIdx   = pickColumn(headersActual, DATE_KEYWORDS);
+
+            if (!sectorIdx) sectorIdx = fallbackSector(headersActual, rawDataActual);
+            if (!typeIdx)   typeIdx   = fallbackType(headersActual, rawDataActual);
+            if (!dateIdx)   dateIdx   = fallbackDate(headersActual, rawDataActual);
+
+            if (sectorIdx !== '') {
+                currentSectorColumn = sectorIdx;
+                document.getElementById('sectorColumnSelect').value = sectorIdx;
+            }
+            if (typeIdx !== '') {
+                currentTypeColumn = typeIdx;
+                document.getElementById('typeColumnSelect').value = typeIdx;
+                discoverUniqueTypes();
+                selectedTypesForSummary = new Set(allUniqueTypesInFile);
+            }
+            if (dateIdx !== '') {
+                currentDateColumn = dateIdx;
+                document.getElementById('dateColumnSelect').value = dateIdx;
+            }
+            return { sectorIdx, typeIdx, dateIdx };
+        }
+
+        function autoSelectTargetColumns() {
+            let joinIdx = pickColumn(headersTarget, SECTOR_KEYWORDS);
+            let valIdx  = pickColumn(headersTarget, TARGET_VALUE_KEYWORDS);
+
+            if (!joinIdx) joinIdx = fallbackSector(headersTarget, rawDataTarget);
+            if (!valIdx)  valIdx  = fallbackTargetValue(headersTarget, rawDataTarget, joinIdx);
+
+            if (joinIdx !== '') {
+                currentTargetJoinColumn = joinIdx;
+                document.getElementById('targetJoinColumnSelect').value = joinIdx;
+            }
+            if (valIdx !== '') {
+                currentTargetValueColumn = valIdx;
+                document.getElementById('targetValueColumnSelect').value = valIdx;
+            }
+            return { joinIdx, valIdx };
+        }
+
+        function applyAutoDetection() {
+            const act = autoSelectActualColumns();
+            const tgt = autoSelectTargetColumns();
+
+            if (selectedDates.size === 0) {
+                selectedDates.set(dateStr(0), { label: 'اليوم', daysAgo: 0 });
+                document.querySelectorAll('.quick-date-btn').forEach(q => {
+                    if (q.dataset.days === '0') q.classList.add('active');
+                });
+            }
+            return { act, tgt };
+        }
+
         // ===== QUICK DATE HANDLERS =====
         document.querySelectorAll('.quick-date-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1410,8 +1544,18 @@
                 hiddenSectors.clear();
                 document.getElementById('settingsCard').style.display = 'block';
                 document.getElementById('mainReportCard').style.display = 'block';
-                updateDropdownsActual(); discoverUniqueTypes(); buildTypeTable();
-                showToast(`تم تحميل ملف المنفذ (${rawDataActual.length} صف)`, 'success');
+                updateDropdownsActual();
+
+                // Auto-select columns right away
+                const det = autoSelectActualColumns();
+                const detected = [];
+                if (det.sectorIdx !== '') detected.push('القطاع');
+                if (det.typeIdx !== '')   detected.push('النوع');
+                if (det.dateIdx !== '')   detected.push('التاريخ');
+
+                updateSelectedDisplay();
+                const extra = detected.length ? ` — تم اكتشاف: ${detected.join(' / ')}` : '';
+                showToast(`تم تحميل ملف المنفذ (${rawDataActual.length} صف)${extra}`, 'success');
             };
             reader.readAsArrayBuffer(f);
         });
@@ -1432,8 +1576,17 @@
                     for (let j = 0; j < headersTarget.length; j++) row.push(rows[i][j] || "");
                     if (row.some(v => v !== "")) rawDataTarget.push(row);
                 }
-                updateDropdownsTarget(); buildTypeTable();
-                showToast(`تم تحميل ملف المستهدف (${rawDataTarget.length} صف)`, 'success');
+                updateDropdownsTarget();
+
+                // Auto-select target columns right away
+                const det = autoSelectTargetColumns();
+                const detected = [];
+                if (det.joinIdx !== '') detected.push('ربط القطاع');
+                if (det.valIdx !== '')  detected.push('قيمة المستهدف');
+
+                buildTypeTable();
+                const extra = detected.length ? ` — تم اكتشاف: ${detected.join(' / ')}` : '';
+                showToast(`تم تحميل ملف المستهدف (${rawDataTarget.length} صف)${extra}`, 'success');
             };
             reader.readAsArrayBuffer(f);
         });
@@ -1480,17 +1633,10 @@
         });
 
         /* ==========================================================
-           ===== AUTO EXPORT — Hidden Iframe (no redirect) =====
+           ===== AUTO EXPORT =====
+           ===== ONE-CLICK: fills any missing columns, selects all
+           ===== TYPEs, then downloads the Excel with A1-A2-A3 column.
            ========================================================== */
-        function cleanupAutoExport() {
-            clearTimeout(window._autoExportTimeout);
-            const iframe = document.getElementById('autoExportIframe');
-            if (iframe) iframe.remove();
-            ['autoExport_flag', 'autoExport_actualHeaders', 'autoExport_actualData',
-             'autoExport_targetHeaders', 'autoExport_targetData', 'autoExport_hints']
-                .forEach(k => sessionStorage.removeItem(k));
-        }
-
         document.getElementById('autoExportBtn').addEventListener('click', () => {
             if (rawDataActual.length === 0) {
                 showToast('⚠️ يرجى رفع ملف المنفذ أولاً', 'warning');
@@ -1501,78 +1647,71 @@
                 return;
             }
 
-            try {
-                sessionStorage.setItem('autoExport_actualHeaders', JSON.stringify(headersActual));
-                sessionStorage.setItem('autoExport_actualData', JSON.stringify(rawDataActual));
-                sessionStorage.setItem('autoExport_targetHeaders', JSON.stringify(headersTarget));
-                sessionStorage.setItem('autoExport_targetData', JSON.stringify(rawDataTarget));
+            // Fill any still-missing columns (never overrides a valid pick)
+            if (currentSectorColumn === null || currentSectorColumn === '') {
+                const idx = pickColumn(headersActual, SECTOR_KEYWORDS) || fallbackSector(headersActual, rawDataActual);
+                if (idx !== '') {
+                    currentSectorColumn = idx;
+                    document.getElementById('sectorColumnSelect').value = idx;
+                }
+            }
+            if (currentTypeColumn === null || currentTypeColumn === '') {
+                const idx = pickColumn(headersActual, TYPE_KEYWORDS) || fallbackType(headersActual, rawDataActual);
+                if (idx !== '') {
+                    currentTypeColumn = idx;
+                    document.getElementById('typeColumnSelect').value = idx;
+                    discoverUniqueTypes();
+                }
+            }
+            if (currentDateColumn === null || currentDateColumn === '') {
+                const idx = pickColumn(headersActual, DATE_KEYWORDS) || fallbackDate(headersActual, rawDataActual);
+                if (idx !== '') {
+                    currentDateColumn = idx;
+                    document.getElementById('dateColumnSelect').value = idx;
+                }
+            }
+            if (currentTargetJoinColumn === null || currentTargetJoinColumn === '') {
+                const idx = pickColumn(headersTarget, SECTOR_KEYWORDS) || fallbackSector(headersTarget, rawDataTarget);
+                if (idx !== '') {
+                    currentTargetJoinColumn = idx;
+                    document.getElementById('targetJoinColumnSelect').value = idx;
+                }
+            }
+            if (currentTargetValueColumn === null || currentTargetValueColumn === '') {
+                const idx = pickColumn(headersTarget, TARGET_VALUE_KEYWORDS)
+                          || fallbackTargetValue(headersTarget, rawDataTarget, currentTargetJoinColumn);
+                if (idx !== '') {
+                    currentTargetValueColumn = idx;
+                    document.getElementById('targetValueColumnSelect').value = idx;
+                }
+            }
 
-                const hints = {
-                    actualSector: currentSectorColumn !== null ? headersActual[parseInt(currentSectorColumn)] : '',
-                    actualType:   currentTypeColumn   !== null ? headersActual[parseInt(currentTypeColumn)]   : '',
-                    actualDate:   currentDateColumn   !== null ? headersActual[parseInt(currentDateColumn)]   : '',
-                    targetJoin:   currentTargetJoinColumn  !== null ? headersTarget[parseInt(currentTargetJoinColumn)]  : '',
-                    targetValue:  currentTargetValueColumn !== null ? headersTarget[parseInt(currentTargetValueColumn)] : ''
-                };
-                sessionStorage.setItem('autoExport_hints', JSON.stringify(hints));
-                sessionStorage.setItem('autoExport_flag', '1');
-            } catch (err) {
-                console.error(err);
-                showToast('⚠️ فشل حفظ البيانات: ' + err.message, 'error');
+            if (!currentSectorColumn || !currentTypeColumn) {
+                showToast('⚠️ تعذر تحديد عمود القطاع أو النوع — تأكد من أسماء الأعمدة (Branch / TYPE)', 'error');
                 return;
             }
 
-            const old = document.getElementById('autoExportIframe');
-            if (old) old.remove();
-
-            const iframe = document.createElement('iframe');
-            iframe.id = 'autoExportIframe';
-            iframe.style.cssText = 'position:fixed;left:-99999px;top:-99999px;width:1px;height:1px;border:0;';
-            iframe.src = 'Excel_Summary_1R.html?_=' + Date.now();
-            document.body.appendChild(iframe);
-
-            showToast('⏳ جاري المعالجة والتصدير...', 'success');
-
-            clearTimeout(window._autoExportTimeout);
-            window._autoExportTimeout = setTimeout(() => {
-                cleanupAutoExport();
-                showToast('⚠️ انتهت المهلة — تأكد من وجود Excel_Summary_1R.html', 'error');
-            }, 40000);
-        });
-
-        window.addEventListener('message', (e) => {
-            if (!e.data || typeof e.data !== 'object') return;
-
-            if (e.data.type === 'autoExport_done') {
-                try {
-                    const buffer = e.data.buffer;
-                    const filename = e.data.filename || `التركيب اليومي_${fileDateStamp()}.xlsx`;
-                    const blob = new Blob([buffer], {
-                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 2000);
-                    showToast('✅ تم تصدير الملف: ' + filename, 'success');
-                } catch (err) {
-                    console.error(err);
-                    showToast('⚠️ فشل تنزيل الملف: ' + err.message, 'error');
-                }
-                cleanupAutoExport();
-            } else if (e.data.type === 'autoExport_error') {
-                showToast('⚠️ ' + (e.data.message || 'حدث خطأ في المعالجة'), 'error');
-                cleanupAutoExport();
+            // Select every discovered TYPE (default behaviour)
+            if (selectedTypesForSummary.size === 0) {
+                selectedTypesForSummary = new Set(allUniqueTypesInFile);
             }
+            if (selectedDates.size === 0) {
+                selectedDates.set(dateStr(0), { label: 'اليوم', daysAgo: 0 });
+                document.querySelectorAll('.quick-date-btn').forEach(q => {
+                    if (q.dataset.days === '0') q.classList.add('active');
+                });
+            }
+
+            updateSelectedDisplay();
+
+            const d = buildExportData();
+            if (!d) { showToast('⚠️ لا توجد بيانات للتصدير', 'warning'); return; }
+
+            downloadXLSX(d, `التركيب اليومي_${fileDateStamp()}`);
         });
 
         // ===== INIT =====
         initQuickDates();
-        cleanupAutoExport();
     </script>
 </body>
 
