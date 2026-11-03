@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Local Organizer & Compression Suite</title>
+    <!-- Modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        /* =========================================
+           THEME VARIABLES (Matching Text Analysis)
+           ========================================= */
+        [data-theme="dark"] {
+            --bg: #0B0F19;
+            --card: rgba(21, 28, 44, 0.75); 
+            --card-hover: #1E293B;
+            --accent: #38BDF8;
+            --accent-hover: #0EA5E9;
+            --success: #10B981;
+            --danger: #EF4444;
+            --text-main: #F8FAFC;
+            --text-sub: #94A3B8;
+            --border: rgba(30, 41, 59, 0.8);
+            --input-bg: rgba(7, 10, 18, 0.6);
+            --matrix-color: #0F0;
+        }
+
+        [data-theme="light"] {
+            --bg: #F4F7FB;
+            --card: rgba(255, 255, 255, 0.8);
+            --card-hover: #E7EEF7;
+            --accent: #0284C7;
+            --accent-hover: #0369A1;
+            --success: #059669;
+            --danger: #DC2626;
+            --text-main: #111827;
+            --text-sub: #526174;
+            --border: rgba(216, 224, 234, 0.8);
+            --input-bg: rgba(234, 240, 246, 0.6);
+            --matrix-color: #047857;
+        }
+
+        /* =========================================
+           GLOBAL RESETS
+           ========================================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #matrixCanvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; opacity: 0.15; pointer-events: none;
+        }
+
+        .main-container {
+            position: relative; z-index: 1; height: 100vh;
+            display: flex; flex-direction: column; padding: 12px; gap: 12px;
+        }
+
+        /* =========================================
+           HEADER
+           ========================================= */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            height: 36px; padding: 0 4px; flex-shrink: 0; -webkit-app-region: drag;
+        }
+        .brand { font-size: 16px; font-weight: 700; color: var(--accent); text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .controls { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+
+        /* =========================================
+           DASHBOARD GRID & CARDS
+           ========================================= */
+        .dashboard {
+            flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; padding-bottom: 20px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .dashboard::-webkit-scrollbar { width: 6px; }
+        .dashboard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); padding-bottom: 12px;
+        }
+        .card-title { font-size: 14px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+
+        /* =========================================
+           UI ELEMENTS (Buttons, Inputs)
+           ========================================= */
+        .btn {
+            font-size: 12px; font-weight: 600; height: 32px; padding: 0 14px;
+            border: 1px solid var(--border); border-radius: 6px;
+            background: var(--input-bg); color: var(--text-main);
+            cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:hover { background: var(--card-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn.accent { background: var(--accent); color: #fff; border: none; }
+        .btn.success { background: var(--success); color: #fff; border: none; }
+        .btn.danger { background: var(--danger); color: #fff; border: none; }
+
+        label { font-size: 13px; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px; }
+        input[type="text"], select {
+            width: 100%; height: 32px; background: var(--input-bg); color: var(--text-main);
+            border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none;
+        }
+        input[type="text"]:focus, select:focus { border-color: var(--accent); }
+        input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+        /* =========================================
+           SECTION SPECIFIC STYLES
+           ========================================= */
+        .upload-zone {
+            background: var(--input-bg); border: 2px dashed var(--border);
+            border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+        }
+        .upload-zone:hover { border-color: var(--accent); background: var(--card-hover); }
+        .upload-zone i { font-size: 28px; color: var(--accent); margin-bottom: 4px; }
+
+        .grid-categories { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .category-box {
+            background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 6px; padding: 10px; display: flex; align-items: center; gap: 10px;
+        }
+        .category-box .icon { font-size: 20px; }
+        .category-box .name { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .category-box .count { font-size: 10px; color: var(--text-sub); }
+
+        .staged-list {
+            max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--input-bg); display: flex; flex-direction: column;
+        }
+        .staged-list::-webkit-scrollbar { width: 4px; }
+        .staged-list::-webkit-scrollbar-thumb { background: var(--border); }
+        .staged-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; border-bottom: 1px solid var(--border); font-size: 12px;
+        }
+        .staged-item:last-child { border-bottom: none; }
+
+        .console-box {
+            background: #000; color: #0F0; font-family: monospace; font-size: 12px;
+            padding: 12px; border-radius: 6px; height: 120px; overflow-y: auto;
+            border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px;
+        }
+        .console-box::-webkit-scrollbar { width: 6px; }
+        .console-box::-webkit-scrollbar-thumb { background: #333; }
+
+        .progress-container {
+            display: none; flex-direction: column; gap: 6px; background: var(--input-bg);
+            padding: 12px; border-radius: 6px; border: 1px solid var(--border);
+        }
+        .progress-bar-bg { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; }
+        
+        /* Utility */
+        .flex-row { display: flex; align-items: center; gap: 10px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .flex-1 { flex: 1; }
+    </style>
+</head>
+<body data-theme="dark">
+    
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="main-container">
+        
+        <!-- Header -->
+        <div class="header">
+            <span class="brand">📁 Organizer & Compressor</span>
+            <div class="controls">
+                <select id="themeSelect" class="btn" style="padding: 0 8px;">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="dashboard">
+
+            <!-- SECTION 1: ORGANIZER -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span style="font-size:18px;">1️⃣</span> Direct In-Place Directory Organizer</span>
+                </div>
+                
+                <div id="orgPickerZone" class="upload-zone" onclick="selectOrganizerDirectory()">
+                    <i class="fas fa-folder-open"></i>
+                    <div>
+                        <p style="font-weight:600; font-size:14px;">Click to pick a local disk folder</p>
+                        <p style="font-size:11px; color:var(--text-sub); margin-top:2px;">Organizes loose files directly on your hard drive</p>
+                    </div>
+                </div>
+
+                <div id="orgDetails" style="display:none; flex-direction:column; gap:12px;">
+                    <div class="flex-between" style="background:var(--input-bg); padding:12px; border-radius:6px; border:1px solid var(--border);">
+                        <div>
+                            <span style="font-size:10px; color:var(--text-sub);">Target Folder</span>
+                            <h3 id="orgFolderName" style="font-size:14px; font-weight:bold;">Folder Name</h3>
+                        </div>
+                        <div class="flex-row">
+                            <span id="orgFileCountBadge" class="btn" style="height:24px; pointer-events:none;">0 Loose Files</span>
+                            <button onclick="selectOrganizerDirectory()" class="btn">Change</button>
+                        </div>
+                    </div>
+
+                    <div class="grid-categories" id="orgCategoryGrid"></div>
+
+                    <div style="background:var(--input-bg); padding:12px; border-radius:6px; border:1px solid var(--border);">
+                        <div class="flex-row" style="margin-bottom:8px;">
+                            <input type="checkbox" id="orgCompressToggle" onchange="toggleOrgCompressOptions()">
+                            <label for="orgCompressToggle" style="margin:0; font-size:12px;">Compress organized folder into a ZIP file after sorting</label>
+                        </div>
+                        <div id="orgCleanupSubOption" class="flex-row" style="opacity:0.5; pointer-events:none; margin-left:24px;">
+                            <input type="checkbox" id="orgCleanupToggle" disabled>
+                            <label for="orgCleanupToggle" style="margin:0; font-size:12px; color:var(--text-sub);">Delete original uncompressed files after ZIP is written</label>
+                        </div>
+                    </div>
+
+                    <button id="startOrgBtn" onclick="runFolderOrganizer()" class="btn accent" style="width:100%; height:36px;">
+                        <i class="fas fa-play"></i> Run Folder Organizer
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 2: COMPRESSOR -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span style="font-size:18px;">2️⃣</span> Universal File & Folder Compression</span>
+                </div>
+
+                <div id="compressDropZone" class="upload-zone">
+                    <i class="fas fa-file-archive"></i>
+                    <div>
+                        <p style="font-weight:600; font-size:14px;">Drag & drop files or folders here</p>
+                        <p style="font-size:11px; color:var(--text-sub); margin-top:2px;">Images, Videos, PDF, Office, ZIP, Code...</p>
+                    </div>
+                    <div class="flex-row" style="margin-top:8px;">
+                        <button type="button" onclick="document.getElementById('compressFileInput').click()" class="btn" style="height:26px; font-size:11px;">+ Select Files</button>
+                        <button type="button" onclick="document.getElementById('compressFolderInput').click()" class="btn" style="height:26px; font-size:11px;">+ Select Folder</button>
+                    </div>
+                    <input type="file" id="compressFileInput" multiple style="display:none;" onchange="handleFileInputSelect(event)">
+                    <input type="file" id="compressFolderInput" webkitdirectory directory multiple style="display:none;" onchange="handleFileInputSelect(event)">
+                </div>
+
+                <div id="stagingArea" style="display:none; flex-direction:column; gap:12px;">
+                    <div class="flex-between">
+                        <h3 style="font-size:12px; text-transform:uppercase; color:var(--text-sub);">Queue</h3>
+                        <div class="flex-row">
+                            <span id="totalStagingCount" style="font-size:11px; font-weight:bold;">0 files</span>
+                            <span style="color:var(--border);">|</span>
+                            <span id="totalStagingSize" style="font-size:11px; font-weight:bold; color:var(--accent);">0 MB</span>
+                            <button onclick="clearStagingQueue()" style="background:none; border:none; color:var(--danger); font-size:11px; font-weight:bold; cursor:pointer; margin-left:8px;">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="staged-list" id="stagedFileList"></div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:var(--input-bg); padding:12px; border-radius:6px; border:1px solid var(--border);">
+                        <div>
+                            <label>ZIP Archive Name</label>
+                            <div class="flex-row">
+                                <input type="text" id="customZipName" value="Archive_Compressed" class="flex-1" style="border-radius:6px 0 0 6px;">
+                                <span style="background:var(--card); border:1px solid var(--border); border-left:none; height:32px; display:flex; align-items:center; padding:0 10px; font-size:12px; border-radius:0 6px 6px 0;">.zip</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Save Option</label>
+                            <select id="compressionSaveMode">
+                                <option value="download">Standard Browser Download</option>
+                                <option value="inplace">Write Directly to Local Disk</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="startCompressBtn" onclick="runZipCompression()" class="btn accent" style="width:100%; height:36px;">
+                        <i class="fas fa-file-export"></i> Compress Staged Files Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- PROGRESS MONITOR -->
+            <div id="progressCard" class="progress-container">
+                <div class="flex-between">
+                    <span id="progressLabel" style="font-size:12px; font-weight:600;">Processing...</span>
+                    <span id="progressPercentage" style="font-size:12px; font-weight:600; color:var(--accent);">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- CONSOLE LOG -->
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div class="card-header" style="padding:10px 14px; margin:0;">
+                    <span style="font-size:11px; font-weight:700; color:var(--text-sub);">ACTIVITY CONSOLE</span>
+                    <button onclick="clearConsoleLogs()" style="background:none; border:none; color:var(--text-sub); font-size:11px; cursor:pointer;">Clear Log</button>
+                </div>
+                <div id="consoleLogBox" class="console-box">
+                    <div style="color:#666;">[System Ready] Choose an operation above...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ==========================================
+        // MATRIX & THEME
+        // ==========================================
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.value);
+            updateMatrixColor();
+        });
+
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        let matrixColor = '#0F0';
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let columns = Math.floor(width / 20);
+        let drops = [];
+
+        function updateMatrixColor() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            matrixColor = isDark ? '#0F0' : '#047857';
+        }
+
+        function initMatrix() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+            columns = Math.floor(width / 20); drops = Array(columns).fill(1);
+            updateMatrixColor();
+        }
+
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
+        function drawMatrix() {
+            ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+                ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                ctx.fillText(text, i * 20, drops[i] * 20);
+                if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
+
+        // ==========================================
+        // FILE ORGANIZER LOGIC
+        // ==========================================
+        const CATEGORIES = {
+            'Photos_Images': { icon: '📷', exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', '.tiff', '.heic'] },
+            'Documents': { icon: '📄', exts: ['.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.csv', '.rtf'] },
+            'Audio_Music': { icon: '🎵', exts: ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma'] },
+            'Videos': { icon: '🎬', exts: ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'] },
+            'Archives': { icon: '📦', exts: ['.zip', '.rar', '.7z', '.tar', '.gz', '.iso'] },
+            'Executables': { icon: '⚙️', exts: ['.exe', '.msi', '.bat', '.cmd', '.sh', '.app', '.dmg'] },
+            'Code_Scripts': { icon: '💻', exts: ['.html', '.css', '.js', '.json', '.py', '.cpp', '.java', '.php', '.ts'] },
+            'Others': { icon: '📁', exts: [] }
+        };
+
+        const ALREADY_COMPRESSED = new Set(['jpg','jpeg','png','gif','webp','mp4','mkv','mov','mp3','zip','rar','7z','docx','xlsx','pptx','pdf','exe','msi']);
+
+        let orgDirHandle = null;
+        let orgFileList = [];
+        let stagedCompressFiles = [];
+        let isTaskRunning = false;
+
+        async function selectOrganizerDirectory() {
+            if (!('showDirectoryPicker' in window)) {
+                alert("Your browser does not support Directory Picker. Use Chrome/Edge.");
+                return;
+            }
+            try {
+                orgDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                document.getElementById('orgFolderName').innerText = orgDirHandle.name;
+                await scanOrganizerDirectory();
+            } catch (err) {
+                if (err.name !== 'AbortError') logToConsole(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        async function scanOrganizerDirectory() {
+            orgFileList = [];
+            const counts = {}; Object.keys(CATEGORIES).forEach(c => counts[c] = 0);
+            logToConsole(`Scanning "${orgDirHandle.name}"...`, 'info');
+
+            for await (const entry of orgDirHandle.values()) {
+                if (entry.kind === 'file') {
+                    const ext = getExtension(entry.name);
+                    const cat = getCategoryForExtension(ext);
+                    orgFileList.push({ name: entry.name, handle: entry, category: cat, ext: ext });
+                    counts[cat]++;
+                }
+            }
+
+            const grid = document.getElementById('orgCategoryGrid'); grid.innerHTML = '';
+            for (const [cat, cfg] of Object.entries(CATEGORIES)) {
+                grid.innerHTML += `
+                    <div class="category-box">
+                        <span class="icon">${cfg.icon}</span>
+                        <div>
+                            <div class="name">${cat.replace('_',' ')}</div>
+                            <div class="count">${counts[cat] || 0} files</div>
+                        </div>
+                    </div>`;
+            }
+
+            document.getElementById('orgFileCountBadge').innerText = `${orgFileList.length} Loose Files`;
+            document.getElementById('orgDetails').style.display = 'flex';
+            logToConsole(`Found ${orgFileList.length} loose root files.`, 'success');
+        }
+
+        function toggleOrgCompressOptions() {
+            const isChecked = document.getElementById('orgCompressToggle').checked;
+            const sub = document.getElementById('orgCleanupSubOption');
+            const toggle = document.getElementById('orgCleanupToggle');
+            if (isChecked) { sub.style.opacity = '1'; sub.style.pointerEvents = 'auto'; toggle.removeAttribute('disabled'); }
+            else { sub.style.opacity = '0.5'; sub.style.pointerEvents = 'none'; toggle.checked = false; toggle.setAttribute('disabled', 'true'); }
+        }
+
+        async function runFolderOrganizer() {
+            if (!orgDirHandle || isTaskRunning) return;
+            if (orgFileList.length === 0) { logToConsole('No loose files found.', 'warning'); return; }
+
+            setProcessingState(true, 'Organizing files...');
+            let completed = 0; const total = orgFileList.length;
+            const subDirHandles = {};
+
+            for (const fileItem of orgFileList) {
+                try {
+                    const cat = fileItem.category;
+                    if (!subDirHandles[cat]) subDirHandles[cat] = await orgDirHandle.getDirectoryHandle(cat, { create: true });
+                    
+                    let finalName = fileItem.name;
+                    let exists = false;
+                    try { await subDirHandles[cat].getFileHandle(finalName); exists = true; } catch (e) {}
+                    if (exists) {
+                        const base = fileItem.name.substring(0, fileItem.name.lastIndexOf('.')) || fileItem.name;
+                        finalName = `${base}_${Date.now()}${fileItem.ext}`;
+                    }
+
+                    const fileData = await fileItem.handle.getFile();
+                    const newHandle = await subDirHandles[cat].getFileHandle(finalName, { create: true });
+                    const writable = await newHandle.createWritable();
+                    await writable.write(fileData);
+                    await writable.close();
+
+                    await orgDirHandle.removeEntry(fileItem.name);
+                    logToConsole(`Moved: "${fileItem.name}" ➔ ${cat}/`, 'success');
+                } catch (err) {
+                    logToConsole(`Failed: "${fileItem.name}": ${err.message}`, 'error');
+                }
+                completed++;
+                updateProgress(Math.round((completed/total)*100), `Organizing ${completed}/${total}...`);
+            }
+            finishProcessingState(async () => await scanOrganizerDirectory());
+        }
+
+        // ==========================================
+        // COMPRESSOR LOGIC
+        // ==========================================
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('compressDropZone');
+            ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; }));
+            ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; }));
+            dropZone.addEventListener('drop', (e) => {
+                const items = e.dataTransfer.items;
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+                        if (item) traverseFileTree(item);
+                        else { const file = items[i].getAsFile(); if (file) stagedCompressFiles.push(file); }
+                    }
+                    setTimeout(updateStagingQueue, 300);
+                } else addFilesToStaging(Array.from(e.dataTransfer.files));
+            });
+        }
+
+        function traverseFileTree(item, path = '') {
+            if (item.isFile) {
+                item.file((file) => { file.relativePath = path + file.name; stagedCompressFiles.push(file); updateStagingQueue(); });
+            } else if (item.isDirectory) {
+                const reader = item.createReader();
+                reader.readEntries((entries) => { for (let i = 0; i < entries.length; i++) traverseFileTree(entries[i], path + item.name + '/'); });
+            }
+        }
+
+        function handleFileInputSelect(event) {
+            addFilesToStaging(Array.from(event.target.files));
+            event.target.value = '';
+        }
+
+        function addFilesToStaging(files) {
+            files.forEach(f => { if (!f.relativePath) f.relativePath = f.webkitRelativePath || f.name; stagedCompressFiles.push(f); });
+            updateStagingQueue();
+        }
+
+        function updateStagingQueue() {
+            const list = document.getElementById('stagedFileList');
+            const area = document.getElementById('stagingArea');
+            if (stagedCompressFiles.length === 0) { area.style.display = 'none'; list.innerHTML = ''; return; }
+            area.style.display = 'flex'; list.innerHTML = '';
+            let totalBytes = 0;
+
+            stagedCompressFiles.forEach((file, idx) => {
+                totalBytes += file.size;
+                const ext = getExtension(file.name).replace('.','');
+                const noGain = ALREADY_COMPRESSED.has(ext);
+                list.innerHTML += `
+                    <div class="staged-item">
+                        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                            <span>${getFileEmoji(file.name)}</span>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                <div style="font-weight:600;">${file.relativePath || file.name}</div>
+                                <div style="font-size:10px; color:var(--text-sub);">${formatBytes(file.size)} ${noGain ? '• already compressed' : ''}</div>
+                            </div>
+                        </div>
+                        <button onclick="removeStagedFile(${idx})" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px;">✕</button>
+                    </div>`;
+            });
+            document.getElementById('totalStagingCount').innerText = `${stagedCompressFiles.length} files`;
+            document.getElementById('totalStagingSize').innerText = formatBytes(totalBytes);
+        }
+
+        function removeStagedFile(idx) { stagedCompressFiles.splice(idx, 1); updateStagingQueue(); }
+        function clearStagingQueue() { stagedCompressFiles = []; updateStagingQueue(); }
+
+        async function runZipCompression() {
+            if (stagedCompressFiles.length === 0 || isTaskRunning) return;
+            const mode = document.getElementById('compressionSaveMode').value;
+            const zipName = (document.getElementById('customZipName').value.trim() || 'Archive') + '.zip';
+
+            setProcessingState(true, 'Preparing compression...');
+            logToConsole(`Starting compression of ${stagedCompressFiles.length} items...`, 'info');
+
+            try {
+                const zip = new JSZip();
+                stagedCompressFiles.forEach(file => {
+                    const path = file.relativePath || file.name;
+                    const ext = getExtension(file.name).replace('.','');
+                    if (ALREADY_COMPRESSED.has(ext)) zip.file(path, file, { compression: 'STORE' });
+                    else zip.file(path, file, { compression: 'DEFLATE', compressionOptions: { level: 6 } });
+                });
+
+                updateProgress(30, 'Generating ZIP...');
+                const blob = await zip.generateAsync({ type: 'blob' }, (meta) => {
+                    updateProgress(30 + Math.round(meta.percent * 0.6), `Compressing... ${Math.round(meta.percent)}%`);
+                });
+
+                if (mode === 'inplace' && ('showDirectoryPicker' in window)) {
+                    const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    const handle = await dir.getFileHandle(zipName, { create: true });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob); await writable.close();
+                    logToConsole(`Saved "${zipName}" directly to disk!`, 'success');
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = zipName;
+                    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    logToConsole(`Download triggered for "${zipName}"!`, 'success');
+                }
+                updateProgress(100, 'Done!');
+            } catch (err) {
+                if (err.name !== 'AbortError') logToConsole(`Error: ${err.message}`, 'error');
+            }
+            finishProcessingState();
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function getCategoryForExtension(ext) {
+            for (const [cat, cfg] of Object.entries(CATEGORIES)) { if (cfg.exts.includes(ext.toLowerCase())) return cat; }
+            return 'Others';
+        }
+        function getExtension(name) { const i = name.lastIndexOf('.'); return i !== -1 ? name.substring(i).toLowerCase() : ''; }
+        function getFileEmoji(name) { return CATEGORIES[getCategoryForExtension(getExtension(name))]?.icon || '📄'; }
+        function formatBytes(b) { if (!b) return '0 B'; const k=1024, s=['B','KB','MB','GB']; const i=Math.floor(Math.log(b)/Math.log(k)); return (b/Math.pow(k,i)).toFixed(2)+' '+s[i]; }
+        
+        function setProcessingState(running, label) {
+            isTaskRunning = running;
+            const pc = document.getElementById('progressCard');
+            if (running) { pc.style.display = 'flex'; updateProgress(0, label); }
+        }
+        function finishProcessingState(cb) {
+            setTimeout(() => { isTaskRunning = false; document.getElementById('progressCard').style.display = 'none'; if(cb) cb(); }, 800);
+        }
+        function updateProgress(pct, label) {
+            document.getElementById('progressBarFill').style.width = pct + '%';
+            document.getElementById('progressPercentage').innerText = pct + '%';
+            document.getElementById('progressLabel').innerText = label;
+        }
+        function logToConsole(msg, type = 'info') {
+            const box = document.getElementById('consoleLogBox');
+            const colors = { info: '#aaa', success: '#10B981', warning: '#F59E0B', error: '#EF4444' };
+            box.innerHTML += `<div style="color:${colors[type]}"><span style="color:#666;">[${new Date().toLocaleTimeString()}]</span> ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+        function clearConsoleLogs() { document.getElementById('consoleLogBox').innerHTML = '<div style="color:#666;">[Cleared]</div>'; }
+
+        setupDragAndDrop();
+    </script>
+</body>
+</html>

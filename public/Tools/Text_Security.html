@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text & Security</title>
+  <style>
+    /* THEME VARIABLES */
+    [data-theme="dark"] {
+      --bg: transparent;
+      --card: rgba(21, 28, 44, 0.75); 
+      --card-hover: #1E293B;
+      --accent: #38BDF8;
+      --accent-hover: #0EA5E9;
+      --success: #10B981;
+      --danger: #EF4444;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border: rgba(30, 41, 59, 0.8);
+      --input-bg: rgba(7, 10, 18, 0.6);
+      --matrix-color: #0F0;
+    }
+    [data-theme="light"] {
+      --bg: transparent;
+      --card: #FFFFFF;
+      --card-hover: #F1F5F9;
+      --accent: #0284C7;
+      --accent-hover: #0369A1;
+      --success: #059669;
+      --danger: #DC2626;
+      --text-main: #111827;
+      --text-sub: #526174;
+      --border: #E2E8F0;
+      --input-bg: #F8FAFC;
+      --matrix-color: #047857;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { background: var(--bg); color: var(--text-main); height: 100vh; overflow: hidden; user-select: none; }
+
+    #matrixCanvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0; opacity: 0.15; pointer-events: none;
+    }
+
+    .main-container {
+      position: relative; z-index: 1; height: 100vh;
+      display: flex; flex-direction: column; padding: 10px; gap: 10px;
+    }
+
+    /* Header (Theme switch inside iframe) */
+    .header {
+      display: flex; align-items: center; justify-content: flex-end;
+      height: 24px; flex-shrink: 0;
+    }
+
+    .btn {
+      font-size: 11px; font-weight: 600; height: 28px; padding: 0 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--input-bg); color: var(--text-main);
+      cursor: pointer; transition: background 0.15s;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn:hover { background: var(--card-hover); }
+    .btn.accent { background: var(--accent); color: #fff; border: none; }
+    .btn.success { background: var(--success); color: #fff; border: none; }
+    .btn.danger { background: var(--danger); color: #fff; border: none; }
+
+    textarea {
+      width: 100%; flex: 1; min-height: 120px; resize: none; background: var(--input-bg);
+      color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; font-size: 13px; outline: none; user-select: text;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    .stat-box {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 16px; display: flex; flex-direction: row; align-items: center; gap: 10px;
+    }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; }
+
+    .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .flex-1 { flex: 1; }
+    select.btn { padding: 0 4px; outline: none; cursor: pointer; }
+
+    /* Password Gen */
+    .password-display { display: flex; gap: 6px; flex-shrink: 0; }
+    .password-display input {
+      flex: 1; background: var(--input-bg); color: var(--text-main);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 0 8px; font-family: monospace; font-size: 13px;
+      font-weight: bold; outline: none; height: 28px;
+    }
+    .slider-container { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--input-bg); border-radius: 2px; outline: none; border: 1px solid var(--border); }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+    .length-value { font-size: 12px; font-weight: bold; color: var(--accent); min-width: 20px; text-align: center; }
+    .strength-container { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+    .strength-bar-bg { width: 100%; height: 4px; background: var(--input-bg); border-radius: 2px; overflow: hidden; }
+    .strength-bar { height: 100%; width: 0%; background: var(--danger); border-radius: 2px; transition: 0.3s; }
+    .strength-text { font-size: 9px; font-weight: 600; text-align: right; color: var(--text-sub); text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="main-container">
+    <div class="header">
+      <select id="themeSelect" class="btn">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+
+    <!-- TEXT ANALYSIS -->
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; font-weight:700; color:var(--text-sub);">TEXT ANALYSIS</span>
+      <div class="stat-box">
+        <span id="statWords" class="stat-value">0</span>
+        <span class="stat-label">Words</span>
+      </div>
+    </div>
+
+    <textarea id="textInput" placeholder="Type or paste text..."></textarea>
+
+    <div class="row">
+      <button id="upperBtn" class="btn flex-1">UPPER</button>
+      <button id="lowerBtn" class="btn flex-1">lower</button>
+      <button id="titleBtn" class="btn flex-1">Title</button>
+    </div>
+    <div class="row">
+      <button id="pasteBtn" class="btn accent flex-1">Paste</button>
+      <button id="copyBtn" class="btn success flex-1">Copy</button>
+      <button id="clearBtn" class="btn danger flex-1">Clear</button>
+    </div>
+
+    <div style="height: 1px; background: var(--border); margin: 4px 0;"></div>
+
+    <!-- PASSWORD GENERATOR -->
+    <span style="font-size:11px; font-weight:700; color:var(--text-sub);">PASSWORD GENERATOR</span>
+    
+    <div class="password-display">
+      <input type="text" id="passwordOutput" readonly value="Click Generate...">
+      <button id="copyPassBtn" class="btn success">Copy</button>
+    </div>
+    <div class="strength-container">
+      <div class="strength-bar-bg"><div id="strengthBar" class="strength-bar"></div></div>
+      <span id="strengthText" class="strength-text">Ready</span>
+    </div>
+    <div class="slider-container">
+      <span class="stat-label" style="width: 40px; text-align: left;">Length</span>
+      <input type="range" id="passLength" min="8" max="64" value="16">
+      <span id="passLengthValue" class="length-value">16</span>
+    </div>
+    <button id="generateBtn" class="btn accent" style="height: 32px;">Generate Password</button>
+  </div>
+
+  <script>
+    // MATRIX & THEME
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.addEventListener('change', (e) => {
+      document.documentElement.setAttribute('data-theme', e.target.value);
+      updateMatrixColor();
+    });
+
+    const canvas = document.getElementById('matrixCanvas'), ctx = canvas.getContext('2d');
+    let matrixColor = '#0F0', width = window.innerWidth, height = window.innerHeight, columns = Math.floor(width / 20), drops = [];
+    function updateMatrixColor() { matrixColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#0F0' : '#047857'; }
+    function initMatrix() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; columns = Math.floor(width / 20); drops = Array(columns).fill(1); updateMatrixColor(); }
+    const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    function drawMatrix() {
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+      ctx.fillRect(0, 0, width, height); ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
+      for (let i = 0; i < drops.length; i++) {
+        ctx.fillText(matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)), i * 20, drops[i] * 20);
+        if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+    initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
+
+    // TEXT TOOL
+    const textInput = document.getElementById('textInput');
+    const statWords = document.getElementById('statWords');
+
+    function updateUI() {
+      const text = textInput.value;
+      const words = text ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+      statWords.textContent = words.toLocaleString();
+    }
+
+    let timeout;
+    textInput.addEventListener('input', () => { clearTimeout(timeout); timeout = setTimeout(updateUI, 100); });
+    document.getElementById('upperBtn').addEventListener('click', () => { textInput.value = textInput.value.toUpperCase(); updateUI(); });
+    document.getElementById('lowerBtn').addEventListener('click', () => { textInput.value = textInput.value.toLowerCase(); updateUI(); });
+    document.getElementById('titleBtn').addEventListener('click', () => {
+      textInput.value = textInput.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()); updateUI();
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => { textInput.value = ''; updateUI(); });
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      if (!textInput.value) return;
+      textInput.select(); document.execCommand('copy'); window.getSelection().removeAllRanges();
+      const btn = document.getElementById('copyBtn'); btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+    document.getElementById('pasteBtn').addEventListener('click', async () => {
+      try { const text = await navigator.clipboard.readText(); textInput.value += text; updateUI(); } catch (err) {}
+    });
+
+    // PASSWORD TOOL
+    const passLength = document.getElementById('passLength'), passLengthValue = document.getElementById('passLengthValue');
+    const passwordOutput = document.getElementById('passwordOutput'), strengthBar = document.getElementById('strengthBar'), strengthText = document.getElementById('strengthText');
+    const chars = { upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lower: "abcdefghijklmnopqrstuvwxyz", number: "0123456789", symbol: "!@#$%^&*()_+~`|}{[]:;?><,./-=" };
+
+    function generatePassword() {
+      passLengthValue.textContent = passLength.value;
+      const length = parseInt(passLength.value);
+      const allChars = chars.upper + chars.lower + chars.number + chars.symbol;
+      let password = "";
+      password += chars.upper[Math.floor(Math.random() * chars.upper.length)];
+      password += chars.lower[Math.floor(Math.random() * chars.lower.length)];
+      password += chars.number[Math.floor(Math.random() * chars.number.length)];
+      password += chars.symbol[Math.floor(Math.random() * chars.symbol.length)];
+      for (let i = password.length; i < length; i++) password += allChars[Math.floor(Math.random() * allChars.length)];
+      password = password.split('').sort(() => 0.5 - Math.random()).join('');
+      passwordOutput.value = password;
+
+      let score = 0;
+      if (length >= 8) score++; if (length >= 12) score++; if (length >= 16) score++; if (length >= 24) score++;
+      score += 3; 
+      let widthPercent = Math.min((score / 7) * 100, 100);
+      let color = "var(--danger)", text = "Weak";
+      if (score >= 6) { color = "#10B981"; text = "Very Strong"; }
+      else if (score >= 4) { color = "#F59E0B"; text = "Strong"; }
+      else if (score >= 3) { color = "#F97316"; text = "Medium"; }
+      strengthBar.style.width = widthPercent + "%"; strengthBar.style.background = color; strengthText.textContent = text; strengthText.style.color = color;
+    }
+
+    passLength.addEventListener('input', generatePassword);
+    document.getElementById('generateBtn').addEventListener('click', generatePassword);
+    document.getElementById('copyPassBtn').addEventListener('click', () => {
+      if (!passwordOutput.value || passwordOutput.value === "Click Generate...") return;
+      navigator.clipboard.writeText(passwordOutput.value).then(() => {
+        const btn = document.getElementById('copyPassBtn'); btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+
+    // Init
+    updateUI(); generatePassword();
+  </script>
+</body>
+</html>

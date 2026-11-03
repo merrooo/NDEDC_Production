@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛠️ Toolkit</title>
+  <style>
+    /* =========================================
+       THEME VARIABLES
+       ========================================= */
+    [data-theme="dark"] {
+      --bg: #0B0F19;
+      --card: rgba(21, 28, 44, 0.85);
+      --card-hover: #1E293B;
+      --accent: #38BDF8;
+      --success: #10B981;
+      --danger: #EF4444;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border: rgba(30, 41, 59, 0.8);
+      --input-bg: rgba(7, 10, 18, 0.6);
+      --matrix-color: #0F0;
+    }
+
+    [data-theme="light"] {
+      --bg: #0B0F19;
+      --card: #FFFFFF;
+      --card-hover: #F1F5F9;
+      --accent: #0284C7;
+      --success: #059669;
+      --danger: #DC2626;
+      --text-main: #111827;
+      --text-sub: #526174;
+      --border: #E2E8F0;
+      --input-bg: #F8FAFC;
+      --matrix-color: #047857;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #matrixCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    /* =========================================
+       APP LAYOUT
+       ========================================= */
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      padding: 20px;
+      gap: 24px;
+    }
+
+    /* =========================================
+       MODERN EXPANDING SIDEBAR
+       ========================================= */
+    .sidebar {
+      width: 75px;
+      flex-shrink: 0;
+      
+      /* This makes it grow downwards until it hits the screen limit */
+      height: max-content;
+      max-height: calc(100vh - 40px); /* 40px accounts for the 20px top/bottom padding */
+      
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-x: hidden;
+      
+      /* Enables the scrollbar when content is too long */
+      overflow-y: auto; 
+    }
+
+    .sidebar:hover {
+      width: 220px;
+    }
+
+    /* Scrollbar Styling */
+    .sidebar::-webkit-scrollbar {
+      width: 6px; /* Slightly wider so it's easy to see */
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+      margin: 10px 0;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      height: 50px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      gap: 16px;
+      text-decoration: none;
+    }
+
+    .nav-btn:hover {
+      background: var(--card-hover);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .nav-btn .label {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.3s ease;
+    }
+
+    .sidebar:hover .nav-btn .label {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* =========================================
+       MAIN CONTENT
+       ========================================= */
+    .main-content {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      min-width: 0;
+    }
+
+    /* =========================================
+       CARDS
+       ========================================= */
+    .card {
+      display: none;
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      flex-direction: column;
+      gap: 12px;
+
+      width: 100%;
+      height: 100%;
+      max-width: 38cm;
+      max-height: 25cm;
+
+      resize: both;
+      overflow: auto;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+    }
+
+    .card.active {
+      display: flex;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card::-webkit-resizer {
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2338BDF8"><path d="M22 22H20V20H22V22ZM22 18H20V16H22V18ZM18 22H16V20H18V22ZM22 14H20V12H22V14ZM18 18H16V16H18V18ZM14 22H12V20H14V22Z"/></svg>') no-repeat bottom right;
+      background-size: contain;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .iframe-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: transparent;
+      border: 1px solid var(--border);
+      min-height: 0;
+    }
+
+    .iframe-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+
+<body data-lang="en">
+
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="app-wrapper">
+    <!-- EXPANDING SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- RETURN HOME BUTTON -->
+      <a href="../index.html" class="nav-btn" title="Return to Home">
+        <span class="icon">🏠</span>
+        <span class="label">Home</span>
+      </a>
+
+      <!-- DIVIDER -->
+      <div class="divider"></div>
+
+      <!-- TOOL BUTTONS -->
+      <button class="nav-btn active" data-target="card-text" title="Text & Security">
+        <span class="icon">📝</span>
+        <span class="label">Text & Security</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-pdf" title="PDF / Word">
+        <span class="icon">📄</span>
+        <span class="label">PDF / Word</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-barcode" title="Barcode & QR">
+        <span class="icon">🏷️</span>
+        <span class="label">Barcode & QR</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-excel" title="JSON ⇄ Excel">
+        <span class="icon">📊</span>
+        <span class="label">JSON ⇄ Excel</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-organizer" title="Organizer">
+        <span class="icon">📁</span>
+        <span class="label">Organizer</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-tariffs" title="Tariffs">
+        <span class="icon">🧾</span>
+        <span class="label">Tariffs</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-map" title="Smart Map">
+        <span class="icon">🗺️</span>
+        <span class="label">Smart Map</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-fb-add" title="Firebase Add">
+        <span class="icon">🔥</span>
+        <span class="label">Firebase Add</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-fb-remove" title="Firebase Remove">
+        <span class="icon">🔥</span>
+        <span class="label">Firebase Remove</span>
+      </button>
+
+      <button class="nav-btn" data-target="card-stopwatch" title="Stop Watch">
+        <span class="icon">⏱️</span>
+        <span class="label">Stop Watch</span>
+      </button>
+
+      <!-- ADDED VNC VIEWER BUTTON -->
+      <button class="nav-btn" data-target="card-vnc" title="VNC Viewer">
+        <span class="icon">🖥️</span>
+        <span class="label">VNC Viewer</span>
+      </button>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+      <section class="card active" id="card-text">
+        <div class="card-header"><span class="card-title">📝 Text & Security</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Text_Security.html" title="Text & Security"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-pdf">
+        <div class="card-header"><span class="card-title">📄 PDF / Word Studio</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Tools_Pdf_Word_Pic.html" title="PDF Studio"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-barcode">
+        <div class="card-header"><span class="card-title">🏷️ Barcode & QR</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Bar_Code_Gen.html" title="Barcode Gen"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-excel">
+        <div class="card-header"><span class="card-title">📊 JSON ⇄ Excel</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Convert_xls_json.html" title="Excel JSON"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-organizer">
+        <div class="card-header"><span class="card-title">📁 Organizer & Compress</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Arrange_Compress_Folders.html" title="Folder Organizer"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-tariffs">
+        <div class="card-header"><span class="card-title">🧾 Tariffs Calculator</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Tariffs.html" title="Tariffs"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-map">
+        <div class="card-header"><span class="card-title">🗺️ Smart Map</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="map_Smart.html" title="Smart Map"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-fb-add">
+        <div class="card-header"><span class="card-title">🔥 Firebase Add</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Firebase_add.html" title="Firebase Add"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-fb-remove">
+        <div class="card-header"><span class="card-title">🔥 Firebase Remove</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Firebase_Removal.html" title="Firebase Removal"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-stopwatch">
+        <div class="card-header"><span class="card-title">⏱️ Stop Watch</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="Stop_Watch.html" title="Stop Watch"></iframe>
+        </div>
+      </section>
+
+      <section class="card" id="card-vnc">
+        <div class="card-header"><span class="card-title">🖥️ VNC Viewer</span></div>
+        <div class="iframe-wrapper">
+          <iframe src="VNC.html" title="VNC Viewer"></iframe>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // ==========================================
+    // MATRIX MANAGER
+    // ==========================================
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    let matrixColor = '#0F0';
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let drops = [];
+
+    function initMatrix() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      drops = Array(Math.floor(width / 20)).fill(1);
+    }
+
+    const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(11, 15, 25, 0.05)';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = matrixColor;
+      ctx.font = '15px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+
+    initMatrix();
+    setInterval(drawMatrix, 50);
+    window.addEventListener('resize', initMatrix);
+
+    // ==========================================
+    // SIDEBAR NAVIGATION LOGIC
+    // ==========================================
+    const navButtons = document.querySelectorAll('.nav-btn[data-target]');
+    const cards = document.querySelectorAll('.card');
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navButtons.forEach(b => b.classList.remove('active'));
+        cards.forEach(c => c.classList.remove('active'));
+
+        btn.classList.add('active');
+
+        const targetId = btn.getAttribute('data-target');
+        const targetCard = document.getElementById(targetId);
+        if (targetCard) {
+          targetCard.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local IP Finder</title>
+    <style>
+        /* THEME VARIABLES */
+        [data-theme="dark"] {
+            --bg: transparent;
+            --card: rgba(21, 28, 44, 0.75); 
+            --accent: #38BDF8;
+            --accent-hover: #0EA5E9;
+            --success: #10B981;
+            --danger: #EF4444;
+            --text-main: #F8FAFC;
+            --text-sub: #94A3B8;
+            --border: rgba(30, 41, 59, 0.8);
+            --input-bg: rgba(7, 10, 18, 0.6);
+            --matrix-color: #0F0;
+        }
+
+        [data-theme="light"] {
+            --bg: transparent;
+            --card: #FFFFFF;
+            --accent: #0284C7;
+            --accent-hover: #0369A1;
+            --success: #059669;
+            --danger: #DC2626;
+            --text-main: #111827;
+            --text-sub: #526174;
+            --border: #E2E8F0;
+            --input-bg: #F8FAFC;
+            --matrix-color: #047857;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Prevents scrollbars */
+            user-select: none;
+        }
+
+        #matrixCanvas {
+            position: fixed; inset: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0; opacity: 0.15; pointer-events: none;
+        }
+
+        .main-container {
+            position: relative; z-index: 1; 
+            height: 100%; width: 100%;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute; top: 10px; right: 10px;
+        }
+        select.btn {
+            padding: 0 8px; outline: none; cursor: pointer; font-size: 11px;
+            background: var(--input-bg); color: var(--text-main);
+            border: 1px solid var(--border); border-radius: 6px; height: 26px;
+        }
+
+        /* IP Display Box */
+        .ip-card {
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ip-address {
+            font-family: 'Courier New', monospace;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-main);
+            background: var(--input-bg);
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: 100%;
+            word-break: break-all;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+
+        .ip-address.loading { color: var(--text-sub); font-size: 20px; }
+        .ip-address.success { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        .btn {
+            font-size: 13px; font-weight: 700; height: 40px; padding: 0 20px;
+            border: 1px solid var(--border); border-radius: 6px;
+            background: var(--accent); color: #fff;
+            cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .status-msg {
+            font-size: 12px;
+            color: var(--text-sub);
+            min-height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="main-container">
+        <div class="theme-toggle">
+            <select id="themeSelect" class="btn">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+            </select>
+        </div>
+
+        <div class="ip-card">
+            <div class="title">📡 Your Local IP Address</div>
+            
+            <div class="ip-address loading" id="ipDisplay">Waiting to scan...</div>
+            
+            <button class="btn" id="scanBtn">
+                <span>🔍</span> Scan Network
+            </button>
+            
+            <div class="status-msg" id="statusMsg">Click scan to find your IPv4 address</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. THEME & MATRIX MANAGER
+        // ==========================================
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.value);
+            updateMatrixColor();
+        });
+
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        let matrixColor = '#0F0';
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let columns = Math.floor(width / 20);
+        let drops = [];
+
+        function updateMatrixColor() {
+            matrixColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#0F0' : '#047857';
+        }
+
+        function initMatrix() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+            columns = Math.floor(width / 20); drops = Array(columns).fill(1);
+            updateMatrixColor();
+        }
+
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        function drawMatrix() {
+            ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+                ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
+            for (let i = 0; i < drops.length; i++) {
+                ctx.fillText(matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)), i * 20, drops[i] * 20);
+                if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
+
+        // ==========================================
+        // 2. LOCAL IP SCANNER (Replaces .bat logic)
+        // ==========================================
+        const ipDisplay = document.getElementById('ipDisplay');
+        const scanBtn = document.getElementById('scanBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        // WebRTC IP finder logic
+        function getLocalIP(callback) {
+            const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+            const pc = new RTCPeerConnection({ iceServers: [] });
+            const noop = () => {};
+            const localIPs = {};
+            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+            
+            pc.createDataChannel('');
+            pc.createOffer().then((offer) => pc.setLocalDescription(offer)).catch(noop);
+
+            pc.onicecandidate = (ice) => {
+                if (!ice || !ice.candidate || !ice.candidate.candidate) {
+                    pc.close();
+                    // Filter out loopback and sort
+                    const ips = Object.keys(localIPs).filter(ip => !ip.startsWith('127.') && !ip.startsWith('0.'));
+                    if (ips.length > 0) {
+                        // Prefer standard IPv4 over mDNS
+                        const ipv4 = ips.find(ip => ipRegex.test(ip));
+                        callback(ipv4 || ips[0]);
+                    } else {
+                        callback(null);
+                    }
+                    return;
+                }
+                
+                // Extract IP from candidate string
+                const parts = ice.candidate.candidate.split(' ');
+                let ip = parts[4];
+                
+                // Handle Chrome's mDNS privacy feature (e.g., 1234-5678.local)
+                if (ip && (ipRegex.test(ip) || ip.endsWith('.local'))) {
+                    localIPs[ip] = true;
+                }
+            };
+        }
+
+        function scanNetwork() {
+            ipDisplay.textContent = 'Scanning...';
+            ipDisplay.className = 'ip-address loading';
+            statusMsg.textContent = 'Please wait...';
+            scanBtn.disabled = true;
+
+            // Simulated slight delay for UX
+            setTimeout(() => {
+                getLocalIP((ip) => {
+                    scanBtn.disabled = false;
+                    
+                    if (ip) {
+                        ipDisplay.textContent = ip;
+                        ipDisplay.className = 'ip-address success';
+                        statusMsg.textContent = '✅ IP Address found successfully!';
+                        
+                        if (ip.endsWith('.local')) {
+                            statusMsg.textContent = '⚠️ Modern browser privacy is masking your IP (mDNS).';
+                        }
+                    } else {
+                        ipDisplay.textContent = 'Not Found';
+                        ipDisplay.className = 'ip-address danger';
+                        statusMsg.textContent = '❌ Could not find IP. Check your connection.';
+                    }
+                });
+            }, 500);
+        }
+
+        scanBtn.addEventListener('click', scanNetwork);
+        
+        // Auto scan on load (like the .bat file would run immediately)
+        window.addEventListener('DOMContentLoaded', scanNetwork);
+    </script>
+</body>
+</html>

@@ -342,9 +342,6 @@
       transform: scale(1.15);
     }
 
-    /* ============================================================
-       FLOATING NOTES
-       ============================================================ */
     .floating-note-container {
       position: fixed;
       bottom: 25px;
@@ -514,6 +511,40 @@
       transform: translateY(-1px);
     }
 
+    .tools-float-button {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.8rem 1.15rem;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0f766e, #16a34a);
+      box-shadow: 0 12px 30px rgba(15, 118, 110, 0.28);
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tools-float-button ion-icon {
+      font-size: 1.25rem;
+    }
+
+    .tools-float-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 34px rgba(15, 118, 110, 0.36);
+    }
+
+    .tools-float-button:focus-visible {
+      outline: 3px solid #99f6e4;
+      outline-offset: 3px;
+    }
+
     /* ============================================================
        RESPONSIVE
        ============================================================ */
@@ -619,6 +650,11 @@
         left: 10px;
         bottom: 10px;
       }
+
+      .tools-float-button {
+        top: 122px;
+        right: 14px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -717,13 +753,18 @@
     </div>
   </aside>
 
+  <a class="tools-float-button" href="Tools/Tools.html" aria-label="Open Tools">
+    <ion-icon name="folder-open-outline" aria-hidden="true"></ion-icon>
+    <span>Tools</span>
+  </a>
+
   <!-- ============================================================
        MAIN CONTENT
        ============================================================ -->
   <main class="main-app-container">
 
     <div class="brand-top-header">
-      <img src="logo.jpg" alt="NDEDC Logo" class="brand-logo" />
+      <img src="public/logo.jpg" alt="NDEDC Logo" class="brand-logo" />
       <div class="brand-text">
         <h3>الأدارة العامة للعدادات الذكية</h3>
         <p>شركة شمال الدلتا لتوزيع الكهرباء</p>
@@ -797,9 +838,6 @@
     </div>
   </main>
 
-  <!-- ============================================================
-       FLOATING NOTES CARD
-       ============================================================ -->
   <div id="floatingNoteCard" class="floating-note-container">
     <div id="noteDragHandle" class="note-drag-handle">
       <ion-icon name="move-outline"></ion-icon>
@@ -918,15 +956,12 @@
       });
     }
 
-    /* ==================== FLOATING NOTES ==================== */
     const notesTextarea = document.getElementById('dashboardNotes');
     const saveStatus = document.getElementById('saveStatus');
     const clearNotesBtn = document.getElementById('clearNotesBtn');
     const noteCard = document.getElementById('floatingNoteCard');
     const dragHandle = document.getElementById('noteDragHandle');
-    const noteCollapseBtn = document.getElementById('noteCollapseBtn');
 
-    /* Load saved notes on page load */
     window.addEventListener('DOMContentLoaded', () => {
       const savedData = localStorage.getItem('ndedc_floating_notes');
       if (savedData) {
@@ -935,7 +970,6 @@
         saveStatus.classList.add('saved');
       }
 
-      /* Restore last position if saved */
       const savedPos = localStorage.getItem('ndedc_note_position');
       if (savedPos) {
         try {
@@ -943,15 +977,14 @@
           if (typeof pos.top === 'number') noteCard.style.top = pos.top + 'px';
           if (typeof pos.left === 'number') noteCard.style.left = pos.left + 'px';
           noteCard.style.bottom = 'auto';
-        } catch (e) { /* ignore */ }
+        } catch (e) { /* ignore invalid saved positions */ }
       }
 
-      /* Restore collapsed state */
-      const isCollapsed = localStorage.getItem('ndedc_note_collapsed') === '1';
-      if (isCollapsed) noteCard.classList.add('collapsed');
+      if (localStorage.getItem('ndedc_note_collapsed') === '1') {
+        noteCard.classList.add('collapsed');
+      }
     });
 
-    /* Auto-save notes as you type */
     notesTextarea.addEventListener('input', () => {
       saveStatus.innerHTML = '<ion-icon name="sync-outline"></ion-icon><span>جارٍ الحفظ...</span>';
       saveStatus.classList.remove('saved');
@@ -962,7 +995,6 @@
       }, 400);
     });
 
-    /* Clear notes */
     clearNotesBtn.addEventListener('click', () => {
       if (confirm('هل أنت متأكد من الحذف؟')) {
         notesTextarea.value = '';
@@ -972,14 +1004,12 @@
       }
     });
 
-    /* Collapse / Expand notes */
     function toggleNoteCollapse(e) {
       e.stopPropagation();
       noteCard.classList.toggle('collapsed');
       localStorage.setItem('ndedc_note_collapsed', noteCard.classList.contains('collapsed') ? '1' : '0');
     }
 
-    /* ============ DRAG & DROP ============ */
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
     dragHandle.onmousedown = dragMouseDown;
@@ -1002,13 +1032,10 @@
       pos4 = e.clientY;
 
       const rect = noteCard.getBoundingClientRect();
-      let newTop = noteCard.offsetTop - pos2;
-      let newLeft = noteCard.offsetLeft - pos1;
-
       const maxTop = window.innerHeight - rect.height - 4;
       const maxLeft = window.innerWidth - rect.width - 4;
-      newTop = Math.max(4, Math.min(maxTop, newTop));
-      newLeft = Math.max(4, Math.min(maxLeft, newLeft));
+      const newTop = Math.max(4, Math.min(maxTop, noteCard.offsetTop - pos2));
+      const newLeft = Math.max(4, Math.min(maxLeft, noteCard.offsetLeft - pos1));
 
       noteCard.style.top = newTop + 'px';
       noteCard.style.left = newLeft + 'px';
@@ -1018,12 +1045,10 @@
     function closeDragElement() {
       document.onmouseup = null;
       document.onmousemove = null;
-      try {
-        localStorage.setItem('ndedc_note_position', JSON.stringify({
-          top: noteCard.offsetTop,
-          left: noteCard.offsetLeft
-        }));
-      } catch (e) { /* ignore */ }
+      localStorage.setItem('ndedc_note_position', JSON.stringify({
+        top: noteCard.offsetTop,
+        left: noteCard.offsetLeft
+      }));
     }
 
     function dragTouchStart(e) {
@@ -1041,12 +1066,10 @@
       pos4 = e.touches[0].clientY;
 
       const rect = noteCard.getBoundingClientRect();
-      let newTop = noteCard.offsetTop - pos2;
-      let newLeft = noteCard.offsetLeft - pos1;
       const maxTop = window.innerHeight - rect.height - 4;
       const maxLeft = window.innerWidth - rect.width - 4;
-      newTop = Math.max(4, Math.min(maxTop, newTop));
-      newLeft = Math.max(4, Math.min(maxLeft, newLeft));
+      const newTop = Math.max(4, Math.min(maxTop, noteCard.offsetTop - pos2));
+      const newLeft = Math.max(4, Math.min(maxLeft, noteCard.offsetLeft - pos1));
 
       noteCard.style.top = newTop + 'px';
       noteCard.style.left = newLeft + 'px';
@@ -1056,12 +1079,10 @@
     function closeTouchDragElement() {
       document.ontouchend = null;
       document.ontouchmove = null;
-      try {
-        localStorage.setItem('ndedc_note_position', JSON.stringify({
-          top: noteCard.offsetTop,
-          left: noteCard.offsetLeft
-        }));
-      } catch (e) { /* ignore */ }
+      localStorage.setItem('ndedc_note_position', JSON.stringify({
+        top: noteCard.offsetTop,
+        left: noteCard.offsetLeft
+      }));
     }
 
     /* Cleanup password fields on load */

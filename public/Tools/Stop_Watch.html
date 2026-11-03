@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopwatch</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap">
+    
+    <style>
+        /* =========================================
+           THEME VARIABLES (Matching Dashboard)
+           ========================================= */
+        [data-theme="dark"] {
+            --bg: transparent;
+            --card: rgba(21, 28, 44, 0.75); 
+            --accent: #38BDF8;
+            --accent-hover: #0EA5E9;
+            --success: #10B981;
+            --danger: #EF4444;
+            --text-main: #F8FAFC;
+            --text-sub: #94A3B8;
+            --border: rgba(30, 41, 59, 0.8);
+            --input-bg: rgba(7, 10, 18, 0.6);
+            --matrix-color: #0F0;
+        }
+
+        [data-theme="light"] {
+            --bg: transparent;
+            --card: #FFFFFF;
+            --accent: #0284C7;
+            --accent-hover: #0369A1;
+            --success: #059669;
+            --danger: #DC2626;
+            --text-main: #111827;
+            --text-sub: #526174;
+            --border: #E2E8F0;
+            --input-bg: #F8FAFC;
+            --matrix-color: #047857;
+        }
+
+        *, *::after, *::before { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Prevents scrollbars */
+            font-family: "Inter", 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+
+        #matrixCanvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; opacity: 0.15; pointer-events: none;
+        }
+
+        .main-container {
+            position: relative; z-index: 1; 
+            height: 100%; width: 100%;
+            display: flex; flex-direction: column; 
+            padding: 8px; gap: 8px;
+        }
+
+        /* Header */
+        .header {
+            display: flex; align-items: center; justify-content: flex-end;
+            height: 20px; flex-shrink: 0;
+        }
+        select.btn { 
+            padding: 0 6px; outline: none; cursor: pointer; font-size: 10px; 
+            background: var(--input-bg); color: var(--text-main); 
+            border: 1px solid var(--border); border-radius: 4px; height: 20px; 
+        }
+
+        /* App Layout */
+        .app {
+            flex: 1;
+            display: flex;
+            flex-flow: column;
+            overflow: hidden; /* Keeps everything contained */
+        }
+
+        header.app-header {
+            display: grid;
+            height: 2rem;
+            flex-shrink: 0;
+            place-content: center;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        main {
+            display: flex;
+            flex-flow: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Clock Face */
+        .display-section {
+            display: grid;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .display-deco {
+            display: grid;
+            grid-auto-flow: column;
+            place-content: center;
+            border-radius: 50%;
+            
+            /* Responsive size that scales with the iframe */
+            width: clamp(130px, 50%, 200px);
+            aspect-ratio: 1;
+            
+            border: 2px solid var(--border);
+            background: var(--input-bg);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .display-deco::after {
+            content: "";
+            position: absolute;
+            inset: 0.25em;
+            border-radius: inherit;
+            border: 2px solid transparent;
+            border-top-color: var(--accent);
+            border-right-color: var(--accent);
+            opacity: 0.6;
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .time-group { display: grid; }
+        .time {
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .divider {
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            font-weight: 600;
+            margin-inline: 0.1rem;
+            place-content: center;
+            translate: 0 -0.2em;
+            color: var(--text-sub);
+        }
+
+        .label {
+            margin-top: 0.1rem;
+            text-align: center;
+            font-size: 0.55rem;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 4px;
+        }
+
+        [type="button"] {
+            cursor: pointer;
+            display: grid;
+            place-content: center;
+            width: 100%;
+            height: 32px; /* Smaller button height */
+            font-family: "Inter", sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: 0.15s;
+            background: var(--input-bg);
+            color: var(--text-main);
+        }
+
+        [type="button"]:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        [type="button"]:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        .toggle-btn[aria-pressed="false"] {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent-hover);
+        }
+
+        .toggle-btn[aria-pressed="true"] {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+
+        .lap-btn {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+
+        /* Laps List */
+        .laps-section {
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* Takes remaining space */
+            overflow: hidden; /* Prevents outer scroll */
+            margin-top: 8px;
+        }
+
+        .laps-title {
+            font-weight: 700;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            margin-left: 4px;
+        }
+
+        .laps {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto; /* Inner scroll for laps only */
+            padding-right: 4px;
+            flex: 1;
+        }
+
+        .laps::-webkit-scrollbar { width: 4px; }
+        .laps::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .lap-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            height: 28px;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--input-bg);
+        }
+
+        .lap-label { color: var(--text-sub); }
+        .lap-time { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+        .is-new { animation: lapAnim 300ms cubic-bezier(0.14, 0.56, 0.15, 1.18) both; }
+        @keyframes lapAnim {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+    
+    <div class="main-container">
+        <div class="header">
+            <select id="themeSelect" class="btn">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+            </select>
+        </div>
+
+        <div class="app">
+            <header class="app-header">
+                <h1>Stopwatch</h1>
+            </header>
+            
+            <main>
+                <section class="display-section" id="display" aria-live="polite">
+                    <div class="display-deco">
+                        <div class="time-group">
+                            <span class="time minutes">00</span>
+                            <span class="label">MIN</span>
+                        </div>
+                        <span class="divider">:</span>
+                        <div class="time-group">
+                            <span class="time seconds">00</span>
+                            <span class="label">SEC</span>
+                        </div>
+                        <span class="divider">.</span>
+                        <div class="time-group">
+                            <span class="time milliseconds">00</span>
+                            <span class="label">MS</span>
+                        </div>
+                    </div>
+                </section>
+                
+                <nav class="controls">
+                    <button class="lap-btn" id="lap-btn" type="button" aria-label="Save laptime" disabled>Lap</button>
+                    <button class="toggle-btn" type="button" aria-pressed="false" aria-label="Start timer">Start</button>
+                    <button class="reset-btn" type="button" aria-label="Reset timer" disabled>Reset</button>
+                </nav>
+            </main>
+
+            <section class="laps-section" aria-labelledby="laps-title">
+                <h2 class="laps-title" id="laps-title">Laptime</h2>
+                <ol class="laps" aria-live="polite"></ol>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // MATRIX & THEME MANAGER
+        // ==========================================
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.value);
+            updateMatrixColor();
+        });
+
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        let matrixColor = '#0F0';
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let columns = Math.floor(width / 20);
+        let drops = [];
+
+        function updateMatrixColor() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            matrixColor = isDark ? '#0F0' : '#047857';
+        }
+
+        function initMatrix() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+            columns = Math.floor(width / 20); drops = Array(columns).fill(1);
+            updateMatrixColor();
+        }
+
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        function drawMatrix() {
+            ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+                ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
+            for (let i = 0; i < drops.length; i++) {
+                ctx.fillText(matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)), i * 20, drops[i] * 20);
+                if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
+
+        // ==========================================
+        // STOPWATCH LOGIC
+        // ==========================================
+        const stopwatch = () => {
+            const toggleBtn = document.querySelector(".toggle-btn");
+            const resetBtn = document.querySelector(".reset-btn");
+            const lapBtn = document.querySelector(".lap-btn");
+            const lapsTitle = document.querySelector(".laps-title");
+
+            const [minutes, seconds, milliseconds] = [
+                ".minutes", ".seconds", ".milliseconds"
+            ].map((sel) => document.querySelector(sel));
+
+            const lapsList = document.querySelector(".laps");
+
+            let rafId = null;
+            let startTime = 0;
+            let isRunning = false;
+
+            const data = { elapsedTime: 0, laps: [] };
+
+            const formatElapsedTime = (ms) => {
+                const pad = (n) => String(n).padStart(2, "0");
+                const total = Math.floor(ms);
+                return {
+                    minutes: pad(Math.floor(total / 60000)),
+                    seconds: pad(Math.floor((total % 60000) / 1000)),
+                    milliseconds: pad(Math.floor((total % 1000) / 10))
+                };
+            };
+
+            const updateTimeDisplay = () => {
+                const t = formatElapsedTime(data.elapsedTime);
+                minutes.textContent = t.minutes;
+                seconds.textContent = t.seconds;
+                milliseconds.textContent = t.milliseconds;
+            };
+
+            const updateElapsedTime = () => {
+                if (!isRunning) return;
+                data.elapsedTime = performance.now() - startTime;
+                updateTimeDisplay();
+                rafId = requestAnimationFrame(updateElapsedTime);
+            };
+
+            const updateLaptime = () => {
+                const hasLaps = data.laps.length > 0;
+                lapsTitle.classList.toggle("is-muted", !hasLaps);
+
+                if (!hasLaps) {
+                    lapsList.replaceChildren();
+                    return;
+                }
+
+                const time = data.laps.at(-1);
+                const { minutes, seconds, milliseconds } = formatElapsedTime(time);
+
+                const li = document.createElement("li");
+                li.className = "lap-item is-new";
+                li.innerHTML = `
+                    <span class="lap-label">Lap ${data.laps.length}</span>
+                    <span class="lap-time">${minutes}:${seconds}.${milliseconds}</span>
+                `;
+                lapsList.append(li);
+                // Auto scroll to bottom
+                lapsList.scrollTop = lapsList.scrollHeight;
+            };
+
+            const updateButtonStates = () => {
+                toggleBtn.textContent = isRunning ? "Pause" : "Start";
+                toggleBtn.setAttribute("aria-pressed", String(isRunning));
+                lapBtn.disabled = !isRunning;
+                resetBtn.disabled = isRunning || data.elapsedTime === 0;
+            };
+
+            const toggleStopwatch = () => {
+                isRunning = !isRunning;
+                if (isRunning) {
+                    startTime = performance.now() - data.elapsedTime;
+                    rafId = requestAnimationFrame(updateElapsedTime);
+                } else {
+                    cancelAnimationFrame(rafId);
+                }
+                updateButtonStates();
+            };
+
+            const addNewLap = () => {
+                if (!isRunning) return;
+                data.laps.push(data.elapsedTime);
+                updateLaptime();
+            };
+
+            const reset = () => {
+                if (isRunning) return;
+                data.elapsedTime = 0;
+                data.laps = [];
+                updateTimeDisplay();
+                updateLaptime();
+                updateButtonStates();
+            };
+
+            toggleBtn.addEventListener("click", toggleStopwatch);
+            lapBtn.addEventListener("click", addNewLap);
+            resetBtn.addEventListener("click", reset);
+
+            updateTimeDisplay();
+            updateLaptime();
+            updateButtonStates();
+        };
+
+        stopwatch();
+    </script>
+</body>
+</html>

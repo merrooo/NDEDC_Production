@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON ⇄ Excel Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    /* =========================================
+       THEME VARIABLES (Matching Text Analysis)
+       ========================================= */
+    [data-theme="dark"] {
+      --bg: #0B0F19;
+      --card: rgba(21, 28, 44, 0.75); 
+      --card-hover: #1E293B;
+      --accent: #38BDF8;
+      --accent-hover: #0EA5E9;
+      --success: #10B981;
+      --danger: #EF4444;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border: rgba(30, 41, 59, 0.8);
+      --input-bg: rgba(7, 10, 18, 0.6);
+      --matrix-color: #0F0;
+    }
+
+    [data-theme="light"] {
+      --bg: #F4F7FB;
+      --card: rgba(255, 255, 255, 0.8);
+      --card-hover: #E7EEF7;
+      --accent: #0284C7;
+      --accent-hover: #0369A1;
+      --success: #059669;
+      --danger: #DC2626;
+      --text-main: #111827;
+      --text-sub: #526174;
+      --border: rgba(216, 224, 234, 0.8);
+      --input-bg: rgba(234, 240, 246, 0.6);
+      --matrix-color: #047857;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #matrixCanvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0; opacity: 0.15; pointer-events: none;
+    }
+
+    .main-container {
+      position: relative; z-index: 1; height: 100vh;
+      display: flex; flex-direction: column; padding: 12px; gap: 12px;
+    }
+
+    /* Header */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 36px; padding: 0 4px; flex-shrink: 0; -webkit-app-region: drag;
+    }
+    .brand { font-size: 16px; font-weight: 700; color: var(--accent); text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+    .controls { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+
+    /* Dashboard Card */
+    .dashboard {
+      flex: 1; min-height: 0; overflow-y: auto;
+      padding-right: 4px; padding-bottom: 20px;
+    }
+    .dashboard::-webkit-scrollbar { width: 6px; }
+    .dashboard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: calc(100vh - 80px);
+    }
+
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 10px;
+    }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Tabs/Sidebar */
+    .app-layout { display: flex; flex: 1; min-height: 0; gap: 16px; }
+    
+    .sidebar {
+      width: 200px; display: flex; flex-direction: column; gap: 8px;
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    }
+    .mode {
+      display: flex; align-items: center; gap: 10px; padding: 10px;
+      border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;
+      color: var(--text-sub); transition: 0.2s; border: 1px solid transparent;
+    }
+    .mode:hover { background: var(--card-hover); color: var(--text-main); }
+    .mode.active { background: var(--accent); color: #fff; border-color: var(--accent-hover); }
+
+    .main-content {
+      flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px;
+    }
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* UI Elements */
+    .btn {
+      font-size: 12px; font-weight: 600; height: 32px; padding: 0 12px;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--input-bg); color: var(--text-main);
+      cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:hover { background: var(--card-hover); }
+    .btn.accent { background: var(--accent); color: #fff; border: none; }
+    .btn.success { background: var(--success); color: #fff; border: none; }
+    .btn.danger { background: var(--danger); color: #fff; border: none; }
+    .btn-sm { height: 26px; padding: 0 10px; font-size: 11px; }
+
+    textarea {
+      width: 100%; height: 120px; resize: vertical; background: var(--input-bg);
+      color: var(--text-main); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; font-family: monospace; font-size: 13px; outline: none; user-select: text;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    .upload-zone {
+      background: var(--input-bg); border: 2px dashed var(--border);
+      border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: var(--card-hover); }
+
+    .preview-box {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .preview-title {
+      background: var(--card); padding: 8px 12px; font-weight: 600; font-size: 12px;
+      display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); color: var(--text-sub);
+    }
+    .badge { background: var(--border); color: var(--text-main); padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+    .badge.success { background: var(--success); color: #fff; }
+
+    /* Table */
+    .table-wrapper { max-height: 250px; overflow: auto; }
+    .table-wrapper::-webkit-scrollbar { width: 6px; height: 6px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: var(--border); }
+    
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th, .data-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+    .data-table th { background: var(--card); position: sticky; top: 0; z-index: 10; font-weight: 600; color: var(--accent); }
+    .data-table td input { width: 100%; border: none; background: transparent; color: var(--text-main); font-family: inherit; font-size: 12px; outline: none; }
+    .data-table td input:focus { border-bottom: 1px solid var(--accent); }
+
+    .toolbar { display: flex; gap: 8px; padding: 8px 12px; background: var(--card); border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+    .flex-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    
+    .empty-msg { padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px; }
+    .info-bar { font-size: 11px; padding: 6px 12px; background: var(--input-bg); border-top: 1px solid var(--border); color: var(--text-sub); }
+
+    /* Theme Select */
+    select.btn { padding: 0 8px; outline: none; cursor: pointer; }
+  </style>
+</head>
+
+<body data-theme="dark">
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="main-container">
+    <!-- Header -->
+    <div class="header">
+      <span class="brand">📊 JSON ⇄ Excel Studio</span>
+      <div class="controls">
+        <select id="themeSelect" class="btn">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Data Converter</span>
+        </div>
+
+        <div class="app-layout">
+          <!-- Sidebar -->
+          <div class="sidebar">
+            <div class="mode active" data-mode="json2excel"><i class="fas fa-file-code"></i> JSON → Excel</div>
+            <div class="mode" data-mode="excel2json"><i class="fas fa-file-excel"></i> Excel → JSON</div>
+          </div>
+
+          <!-- Main Content -->
+          <div class="main-content" id="mainArea"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // MATRIX BACKGROUND & THEME
+    // ==========================================
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.addEventListener('change', (e) => {
+      document.documentElement.setAttribute('data-theme', e.target.value);
+      updateMatrixColor();
+    });
+
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    let matrixColor = '#0F0';
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let columns = Math.floor(width / 20);
+    let drops = [];
+
+    function updateMatrixColor() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      matrixColor = isDark ? '#0F0' : '#047857';
+    }
+
+    function initMatrix() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      columns = Math.floor(width / 20);
+      drops = Array(columns).fill(1);
+      updateMatrixColor();
+    }
+
+    const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
+    function drawMatrix() {
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+        ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = matrixColor;
+      ctx.font = "15px monospace";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+
+    initMatrix();
+    setInterval(drawMatrix, 50);
+    window.addEventListener('resize', initMatrix);
+
+    // ==========================================
+    // CONVERTER LOGIC
+    // ==========================================
+    let currentMode = 'json2excel';
+    let jsonData = [];
+    let jsonOriginal = null;
+    let jsonFileName = null;
+    let excelData = [];
+    let excelOriginal = null;
+    let excelFileName = null;
+
+    function flattenObject(obj, prefix = '') {
+      const result = {};
+      for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const val = obj[key];
+          const newKey = prefix ? `${prefix}.${key}` : key;
+          if (val && typeof val === 'object' && !Array.isArray(val) && val !== null) {
+            Object.assign(result, flattenObject(val, newKey));
+          } else {
+            result[newKey] = val;
+          }
+        }
+      }
+      return result;
+    }
+
+    function unflattenObject(flatObj) {
+      const result = {};
+      for (let key in flatObj) {
+        if (flatObj.hasOwnProperty(key)) {
+          const parts = key.split('.');
+          let current = result;
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (i === parts.length - 1) {
+              current[part] = flatObj[key];
+            } else {
+              if (!current[part]) current[part] = {};
+              current = current[part];
+            }
+          }
+        }
+      }
+      return result;
+    }
+
+    function render() {
+      const main = document.getElementById('mainArea');
+      if (currentMode === 'json2excel') {
+        main.innerHTML = `
+          <div class="upload-zone" id="jsonUploadZone">
+            <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:var(--accent); margin-bottom:8px;"></i>
+            <p style="font-weight:600;">Upload JSON file</p>
+            <small style="color:var(--text-sub);">.json (nested objects supported)</small>
+            <input type="file" id="jsonFile" accept=".json" style="display:none;">
+          </div>
+          
+          <div class="preview-box">
+            <div class="preview-title">
+              <span><i class="fas fa-edit"></i> EDITABLE JSON SOURCE</span>
+              <span class="badge" id="jsonBadge">No file</span>
+            </div>
+            <textarea id="jsonEditor" placeholder='Paste JSON here...\nExample: {"users":{"admin":{"username":"amir","password":"1"}}}'></textarea>
+            <div class="toolbar">
+              <button class="btn accent btn-sm" id="applyJsonChangesBtn"><i class="fas fa-check-circle"></i> Apply Changes</button>
+              <div style="flex:1"></div>
+              <button class="btn danger btn-sm" id="removeJsonRowBtn"><i class="fas fa-trash"></i> Remove Row</button>
+            </div>
+          </div>
+
+          <div class="preview-box">
+            <div class="preview-title">
+              <span><i class="fas fa-table"></i> EXCEL PREVIEW</span>
+              <span class="badge" id="excelPreviewBadge">Live</span>
+            </div>
+            <div id="excelPreviewContainer" class="table-wrapper">
+              <div class="empty-msg">👈 Edit JSON → Click Apply to see preview</div>
+            </div>
+            <div class="info-bar" id="jsonStats"></div>
+          </div>
+
+          <div class="flex-btns">
+            <button id="downloadExcelBtn" class="btn success"><i class="fas fa-download"></i> Download Excel</button>
+          </div>
+        `;
+        attachJsonListeners();
+      } else {
+        main.innerHTML = `
+          <div class="upload-zone" id="excelUploadZone">
+            <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:var(--accent); margin-bottom:8px;"></i>
+            <p style="font-weight:600;">Upload Excel file</p>
+            <small style="color:var(--text-sub);">.xlsx, .xls, .csv</small>
+            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv,.xlsm" style="display:none;">
+          </div>
+
+          <div class="preview-box">
+            <div class="preview-title">
+              <span><i class="fas fa-edit"></i> EDITABLE EXCEL TABLE</span>
+              <span class="badge" id="excelBadge">No data</span>
+            </div>
+            <div id="excelTableContainer" class="table-wrapper">
+              <div class="empty-msg">📂 Upload Excel or edit below</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn accent btn-sm" id="applyExcelChangesBtn"><i class="fas fa-check-circle"></i> Apply Changes</button>
+              <div style="flex:1"></div>
+              <button class="btn btn-sm" id="addExcelRowBtn"><i class="fas fa-plus"></i> Add Row</button>
+            </div>
+            <div class="info-bar" id="excelStats"></div>
+          </div>
+
+          <div class="preview-box">
+            <div class="preview-title">
+              <span><i class="fas fa-brackets-curly"></i> JSON OUTPUT</span>
+              <span class="badge success">Auto</span>
+            </div>
+            <textarea id="jsonOutput" readonly style="height:100px;"></textarea>
+          </div>
+
+          <div class="flex-btns">
+            <button id="downloadJsonBtn" class="btn success"><i class="fas fa-download"></i> Download JSON</button>
+          </div>
+        `;
+        attachExcelListeners();
+      }
+    }
+
+    function attachJsonListeners() {
+      const zone = document.getElementById('jsonUploadZone');
+      const fileInput = document.getElementById('jsonFile');
+      const editor = document.getElementById('jsonEditor');
+      const badge = document.getElementById('jsonBadge');
+
+      zone.onclick = () => fileInput.click();
+      fileInput.onchange = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            jsonOriginal = parsed;
+            jsonData = Array.isArray(parsed) ? parsed.map(r => flattenObject(r)) : [flattenObject(parsed)];
+            jsonFileName = f.name.replace(/\.json$/i, '');
+            badge.textContent = f.name;
+            editor.value = JSON.stringify(jsonOriginal, null, 2);
+            updateExcelPreviewFromJson();
+          } catch (err) { alert('JSON error: ' + err.message); }
+        };
+        reader.readAsText(f);
+      };
+
+      document.getElementById('applyJsonChangesBtn').onclick = () => {
+        try {
+          const parsed = JSON.parse(editor.value);
+          jsonOriginal = parsed;
+          jsonData = Array.isArray(parsed) ? parsed.map(r => flattenObject(r)) : [flattenObject(parsed)];
+          updateExcelPreviewFromJson();
+          badge.textContent = jsonFileName ? jsonFileName + '.json' : 'applied.json';
+        } catch (e) { alert('Invalid JSON: ' + e.message); }
+      };
+
+      document.getElementById('downloadExcelBtn').onclick = () => {
+        if (!jsonData.length) { alert('No JSON data'); return; }
+        const ws = XLSX.utils.json_to_sheet(jsonData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        XLSX.writeFile(wb, `${jsonFileName || 'data'}.xlsx`);
+      };
+      if (jsonData.length) updateExcelPreviewFromJson();
+    }
+
+    function updateExcelPreviewFromJson() {
+      const container = document.getElementById('excelPreviewContainer');
+      const statsDiv = document.getElementById('jsonStats');
+      if (!jsonData.length) { container.innerHTML = '<div class="empty-msg">⚠️ No data</div>'; return; }
+      const headers = Object.keys(jsonData[0] || {});
+      let html = '<table class="data-table"><thead><tr>';
+      headers.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr></thead><tbody>';
+      jsonData.slice(0, 50).forEach(row => {
+        html += '<tr>';
+        headers.forEach(h => html += `<td>${row[h] !== undefined ? row[h] : ''}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      if (statsDiv) statsDiv.textContent = `📊 ${jsonData.length} rows × ${headers.length} columns`;
+    }
+
+    function attachExcelListeners() {
+      const zone = document.getElementById('excelUploadZone');
+      const fileInput = document.getElementById('excelFile');
+      zone.onclick = () => fileInput.click();
+      fileInput.onchange = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            excelData = rows;
+            excelOriginal = rows.map(r => unflattenObject(r));
+            excelFileName = f.name.replace(/\.(xlsx|xls|csv)$/i, '');
+            document.getElementById('excelBadge').textContent = f.name;
+            renderExcelTable();
+          } catch (err) { alert('Excel error: ' + err.message); }
+        };
+        reader.readAsArrayBuffer(f);
+      };
+
+      document.getElementById('applyExcelChangesBtn').onclick = () => {
+        document.querySelectorAll('.excel-cell-edit').forEach(inp => {
+          const rowIdx = parseInt(inp.dataset.row);
+          const colName = inp.dataset.col;
+          if (excelData[rowIdx]) excelData[rowIdx][colName] = inp.value;
+        });
+        excelOriginal = excelData.map(r => unflattenObject(r));
+        updateJsonOutputFromExcel();
+        renderExcelTable();
+        document.getElementById('applyExcelChangesBtn').classList.remove('danger');
+        document.getElementById('applyExcelChangesBtn').classList.add('accent');
+      };
+
+      document.getElementById('downloadJsonBtn').onclick = () => {
+        if (!excelData.length) { alert('No data'); return; }
+        const outputJson = excelOriginal.length === 1 ? excelOriginal[0] : excelOriginal;
+        const blob = new Blob([JSON.stringify(outputJson, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+        link.download = `${excelFileName || 'export'}.json`; link.click();
+      };
+      if (excelData.length) { renderExcelTable(); updateJsonOutputFromExcel(); }
+    }
+
+    function renderExcelTable() {
+      const container = document.getElementById('excelTableContainer');
+      const statsDiv = document.getElementById('excelStats');
+      if (!excelData.length) { container.innerHTML = '<div class="empty-msg">📂 No data</div>'; return; }
+      const headers = Object.keys(excelData[0]);
+      let html = '<table class="data-table"><thead><tr>';
+      headers.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr></thead><tbody>';
+      excelData.slice(0, 50).forEach((row, idx) => {
+        html += '<tr>';
+        headers.forEach(h => {
+          html += `<td><input type="text" value="${row[h] !== undefined ? row[h] : ''}" data-row="${idx}" data-col="${h}" class="excel-cell-edit"></td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      if (statsDiv) statsDiv.textContent = `📊 ${excelData.length} rows × ${headers.length} columns`;
+
+      document.querySelectorAll('.excel-cell-edit').forEach(inp => {
+        inp.addEventListener('change', () => {
+          document.getElementById('applyExcelChangesBtn').classList.remove('accent');
+          document.getElementById('applyExcelChangesBtn').classList.add('danger');
+        });
+      });
+    }
+
+    function updateJsonOutputFromExcel() {
+      const textarea = document.getElementById('jsonOutput');
+      if (!textarea) return;
+      if (!excelData.length) { textarea.value = '[]'; return; }
+      const outputJson = excelOriginal.length === 1 ? excelOriginal[0] : excelOriginal;
+      textarea.value = JSON.stringify(outputJson, null, 2);
+    }
+
+    // Mode switching
+    document.querySelectorAll('.mode').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+        currentMode = el.dataset.mode;
+        render();
+      });
+    });
+
+    // Init
+    render();
+  </script>
+</body>
+</html>

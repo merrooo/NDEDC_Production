@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>BarQR Studio</title>
+  
+  <!-- Libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+
+  <style>
+    /* =========================================
+       THEME VARIABLES (Matching Dashboard)
+       ========================================= */
+    [data-theme="dark"] {
+      --bg: #0B0F19;
+      --card: rgba(21, 28, 44, 0.75); 
+      --card-hover: #1E293B;
+      --accent: #38BDF8;
+      --accent-hover: #0EA5E9;
+      --success: #10B981;
+      --danger: #EF4444;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border: rgba(30, 41, 59, 0.8);
+      --input-bg: rgba(7, 10, 18, 0.6);
+      --matrix-color: #0F0;
+    }
+
+    [data-theme="light"] {
+      --bg: #F4F7FB;
+      --card: rgba(255, 255, 255, 0.8);
+      --card-hover: #E7EEF7;
+      --accent: #0284C7;
+      --accent-hover: #0369A1;
+      --success: #059669;
+      --danger: #DC2626;
+      --text-main: #111827;
+      --text-sub: #526174;
+      --border: rgba(216, 224, 234, 0.8);
+      --input-bg: rgba(234, 240, 246, 0.6);
+      --matrix-color: #047857;
+    }
+
+    /* =========================================
+       GLOBAL RESETS
+       ========================================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Cairo", 'Segoe UI', Tahoma, sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #matrixCanvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0; opacity: 0.15; pointer-events: none;
+    }
+
+    .main-container {
+      position: relative; z-index: 1; height: 100vh;
+      display: flex; flex-direction: column; padding: 12px; gap: 12px;
+    }
+
+    /* =========================================
+       HEADER
+       ========================================= */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 36px; padding: 0 4px; flex-shrink: 0; -webkit-app-region: drag;
+    }
+    .brand { font-size: 16px; font-weight: 700; color: var(--accent); text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); display: flex; align-items: center; gap: 8px; }
+    .controls { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+
+    /* =========================================
+       DASHBOARD & CARD
+       ========================================= */
+    .dashboard { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; padding-bottom: 20px; }
+    .dashboard::-webkit-scrollbar { width: 6px; }
+    .dashboard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .card {
+      background: var(--card); backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; display: flex; flex-direction: column; gap: 14px;
+      max-width: 800px; margin: 0 auto;
+    }
+
+    .card-header { border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* =========================================
+       UI ELEMENTS
+       ========================================= */
+    .btn {
+      font-size: 13px; font-weight: 700; height: 36px; padding: 0 16px;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--input-bg); color: var(--text-main);
+      cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:hover { background: var(--card-hover); }
+    .btn.accent { background: var(--accent); color: #fff; border: none; }
+    .btn.success { background: var(--success); color: #fff; border: none; }
+    .btn.outline { background: transparent; border: 2px solid var(--border); }
+
+    .input-wrapper { display: flex; gap: 10px; }
+    input[type="text"] {
+      flex: 1; height: 36px; background: var(--input-bg); color: var(--text-main);
+      border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 14px; outline: none; transition: 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+
+    /* Toggle Buttons (Barcode/QR) */
+    .type-selector { display: flex; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px; gap: 4px; }
+    .type-option {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 8px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-sub); transition: 0.2s;
+    }
+    .type-option.active { background: var(--card); color: var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    input[type="radio"] { display: none; }
+
+    /* Action Bar */
+    .action-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Preview Area */
+    .preview-area { background: var(--input-bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 250px; text-align: center; position: relative; }
+    .barcode-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; min-height: 120px; }
+    #barcodeCanvas { max-width: 100%; background: #fff; border-radius: 6px; padding: 10px; display: none; }
+    #qrCodeContainer { display: none; justify-content: center; align-items: center; background: #fff; padding: 12px; border-radius: 8px; }
+    #qrCodeContainer canvas, #qrCodeContainer img { max-width: 180px; height: auto; }
+
+    .info-note { margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--text-sub); background: var(--card); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); }
+
+    /* Scanner Upload */
+    .upload-section { margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .upload-area { background: var(--input-bg); border: 2px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .upload-area:hover { border-color: var(--accent); background: var(--card-hover); }
+    .upload-area input { display: none; }
+    
+    .scan-result { margin-top: 12px; padding: 12px; background: var(--card); border-radius: 6px; border-right: 4px solid var(--success); text-align: right; font-size: 13px; font-weight: 600; word-break: break-all; display: none; }
+    .scan-result.error { border-right-color: var(--danger); color: var(--danger); }
+
+    select.btn { padding: 0 8px; outline: none; cursor: pointer; }
+  </style>
+</head>
+
+<body>
+  
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="main-container">
+    
+    <!-- Header -->
+    <div class="header">
+      <span class="brand">🏷️ Barcode & QR</span>
+      <div class="controls">
+        <select id="themeSelect" class="btn">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Generator & Scanner</span>
+        </div>
+
+        <!-- Input Section -->
+        <div>
+          <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--text-sub);">📝 المحتوى (Text or URL)</label>
+          <div class="input-wrapper">
+            <input type="text" id="barcodeText" placeholder="أدخل النص أو الرابط هنا..." value="Amir" />
+          </div>
+        </div>
+
+        <!-- Type Selector -->
+        <div class="type-selector">
+          <label class="type-option" id="optBarcode">
+            <input type="radio" name="codeType" value="barcode" /> 📊 باركود (CODE128)
+          </label>
+          <label class="type-option active" id="optQR">
+            <input type="radio" name="codeType" value="qr" checked /> 📱 رمز QR
+          </label>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-bar">
+          <button id="generateBtn" class="btn accent flex-1">✨ إنشاء الآن</button>
+          <button id="downloadBtn" class="btn success flex-1">💾 تحميل PNG</button>
+          <button id="resetExampleBtn" class="btn outline">🔄 إعادة تعيين</button>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="preview-area">
+          <div class="barcode-wrapper" id="previewContainer">
+            <canvas id="barcodeCanvas"></canvas>
+            <div id="qrCodeContainer"></div>
+          </div>
+          <div class="info-note" id="statusMsg">🔍 جاهز للإنشاء</div>
+
+          <!-- Scanner Section -->
+          <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+              <ion-icon name="cloud-upload-outline" style="font-size: 28px; color: var(--accent);"></ion-icon>
+              <p style="font-size: 13px; font-weight: 600;">📸 اضغط لرفع صورة تحتوي على باركود أو رمز QR</p>
+              <input type="file" id="imageUpload" accept="image/jpeg,image/png,image/jpg,image/webp" />
+            </div>
+            <div id="scanResult" class="scan-result"></div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // MATRIX & THEME
+    // ==========================================
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.addEventListener('change', (e) => {
+      document.documentElement.setAttribute('data-theme', e.target.value);
+      updateMatrixColor();
+    });
+
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    let matrixColor = '#0F0';
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let columns = Math.floor(width / 20);
+    let drops = [];
+
+    function updateMatrixColor() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      matrixColor = isDark ? '#0F0' : '#047857';
+    }
+
+    function initMatrix() {
+      width = window.innerWidth; height = window.innerHeight;
+      canvas.width = width; canvas.height = height;
+      columns = Math.floor(width / 20); drops = Array(columns).fill(1);
+      updateMatrixColor();
+    }
+
+    const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()";
+    function drawMatrix() {
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+        ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
+      for (let i = 0; i < drops.length; i++) {
+        const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+    initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
+
+    // ==========================================
+    // BARCODE & QR LOGIC
+    // ==========================================
+    (function () {
+      const textInput = document.getElementById("barcodeText");
+      const generateBtn = document.getElementById("generateBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const resetBtn = document.getElementById("resetExampleBtn");
+      const barcodeCanvas = document.getElementById("barcodeCanvas");
+      const qrContainer = document.getElementById("qrCodeContainer");
+      const statusMsg = document.getElementById("statusMsg");
+      const imageUpload = document.getElementById("imageUpload");
+      const uploadArea = document.getElementById("uploadArea");
+      const scanResultDiv = document.getElementById("scanResult");
+
+      const radioBarcode = document.querySelector("#optBarcode input");
+      const radioQR = document.querySelector("#optQR input");
+      const typeOptions = document.querySelectorAll(".type-option");
+
+      let currentMode = "qr";
+      let currentText = textInput.value.trim();
+
+      function isURL(text) {
+        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+        return (urlPattern.test(text) || text.includes("://") || text.includes(".com") || text.includes(".app") || text.includes(".org") || text.includes(".net"));
+      }
+
+      function updateActiveStyle() {
+        typeOptions.forEach((opt) => {
+          const radio = opt.querySelector("input");
+          if (radio.checked) opt.classList.add("active");
+          else opt.classList.remove("active");
+        });
+      }
+
+      function setUIMode(mode) {
+        if (mode === "barcode") {
+          barcodeCanvas.style.display = "block";
+          qrContainer.style.display = "none";
+        } else {
+          barcodeCanvas.style.display = "none";
+          qrContainer.style.display = "flex";
+        }
+      }
+
+      function svgToCanvas(svgElement, callback) {
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(svgBlob);
+        img.onload = function () {
+          canvas.width = img.width; canvas.height = img.height;
+          ctx.drawImage(img, 0, 0); URL.revokeObjectURL(url); callback(canvas);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); callback(null); };
+        img.src = url;
+      }
+
+      function generateBarcode(text) {
+        return new Promise((resolve, reject) => {
+          if (!text || text.length === 0) reject(new Error("نص فارغ"));
+          if (text.length > 35) { reject(new Error("النص طويل جداً للباركود (>35 حرف).")); return; }
+
+          const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          tempSvg.setAttribute("width", "500"); tempSvg.setAttribute("height", "150");
+          document.body.appendChild(tempSvg);
+
+          JsBarcode(tempSvg, text, {
+            format: "CODE128", lineColor: "#000000", width: 2, height: 80,
+            displayValue: true, fontSize: 14, margin: 10, font: "Cairo, monospace", textMargin: 5,
+          });
+
+          setTimeout(() => {
+            svgToCanvas(tempSvg, (canvas) => {
+              document.body.removeChild(tempSvg);
+              if (canvas) {
+                const ctx = barcodeCanvas.getContext("2d");
+                barcodeCanvas.width = canvas.width; barcodeCanvas.height = canvas.height;
+                ctx.drawImage(canvas, 0, 0); resolve(true);
+              } else reject(new Error("فشل تحويل الباركود"));
+            });
+          }, 50);
+        });
+      }
+
+      function generateQRCode(text) {
+        return new Promise((resolve, reject) => {
+          if (!text || text.length === 0) reject(new Error("نص فارغ"));
+          qrContainer.innerHTML = "";
+          const qrDiv = document.createElement("div"); qrDiv.id = "qrcode_" + Date.now();
+          qrContainer.appendChild(qrDiv);
+
+          new QRCode(qrDiv, {
+            text: text, width: 180, height: 180,
+            colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M,
+          });
+
+          setTimeout(() => {
+            const canvas = qrDiv.querySelector("canvas"); const img = qrDiv.querySelector("img");
+            if (canvas || img) resolve(true); else reject(new Error("فشل إنشاء رمز QR"));
+          }, 100);
+        });
+      }
+
+      async function generateCode() {
+        let rawText = textInput.value.trim();
+        if (!rawText) { statusMsg.innerText = "⚠️ الرجاء إدخال نص أو رابط"; return false; }
+        currentText = rawText;
+
+        if (isURL(rawText) && currentMode === "barcode") {
+          statusMsg.innerText = "🔗 تم اكتشاف رابط! سيتم التحويل إلى رمز QR";
+          radioQR.checked = true; currentMode = "qr"; updateActiveStyle(); setUIMode("qr");
+        }
+
+        if (currentMode === "barcode" && rawText.length > 35) {
+          statusMsg.innerText = "⚠️ النص طويل جداً للباركود.";
+          return false;
+        }
+
+        statusMsg.innerText = "⏳ جاري الإنشاء...";
+        try {
+          if (currentMode === "barcode") { await generateBarcode(rawText); statusMsg.innerText = "✅ تم إنشاء الباركود!"; }
+          else { await generateQRCode(rawText); statusMsg.innerText = "✅ تم إنشاء رمز QR!"; }
+          return true;
+        } catch (err) { statusMsg.innerText = "❌ " + (err.message || "فشل الإنشاء"); return false; }
+      }
+
+      async function downloadAsPNG() {
+        if (!currentText) { statusMsg.innerText = "⚠️ قم بإنشاء الرمز أولاً"; return; }
+        let targetElement = null;
+        if (currentMode === "barcode") {
+          if (!barcodeCanvas || barcodeCanvas.width === 0) { statusMsg.innerText = "⚠️ قم بإنشاء الباركود أولاً"; return; }
+          targetElement = barcodeCanvas;
+        } else {
+          const qrCanvas = qrContainer.querySelector("canvas"); const qrImg = qrContainer.querySelector("img");
+          targetElement = qrCanvas || qrImg;
+          if (!targetElement) { statusMsg.innerText = "⚠️ قم بإنشاء رمز QR أولاً"; return; }
+        }
+
+        statusMsg.innerText = "📸 جاري تحضير الصورة...";
+        try {
+          let canvas;
+          if (targetElement.tagName === "CANVAS") canvas = targetElement;
+          else canvas = await html2canvas(targetElement, { scale: 3, backgroundColor: "#ffffff" });
+
+          const link = document.createElement("a");
+          const safeText = currentText.substring(0, 28).replace(/[^a-z0-9]/gi, "_").toLowerCase();
+          link.download = `${currentMode === "barcode" ? "barcode" : "qrcode"}_${safeText}.png`;
+          link.href = canvas.toDataURL("image/png"); link.click();
+          statusMsg.innerText = "✅ تم تحميل الصورة!";
+        } catch (err) { statusMsg.innerText = "❌ فشل التحميل"; }
+      }
+
+      function scanBarcodeFromImage(imageFile) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+              const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+              canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0);
+              Quagga.decodeSingle({
+                src: canvas.toDataURL('image/png'), numOfWorkers: 0, inputStream: { size: 800 },
+                decoder: { readers: ['code_128_reader','ean_reader','ean_8_reader','code_39_reader','code_93_reader','upc_reader','upc_e_reader','codabar_reader'] }
+              }, function(result) {
+                if (result && result.codeResult) resolve({ type: 'barcode', data: result.codeResult.code });
+                else reject(new Error('لم يتم العثور على باركود في الصورة'));
+              });
+            };
+            img.onerror = () => reject(new Error('فشل تحميل الصورة')); img.src = e.target.result;
+          };
+          reader.onerror = () => reject(new Error('فشل قراءة الملف')); reader.readAsDataURL(imageFile);
+        });
+      }
+
+      function scanQRFromImage(imageFile) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+              const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+              canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0);
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "dontInvert" });
+              if (code) resolve({ type: 'qr', data: code.data }); else reject(new Error('لم يتم العثور على رمز QR في الصورة'));
+            };
+            img.onerror = () => reject(new Error('فشل تحميل الصورة')); img.src = e.target.result;
+          };
+          reader.onerror = () => reject(new Error('فشل قراءة الملف')); reader.readAsDataURL(imageFile);
+        });
+      }
+
+      async function handleImageUpload(file) {
+        if (!file) return;
+        scanResultDiv.style.display = 'block'; scanResultDiv.className = 'scan-result';
+        scanResultDiv.innerHTML = '<p>⏳ جاري مسح الصورة...</p>';
+        
+        try {
+          let result = null; let qrError = null;
+          try { result = await scanQRFromImage(file); } catch (err) { qrError = err; }
+          if (!result) {
+            try { result = await scanBarcodeFromImage(file); } catch (err) { if (!qrError) throw err; throw new Error('لم يتم العثور على باركود أو رمز QR'); }
+          }
+          
+          if (result) {
+            scanResultDiv.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <strong>✅ تم العثور على ${result.type === 'qr' ? 'رمز QR' : 'باركود'}:</strong><br/>
+                  <code style="background: var(--input-bg); padding: 6px; display: inline-block; margin-top: 6px; border-radius: 4px; word-break: break-all;">${result.data}</code>
+                </div>
+                <button id="useScannedValue" class="btn accent" style="padding: 6px 12px; height: 28px; font-size: 11px;">📋 استخدام</button>
+              </div>
+            `;
+            const useBtn = document.getElementById('useScannedValue');
+            if (useBtn) {
+              useBtn.onclick = () => {
+                textInput.value = result.data; generateCode();
+                scanResultDiv.style.display = 'none'; statusMsg.innerText = '✅ تم تعبئة النص تلقائياً';
+              };
+            }
+          }
+        } catch (err) {
+          scanResultDiv.innerHTML = `<div><strong>❌ فشل المسح:</strong><br/><span style="font-size: 11px;">${err.message}</span></div>`;
+          scanResultDiv.className = 'scan-result error';
+        }
+      }
+
+      function resetToExample() { textInput.value = "Amir"; generateCode(); }
+      function switchMode(mode) { currentMode = mode; setUIMode(mode); generateCode(); }
+
+      generateBtn.addEventListener("click", (e) => { e.preventDefault(); generateCode(); });
+      downloadBtn.addEventListener("click", (e) => { e.preventDefault(); downloadAsPNG(); });
+      resetBtn.addEventListener("click", () => { resetToExample(); });
+
+      radioBarcode.addEventListener("change", function () { if (this.checked && currentMode !== "barcode") { switchMode("barcode"); updateActiveStyle(); } });
+      radioQR.addEventListener("change", function () { if (this.checked && currentMode !== "qr") { switchMode("qr"); updateActiveStyle(); } });
+
+      document.querySelectorAll(".type-option").forEach((opt) => {
+        opt.addEventListener("click", () => {
+          const radio = opt.querySelector("input");
+          if (radio && !radio.checked) radio.click();
+        });
+      });
+
+      uploadArea.addEventListener("click", () => { imageUpload.click(); });
+      imageUpload.addEventListener("change", (e) => { if (e.target.files && e.target.files[0]) handleImageUpload(e.target.files[0]); });
+      
+      uploadArea.addEventListener("dragover", (e) => { e.preventDefault(); uploadArea.style.borderColor = "var(--accent)"; });
+      uploadArea.addEventListener("dragleave", (e) => { e.preventDefault(); uploadArea.style.borderColor = "var(--border)"; });
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault(); uploadArea.style.borderColor = "var(--border)";
+        const files = e.dataTransfer.files; if (files && files[0]) handleImageUpload(files[0]);
+      });
+
+      textInput.addEventListener("keypress", (e) => { if (e.key === "Enter") generateCode(); });
+
+      async function init() {
+        updateActiveStyle(); currentMode = "qr"; setUIMode("qr");
+        await generateQRCode("https://codeae-85.web.app/Control_Excel.html");
+        statusMsg.innerText = "🔍 تم اكتشاف رابط — استخدام رمز QR للمسح الأمثل";
+      }
+      init();
+    })();
+  </script>
+</body>
+</html>
