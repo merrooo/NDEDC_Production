@@ -3,130 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local IP Finder</title>
+    <title>Local IP & Network Speed Test</title>
     <style>
-        /* THEME VARIABLES */
         [data-theme="dark"] {
-            --bg: transparent;
-            --card: rgba(21, 28, 44, 0.75); 
-            --accent: #38BDF8;
-            --accent-hover: #0EA5E9;
-            --success: #10B981;
-            --danger: #EF4444;
-            --text-main: #F8FAFC;
-            --text-sub: #94A3B8;
-            --border: rgba(30, 41, 59, 0.8);
-            --input-bg: rgba(7, 10, 18, 0.6);
+            --bg: transparent; --card: rgba(21, 28, 44, 0.75);
+            --accent: #38BDF8; --accent-hover: #0EA5E9;
+            --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
+            --text-main: #F8FAFC; --text-sub: #94A3B8;
+            --border: rgba(30, 41, 59, 0.8); --input-bg: rgba(7, 10, 18, 0.6);
             --matrix-color: #0F0;
         }
-
         [data-theme="light"] {
-            --bg: transparent;
-            --card: #FFFFFF;
-            --accent: #0284C7;
-            --accent-hover: #0369A1;
-            --success: #059669;
-            --danger: #DC2626;
-            --text-main: #111827;
-            --text-sub: #526174;
-            --border: #E2E8F0;
-            --input-bg: #F8FAFC;
+            --bg: transparent; --card: #FFFFFF;
+            --accent: #0284C7; --accent-hover: #0369A1;
+            --success: #059669; --danger: #DC2626; --warning: #D97706;
+            --text-main: #111827; --text-sub: #526174;
+            --border: #E2E8F0; --input-bg: #F8FAFC;
             --matrix-color: #047857;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-
         body {
-            background: var(--bg);
-            color: var(--text-main);
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden; /* Prevents scrollbars */
-            user-select: none;
+            background: var(--bg); color: var(--text-main);
+            min-height: 100vh; width: 100vw;
+            overflow: hidden; user-select: none;
         }
-
-        #matrixCanvas {
-            position: fixed; inset: 0;
-            width: 100vw; height: 100vh;
-            z-index: 0; opacity: 0.15; pointer-events: none;
-        }
-
+        #matrixCanvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; opacity: 0.15; pointer-events: none; }
         .main-container {
-            position: relative; z-index: 1; 
-            height: 100%; width: 100%;
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center;
-            padding: 20px;
-            gap: 20px;
+            position: relative; z-index: 1; height: 100%; width: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; gap: 16px; overflow-y: auto;
         }
-
-        /* Theme Toggle */
-        .theme-toggle {
-            position: absolute; top: 10px; right: 10px;
-        }
+        .theme-toggle { position: absolute; top: 10px; right: 10px; }
         select.btn {
             padding: 0 8px; outline: none; cursor: pointer; font-size: 11px;
             background: var(--input-bg); color: var(--text-main);
             border: 1px solid var(--border); border-radius: 6px; height: 26px;
         }
-
-        /* IP Display Box */
-        .ip-card {
-            background: var(--card);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 30px;
-            width: 100%;
-            max-width: 450px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
-            text-align: center;
+        .ip-card, .speed-card {
+            background: var(--card); backdrop-filter: blur(10px);
+            border: 1px solid var(--border); border-radius: 12px;
+            padding: 22px; width: 100%; max-width: 500px;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); text-align: center;
         }
-
         .title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 13px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px;
         }
-
         .ip-address {
-            font-family: 'Courier New', monospace;
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--text-main);
-            background: var(--input-bg);
-            padding: 15px 25px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            width: 100%;
-            word-break: break-all;
-            letter-spacing: 1px;
-            transition: color 0.3s;
+            font-family: 'Courier New', monospace; font-size: 24px; font-weight: 700;
+            color: var(--text-main); background: var(--input-bg);
+            padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border);
+            width: 100%; word-break: break-all; letter-spacing: 1px; transition: color 0.3s;
+            user-select: text; -webkit-user-select: text;
         }
-
-        .ip-address.loading { color: var(--text-sub); font-size: 20px; }
+        .ip-address.loading { color: var(--text-sub); font-size: 18px; }
         .ip-address.success { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-
+        .ip-address.danger  { color: var(--danger); }
+        .ip-row { display: flex; gap: 8px; width: 100%; }
+        .ip-row .ip-address { flex: 1; }
         .btn {
             font-size: 13px; font-weight: 700; height: 40px; padding: 0 20px;
             border: 1px solid var(--border); border-radius: 6px;
-            background: var(--accent); color: #fff;
-            cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            width: 100%;
+            background: var(--accent); color: #fff; cursor: pointer;
+            transition: 0.15s; display: inline-flex; align-items: center;
+            justify-content: center; gap: 8px; width: 100%;
         }
         .btn:hover { background: var(--accent-hover); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm {
+            height: 40px; width: 44px; padding: 0;
+            font-size: 16px;
+        }
+        .status-msg { font-size: 12px; color: var(--text-sub); min-height: 18px; }
 
-        .status-msg {
-            font-size: 12px;
+        /* ===== Speed Test Card ===== */
+        .speed-header {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; gap: 10px;
+        }
+        .speed-title {
+            font-size: 13px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .speed-ping {
+            font-size: 11px; font-weight: 700;
+            padding: 4px 10px; border-radius: 20px;
+            background: var(--input-bg); border: 1px solid var(--border);
             color: var(--text-sub);
-            min-height: 18px;
+            font-family: 'Courier New', monospace;
+        }
+        .speed-ping.live { color: var(--success); border-color: var(--success); }
+
+        .speed-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+        .speed-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 12px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            position: relative; overflow: hidden;
+            transition: border-color 0.3s;
+            user-select: text; -webkit-user-select: text;
+        }
+        .speed-box.active { border-color: var(--accent); }
+        .speed-box.done { border-color: var(--success); }
+
+        .speed-icon { font-size: 20px; line-height: 1; }
+        .speed-label {
+            font-size: 10px; font-weight: 700; color: var(--text-sub);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;
+        }
+        .speed-value {
+            font-family: 'Courier New', monospace;
+            font-size: 36px; font-weight: 800; line-height: 1;
+            color: var(--text-main); transition: color 0.3s;
+            letter-spacing: -1px;
+        }
+        .speed-value.loading { color: var(--text-sub); font-size: 28px; }
+        .speed-value.success { color: var(--success); text-shadow: 0 0 12px rgba(16,185,129,0.4); }
+        .speed-value.danger  { color: var(--danger); }
+        .speed-unit {
+            font-size: 11px; font-weight: 700; color: var(--text-sub);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .speed-sub {
+            font-family: 'Courier New', monospace;
+            font-size: 11px; color: var(--text-sub);
+            margin-top: 4px;
+        }
+        .speed-bar {
+            width: 100%; height: 3px; border-radius: 2px;
+            background: var(--border); overflow: hidden;
+            margin-top: 8px;
+        }
+        .speed-bar-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transition: width 0.15s linear;
+        }
+        .speed-box.active .speed-bar-fill {
+            background: linear-gradient(90deg, var(--accent), var(--success), var(--accent));
+            background-size: 200% 100%;
+            animation: shimmer 1.5s linear infinite;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 0% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .copy-toast {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--success); color: #fff;
+            padding: 10px 20px; border-radius: 8px;
+            font-size: 13px; font-weight: 700;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 9999;
+        }
+        .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .copy-toast.error { background: var(--danger); }
+        .copy-toast.warning { background: var(--warning); }
+
+        @media (max-width: 420px) {
+            .speed-grid { grid-template-columns: 1fr; }
+            .speed-value { font-size: 32px; }
         }
     </style>
 </head>
@@ -141,51 +187,77 @@
             </select>
         </div>
 
+        <!-- IP Card -->
         <div class="ip-card">
-            <div class="title">📡 Your Local IP Address</div>
-            
-            <div class="ip-address loading" id="ipDisplay">Waiting to scan...</div>
-            
-            <button class="btn" id="scanBtn">
-                <span>🔍</span> Scan Network
-            </button>
-            
-            <div class="status-msg" id="statusMsg">Click scan to find your IPv4 address</div>
+            <div class="title">📡 Your Network Address</div>
+            <div class="ip-row">
+                <div class="ip-address loading" id="ipDisplay">Waiting to scan...</div>
+                <button class="btn btn-sm" id="copyIpBtn" title="Copy IP">📋</button>
+            </div>
+            <button class="btn" id="scanBtn"><span>🔍</span> Scan Network</button>
+            <div class="status-msg" id="statusMsg">Trying multiple detection methods…</div>
+        </div>
+
+        <!-- Speed Test Card -->
+        <div class="speed-card">
+            <div class="speed-header">
+                <div class="speed-title">⚡ Network Speed Test</div>
+                <div class="speed-ping" id="pingDisplay">Ping: —</div>
+            </div>
+
+            <div class="speed-grid">
+                <div class="speed-box" id="downloadBox">
+                    <div class="speed-icon">⬇️</div>
+                    <div class="speed-label">Download</div>
+                    <div class="speed-value" id="downloadValue">—</div>
+                    <div class="speed-unit">Mbps</div>
+                    <div class="speed-sub" id="downloadSub">— MB/s</div>
+                    <div class="speed-bar"><div class="speed-bar-fill" id="downloadBar"></div></div>
+                </div>
+                <div class="speed-box" id="uploadBox">
+                    <div class="speed-icon">⬆️</div>
+                    <div class="speed-label">Upload</div>
+                    <div class="speed-value" id="uploadValue">—</div>
+                    <div class="speed-unit">Mbps</div>
+                    <div class="speed-sub" id="uploadSub">— MB/s</div>
+                    <div class="speed-bar"><div class="speed-bar-fill" id="uploadBar"></div></div>
+                </div>
+            </div>
+
+            <button class="btn" id="speedTestBtn">🚀 Start Speed Test</button>
+            <div class="status-msg" id="speedStatus">Click to test download &amp; upload speed</div>
         </div>
     </div>
 
+    <div class="copy-toast" id="copyToast">✅ Copied!</div>
+
     <script>
         // ==========================================
-        // 1. THEME & MATRIX MANAGER
+        // THEME & MATRIX
         // ==========================================
         const themeSelect = document.getElementById('themeSelect');
         themeSelect.addEventListener('change', (e) => {
             document.documentElement.setAttribute('data-theme', e.target.value);
             updateMatrixColor();
         });
-
         const canvas = document.getElementById('matrixCanvas');
         const ctx = canvas.getContext('2d');
         let matrixColor = '#0F0';
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        let columns = Math.floor(width / 20);
-        let drops = [];
+        let width = window.innerWidth, height = window.innerHeight;
+        let columns = Math.floor(width / 20), drops = [];
 
         function updateMatrixColor() {
             matrixColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#0F0' : '#047857';
         }
-
         function initMatrix() {
             width = window.innerWidth; height = window.innerHeight;
             canvas.width = width; canvas.height = height;
             columns = Math.floor(width / 20); drops = Array(columns).fill(1);
             updateMatrixColor();
         }
-
         const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         function drawMatrix() {
-            ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' 
+            ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light'
                 ? "rgba(244, 247, 251, 0.1)" : "rgba(11, 15, 25, 0.05)";
             ctx.fillRect(0, 0, width, height);
             ctx.fillStyle = matrixColor; ctx.font = "15px monospace";
@@ -198,81 +270,349 @@
         initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', initMatrix);
 
         // ==========================================
-        // 2. LOCAL IP SCANNER (Replaces .bat logic)
+        // HELPERS
+        // ==========================================
+        const copyToast = document.getElementById('copyToast');
+        function showToast(msg, type = '') {
+            copyToast.textContent = msg;
+            copyToast.className = 'copy-toast show' + (type ? ' ' + type : '');
+            clearTimeout(copyToast._t);
+            copyToast._t = setTimeout(() => copyToast.classList.remove('show'), 2000);
+        }
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy'); ta.remove();
+                }
+                return true;
+            } catch (e) { return false; }
+        }
+        const isIP = s => /^\d{1,3}(\.\d{1,3}){3}$/.test(s);
+
+        // ==========================================
+        // IP DETECTION
         // ==========================================
         const ipDisplay = document.getElementById('ipDisplay');
         const scanBtn = document.getElementById('scanBtn');
         const statusMsg = document.getElementById('statusMsg');
+        const copyIpBtn = document.getElementById('copyIpBtn');
+        let currentIP = '';
 
-        // WebRTC IP finder logic
-        function getLocalIP(callback) {
-            const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-            const pc = new RTCPeerConnection({ iceServers: [] });
-            const noop = () => {};
-            const localIPs = {};
-            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
-            
-            pc.createDataChannel('');
-            pc.createOffer().then((offer) => pc.setLocalDescription(offer)).catch(noop);
-
-            pc.onicecandidate = (ice) => {
-                if (!ice || !ice.candidate || !ice.candidate.candidate) {
-                    pc.close();
-                    // Filter out loopback and sort
-                    const ips = Object.keys(localIPs).filter(ip => !ip.startsWith('127.') && !ip.startsWith('0.'));
-                    if (ips.length > 0) {
-                        // Prefer standard IPv4 over mDNS
-                        const ipv4 = ips.find(ip => ipRegex.test(ip));
-                        callback(ipv4 || ips[0]);
-                    } else {
-                        callback(null);
-                    }
-                    return;
-                }
-                
-                // Extract IP from candidate string
-                const parts = ice.candidate.candidate.split(' ');
-                let ip = parts[4];
-                
-                // Handle Chrome's mDNS privacy feature (e.g., 1234-5678.local)
-                if (ip && (ipRegex.test(ip) || ip.endsWith('.local'))) {
-                    localIPs[ip] = true;
-                }
-            };
+        async function tryPublicAPIs() {
+            const endpoints = [
+                { url: 'https://api.ipify.org?format=json',   key: 'ip' },
+                { url: 'https://api64.ipify.org?format=json', key: 'ip' },
+                { url: 'https://ipapi.co/json/',              key: 'ip' },
+                { url: 'https://ipwho.is/',                   key: 'ip' },
+                { url: 'https://api.my-ip.io/v2/ip.json',     key: 'ip' },
+                { url: 'https://ifconfig.me/all.json',        key: 'ip_addr' },
+            ];
+            for (const ep of endpoints) {
+                try {
+                    const ctrl = new AbortController();
+                    const to = setTimeout(() => ctrl.abort(), 2500);
+                    const res = await fetch(ep.url, { signal: ctrl.signal, cache: 'no-store' });
+                    clearTimeout(to);
+                    if (!res.ok) continue;
+                    const j = await res.json();
+                    const ip = j && j[ep.key];
+                    if (ip && isIP(ip)) return ip;
+                } catch (e) {}
+            }
+            return null;
         }
 
-        function scanNetwork() {
-            ipDisplay.textContent = 'Scanning...';
+        function trySTUN() {
+            return new Promise((resolve) => {
+                let done = false;
+                const finish = ip => { if (!done) { done = true; resolve(ip); } };
+                try {
+                    const pc = new RTCPeerConnection({
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun.cloudflare.com:3478' },
+                        ]
+                    });
+                    const found = {};
+                    pc.createDataChannel('');
+                    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => finish(null));
+                    pc.onicecandidate = (e) => {
+                        if (!e || !e.candidate) {
+                            try { pc.close(); } catch (err) {}
+                            finish(Object.keys(found)[0] || null);
+                            return;
+                        }
+                        const c = e.candidate;
+                        if (c.type === 'srflx' && c.address && isIP(c.address)) found[c.address] = true;
+                    };
+                    setTimeout(() => { if (!done) { try { pc.close(); } catch (err) {} finish(null); } }, 4000);
+                } catch (e) { finish(null); }
+            });
+        }
+
+        async function scanIP() {
+            ipDisplay.textContent = 'Scanning…';
             ipDisplay.className = 'ip-address loading';
-            statusMsg.textContent = 'Please wait...';
+            statusMsg.textContent = 'Querying public IP APIs…';
             scanBtn.disabled = true;
 
-            // Simulated slight delay for UX
-            setTimeout(() => {
-                getLocalIP((ip) => {
-                    scanBtn.disabled = false;
-                    
-                    if (ip) {
-                        ipDisplay.textContent = ip;
-                        ipDisplay.className = 'ip-address success';
-                        statusMsg.textContent = '✅ IP Address found successfully!';
-                        
-                        if (ip.endsWith('.local')) {
-                            statusMsg.textContent = '⚠️ Modern browser privacy is masking your IP (mDNS).';
-                        }
-                    } else {
-                        ipDisplay.textContent = 'Not Found';
-                        ipDisplay.className = 'ip-address danger';
-                        statusMsg.textContent = '❌ Could not find IP. Check your connection.';
-                    }
-                });
-            }, 500);
+            const api = await tryPublicAPIs();
+            if (api) {
+                currentIP = api;
+                ipDisplay.textContent = api;
+                ipDisplay.className = 'ip-address success';
+                statusMsg.textContent = '✅ IP Address found successfully!';
+                scanBtn.disabled = false;
+                return;
+            }
+            statusMsg.textContent = 'API failed — trying STUN…';
+            const stun = await trySTUN();
+            if (stun) {
+                currentIP = stun;
+                ipDisplay.textContent = stun;
+                ipDisplay.className = 'ip-address success';
+                statusMsg.textContent = '✅ IP Address found via STUN';
+                scanBtn.disabled = false;
+                return;
+            }
+            currentIP = '';
+            ipDisplay.textContent = 'Not Found';
+            ipDisplay.className = 'ip-address danger';
+            statusMsg.textContent = '❌ Could not detect IP. Check your connection.';
+            scanBtn.disabled = false;
+        }
+        scanBtn.addEventListener('click', scanIP);
+        copyIpBtn.addEventListener('click', async () => {
+            if (!currentIP) { showToast('⚠️ No IP to copy', 'warning'); return; }
+            const ok = await copyToClipboard(currentIP);
+            showToast(ok ? `✅ Copied: ${currentIP}` : '❌ Copy failed', ok ? '' : 'error');
+        });
+
+        // ==========================================
+        // SPEED TEST
+        // ==========================================
+        const pingDisplay   = document.getElementById('pingDisplay');
+        const downloadValue = document.getElementById('downloadValue');
+        const downloadSub   = document.getElementById('downloadSub');
+        const downloadBar   = document.getElementById('downloadBar');
+        const downloadBox   = document.getElementById('downloadBox');
+        const uploadValue   = document.getElementById('uploadValue');
+        const uploadSub     = document.getElementById('uploadSub');
+        const uploadBar     = document.getElementById('uploadBar');
+        const uploadBox     = document.getElementById('uploadBox');
+        const speedTestBtn  = document.getElementById('speedTestBtn');
+        const speedStatus   = document.getElementById('speedStatus');
+
+        let isTesting = false;
+        let peakDownload = 0;
+        let peakUpload = 0;
+
+        function setSpeedValue(elValue, elSub, elBar, mbps) {
+            if (mbps <= 0) return;
+            elValue.textContent = mbps.toFixed(1);
+            elValue.className = 'speed-value success';
+            elSub.textContent = (mbps / 8).toFixed(2) + ' MB/s';
+            // Bar: fill relative to 100 Mbps baseline, capped at 100%
+            const pct = Math.min((mbps / 100) * 100, 100);
+            elBar.style.width = pct + '%';
         }
 
-        scanBtn.addEventListener('click', scanNetwork);
-        
-        // Auto scan on load (like the .bat file would run immediately)
-        window.addEventListener('DOMContentLoaded', scanNetwork);
+        function resetSpeedUI() {
+            downloadValue.textContent = '—';
+            downloadValue.className = 'speed-value';
+            downloadSub.textContent = '— MB/s';
+            downloadBar.style.width = '0%';
+            downloadBox.classList.remove('active', 'done');
+            uploadValue.textContent = '—';
+            uploadValue.className = 'speed-value';
+            uploadSub.textContent = '— MB/s';
+            uploadBar.style.width = '0%';
+            uploadBox.classList.remove('active', 'done');
+            pingDisplay.textContent = 'Ping: —';
+            pingDisplay.classList.remove('live');
+            peakDownload = 0;
+            peakUpload = 0;
+        }
+
+        // ---------- Ping ----------
+        async function measurePing() {
+            const times = [];
+            for (let i = 0; i < 5; i++) {
+                const start = performance.now();
+                try {
+                    await fetch('https://speed.cloudflare.com/__down?bytes=0', {
+                        cache: 'no-store', mode: 'cors'
+                    });
+                    times.push(performance.now() - start);
+                } catch (e) {}
+            }
+            if (!times.length) return null;
+            times.sort((a, b) => a - b);
+            const trimmed = times.length >= 5 ? times.slice(1, -1) : times;
+            return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+        }
+
+        // ---------- Download ----------
+        async function testDownload(bytes, onProgress) {
+            const url = `https://speed.cloudflare.com/__down?bytes=${bytes}`;
+            const start = performance.now();
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) return 0;
+
+                const reader = res.body.getReader();
+                let totalBytes = 0, lastBytes = 0, lastTime = start;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    totalBytes += value.byteLength;
+                    const now = performance.now();
+                    const dt = (now - lastTime) / 1000;
+                    if (dt >= 0.15) {
+                        const instMbps = ((totalBytes - lastBytes) * 8) / dt / 1e6;
+                        onProgress(instMbps);
+                        lastBytes = totalBytes;
+                        lastTime = now;
+                    }
+                }
+
+                const elapsed = (performance.now() - start) / 1000;
+                return (totalBytes * 8) / elapsed / 1e6;
+            } catch (e) { return 0; }
+        }
+
+        // ---------- Upload ----------
+        function testUpload(sizeBytes, onProgress) {
+            return new Promise((resolve) => {
+                const data = new Uint8Array(sizeBytes);
+                // Fill with random data (in 64KB chunks, crypto limit)
+                const chunk = Math.min(sizeBytes, 65536);
+                for (let i = 0; i < sizeBytes; i += chunk) {
+                    crypto.getRandomValues(data.subarray(i, Math.min(i + chunk, sizeBytes)));
+                }
+
+                const xhr = new XMLHttpRequest();
+                const start = performance.now();
+                let lastLoaded = 0, lastTime = start;
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    const now = performance.now();
+                    const dt = (now - lastTime) / 1000;
+                    if (dt >= 0.15) {
+                        const instMbps = ((e.loaded - lastLoaded) * 8) / dt / 1e6;
+                        onProgress(instMbps);
+                        lastLoaded = e.loaded;
+                        lastTime = now;
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    const elapsed = (performance.now() - start) / 1000;
+                    const mbps = (sizeBytes * 8) / elapsed / 1e6;
+                    resolve(xhr.status >= 200 && xhr.status < 300 ? mbps : 0);
+                });
+                xhr.addEventListener('error', () => resolve(0));
+                xhr.addEventListener('abort', () => resolve(0));
+
+                xhr.open('POST', 'https://speed.cloudflare.com/__up');
+                xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+                xhr.send(data);
+            });
+        }
+
+        // ---------- Orchestrator ----------
+        async function runSpeedTest() {
+            if (isTesting) return;
+            isTesting = true;
+            speedTestBtn.disabled = true;
+            speedTestBtn.textContent = '⏳ Testing…';
+            resetSpeedUI();
+
+            try {
+                // 1. Ping
+                speedStatus.textContent = '📡 Measuring ping…';
+                const ping = await measurePing();
+                if (ping !== null) {
+                    pingDisplay.textContent = `Ping: ${Math.round(ping)} ms`;
+                    pingDisplay.classList.add('live');
+                } else {
+                    pingDisplay.textContent = 'Ping: failed';
+                }
+
+                // 2. Download
+                speedStatus.textContent = '⬇️ Testing download speed…';
+                downloadBox.classList.add('active');
+                downloadValue.textContent = '0';
+                downloadValue.className = 'speed-value loading';
+
+                // Adaptive: 10MB first, then 25MB if very fast
+                let dlMbps = await testDownload(10 * 1024 * 1024, (mbps) => {
+                    peakDownload = Math.max(peakDownload, mbps);
+                    setSpeedValue(downloadValue, downloadSub, downloadBar, mbps);
+                });
+                if (dlMbps > 100) {
+                    // Very fast — do a bigger run for accuracy
+                    const dl2 = await testDownload(25 * 1024 * 1024, (mbps) => {
+                        peakDownload = Math.max(peakDownload, mbps);
+                        setSpeedValue(downloadValue, downloadSub, downloadBar, mbps);
+                    });
+                    dlMbps = Math.max(dlMbps, dl2);
+                }
+
+                downloadValue.textContent = dlMbps.toFixed(1);
+                downloadValue.className = dlMbps > 0 ? 'speed-value success' : 'speed-value danger';
+                downloadSub.textContent = dlMbps > 0 ? (dlMbps / 8).toFixed(2) + ' MB/s' : 'failed';
+                downloadBar.style.width = Math.min((dlMbps / 100) * 100, 100) + '%';
+                downloadBox.classList.remove('active');
+                downloadBox.classList.add('done');
+
+                // 3. Upload
+                speedStatus.textContent = '⬆️ Testing upload speed…';
+                uploadBox.classList.add('active');
+                uploadValue.textContent = '0';
+                uploadValue.className = 'speed-value loading';
+
+                const upMbps = await testUpload(5 * 1024 * 1024, (mbps) => {
+                    peakUpload = Math.max(peakUpload, mbps);
+                    setSpeedValue(uploadValue, uploadSub, uploadBar, mbps);
+                });
+
+                uploadValue.textContent = upMbps.toFixed(1);
+                uploadValue.className = upMbps > 0 ? 'speed-value success' : 'speed-value danger';
+                uploadSub.textContent = upMbps > 0 ? (upMbps / 8).toFixed(2) + ' MB/s' : 'failed';
+                uploadBar.style.width = Math.min((upMbps / 100) * 100, 100) + '%';
+                uploadBox.classList.remove('active');
+                uploadBox.classList.add('done');
+
+                // Done
+                speedStatus.textContent = `✅ Done — ↓ ${dlMbps.toFixed(1)} Mbps  ⬆ ${upMbps.toFixed(1)} Mbps`;
+                speedTestBtn.textContent = '🔄 Test Again';
+            } catch (err) {
+                console.error(err);
+                speedStatus.textContent = '❌ Test failed. Check connection.';
+                speedTestBtn.textContent = '🔄 Retry';
+            } finally {
+                isTesting = false;
+                speedTestBtn.disabled = false;
+            }
+        }
+
+        speedTestBtn.addEventListener('click', runSpeedTest);
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            scanIP();
+            // Note: speed test NOT auto-run (bandwidth-heavy) — user clicks the button
+        });
     </script>
 </body>
 </html>

@@ -395,7 +395,8 @@
                         <option value="balance_cst">🧾 باقى المشتركين</option>
                     </select>
                     <select id="periodSelector" style="min-width: 320px;">
-                        <option value="auto_map" selected>🔄 توزيع تلقائي ذكي (مطابقة السعر حسب تاريخ الشهر تلقائياً)</option>
+                        <option value="auto_map" selected>🔄 توزيع تلقائي ذكي (مطابقة السعر حسب تاريخ الشهر تلقائياً)
+                        </option>
                         <option value="01/04/2026">التعريفة الجديدة من تاريخ (1/4/2026)</option>
                         <option value="1/8/2024-31/3/2026">التعريفة 2024/8-2026/3 بداية من (1/8/2024)</option>
                         <option value="1/1/2024-31/7/2024">التعريفة 2024/1-2024/7 بداية من (1/1/2024)</option>
@@ -477,34 +478,44 @@
     </div>
 
     <script>
+        // ══════════════════════════════════════════════════════════════════════════
+        // Residential slabs are cumulative-incremental:
+        //   ش1 (0-50)     → 50 units
+        //   ش2 (51-100)   → 50 units
+        //   ش3 (101-200)  → 100 units  ← renamed for clarity
+        //   ش4 (201-350)  → 150 units
+        //   ش5 (351-650)  → 300 units
+        //   ش6 (651-1000) → 350 units
+        //   ش7 (1001+)    → unlimited
+        // ══════════════════════════════════════════════════════════════════════════
         const TARIFF_CONFIGS = {
             "01/04/2026": {
                 residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.65, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 2.10, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 2.23, s: 40, extraDiff: 170 }
+                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 3, extraDiff: 0 },
+                    { label: "ش2 (51-100)", limit: 50, p: 0.98, s: 6, extraDiff: 0 },
+                    { label: "ش3 (101-200)", limit: 100, p: 1.15, s: 12, extraDiff: 32 },
+                    { label: "ش4 (201-350)", limit: 150, p: 1.73, s: 20, extraDiff: 0 },
+                    { label: "ش5 (351-650)", limit: 300, p: 2.14, s: 30, extraDiff: 0 },
+                    { label: "ش6 (651-1000)", limit: 350, p: 2.41, s: 60, extraDiff: 435 },
+                    { label: "ش7 (1001+)", limit: Infinity, p: 2.74, s: 100, extraDiff: 330 }
                 ],
                 commercial: [
                     { label: "ش1 (0-100)", limit: 100, p: 1.62, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 2.16, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 2.64, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 2.74, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 2.79, s: 40, extraDiff: 140 }
+                    { label: "ش2 (0-250)", limit: 150, p: 2.16, s: 15, extraDiff: 54 },
+                    { label: "ش3 (0-600)", limit: 350, p: 2.64, s: 20, extraDiff: 120 },
+                    { label: "ش4 (601-1000)", limit: 400, p: 2.74, s: 25, extraDiff: 60 },
+                    { label: "ش5 (1001+)", limit: Infinity, p: 2.79, s: 40, extraDiff: 50 }
                 ],
-                farmer: [{ label: "الري", limit: Infinity, p: 2.15, s: 4, extraDiff: 0 }],
+                farmer: [{ label: "الري", limit: Infinity, p: 2.65, s: 4, extraDiff: 0 }],
                 factory: [{ label: "قوى محركة", limit: Infinity, p: 2.74, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.34, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }]
+                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.74, s: 4, extraDiff: 0 }],
+                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.74, s: 15, extraDiff: 0 }]
             },
             "1/8/2024-31/3/2026": {
                 residential: [
                     { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
                     { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
+                    { label: "ش3 (101-200)", limit: 100, p: 0.95, s: 6, extraDiff: 24 },
                     { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
                     { label: "ش5 (351-650)", limit: 300, p: 1.95, s: 15, extraDiff: 0 },
                     { label: "ش6 (651-1000)", limit: 350, p: 2.1, s: 25, extraDiff: 135 },
@@ -526,7 +537,7 @@
                 residential: [
                     { label: "ش1 (0-50)", limit: 50, p: 0.58, s: 1, extraDiff: 0 },
                     { label: "ش2 (51-100)", limit: 50, p: 0.68, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.83, s: 6, extraDiff: 24 },
+                    { label: "ش3 (101-200)", limit: 100, p: 0.83, s: 6, extraDiff: 24 },
                     { label: "ش4 (201-350)", limit: 150, p: 1.25, s: 11, extraDiff: 0 },
                     { label: "ش5 (351-650)", limit: 300, p: 1.40, s: 15, extraDiff: 0 },
                     { label: "ش6 (651-1000)", limit: 350, p: 1.5, s: 25, extraDiff: 135 },
@@ -548,7 +559,7 @@
                 residential: [
                     { label: "ش1 (0-50)", limit: 50, p: 0.48, s: 1, extraDiff: 0 },
                     { label: "ش2 (51-100)", limit: 50, p: 0.58, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.77, s: 6, extraDiff: 24 },
+                    { label: "ش3 (101-200)", limit: 100, p: 0.77, s: 6, extraDiff: 24 },
                     { label: "ش4 (201-350)", limit: 150, p: 1.06, s: 11, extraDiff: 0 },
                     { label: "ش5 (351-650)", limit: 300, p: 1.28, s: 15, extraDiff: 0 },
                     { label: "ش6 (651-1000)", limit: 350, p: 1.28, s: 25, extraDiff: 135 },
@@ -570,7 +581,7 @@
                 residential: [
                     { label: "ش1 (0-50)", limit: 50, p: 0.38, s: 1, extraDiff: 0 },
                     { label: "ش2 (51-100)", limit: 50, p: 0.65, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.65, s: 6, extraDiff: 24 },
+                    { label: "ش3 (101-200)", limit: 100, p: 0.65, s: 6, extraDiff: 24 },
                     { label: "ش4 (201-350)", limit: 150, p: 0.96, s: 11, extraDiff: 0 },
                     { label: "ش5 (351-650)", limit: 300, p: 1.18, s: 15, extraDiff: 0 },
                     { label: "ش6 (651-1000)", limit: 350, p: 1.18, s: 25, extraDiff: 135 },
@@ -592,7 +603,7 @@
                 residential: [
                     { label: "ش1 (0-50)", limit: 50, p: 0.3, s: 1, extraDiff: 0 },
                     { label: "ش2 (51-100)", limit: 50, p: 0.4, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.5, s: 6, extraDiff: 24 },
+                    { label: "ش3 (101-200)", limit: 100, p: 0.5, s: 6, extraDiff: 24 },
                     { label: "ش4 (201-350)", limit: 150, p: 0.82, s: 11, extraDiff: 0 },
                     { label: "ش5 (351-650)", limit: 300, p: 1, s: 15, extraDiff: 0 },
                     { label: "ش6 (651-1000)", limit: 350, p: 1.4, s: 25, extraDiff: 135 },
@@ -633,14 +644,13 @@
             const y = parseInt(year); const m = parseInt(month);
             if (isNaN(y) || !m) return "01/04/2026";
             const dateRef = (y * 100) + m;
-
             if (dateRef >= 202604) return "01/04/2026";
             if (dateRef >= 202408 && dateRef <= 202603) return "1/8/2024-31/3/2026";
             if (dateRef >= 202401 && dateRef <= 202407) return "1/1/2024-31/7/2024";
             if (dateRef >= 202101 && dateRef <= 202312) return "1/1/2021-31/1/2023";
             if (dateRef >= 202001 && dateRef <= 202012) return "1/1/2020-31/12/2020";
             if (dateRef <= 201912) return "1/1/2019-31/12/2019";
-            return "01/04/2026"; 
+            return "01/04/2026";
         }
 
         function getEffectivePeriodKey(rec) {
@@ -683,7 +693,6 @@
                 seenConsumption.add(consValue);
                 return true;
             });
-
             const seenYearMonth = new Set();
             let phase2Data = phase1Data.filter(item => {
                 const ymKey = `${String(item.year).trim()}-${String(item.month).trim()}`;
@@ -726,7 +735,6 @@
                     statusHtml = `<span style="color: #e74c3c; font-weight:600;"><i class="fas fa-times-circle"></i> مكررة/فارغة</span>`;
                     rowStyle = "background-color: #fff5f5; color: #94a3b8;";
                 }
-                
                 tbody.innerHTML += `<tr style="${rowStyle}">
                     <td>${idx + 1}</td>
                     <td style="font-weight: 500;">${formatExcelDate(tr.dateRaw)}</td>
@@ -752,7 +760,6 @@
                         const cell = sheet[XLSX.utils.encode_cell({ r: range.s.r, c: C })];
                         headers.push(cell ? String(cell.v).trim() : "");
                     }
-
                     const isConsumption = headers.some(h => h.includes("كمية ك و س") || h.includes("ك و س") || h.includes("الاستهلاك") || h.includes("الكمية"));
                     const isTransactions = headers.some(h => h.includes("وقت و تاريخ العملية") || h.includes("التاريخ") || h.includes("تاريخ")) && headers.some(h => h.includes("قيمة العملية") || h.includes("القيمة") || h === "المبلغ");
 
@@ -845,13 +852,11 @@
                     originalDateRaw = cell ? cell.v : "";
                 }
 
-                // التحقق من شرط رقم الفاتورة (مكرر أو فارغ)
                 if (invoiceIdx !== -1) {
                     let invoiceCell = worksheet[XLSX.utils.encode_cell({ r: R, c: invoiceIdx })];
                     let invoiceVal = invoiceCell && invoiceCell.v !== undefined ? String(invoiceCell.v).trim() : "";
-                    
                     if (invoiceVal === "" || seenInvoices.has(invoiceVal)) {
-                        value = 0; // تصفير قيمة حقل "قيمة العملية"
+                        value = 0;
                         isRemoved = true;
                     } else {
                         seenInvoices.add(invoiceVal);
@@ -859,10 +864,7 @@
                 }
 
                 if (originalDateRaw) {
-                    // إضافة الحركة لجدول المعاينة (بحالتها الجديدة وقيمتها المصفرة إذا كانت مخالفة)
                     rawTransactionsForPreview.push({ dateRaw: originalDateRaw, value: value, isRemoved: isRemoved });
-                    
-                    // إذا لم تكن مكررة/فارغة، يتم تراكمها وحسابها في المجموع المالي للشهور
                     if (!isRemoved && value !== 0) {
                         const { year, month } = parseDateToYearMonth(originalDateRaw);
                         if (year && month) {
@@ -935,13 +937,10 @@
                 const periodKey = getEffectivePeriodKey(rec);
                 const kwh = rec.consumption;
                 const cost = calculateTariffCost(kwh, tariffType, periodKey);
-
                 const key = `${parseInt(rec.year)}-${parseInt(rec.month)}`;
                 processedKeys.add(key);
-
                 const transValue = groupedTransactions.has(key) ? groupedTransactions.get(key).totalValue : 0;
                 const diff = cost - transValue;
-
                 totalConsumption += kwh; totalCost += cost; totalTrans += transValue; totalDiff += diff;
 
                 tbody.innerHTML += `<tr>
@@ -953,11 +952,9 @@
 
             groupedTransactions.forEach((transRec, key) => {
                 if (!processedKeys.has(key)) {
-                    const kwh = 0;
-                    const cost = 0;
+                    const kwh = 0; const cost = 0;
                     const transValue = transRec.totalValue;
                     const diff = cost - transValue;
-
                     totalConsumption += kwh; totalCost += cost; totalTrans += transValue; totalDiff += diff;
 
                     tbody.innerHTML += `<tr class="missing-consumption">

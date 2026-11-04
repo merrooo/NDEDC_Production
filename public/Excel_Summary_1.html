@@ -20,42 +20,24 @@
             --xl-grid: #B4B4B4;
             --xl-text: #111111;
 
-            --brand-50: #eef2ff;
-            --brand-100: #e0e7ff;
-            --brand-200: #c7d2fe;
-            --brand-300: #a5b4fc;
-            --brand-500: #6366f1;
             --brand-600: #4f46e5;
-            --brand-700: #4338ca;
-            --brand-900: #312e81;
-            --success-50: #ecfdf5;
-            --success-100: #d1fae5;
-            --success-500: #10b981;
             --success-600: #059669;
-            --danger-50: #fef2f2;
-            --danger-100: #fee2e2;
             --danger-500: #ef4444;
             --danger-600: #dc2626;
-            --warning-50: #fffbeb;
-            --warning-100: #fef3c7;
             --warning-300: #fcd34d;
             --warning-500: #f59e0b;
             --warning-600: #d97706;
-            --slate-50: #f8fafc;
             --slate-100: #f1f5f9;
             --slate-200: #e2e8f0;
             --slate-300: #cbd5e1;
             --slate-400: #94a3b8;
-            --slate-500: #64748b;
             --slate-600: #475569;
             --slate-700: #334155;
             --slate-800: #1e293b;
             --slate-900: #0f172a;
             --radius-md: 10px;
             --radius-lg: 14px;
-            --radius-xl: 16px;
             --radius-full: 9999px;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, .05);
             --shadow-md: 0 2px 6px -1px rgba(15, 23, 42, .08);
             --transition: all .2s ease;
         }
@@ -600,7 +582,6 @@
                 <input type="file" id="actualFileInput" accept=".xlsx, .xls" style="display:none;">
                 <button id="uploadTargetBtn" class="btn btn-success">📊 2. رفع ملف (المستهدف)</button>
                 <input type="file" id="targetFileInput" accept=".xlsx, .xls" style="display:none;">
-                <button id="autoExportBtn" class="btn btn-warning">🚀 تصدير تلقائي </button>
                 <button id="resetBtn" class="btn btn-outline">🔄 إعادة تعيين</button>
             </div>
             <nav><a href="Control_Excel.html" class="back-link">Return to Home</a></nav>
@@ -801,7 +782,7 @@
                 if (el) el.textContent = map[k];
             });
             if (!selectedDates.has(map[0])) {
-                selectedDates.set(map[0], { label: 'اليوم', daysAgo: 0 });
+                selectedDates.set(map[0], { label: 'اليوم' });
             }
         }
 
@@ -922,7 +903,7 @@
             totals.dailyTarget = Math.round(totals.balanceTotal / DAILY_TARGET_DIVISOR);
 
             rows.sort((a, b) => a.sector.localeCompare(b.sector));
-            return { rows, totals, dateColumns, baseTypes };
+            return { rows, totals, dateColumns };
         }
 
         function updatePlanPreview(sum) {
@@ -1150,8 +1131,6 @@
                 data, rowTypes,
                 percentCol: 4,
                 dailyCol: 5,
-                a123Col: headers.length - 2,
-                allCol: headers.length - 1,
                 numCols: headers.length
             };
         }
@@ -1202,14 +1181,12 @@
                 data, rowTypes,
                 percentCol: 4,
                 dailyCol: 5,
-                a123Col: headers.length - 2,
-                allCol: headers.length - 1,
                 numCols: headers.length
             };
         }
 
         // ===== EXCEL STYLES =====
-        function applyExcelStyles(ws, rowTypes, percentCol, dailyCol, a123Col, allCol, numCols) {
+        function applyExcelStyles(ws, rowTypes, percentCol, dailyCol, numCols) {
             const range = XLSX.utils.decode_range(ws['!ref']);
             const border = {
                 top: { style: 'thin', color: { rgb: '999999' } },
@@ -1296,9 +1273,9 @@
 
         function downloadXLSX(exportData, filename) {
             if (!exportData) { showToast('⚠️ لا توجد بيانات للتصدير', 'warning'); return; }
-            const { data, rowTypes, percentCol, dailyCol, a123Col, allCol, numCols } = exportData;
+            const { data, rowTypes, percentCol, dailyCol, numCols } = exportData;
             const ws = XLSX.utils.aoa_to_sheet(data);
-            applyExcelStyles(ws, rowTypes, percentCol, dailyCol, a123Col, allCol, numCols);
+            applyExcelStyles(ws, rowTypes, percentCol, dailyCol, numCols);
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
@@ -1379,11 +1356,9 @@
             .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
             .replace(/[\u064B-\u065F\u0670]/g, '').replace(/\s+/g, ' ').trim();
 
-        // Added 'branch' / 'disco' / 'site' to match "Disco Branch"
         const SECTOR_KEYWORDS       = [['branch'], ['disco branch'], ['disco'], ['site'], ['قطاع'], ['موقع'], ['هندسه'], ['اداره'], ['منطقه'], ['فرع']];
         const TYPE_KEYWORDS         = [['type'], ['نوع'], ['حساب فرعي'], ['حساب'], ['فئه'], ['صنف']];
         const DATE_KEYWORDS         = [['date'], ['تاريخ التركيب'], ['تاريخ']];
-        // Added a4 / a5 variants to match "A4-A5"
         const TARGET_VALUE_KEYWORDS = [['a4-a5'], ['a4+a5'], ['a4 a5'], ['a4'], ['a5'], ['مستهدف'], ['target'], ['عدد'], ['قيمه'], ['كميه']];
 
         function pickColumn(headers, groups) {
@@ -1440,7 +1415,7 @@
             return '';
         }
 
-        // FIX: Auto-select columns immediately after each file upload
+        // Auto-select columns immediately after each file upload
         function autoSelectActualColumns() {
             let sectorIdx = pickColumn(headersActual, SECTOR_KEYWORDS);
             let typeIdx   = pickColumn(headersActual, TYPE_KEYWORDS);
@@ -1485,19 +1460,6 @@
             return { joinIdx, valIdx };
         }
 
-        function applyAutoDetection() {
-            const act = autoSelectActualColumns();
-            const tgt = autoSelectTargetColumns();
-
-            if (selectedDates.size === 0) {
-                selectedDates.set(dateStr(0), { label: 'اليوم', daysAgo: 0 });
-                document.querySelectorAll('.quick-date-btn').forEach(q => {
-                    if (q.dataset.days === '0') q.classList.add('active');
-                });
-            }
-            return { act, tgt };
-        }
-
         // ===== QUICK DATE HANDLERS =====
         document.querySelectorAll('.quick-date-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1507,7 +1469,7 @@
                     selectedDates.delete(dateVal);
                     btn.classList.remove('active');
                 } else {
-                    selectedDates.set(dateVal, { label: QUICK_LABELS[days], daysAgo: days });
+                    selectedDates.set(dateVal, { label: QUICK_LABELS[days] });
                     btn.classList.add('active');
                 }
                 updateSelectedDisplay();
@@ -1519,7 +1481,7 @@
             if (!p.value) { showToast('يرجى اختيار التاريخ', 'warning'); return; }
             if (selectedDates.size >= 15) { showToast('الحد الأقصى 15 تاريخ', 'warning'); return; }
             if (selectedDates.has(p.value)) { showToast('هذا التاريخ مضاف بالفعل', 'warning'); return; }
-            selectedDates.set(p.value, { label: p.value, daysAgo: null });
+            selectedDates.set(p.value, { label: p.value });
             p.value = '';
             updateSelectedDisplay();
         });
@@ -1607,7 +1569,7 @@
             document.querySelectorAll('.quick-date-btn').forEach(q => q.classList.remove('active'));
             if (e.target.value) {
                 const today = dateStr(0);
-                selectedDates.set(today, { label: 'اليوم', daysAgo: 0 });
+                selectedDates.set(today, { label: 'اليوم' });
                 document.querySelector('[data-days="0"]').classList.add('active');
             }
             updateSelectedDisplay();
@@ -1616,8 +1578,6 @@
         document.getElementById('targetValueColumnSelect').addEventListener('change', e => { currentTargetValueColumn = e.target.value; buildTypeTable(); });
 
         document.getElementById('planTargetValueInput').addEventListener('input', () => {
-            const sum = getTypeSummary();
-            updatePlanPreview(sum);
             buildTypeTable();
         });
         document.getElementById('planPeriodSelect').addEventListener('change', () => {
@@ -1630,84 +1590,6 @@
             selectedDates.clear();
             document.querySelectorAll('.quick-date-btn').forEach(q => q.classList.remove('active'));
             updateSelectedDisplay();
-        });
-
-        /* ==========================================================
-           ===== AUTO EXPORT =====
-           ===== ONE-CLICK: fills any missing columns, selects all
-           ===== TYPEs, then downloads the Excel with A1-A2-A3 column.
-           ========================================================== */
-        document.getElementById('autoExportBtn').addEventListener('click', () => {
-            if (rawDataActual.length === 0) {
-                showToast('⚠️ يرجى رفع ملف المنفذ أولاً', 'warning');
-                return;
-            }
-            if (rawDataTarget.length === 0) {
-                showToast('⚠️ يرجى رفع ملف المستهدف أولاً', 'warning');
-                return;
-            }
-
-            // Fill any still-missing columns (never overrides a valid pick)
-            if (currentSectorColumn === null || currentSectorColumn === '') {
-                const idx = pickColumn(headersActual, SECTOR_KEYWORDS) || fallbackSector(headersActual, rawDataActual);
-                if (idx !== '') {
-                    currentSectorColumn = idx;
-                    document.getElementById('sectorColumnSelect').value = idx;
-                }
-            }
-            if (currentTypeColumn === null || currentTypeColumn === '') {
-                const idx = pickColumn(headersActual, TYPE_KEYWORDS) || fallbackType(headersActual, rawDataActual);
-                if (idx !== '') {
-                    currentTypeColumn = idx;
-                    document.getElementById('typeColumnSelect').value = idx;
-                    discoverUniqueTypes();
-                }
-            }
-            if (currentDateColumn === null || currentDateColumn === '') {
-                const idx = pickColumn(headersActual, DATE_KEYWORDS) || fallbackDate(headersActual, rawDataActual);
-                if (idx !== '') {
-                    currentDateColumn = idx;
-                    document.getElementById('dateColumnSelect').value = idx;
-                }
-            }
-            if (currentTargetJoinColumn === null || currentTargetJoinColumn === '') {
-                const idx = pickColumn(headersTarget, SECTOR_KEYWORDS) || fallbackSector(headersTarget, rawDataTarget);
-                if (idx !== '') {
-                    currentTargetJoinColumn = idx;
-                    document.getElementById('targetJoinColumnSelect').value = idx;
-                }
-            }
-            if (currentTargetValueColumn === null || currentTargetValueColumn === '') {
-                const idx = pickColumn(headersTarget, TARGET_VALUE_KEYWORDS)
-                          || fallbackTargetValue(headersTarget, rawDataTarget, currentTargetJoinColumn);
-                if (idx !== '') {
-                    currentTargetValueColumn = idx;
-                    document.getElementById('targetValueColumnSelect').value = idx;
-                }
-            }
-
-            if (!currentSectorColumn || !currentTypeColumn) {
-                showToast('⚠️ تعذر تحديد عمود القطاع أو النوع — تأكد من أسماء الأعمدة (Branch / TYPE)', 'error');
-                return;
-            }
-
-            // Select every discovered TYPE (default behaviour)
-            if (selectedTypesForSummary.size === 0) {
-                selectedTypesForSummary = new Set(allUniqueTypesInFile);
-            }
-            if (selectedDates.size === 0) {
-                selectedDates.set(dateStr(0), { label: 'اليوم', daysAgo: 0 });
-                document.querySelectorAll('.quick-date-btn').forEach(q => {
-                    if (q.dataset.days === '0') q.classList.add('active');
-                });
-            }
-
-            updateSelectedDisplay();
-
-            const d = buildExportData();
-            if (!d) { showToast('⚠️ لا توجد بيانات للتصدير', 'warning'); return; }
-
-            downloadXLSX(d, `التركيب اليومي_${fileDateStamp()}`);
         });
 
         // ===== INIT =====
