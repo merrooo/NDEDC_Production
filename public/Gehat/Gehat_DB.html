@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>بيان-(الأقل-كبار-مصالح-قوي) — قاعدة البيانات</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.3.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --xl-header: #1e3a8a;
+      --xl-header-dark: #0f172a;
+      --brand-500: #6366f1;
+      --brand-600: #4f46e5;
+      --brand-700: #4338ca;
+      --success-500: #10b981;
+      --success-600: #059669;
+      --danger-500: #ef4444;
+      --danger-600: #dc2626;
+      --warning-500: #f59e0b;
+      --warning-600: #d97706;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, .05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, .08), 0 2px 4px -2px rgba(15, 23, 42, .05);
+      --transition: all .2s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, sans-serif
+    }
+
+    body {
+      background: #f3f4f6;
+      min-height: 100vh;
+      padding: 24px 16px;
+      color: #0f172a;
+      line-height: 1.5;
+      font-size: 13px
+    }
+
+    .dashboard {
+      max-width: 1500px;
+      margin: 0 auto
+    }
+
+    .toolbar {
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-lg);
+      padding: 16px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: var(--shadow-sm)
+    }
+
+    .toolbar h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--xl-header);
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .toolbar h1 .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--brand-600);
+      display: inline-block;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, .2)
+    }
+
+    .card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--slate-200);
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm)
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--xl-header) 0%, var(--xl-header-dark) 100%);
+      color: #fff;
+      padding: 14px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px
+    }
+
+    .card-header h2 {
+      font-size: .95rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: .2px
+    }
+
+    .db-count-badge {
+      background: rgba(255, 255, 255, .15);
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(255, 255, 255, .2)
+    }
+
+    .section {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--slate-100);
+      background: #fff
+    }
+
+    .section:last-child {
+      border-bottom: none
+    }
+
+    .big-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 26px 20px;
+      border: 2px dashed var(--brand-500);
+      border-radius: var(--radius-md);
+      background: rgba(99, 102, 241, .04);
+      color: var(--brand-700);
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 800;
+      transition: var(--transition);
+      text-align: center
+    }
+
+    .big-upload-btn:hover {
+      background: rgba(99, 102, 241, .08);
+      border-color: var(--brand-600);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, .15)
+    }
+
+    .big-upload-btn ion-icon {
+      font-size: 1.8rem;
+      color: var(--brand-600)
+    }
+
+    .big-upload-btn input {
+      display: none
+    }
+
+    .upload-note {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(245, 158, 11, .1);
+      color: var(--warning-600);
+      font-size: .74rem;
+      font-weight: 700;
+      text-align: center;
+      border: 1px solid rgba(245, 158, 11, .25)
+    }
+
+    .mini-btn {
+      background: #fff;
+      color: var(--brand-600);
+      border: 1px solid var(--slate-300);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: .74rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .mini-btn:hover {
+      background: var(--brand-600);
+      color: #fff;
+      border-color: var(--brand-600)
+    }
+
+    .status-line {
+      font-size: .8rem;
+      font-weight: 700;
+      margin-top: 12px;
+      color: var(--slate-600);
+      min-height: 1.4em
+    }
+
+    .status-line.err {
+      color: var(--danger-600)
+    }
+
+    .status-line.ok {
+      color: var(--success-600)
+    }
+
+    /* ---- Search area ---- */
+    .multi-search {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .multi-search .mini-input {
+      width: 100%;
+      padding: 6px 10px;
+      height: 32px;
+      font-size: .74rem;
+      font-weight: 700;
+      border: 1px solid var(--slate-300);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--slate-800);
+      transition: var(--transition);
+      font-family: inherit;
+      text-align: center;
+    }
+
+    .multi-search .mini-input::placeholder {
+      color: var(--slate-400);
+      font-weight: 700
+    }
+
+    .multi-search .mini-input:focus {
+      outline: none;
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, .15);
+    }
+
+    .multi-search .mini-input.has-value {
+      background: rgba(99, 102, 241, .06);
+      border-color: var(--brand-500);
+      color: var(--brand-700);
+    }
+
+    .multi-search .clear-all {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--slate-300);
+      background: #fff;
+      color: var(--slate-500);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: .85rem;
+      line-height: 1;
+      transition: var(--transition);
+    }
+
+    .multi-search .clear-all:hover {
+      background: var(--danger-600);
+      color: #fff;
+      border-color: var(--danger-600)
+    }
+
+    /* General search now below */
+    .search-general-wrap {
+      position: relative;
+    }
+
+    .search-general-wrap input {
+      width: 100%;
+      padding: 9px 38px 9px 14px;
+      height: 38px;
+      border: 1px solid var(--slate-300);
+      border-radius: var(--radius-md);
+      background: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    .search-general-wrap input:focus {
+      outline: none;
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+    }
+
+    .search-general-wrap input.has-value {
+      background: rgba(99, 102, 241, .06);
+      border-color: var(--brand-500);
+      color: var(--brand-700);
+    }
+
+    .search-general-wrap .clear-general {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--slate-400);
+      font-size: 1rem;
+      padding: 4px;
+      line-height: 1;
+      display: none;
+    }
+
+    .search-general-wrap .clear-general:hover {
+      color: var(--danger-600)
+    }
+
+    .search-general-wrap.has-value .clear-general {
+      display: inline-flex
+    }
+
+    .db-result-block {
+      margin-bottom: 16px;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #fff
+    }
+
+    .db-result-head {
+      padding: 10px 14px;
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-200);
+      font-weight: 700;
+      font-size: .82rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--slate-800)
+    }
+
+    .db-result-head .count {
+      color: var(--brand-600);
+      background: rgba(99, 102, 241, .08);
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      font-size: .72rem;
+      font-weight: 800
+    }
+
+    .db-result-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px
+    }
+
+    .db-result-table th {
+      background: var(--xl-header);
+      color: #fff;
+      border: 1px solid var(--xl-header-dark);
+      padding: 8px 10px;
+      text-align: center;
+      font-weight: 700;
+      font-size: .78rem;
+      position: sticky;
+      top: 0
+    }
+
+    .db-result-table td {
+      border: 1px solid var(--slate-200);
+      padding: 6px 10px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--slate-700);
+      white-space: nowrap
+    }
+
+    .db-result-table td.match {
+      background: #fef3c7;
+      font-weight: 800;
+      color: #92400e
+    }
+
+    .db-empty {
+      padding: 16px;
+      text-align: center;
+      color: var(--slate-500);
+      font-weight: 600;
+      font-size: .82rem;
+      background: var(--slate-50);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--slate-300)
+    }
+
+    .sum {
+      color: var(--slate-600);
+      font-size: .82rem;
+      font-weight: 700;
+      margin-bottom: 16px
+    }
+
+    .preview-truncated {
+      color: var(--warning-600);
+      font-weight: 700;
+      font-size: .75rem;
+      padding: 8px 12px;
+      background: rgba(245, 158, 11, .08);
+      border-radius: var(--radius-sm);
+      margin-top: 8px;
+      text-align: center
+    }
+
+    @media (max-width:640px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: flex-start
+      }
+
+      .multi-search {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) auto
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="dashboard">
+
+    <div class="toolbar">
+      <h1><span class="dot"></span>قاعدة البيانات</h1>
+    </div>
+
+    <!-- Bulk upload -->
+    <div class="card">
+      <div class="card-header">
+        <h2>رفع ملفات متعددة</h2>
+      </div>
+      <div class="section">
+        <label class="big-upload-btn" for="bulkFileInput">
+          <ion-icon name="cloud-upload-outline"></ion-icon>
+          <span>اختر ملفات لرفعها إلى قاعدة البيانات (يمكن اختيار أكثر من ملف في المرة الواحدة)</span>
+        </label>
+        <input type="file" id="bulkFileInput" accept=".xlsx,.xls,.xlsm,.csv" multiple style="display:none">
+        <div class="upload-note">
+          ⚠️ سيتم <b>حذف كل الملفات المحفوظة حالياً</b> واستبدالها بالملفات الجديدة
+        </div>
+        <div id="uploadStatus" class="status-line"></div>
+      </div>
+    </div>
+
+    <!-- Saved files: 4 mini searches ABOVE, general search BELOW -->
+    <div class="card">
+      <div class="card-header">
+        <h2>الملفات المحفوظة <span id="fileCount" class="db-count-badge">0</span></h2>
+        <button class="mini-btn" id="refreshBtn"
+          style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">
+          <ion-icon name="refresh-outline"></ion-icon> تحديث
+        </button>
+      </div>
+
+      <div class="section">
+        <!-- 4 column-specific searches (TOP) -->
+        <div class="multi-search">
+          <input type="text" id="searchRegion" class="mini-input" placeholder="منطقه" autocomplete="off">
+          <input type="text" id="searchDaily" class="mini-input" placeholder="يوميه" autocomplete="off">
+          <input type="text" id="searchAccount" class="mini-input" placeholder="حساب" autocomplete="off">
+          <input type="text" id="searchBranch" class="mini-input" placeholder="فرعى" autocomplete="off">
+          <button type="button" class="clear-all" id="clearAllSearch" title="مسح كل الحقول">✕</button>
+        </div>
+
+        <!-- General search (BELOW the 4 inputs) -->
+        <div class="search-general-wrap" id="generalWrap">
+          <input type="text" id="searchGeneral" placeholder="البحث العام في كل الأعمدة…" autocomplete="off">
+          <button type="button" class="clear-general" id="clearGeneral" title="مسح">✕</button>
+        </div>
+      </div>
+
+      <div id="previewBox" style="padding:16px 22px"></div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ------------------------------------------------------------------ */
+    /*  FIREBASE                                                           */
+    /* ------------------------------------------------------------------ */
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528",
+      measurementId: "G-W3TZ1EKWWN"
+    };
+
+    let db = null;
+    const GEOHAT_REF = 'Gehat';
+    try { firebase.initializeApp(firebaseConfig); db = firebase.database(); }
+    catch (err) { console.error('Firebase init failed:', err); }
+
+    /* ------------------------------------------------------------------ */
+    /*  STATE & HELPERS                                                    */
+    /* ------------------------------------------------------------------ */
+    const $ = id => document.getElementById(id);
+    const escapeHtml = s => String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const PREVIEW_ROW_LIMIT = 200;
+
+    const COL_MAP = [6, 7, 8, 9];
+    const SEARCH_LABELS = ['منطقه', 'يوميه', 'حساب', 'فرعى'];
+    const KNOWN_HEADERS = SEARCH_LABELS;
+
+    let currentFiles = null;
+
+    const setUploadStatus = (msg, isErr, isOk) => {
+      const el = $('uploadStatus');
+      el.textContent = msg || '';
+      el.className = 'status-line' + (isErr ? ' err' : isOk ? ' ok' : '');
+    };
+
+    /* ------------------------------------------------------------------ */
+    /*  KEY / LABEL HELPERS                                                */
+    /* ------------------------------------------------------------------ */
+    function safeFirebaseKey(name, used) {
+      let k = String(name || '').trim();
+      k = k.replace(/[.#$\[\]\/]/g, '_');
+      if (!k) k = 'file';
+      let out = k, n = 2;
+      while (used.has(out)) out = k + '_' + (n++);
+      used.add(out);
+      return out;
+    }
+    function prettyName(key) {
+      const m = String(key).match(/^(.*)_(xlsx|xlsm|xls|csv|pdf|docx?)$/i);
+      return m ? m[1] + '.' + m[2] : key;
+    }
+    function headerLabel(headers, colIdx) {
+      if (headers && headers[colIdx] !== undefined) {
+        const h = String(headers[colIdx]).trim();
+        if (h) return h;
+      }
+      const pos = COL_MAP.indexOf(colIdx);
+      if (pos >= 0) return SEARCH_LABELS[pos];
+      return 'عمود ' + (colIdx + 1);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  EXACT MATCH                                                        */
+    /* ------------------------------------------------------------------ */
+    function exactMatch(cellValue, term) {
+      const cellStr = String(cellValue ?? '').trim().toLowerCase();
+      const termStr = String(term ?? '').trim().toLowerCase();
+      if (termStr === '') return true;
+      return cellStr === termStr;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  EXTRACT FILE                                                       */
+    /* ------------------------------------------------------------------ */
+    function extractFileData(fileObj) {
+      if (!fileObj) return { headers: [], rows: [] };
+      if (Array.isArray(fileObj)) return { headers: [], rows: fileObj };
+      const headers = Array.isArray(fileObj.headers) ? fileObj.headers : [];
+      const rows = [];
+      Object.keys(fileObj)
+        .filter(k => /^\d+$/.test(k))
+        .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
+        .forEach(k => { if (Array.isArray(fileObj[k])) rows.push(fileObj[k]); });
+      return { headers, rows };
+    }
+    function colCount(rows, headers) {
+      let w = Array.isArray(headers) ? headers.length : 0;
+      rows.forEach(r => { if (Array.isArray(r)) w = Math.max(w, r.length); });
+      return Math.max(w, 1);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  BULK UPLOAD                                                        */
+    /* ------------------------------------------------------------------ */
+    async function bulkUpload(fileList) {
+      if (!fileList || !fileList.length) return;
+      if (!db) { setUploadStatus('قاعدة البيانات غير متاحة', true); return; }
+
+      const files = Array.from(fileList);
+      setUploadStatus(`جاري تحليل ${files.length} ملف…`);
+
+      const payload = {};
+      const usedKeys = new Set();
+      let okCount = 0, failCount = 0, i = 0;
+
+      for (const file of files) {
+        setUploadStatus(`تحليل ${i + 1}/${files.length}: ${file.name}`);
+        await new Promise(r => setTimeout(r, 0));
+
+        try {
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const aoa = XLSX.utils.sheet_to_json(ws, {
+            header: 1, defval: '', blankrows: false, raw: true
+          });
+
+          const headers = (aoa[0] || []).map(v => v === '' ? '' : String(v).trim());
+          const dataRows = aoa.slice(1)
+            .filter(r => r.some(c => String(c ?? '').trim() !== ''));
+
+          const key = safeFirebaseKey(file.name, usedKeys);
+          const node = { headers };
+          dataRows.forEach((row, rIdx) => { node[String(rIdx)] = row; });
+          payload[key] = node;
+          okCount++;
+        } catch (err) {
+          console.error('Parse error:', file.name, err);
+          failCount++;
+        }
+        i++;
+      }
+
+      if (okCount === 0) {
+        setUploadStatus('فشل تحليل جميع الملفات', true);
+        $('bulkFileInput').value = '';
+        return;
+      }
+
+      setUploadStatus(`جاري حذف البيانات القديمة وحفظ ${okCount} ملف جديد…`);
+
+      try {
+        await db.ref(GEOHAT_REF).remove();
+        await db.ref(GEOHAT_REF).set(payload);
+        const extra = failCount ? ` · فشل ${failCount} ملف` : '';
+        setUploadStatus(`✅ تم رفع ${okCount} ملف بنجاح — تم استبدال الملفات السابقة${extra}`, false, true);
+        $('bulkFileInput').value = '';
+        clearAllSearch();
+      } catch (err) {
+        console.error('Save error:', err);
+        setUploadStatus('خطأ في الحفظ: ' + err.message, true);
+      }
+    }
+
+    $('bulkFileInput').addEventListener('change', e => bulkUpload(e.target.files));
+
+    /* ------------------------------------------------------------------ */
+    /*  LISTENER                                                           */
+    /* ------------------------------------------------------------------ */
+    function initListener() {
+      if (!db) {
+        $('previewBox').innerHTML =
+          '<div class="db-empty">قاعدة البيانات غير متصلة — تحقق من إعدادات Firebase</div>';
+        return;
+      }
+      db.ref(GEOHAT_REF).on('value', snap => {
+        if (!snap.exists()) {
+          currentFiles = null;
+          $('fileCount').textContent = '0';
+          $('previewBox').innerHTML =
+            '<div class="db-empty">لا توجد ملفات محفوظة بعد — ارفع ملفات من الزر أعلى</div>';
+          return;
+        }
+        currentFiles = snap.val();
+        $('fileCount').textContent = Object.keys(currentFiles).length;
+        renderPreview();
+      }, err => console.error('Listener error:', err));
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  SEARCH FILTERS                                                     */
+    /* ------------------------------------------------------------------ */
+    function readFilters() {
+      const inputs = [
+        $('searchRegion').value,
+        $('searchDaily').value,
+        $('searchAccount').value,
+        $('searchBranch').value
+      ];
+      const cols = {};
+      inputs.forEach((v, i) => {
+        const t = v.trim();
+        if (t) cols[COL_MAP[i]] = t;
+      });
+      return {
+        general: $('searchGeneral').value.trim().toLowerCase(),
+        cols
+      };
+    }
+
+    function updateInputHighlights() {
+      $('generalWrap').classList.toggle('has-value',
+        $('searchGeneral').value.trim().length > 0);
+      ['searchRegion', 'searchDaily', 'searchAccount', 'searchBranch'].forEach(id => {
+        $(id).classList.toggle('has-value', $(id).value.trim().length > 0);
+      });
+    }
+
+    let searchTimer = null;
+    function onSearchInput() {
+      updateInputHighlights();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderPreview, 150);
+    }
+
+    function clearAllSearch() {
+      $('searchGeneral').value = '';
+      ['searchRegion', 'searchDaily', 'searchAccount', 'searchBranch'].forEach(id => $(id).value = '');
+      updateInputHighlights();
+      renderPreview();
+    }
+
+    $('searchGeneral').addEventListener('input', onSearchInput);
+    $('searchGeneral').addEventListener('keydown', e => {
+      if (e.key === 'Escape') { $('searchGeneral').value = ''; onSearchInput(); }
+    });
+    $('clearGeneral').addEventListener('click', () => {
+      $('searchGeneral').value = '';
+      $('searchGeneral').focus();
+      onSearchInput();
+    });
+
+    ['searchRegion', 'searchDaily', 'searchAccount', 'searchBranch'].forEach(id => {
+      $(id).addEventListener('input', onSearchInput);
+      $(id).addEventListener('keydown', e => {
+        if (e.key === 'Escape') { $(id).value = ''; onSearchInput(); }
+      });
+    });
+    $('clearAllSearch').addEventListener('click', clearAllSearch);
+
+    /* ------------------------------------------------------------------ */
+    /*  PREVIEW — ALWAYS SHOWS FULL ROW                                    */
+    /* ------------------------------------------------------------------ */
+    function renderPreview() {
+      const box = $('previewBox');
+
+      if (!currentFiles) {
+        box.innerHTML = '<div class="db-empty">لا توجد ملفات محفوظة</div>';
+        return;
+      }
+
+      const entries = Object.entries(currentFiles);
+      if (!entries.length) {
+        box.innerHTML = '<div class="db-empty">لا توجد ملفات محفوظة</div>';
+        return;
+      }
+
+      const { general, cols } = readFilters();
+      const hasGeneral = general.length > 0;
+      const hasColFilters = Object.keys(cols).length > 0;
+      const hasAnyFilter = hasGeneral || hasColFilters;
+
+      const prepared = entries.map(([key, rawFile]) => {
+        const { headers, rows } = extractFileData(rawFile);
+        const total = rows.length;
+
+        let visible = rows;
+        const matchedByRow = new Map();
+
+        if (hasAnyFilter) {
+          visible = [];
+          rows.forEach(row => {
+            if (!Array.isArray(row)) return;
+
+            const generalMatched = new Set();
+            if (hasGeneral) {
+              let found = false;
+              row.forEach((cell, cIdx) => {
+                if (String(cell ?? '').toLowerCase().includes(general)) {
+                  generalMatched.add(cIdx);
+                  found = true;
+                }
+              });
+              if (!found) return;
+            }
+
+            const matchedCols = new Set();
+            for (const [colStr, term] of Object.entries(cols)) {
+              const col = parseInt(colStr, 10);
+              if (!exactMatch(row[col], term)) return;
+              matchedCols.add(col);
+            }
+
+            visible.push(row);
+            matchedByRow.set(row, { matchedCols, generalMatched });
+          });
+        }
+
+        return {
+          key,
+          displayName: prettyName(key),
+          headers,
+          rows,
+          visible,
+          total,
+          matchCount: visible.length,
+          matchedByRow,
+          cols: colCount(rows, headers)
+        };
+      });
+
+      const shownFiles = hasAnyFilter
+        ? prepared.filter(p => p.matchCount > 0)
+        : prepared;
+
+      if (hasAnyFilter && shownFiles.length === 0) {
+        box.innerHTML = '<div class="db-empty">لا توجد نتائج مطابقة للبحث</div>';
+        return;
+      }
+
+      let header;
+      if (hasAnyFilter) {
+        const totalMatches = shownFiles.reduce((a, p) => a + p.matchCount, 0);
+        header = `نتائج البحث: <b>${totalMatches}</b> صف داخل <b>${shownFiles.length}</b> من <b>${prepared.length}</b> ملف`;
+      } else {
+        const totalRows = prepared.reduce((a, p) => a + p.total, 0);
+        header = `الملفات: <b>${prepared.length}</b> · إجمالي الصفوف: <b>${totalRows}</b>`;
+      }
+
+      let html = `<p class="sum">${header}</p>`;
+
+      shownFiles.forEach(p => {
+        const rows = p.visible.slice(0, PREVIEW_ROW_LIMIT);
+        const colsN = p.cols;
+
+        const displayCols = Array.from({ length: colsN }, (_, i) => i);
+
+        const countLabel = hasAnyFilter
+          ? `${p.matchCount} مطابقة من ${p.total} صف · ${colsN} عمود`
+          : `${p.total} صف · ${colsN} عمود`;
+
+        html += `<div class="db-result-block">`;
+        html += `<div class="db-result-head">`;
+        html += `<span title="${escapeHtml(p.key)}">${escapeHtml(p.displayName)}</span>`;
+        html += `<span class="count">${countLabel}</span>`;
+        html += `</div>`;
+
+        html += `<div style="overflow:auto;max-height:500px"><table class="db-result-table"><thead><tr>`;
+        displayCols.forEach(c => {
+          html += `<th>${escapeHtml(headerLabel(p.headers, c))}</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        rows.forEach(row => {
+          const matchInfo = p.matchedByRow.get(row);
+          const matchedCols = matchInfo ? matchInfo.matchedCols : new Set();
+          const generalMatched = matchInfo ? matchInfo.generalMatched : new Set();
+
+          html += '<tr>';
+          displayCols.forEach(c => {
+            const cellStr = String(row[c] ?? '');
+            const isMatch = matchedCols.has(c) || generalMatched.has(c);
+            html += `<td class="${isMatch ? 'match' : ''}">${escapeHtml(cellStr)}</td>`;
+          });
+          html += '</tr>';
+        });
+
+        html += `</tbody></table></div>`;
+        if (p.matchCount > PREVIEW_ROW_LIMIT) {
+          html += `<div class="preview-truncated">عرض أول ${PREVIEW_ROW_LIMIT} صف فقط من أصل ${p.matchCount}</div>`;
+        }
+        html += `</div>`;
+      });
+
+      box.innerHTML = html;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  REFRESH                                                            */
+    /* ------------------------------------------------------------------ */
+    $('refreshBtn').addEventListener('click', () => {
+      initListener();
+      setUploadStatus('تم التحديث', false, true);
+    });
+
+    /* ------------------------------------------------------------------ */
+    /*  BOOT                                                               */
+    /* ------------------------------------------------------------------ */
+    try {
+      initListener();
+    } catch (err) {
+      console.error('Firebase init error:', err);
+      $('previewBox').innerHTML =
+        '<div class="db-empty">تعذّر الاتصال بقاعدة البيانات. تحقق من إعدادات Firebase.</div>';
+    }
+  </script>
+</body>
+
+</html>
