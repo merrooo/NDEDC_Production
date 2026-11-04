@@ -94,7 +94,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg-main);c
 .file-badge{font-size:11px;color:var(--text-muted);background:#f1f5f9;padding:5px 12px;border-radius:20px;font-weight:600;flex-shrink:0;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grid-container{background:#fff;border-radius:12px;border:1px solid var(--border-color);display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
 .grid-toolbar{padding:12px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;background:#fafafa;flex-shrink:0;gap:12px}
-.grid-toolbar-title{font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.grid-toolbar-title{font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grid-stats{background:#eff6ff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:var(--primary);white-space:nowrap}
 .table-wrapper{overflow:auto;flex:1 1 auto;min-height:0}
 #dataTable{width:100%;border-collapse:collapse;font-size:12px}
@@ -104,9 +104,22 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg-main);c
 .log-section{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px 16px;height:90px;flex-shrink:0;overflow-y:auto;font-family:'Monaco','Courier New',monospace;font-size:11px;line-height:1.5}
 .progress-bar{background:#e2e8f0;border-radius:10px;height:6px;overflow:hidden;flex-shrink:0}
 .progress-fill{background:var(--primary);height:100%;width:0%;transition:width .3s}
-.sidebar::-webkit-scrollbar,.list-card::-webkit-scrollbar,.table-wrapper::-webkit-scrollbar,.log-section::-webkit-scrollbar{width:7px;height:7px}
+/* ---- split plan preview ---- */
+.split-plan{display:none;background:#fff;border-radius:12px;border:1px solid var(--border-color);flex-direction:column;flex-shrink:0;max-height:220px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.split-plan-header{padding:10px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;background:#fafafa;flex-shrink:0;gap:12px}
+.split-plan-body{overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.plan-file{border:1px solid var(--border-color);border-radius:8px;padding:8px 10px;background:#fdfdfd}
+.plan-file-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text-dark);min-width:0}
+.plan-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.plan-file-meta{font-size:10.5px;font-weight:600;color:var(--text-muted);margin-left:auto;white-space:nowrap;flex-shrink:0}
+.plan-sheets{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.plan-sheet{font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--border-color);background:#fff;color:#334155;cursor:pointer;transition:.12s;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-sheet:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+.plan-sheet.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.plan-sheet small{opacity:.72;font-weight:600}
+.sidebar::-webkit-scrollbar,.list-card::-webkit-scrollbar,.table-wrapper::-webkit-scrollbar,.log-section::-webkit-scrollbar,.split-plan-body::-webkit-scrollbar{width:7px;height:7px}
 .sidebar::-webkit-scrollbar-track,.list-card::-webkit-scrollbar-track{background:transparent}
-.sidebar::-webkit-scrollbar-thumb,.list-card::-webkit-scrollbar-thumb,.table-wrapper::-webkit-scrollbar-thumb,.log-section::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+.sidebar::-webkit-scrollbar-thumb,.list-card::-webkit-scrollbar-thumb,.table-wrapper::-webkit-scrollbar-thumb,.log-section::-webkit-scrollbar-thumb,.split-plan-body::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
 .sidebar::-webkit-scrollbar-thumb:hover,.list-card::-webkit-scrollbar-thumb:hover,.table-wrapper::-webkit-scrollbar-thumb:hover{background:#94a3b8}
 @media (max-width:900px){
 .master-layout{flex-direction:column;overflow:auto}
@@ -194,7 +207,7 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="mode-icon">✂️</div>
 <div class="mode-btn-text">
 <span class="mode-btn-title">4 · Split Sheets by Column</span>
-<span class="mode-btn-desc">Each sheet → own file, named {file}_{sheet}.xlsx</span>
+<span class="mode-btn-desc">One file — each unique value becomes its own sheet</span>
 </div>
 </button>
 
@@ -202,7 +215,7 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="mode-icon">🗂️</div>
 <div class="mode-btn-text">
 <span class="mode-btn-title">5 · Split Files by Column</span>
-<span class="mode-btn-desc">Each file → own file, named {original}.xlsx</span>
+<span class="mode-btn-desc">Each value → own file, sheets from every source</span>
 </div>
 </button>
 </div>
@@ -390,7 +403,7 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="step-number amber">5</div>
 <div class="step-title-wrap">
 <div class="step-title">Values to Keep</div>
-<div class="step-subtitle">Each value → one sheet inside the output</div>
+<div class="step-subtitle">Each value → one sheet inside the output file</div>
 </div>
 <span class="status-pill" id="m4ValueCount">0</span>
 </div>
@@ -407,29 +420,13 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="step-number green">6</div>
 <div class="step-title-wrap">
 <div class="step-title">Export</div>
-<div class="step-subtitle">Each sheet becomes its own file</div>
+<div class="step-subtitle">One workbook — one sheet per unique value</div>
 </div>
 </div>
 <div class="step-body">
-<div class="field-label">Output mode</div>
-<div class="radio-group">
-<label>
-<input type="radio" name="m4ExportMode" value="perSource" checked>
-<div>
-<b>📦 Per-sheet files</b>
-<span class="radio-desc">One file per sheet, named <code>{file}_{sheet}.xlsx</code> — each contains one sheet per value</span>
-</div>
-</label>
-<label>
-<input type="radio" name="m4ExportMode" value="combined">
-<div>
-<b>📄 Combined workbook</b>
-<span class="radio-desc">One workbook with one sheet per unique value</span>
-</div>
-</label>
-</div>
-<div class="field-label">ZIP / combined name</div>
+<div class="field-label">Output file name</div>
 <input type="text" id="m4Archive" class="compact-input" placeholder="Sheets_Split">
+<div class="hint-text">All matching rows are combined; each value becomes its own sheet</div>
 <button id="m4ExportBtn" class="btn green" disabled>🚀 Split Sheets</button>
 </div>
 </div>
@@ -470,7 +467,7 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="step-number amber">5</div>
 <div class="step-title-wrap">
 <div class="step-title">Values to Keep</div>
-<div class="step-subtitle">Each value → one sheet inside the output</div>
+<div class="step-subtitle">Each value → one output file</div>
 </div>
 <span class="status-pill" id="m5ValueCount">0</span>
 </div>
@@ -487,29 +484,13 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 <div class="step-number green">6</div>
 <div class="step-title-wrap">
 <div class="step-title">Export</div>
-<div class="step-subtitle">Each file becomes its own file</div>
+<div class="step-subtitle">One file per value — each with its sheets</div>
 </div>
 </div>
 <div class="step-body">
-<div class="field-label">Output mode</div>
-<div class="radio-group">
-<label>
-<input type="radio" name="m5ExportMode" value="perSource" checked>
-<div>
-<b>📦 Per-file files</b>
-<span class="radio-desc">One file per source file, named <code>{original}.xlsx</code> — each contains one sheet per value</span>
-</div>
-</label>
-<label>
-<input type="radio" name="m5ExportMode" value="combined">
-<div>
-📄 Combined workbook
-<span class="radio-desc">One workbook with one sheet per file × value</span>
-</div>
-</label>
-</div>
-<div class="field-label">ZIP / combined name</div>
+<div class="field-label">ZIP archive name</div>
 <input type="text" id="m5Archive" class="compact-input" placeholder="Files_Split">
+<div class="hint-text">Each value becomes <code>{value}.xlsx</code> — one sheet per source sheet</div>
 <button id="m5ExportBtn" class="btn green" disabled>🚀 Split Files</button>
 </div>
 </div>
@@ -525,9 +506,21 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
 </div>
 <div class="file-badge" id="headerBadge">No file</div>
 </div>
+
+<!-- SPLIT OUTPUT PLAN (only visible for split workflows) -->
+<div class="split-plan" id="splitPlan">
+<div class="split-plan-header">
+<div class="grid-toolbar-title"><span>🗂️</span> Output Plan — file → sheets</div>
+<span class="grid-stats" id="splitPlanStats">0 files</span>
+</div>
+<div class="split-plan-body" id="splitPlanBody">
+<p class="empty-note">Choose a split column to see the plan</p>
+</div>
+</div>
+
 <div class="grid-container">
 <div class="grid-toolbar">
-<div class="grid-toolbar-title"><span>📋</span> Table Preview</div>
+<div class="grid-toolbar-title"><span>📋</span> <span id="gridTitle">Table Preview</span></div>
 <span class="grid-stats" id="gridStats">0 rows</span>
 </div>
 <div class="table-wrapper">
@@ -586,7 +579,6 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
         }
         s.onload = verify;
         s.onerror = () => { if (!settled) { settled = true; tryNext(); } };
-        // Verify after 6s in case CDN stalls without firing events
         setTimeout(verify, 6000);
         document.head.appendChild(s);
       }
@@ -594,7 +586,6 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
     });
   }
 
-  // Load XLSX first (required), then JSZip (optional)
   loadFrom(XLSX_CDNS, 'XLSX').then(() => {
     libLoading.style.display = 'none';
     fileInputEl.disabled = false;
@@ -610,7 +601,6 @@ then reload. <a href="#" onclick="location.reload();return false;" style="color:
     addLogSafe('❌ ' + err.message + '. Check your network or use a local xlsx.full.min.js file.', '#f87171');
   });
 
-  // Local reference so we can log even before main script initialises
   function addLogSafe(msg, color) {
     const log = document.getElementById('logSection');
     if (!log) return;
@@ -634,6 +624,9 @@ const m4Values = new Map();
 const m5Values = new Map();
 let currentHeaders = [];
 let currentGridData = [];
+let currentPlan = { col: '', files: [] };
+let splitPreviewPos = { file: 0, sheet: 0 };
+let planCache = { key: '', plan: null };
 
 /* ============================= DOM ============================== */
 const logSection     = document.getElementById('logSection');
@@ -641,6 +634,7 @@ const progressFill   = document.getElementById('progressFill');
 const headerBadge    = document.getElementById('headerBadge');
 const mainTitle      = document.getElementById('mainTitle');
 const mainSubtitle   = document.getElementById('mainSubtitle');
+const gridTitle      = document.getElementById('gridTitle');
 const fileInput      = document.getElementById('fileInput');
 const upList         = document.getElementById('upList');
 const upUtils        = document.getElementById('upUtils');
@@ -680,6 +674,9 @@ const m5ValueList    = document.getElementById('m5ValueList');
 const m5ValueCount   = document.getElementById('m5ValueCount');
 const m5Archive      = document.getElementById('m5Archive');
 const m5ExportBtn    = document.getElementById('m5ExportBtn');
+const splitPlan      = document.getElementById('splitPlan');
+const splitPlanBody  = document.getElementById('splitPlanBody');
+const splitPlanStats = document.getElementById('splitPlanStats');
 
 /* =========================== UTILS ============================== */
 function addLog(msg, color = '#cbd5e1') {
@@ -779,6 +776,8 @@ function clearAllFiles() {
   sheetChecked.clear();
   m4Values.clear();
   m5Values.clear();
+  planCache = { key: '', plan: null };
+  splitPreviewPos = { file: 0, sheet: 0 };
   addLog('🗑 Cleared all loaded files.', '#fbbf24');
   refreshAll();
 }
@@ -885,7 +884,7 @@ function renderValueList(container, countEl, values, stateMap) {
     cb.addEventListener('change', () => {
       stateMap.set(v, cb.checked);
       updateValueCount(container, countEl);
-      updateStatuses();
+      onSplitSelectionChanged();
     });
     const span = document.createElement('span');
     span.title = v; span.textContent = v;
@@ -909,7 +908,7 @@ function toggleAllValues(which, checked) {
   const stateMap = which === 'm4' ? m4Values : m5Values;
   values.forEach(v => stateMap.set(v, checked));
   updateValueCount(container, which === 'm4' ? m4ValueCount : m5ValueCount);
-  updateStatuses();
+  onSplitSelectionChanged();
 }
 function checkedValues(container) {
   const out = [];
@@ -943,8 +942,229 @@ function refreshSplitOptions(which) {
     m5ColHint.textContent = col ? values.length + ' unique value(s) found' : (headers.length ? 'Choose a column above' : 'Nothing selected');
   }
 }
-m4Column.addEventListener('change', () => { m4Values.clear(); refreshSplitOptions('m4'); updateStatuses(); });
-m5Column.addEventListener('change', () => { m5Values.clear(); refreshSplitOptions('m5'); updateStatuses(); });
+
+/* Called whenever a split value checkbox changes */
+function onSplitSelectionChanged() {
+  updateStatuses();
+  renderSplitPlan();
+  refreshPreview();
+}
+
+m4Column.addEventListener('change', () => {
+  m4Values.clear();
+  refreshSplitOptions('m4');
+  splitPreviewPos = { file: 0, sheet: 0 };
+  updateStatuses(); renderSplitPlan(); refreshPreview();
+});
+m5Column.addEventListener('change', () => {
+  m5Values.clear();
+  refreshSplitOptions('m5');
+  splitPreviewPos = { file: 0, sheet: 0 };
+  updateStatuses(); renderSplitPlan(); refreshPreview();
+});
+m4Archive.addEventListener('input', () => {
+  planCache = { key: '', plan: null };
+  renderSplitPlan();
+});
+
+/* ===================== SPLIT PLAN (shared) ====================== */
+/*
+ * MODE 4:
+ *   one output workbook
+ *   each unique value -> one sheet
+ *   all matching rows from all selected sheets are combined into that sheet
+ *
+ * MODE 5:
+ *   each unique value -> one output file
+ *   each output file contains one sheet per source sheet
+ */
+function computeSplitPlan(which) {
+  const isM4 = which === 'm4';
+  const pairs = isM4 ? selectedSheetPairs() : fileSheetPairs(selectedFiles());
+  const col = isM4 ? m4Column.value : m5Column.value;
+  const container = isM4 ? m4ValueList : m5ValueList;
+  const vals = col ? checkedValues(container) : [];
+  const outName = isM4 ? (sanitizeName(m4Archive.value.trim()) || 'Sheets_Split') : '';
+
+  const cacheKey = which + '|' + col + '|' + pairs.map(p => p.sheet.id).join(',') + '|' + vals.join('\u0001') + '|' + outName;
+  if (planCache.key === cacheKey && planCache.plan) return planCache.plan;
+
+  const plan = { col: col, files: [] };
+  if (!col || !pairs.length || !vals.length) {
+    planCache = { key: cacheKey, plan: plan };
+    return plan;
+  }
+
+  const allowed = new Set(vals);
+
+  /* ---------- MODE 4: one file, unique values as sheets ---------- */
+  if (isM4) {
+    const headers = unionHeaders(pairs);
+    const byValue = new Map();
+
+    pairs.forEach(({ sheet }) => {
+      const { rows } = sheetRows(sheet);
+      if (!rows.length) return;
+      rows.forEach(r => {
+        const v = String(r[col] ?? '').trim();
+        if (!v || !allowed.has(v)) return;
+        if (!byValue.has(v)) byValue.set(v, []);
+        byValue.get(v).push(r);
+      });
+    });
+
+    const sorted = Array.from(byValue.keys())
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const usedSheetNames = new Set();
+    const sheets = sorted.map(v => {
+      let nm = safeSheetName(v);
+      if (usedSheetNames.has(nm)) {
+        const root = nm.substring(0, 28);
+        let i = 2;
+        while (usedSheetNames.has(root + '_' + i)) i++;
+        nm = root + '_' + i;
+      }
+      usedSheetNames.add(nm);
+      return {
+        name: nm,
+        source: 'Combined from selected sheets',
+        headers: headers,
+        rows: byValue.get(v)
+      };
+    });
+
+    if (sheets.length) {
+      plan.files.push({ value: '', filename: outName, sheets: sheets });
+    }
+
+    planCache = { key: cacheKey, plan: plan };
+    return plan;
+  }
+
+  /* ---------- MODE 5: one file per value ---------- */
+  const multiFile = new Set(pairs.map(p => p.file.id)).size > 1;
+  const byValue = new Map();
+
+  pairs.forEach(({ file, sheet }) => {
+    const { headers, rows } = sheetRows(sheet);
+    if (!rows.length) return;
+    const groups = new Map();
+    rows.forEach(r => {
+      const v = String(r[col] ?? '').trim();
+      if (!v || !allowed.has(v)) return;
+      if (!groups.has(v)) groups.set(v, []);
+      groups.get(v).push(r);
+    });
+    if (!groups.size) return;
+    const sheetBase = multiFile ? fileBaseName(file.name) + '_' + sheet.name : sheet.name;
+    groups.forEach((rs, v) => {
+      if (!byValue.has(v)) byValue.set(v, []);
+      byValue.get(v).push({
+        name: sheetBase,
+        source: file.name + ' › ' + sheet.name,
+        headers: headers,
+        rows: rs
+      });
+    });
+  });
+
+  const sortedValues = Array.from(byValue.keys())
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  const usedFileNames = new Set();
+  sortedValues.forEach(v => {
+    const usedSheetNames = new Set();
+    const sheets = byValue.get(v).map(entry => {
+      let nm = safeSheetName(entry.name);
+      if (usedSheetNames.has(nm)) {
+        const root = nm.substring(0, 28);
+        let i = 2;
+        while (usedSheetNames.has(root + '_' + i)) i++;
+        nm = root + '_' + i;
+      }
+      usedSheetNames.add(nm);
+      return { name: nm, source: entry.source, headers: entry.headers, rows: entry.rows };
+    });
+
+    let base = (sanitizeName(v) || 'Blank').substring(0, 80);
+    let fname = base, n = 2;
+    while (usedFileNames.has(fname.toLowerCase())) fname = base + '_' + (n++);
+    usedFileNames.add(fname.toLowerCase());
+
+    plan.files.push({ value: v, filename: fname, sheets: sheets });
+  });
+
+  planCache = { key: cacheKey, plan: plan };
+  return plan;
+}
+
+function renderSplitPlan() {
+  if (currentMode !== 'm4' && currentMode !== 'm5') {
+    splitPlan.style.display = 'none';
+    return;
+  }
+  splitPlan.style.display = 'flex';
+
+  const plan = computeSplitPlan(currentMode);
+  currentPlan = plan;
+
+  if (!plan.files.length) {
+    splitPreviewPos = { file: 0, sheet: 0 };
+  } else {
+    if (splitPreviewPos.file >= plan.files.length) splitPreviewPos = { file: 0, sheet: 0 };
+    const sheets = plan.files[splitPreviewPos.file].sheets;
+    if (splitPreviewPos.sheet >= sheets.length) splitPreviewPos.sheet = 0;
+  }
+
+  const totalSheets = plan.files.reduce((a, f) => a + f.sheets.length, 0);
+  splitPlanStats.textContent = plan.files.length + ' file(s) · ' + totalSheets + ' sheet(s)';
+
+  if (!plan.files.length) {
+    splitPlanBody.innerHTML = '<p class="empty-note">' +
+      (plan.col ? 'Tick at least one value in step 5 to build the plan'
+                : 'Choose a split column in step 4 to build the plan') + '</p>';
+    return;
+  }
+
+  splitPlanBody.innerHTML = '';
+  plan.files.forEach((f, fi) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'plan-file';
+
+    const head = document.createElement('div');
+    head.className = 'plan-file-head';
+    const icon = document.createElement('span'); icon.textContent = '📄';
+    const nameEl = document.createElement('span'); nameEl.className = 'plan-file-name';
+    nameEl.textContent = f.filename + '.xlsx';
+    nameEl.title = f.filename + '.xlsx';
+    const meta = document.createElement('span'); meta.className = 'plan-file-meta';
+    const rowCount = f.sheets.reduce((a, s) => a + s.rows.length, 0);
+    meta.textContent = f.sheets.length + ' sheet' + (f.sheets.length === 1 ? '' : 's') + ' · ' + rowCount + ' rows';
+    head.appendChild(icon); head.appendChild(nameEl); head.appendChild(meta);
+    wrap.appendChild(head);
+
+    const sheetBox = document.createElement('div');
+    sheetBox.className = 'plan-sheets';
+    f.sheets.forEach((s, si) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'plan-sheet' + (fi === splitPreviewPos.file && si === splitPreviewPos.sheet ? ' active' : '');
+      btn.title = s.source + ' — ' + s.rows.length + ' rows';
+      btn.innerHTML = escHtml(s.name) + ' <small>(' + s.rows.length + ')</small>';
+      btn.addEventListener('click', () => {
+        splitPreviewPos = { file: fi, sheet: si };
+        splitPlanBody.querySelectorAll('.plan-sheet.active').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+        refreshPreview();
+      });
+      sheetBox.appendChild(btn);
+    });
+    wrap.appendChild(sheetBox);
+
+    splitPlanBody.appendChild(wrap);
+  });
+}
 
 function updateStatuses() {
   const files = selectedFiles();
@@ -967,7 +1187,7 @@ function updateStatuses() {
 }
 
 function getPreviewSheet() {
-  if (currentMode === 'm2' || currentMode === 'm4') {
+  if (currentMode === 'm2') {
     const pairs = selectedSheetPairs();
     return pairs.length ? pairs[0].sheet : null;
   }
@@ -975,7 +1195,26 @@ function getPreviewSheet() {
   if (!files.length) return null;
   return files[0].sheets[0] || null;
 }
+
 function refreshPreview() {
+  if (currentMode === 'm4' || currentMode === 'm5') {
+    const plan = currentPlan;
+    if (!plan || !plan.files.length) {
+      currentHeaders = []; currentGridData = [];
+      gridTitle.textContent = 'Table Preview';
+      renderTable();
+      return;
+    }
+    const f = plan.files[splitPreviewPos.file];
+    const s = f.sheets[splitPreviewPos.sheet];
+    currentHeaders = s.headers;
+    currentGridData = s.rows;
+    gridTitle.textContent = 'Table Preview — ' + f.filename + '.xlsx › ' + s.name;
+    renderTable();
+    return;
+  }
+
+  gridTitle.textContent = 'Table Preview';
   const sheet = getPreviewSheet();
   if (!sheet || !sheet.matrix.length) {
     currentHeaders = []; currentGridData = []; renderTable(); return;
@@ -985,6 +1224,7 @@ function refreshPreview() {
   currentGridData = rows;
   renderTable();
 }
+
 function renderTable() {
   const thead = document.getElementById('tableHeader');
   const tbody = document.getElementById('tableBody');
@@ -1011,24 +1251,27 @@ function refreshAll() {
   refreshSplitOptions('m4');
   refreshSplitOptions('m5');
   updateStatuses();
+  renderSplitPlan();
   refreshPreview();
 }
 
 /* ========================= MODE SWITCH ========================== */
 function setMode(mode) {
   currentMode = mode;
+  splitPreviewPos = { file: 0, sheet: 0 };
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
   document.querySelectorAll('.step-card[data-mode]').forEach(card => card.classList.toggle('visible', card.dataset.mode === mode));
   const titles = {
     m1: ['📊 Merge Preview — Files → One Sheet', 'All selected files are stacked into a single table'],
     m2: ['📊 Merge Preview — Sheets → One Sheet', 'All selected sheets are stacked into a single table'],
     m3: ['📚 Merge Preview — Files → Multi Sheets', 'Files stay separated as multiple output sheets'],
-    m4: ['✂️ Split Preview — Sheets by Column', 'Each selected sheet is split into its own file'],
-    m5: ['🗂️ Split Preview — Files by Column', 'Each selected file is split into its own file']
+    m4: ['✂️ Split Preview — Sheets by Column', 'One file — each unique value becomes its own sheet'],
+    m5: ['🗂️ Split Preview — Files by Column', 'Each unique value → one file containing its sheets']
   };
   const t = titles[mode] || titles.m1;
   mainTitle.textContent = t[0];
   mainSubtitle.textContent = t[1];
+  renderSplitPlan();
   refreshPreview();
 }
 
@@ -1110,120 +1353,23 @@ function buildResultsM3() {
   return [{ filename: name + '.xlsx', wb }];
 }
 
-function buildResultsM4() {
-  const col = m4Column.value;
-  const vals = checkedValues(m4ValueList);
-  if (!col || !vals.length) return [];
-  const allowed = new Set(vals);
-  const mode = document.querySelector('input[name="m4ExportMode"]:checked').value;
+/* ---- Split workflows: plan -> workbooks ---- */
+function planToResults(plan) {
   const results = [];
-
-  if (mode === 'combined') {
-    const pairs = selectedSheetPairs();
-    const { headers, rows } = collectRows(pairs, {});
-    const groups = new Map();
-    rows.forEach(r => {
-      const v = String(r[col] ?? '').trim();
-      if (!allowed.has(v)) return;
-      if (!groups.has(v)) groups.set(v, []);
-      groups.get(v).push(r);
-    });
+  plan.files.forEach(f => {
     const wb = XLSX.utils.book_new();
-    groups.forEach((rs, v) => {
-      if (!rs.length) return;
-      const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
-      ws['!cols'] = autoWidth(headers, rs);
-      XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
+    f.sheets.forEach(s => {
+      const ws = XLSX.utils.json_to_sheet(s.rows, { header: s.headers });
+      ws['!cols'] = autoWidth(s.headers, s.rows);
+      XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, s.name));
     });
-    if (!wb.SheetNames.length) return [];
-    const name = sanitizeName(m4Archive.value.trim()) || 'Sheets_Split';
-    results.push({ filename: name + '.xlsx', wb });
-  } else {
-    selectedSheetPairs().forEach(p => {
-      const { headers, rows } = sheetRows(p.sheet);
-      const groups = new Map();
-      rows.forEach(r => {
-        const v = String(r[col] ?? '').trim();
-        if (!allowed.has(v)) return;
-        if (!groups.has(v)) groups.set(v, []);
-        groups.get(v).push(r);
-      });
-      if (!groups.size) return;
-      const wb = XLSX.utils.book_new();
-      groups.forEach((rs, v) => {
-        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
-        ws['!cols'] = autoWidth(headers, rs);
-        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
-      });
-      const base = fileBaseName(p.file.name);
-      results.push({
-        filename: sanitizeName(base + '_' + p.sheet.name) + '.xlsx',
-        wb
-      });
-    });
-  }
+    if (wb.SheetNames.length) results.push({ filename: f.filename + '.xlsx', wb });
+  });
   return results;
 }
 
-function buildResultsM5() {
-  const files = selectedFiles();
-  const col = m5Column.value;
-  const vals = checkedValues(m5ValueList);
-  if (!files.length || !col || !vals.length) return [];
-  const allowed = new Set(vals);
-  const mode = document.querySelector('input[name="m5ExportMode"]:checked').value;
-  const results = [];
-
-  if (mode === 'combined') {
-    const wb = XLSX.utils.book_new();
-    files.forEach(f => {
-      const pairs = f.sheets.map(s => ({ file: f, sheet: s }));
-      const { headers, rows } = collectRows(pairs, {});
-      const groups = new Map();
-      rows.forEach(r => {
-        const v = String(r[col] ?? '').trim();
-        if (!allowed.has(v)) return;
-        if (!groups.has(v)) groups.set(v, []);
-        groups.get(v).push(r);
-      });
-      const base = fileBaseName(f.name);
-      groups.forEach((rs, v) => {
-        if (!rs.length) return;
-        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
-        ws['!cols'] = autoWidth(headers, rs);
-        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, base + '_' + v));
-      });
-    });
-    if (!wb.SheetNames.length) return [];
-    const name = sanitizeName(m5Archive.value.trim()) || 'Files_Split';
-    results.push({ filename: name + '.xlsx', wb });
-  } else {
-    files.forEach(f => {
-      const pairs = f.sheets.map(s => ({ file: f, sheet: s }));
-      const { headers, rows } = collectRows(pairs, {});
-      const groups = new Map();
-      rows.forEach(r => {
-        const v = String(r[col] ?? '').trim();
-        if (!allowed.has(v)) return;
-        if (!groups.has(v)) groups.set(v, []);
-        groups.get(v).push(r);
-      });
-      if (!groups.size) return;
-      const wb = XLSX.utils.book_new();
-      groups.forEach((rs, v) => {
-        const ws = XLSX.utils.json_to_sheet(rs, { header: headers });
-        ws['!cols'] = autoWidth(headers, rs);
-        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName(wb, v));
-      });
-      const base = fileBaseName(f.name);
-      results.push({
-        filename: sanitizeName(base) + '.xlsx',
-        wb
-      });
-    });
-  }
-  return results;
-}
+function buildResultsM4() { return planToResults(computeSplitPlan('m4')); }
+function buildResultsM5() { return planToResults(computeSplitPlan('m5')); }
 
 /* ===================== DOWNLOAD RESULTS ========================= */
 async function downloadResults(results, archiveName) {
@@ -1305,9 +1451,11 @@ m4ExportBtn.addEventListener('click', async () => {
   if (!pairs.length) return addLog('⚠️ Step 3: select at least one sheet.', '#fbbf24');
   if (!col) return addLog('⚠️ Step 4: choose a split column.', '#fbbf24');
   if (!checkedValues(m4ValueList).length) return addLog('⚠️ Step 5: choose at least one value.', '#fbbf24');
-  addLog('✂️ Splitting sheets by "' + col + '"...');
+  const plan = computeSplitPlan('m4');
+  if (!plan.files.length) return addLog('⚠️ No rows matched the selected values.', '#fbbf24');
+  addLog('✂️ Splitting by "' + col + '" → one workbook with ' + plan.files[0].sheets.length + ' sheet(s)...');
   setProgress(15);
-  const results = buildResultsM4();
+  const results = planToResults(plan);
   await downloadResults(results, m4Archive.value.trim() || 'Sheets_Split');
   setProgress(100); setTimeout(() => setProgress(0), 800);
 });
@@ -1318,9 +1466,11 @@ m5ExportBtn.addEventListener('click', async () => {
   if (!files.length) return addLog('⚠️ Step 3: select at least one file.', '#fbbf24');
   if (!col) return addLog('⚠️ Step 4: choose a split column.', '#fbbf24');
   if (!checkedValues(m5ValueList).length) return addLog('⚠️ Step 5: choose at least one value.', '#fbbf24');
-  addLog('🗂️ Splitting files by "' + col + '"...');
+  const plan = computeSplitPlan('m5');
+  if (!plan.files.length) return addLog('⚠️ No rows matched the selected values.', '#fbbf24');
+  addLog('🗂️ Splitting by "' + col + '" → ' + plan.files.length + ' file(s)...');
   setProgress(15);
-  const results = buildResultsM5();
+  const results = planToResults(plan);
   await downloadResults(results, m5Archive.value.trim() || 'Files_Split');
   setProgress(100); setTimeout(() => setProgress(0), 800);
 });
