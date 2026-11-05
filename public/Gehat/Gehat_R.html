@@ -301,7 +301,8 @@
       font-size: .7rem;
       padding: 4px 10px;
       border-radius: var(--radius-full);
-      border: 1px solid var(--slate-200)
+      border: 1px solid var(--slate-200);
+      flex: none
     }
 
     .fname {
@@ -311,10 +312,72 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 170px
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: center
     }
 
+    .card-remove {
+      border: none;
+      background: transparent;
+      color: var(--slate-400);
+      font-size: 1.15rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      font-family: inherit;
+      flex: none
+    }
+
+    .card-remove:hover {
+      color: var(--danger-600);
+      background: rgba(239, 68, 68, .08)
+    }
+
+    /* --- ADD FILE CARD --- */
+    .add-card {
+      border: 2px dashed var(--slate-300);
+      border-radius: var(--radius-md);
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 170px;
+      cursor: pointer;
+      color: var(--brand-600);
+      font-weight: 800;
+      font-size: .85rem;
+      transition: var(--transition);
+      padding: 16px;
+      font-family: inherit;
+    }
+
+    .add-card:hover {
+      border-color: var(--brand-500);
+      background: rgba(99, 102, 241, .04);
+      transform: translateY(-1px)
+    }
+
+    .add-card .plus {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, .1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1
+    }
+
+    /* --- DROP ZONE — input now overlays, no display:none --- */
     .drop {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -338,8 +401,17 @@
       background: rgba(99, 102, 241, .04)
     }
 
-    .drop input {
-      display: none
+    .drop input[type=file] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+      margin: 0;
+      padding: 0;
+      border: 0
     }
 
     .row {
@@ -541,7 +613,9 @@
       white-space: nowrap
     }
 
+    /* --- MERGE TOGGLE — input now overlays --- */
     .merge-toggle {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 14px;
@@ -553,7 +627,7 @@
       width: 100%;
       flex: 1;
       transition: var(--transition);
-      position: relative
+      user-select: none
     }
 
     .merge-export-row .merge-toggle {
@@ -570,6 +644,17 @@
       background: rgba(99, 102, 241, .05);
       border-color: var(--brand-600);
       box-shadow: 0 0 0 2px rgba(99, 102, 241, .1)
+    }
+
+    .merge-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      z-index: 2
     }
 
     .switch {
@@ -764,6 +849,7 @@
     <div class="card">
       <div class="card-header">
         <h2>الملفات</h2>
+        <span class="preview-badge" id="fileCountBadge">0 ملف</span>
       </div>
       <div class="files-grid" id="files"></div>
       <div class="actions">
@@ -808,13 +894,13 @@
         <div class="row export-row merge-export-row">
           <label>دمج</label>
           <div class="col">
-            <label class="merge-toggle" id="mergeToggle" for="mergeSheets">
+            <div class="merge-toggle" id="mergeToggle">
+              <input type="checkbox" id="mergeSheets" class="merge-input">
               <span class="switch"></span>
               <div class="merge-toggle-text">
                 <span class="merge-toggle-desc">دمج الشيتات فى شيت واحد</span>
               </div>
-            </label>
-            <input type="checkbox" id="mergeSheets" style="display:none">
+            </div>
           </div>
         </div>
       </div>
@@ -842,11 +928,15 @@
     const CFG = { strict: true, firstRowHeader: true, incHeader: true, ci: true, sortVals: true };
     const STORAGE_KEY = 'gehat_files_v1';
     const EXPORT_KEY = 'gehat_export_v1';
+    const DEFAULT_CARDS = 4;
 
-    const state = [0, 1, 2, 3].map(i => ({
+    const makeState = (i) => ({
       idx: i, fileName: null, baseName: null, wb: null, sheetName: null,
       aoa: null, headers: [], dataRows: [], colIndex: -1, regionColIndex: -1, ready: false
-    }));
+    });
+
+    /* dynamic list of file slots — grows / shrinks at runtime */
+    let state = [];
 
     const $ = id => document.getElementById(id);
     const setFileStatus = (msg, isErr, isOk) => {
@@ -862,72 +952,221 @@
     const escapeHtml = s => String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+    /* Robust File -> ArrayBuffer (old browsers without File.arrayBuffer) */
+    function readFileBuffer(file) {
+      if (typeof file.arrayBuffer === 'function') return file.arrayBuffer();
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(r.error || new Error('FileReader error'));
+        r.readAsArrayBuffer(file);
+      });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  STATE LIST HELPERS                                                 */
+    /* ------------------------------------------------------------------ */
+    function ensureStateCount(n) {
+      while (state.length < n) state.push(makeState(state.length));
+      state.forEach((s, i) => s.idx = i);
+    }
+    function updateFileCountBadge() {
+      const badge = $('fileCountBadge');
+      if (!badge) return;
+      const ready = state.filter(s => s.ready).length;
+      badge.textContent = `${state.length} ملف · ${ready} محمّل`;
+    }
+
     /* ------------------------------------------------------------------ */
     /*  BUILD FILE CARDS                                                   */
     /* ------------------------------------------------------------------ */
-    function buildCards() {
-      const wrap = $('files');
-      state.forEach((s, i) => {
-        const card = document.createElement('div');
-        card.className = 'file-card';
-        card.innerHTML = `
-          <div class="file-card-head">
-            <span class="file-badge">ملف ${i + 1}</span>
-            <span class="fname" id="fname-${i}">—</span>
-          </div>
-          <label class="drop" id="drop-${i}">
-            <input type="file" accept=".xlsx,.xls,.xlsm,.csv" data-i="${i}">
-            <span>اختر ملف</span>
-          </label>
-            <div class="row">
-            <label>القطاع</label>
-            <select id="region-col-${i}" disabled>
-              <option value="-1">بدون</option>
-            </select>
-          </div>
-          <div class="row">
-            <label>الهندسة</label>
-            <select id="col-${i}" disabled></select>
-          </div>
-          <div class="row">
-            <label>ورقة</label>
-            <select id="sheet-${i}" disabled></select>
-          </div>
-          <div class="info" id="info-${i}"></div>
-        `;
-        wrap.appendChild(card);
+    function buildCard(i) {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.dataset.i = i;
+      card.innerHTML = `
+        <div class="file-card-head">
+          <span class="file-badge">ملف ${i + 1}</span>
+          <span class="fname" id="fname-${i}">—</span>
+          <button type="button" class="card-remove" data-i="${i}" title="حذف الملف">×</button>
+        </div>
+        <div class="drop" id="drop-${i}">
+          <input type="file" accept=".xlsx,.xls,.xlsm,.csv" data-i="${i}">
+          <span>اختر ملف</span>
+        </div>
+        <div class="row">
+          <label>القطاع</label>
+          <select id="region-col-${i}" disabled>
+            <option value="-1">بدون</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>الهندسة</label>
+          <select id="col-${i}" disabled></select>
+        </div>
+        <div class="row">
+          <label>ورقة</label>
+          <select id="sheet-${i}" disabled></select>
+        </div>
+        <div class="info" id="info-${i}"></div>
+      `;
 
-        card.querySelector('input[type=file]').addEventListener('change', e => {
-          const f = e.target.files[0];
-          if (f) loadFile(i, f);
-        });
-
-        const drop = card.querySelector('.drop');
-        ['dragenter', 'dragover'].forEach(ev =>
-          drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
-        ['dragleave', 'drop'].forEach(ev =>
-          drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-        drop.addEventListener('drop', e => {
-          const f = e.dataTransfer.files[0];
-          if (f) loadFile(i, f);
-        });
-
-        $('sheet-' + i).addEventListener('change', e => {
-          s.sheetName = e.target.value;
-          readSheet(i);
-        });
-        $('col-' + i).addEventListener('change', e => {
-          s.colIndex = parseInt(e.target.value, 10);
-          updateInfo(i);
-          saveStateToStorage();
-          refreshExportUI();
-        });
-        $('region-col-' + i).addEventListener('change', e => {
-          s.regionColIndex = parseInt(e.target.value, 10);
-          saveStateToStorage();
-          refreshExportUI();
-        });
+      /* Use card.querySelector for ALL elements — the card is NOT yet in the
+         document, so document.getElementById would return null and crash. */
+      card.querySelector('input[type=file]').addEventListener('change', e => {
+        const f = e.target.files[0];
+        if (f) loadFile(i, f);
+        e.target.value = '';
       });
+
+      const drop = card.querySelector('.drop');
+      ['dragenter', 'dragover'].forEach(ev =>
+        drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+      ['dragleave', 'drop'].forEach(ev =>
+        drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+      drop.addEventListener('drop', e => {
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) loadFile(i, f);
+      });
+
+      card.querySelector('.card-remove').addEventListener('click', e => {
+        e.stopPropagation();
+        removeFile(i);
+      });
+
+      card.querySelector('#sheet-' + i).addEventListener('change', e => {
+        const s = state[i];
+        s.sheetName = e.target.value;
+        readSheet(i);
+      });
+      card.querySelector('#col-' + i).addEventListener('change', e => {
+        const s = state[i];
+        s.colIndex = parseInt(e.target.value, 10);
+        updateInfo(i);
+        saveStateToStorage();
+        refreshExportUI();
+      });
+      card.querySelector('#region-col-' + i).addEventListener('change', e => {
+        const s = state[i];
+        s.regionColIndex = parseInt(e.target.value, 10);
+        saveStateToStorage();
+        refreshExportUI();
+      });
+
+      return card;
+    }
+
+    function buildAddCard() {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'add-card';
+      el.innerHTML = `<span class="plus">+</span><span>إضافة ملف</span>`;
+      el.addEventListener('click', addFile);
+      return el;
+    }
+
+    /* rebuilds the whole grid from `state` */
+    function renderCards() {
+      const wrap = $('files');
+      wrap.innerHTML = '';
+      state.forEach((s, i) => {
+        const card = buildCard(i);       // safe now: uses card.querySelector
+        wrap.appendChild(card);          // card is in DOM
+        fillCard(i);                     // safe: $('fname-i') now exists
+      });
+      wrap.appendChild(buildAddCard());
+      updateFileCountBadge();
+    }
+
+    /* fills a freshly built card with whatever is already in state */
+    function fillCard(i) {
+      const s = state[i];
+      const fn = $('fname-' + i);
+      if (fn) fn.textContent = s.fileName || '—';
+      if (!s.ready) return;
+      fillSheetSelect(i);
+      buildColumnSelects(i);
+      updateInfo(i);
+    }
+
+    function addFile() {
+      state.push(makeState(state.length));
+      renderCards();
+      saveStateToStorage();
+      setFileStatus('تمت إضافة ملف جديد', false, true);
+    }
+
+    function removeFile(i) {
+      const s = state[i];
+      if (s.ready || s.fileName) {
+        if (!confirm(`حذف «${s.fileName || 'ملف ' + (i + 1)}»؟`)) return;
+      }
+      if (state.length <= 1) {
+        state[0] = makeState(0);          // keep at least one slot
+      } else {
+        state.splice(i, 1);
+        state.forEach((st, k) => st.idx = k);
+      }
+      renderCards();
+      saveStateToStorage();
+      refreshExportUI();
+      setFileStatus('تم حذف الملف', false, true);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  SELECT BUILDERS                                                    */
+    /* ------------------------------------------------------------------ */
+    function fillSheetSelect(i) {
+      const s = state[i];
+      const sh = $('sheet-' + i);
+      if (!sh) return;
+      sh.innerHTML = '';
+      const names = (s.wb && s.wb.SheetNames && s.wb.SheetNames.length)
+        ? s.wb.SheetNames
+        : [s.sheetName || 'Sheet1'];
+      names.forEach(n => {
+        const o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        sh.appendChild(o);
+      });
+      sh.disabled = false;
+      sh.value = (s.sheetName && names.indexOf(s.sheetName) >= 0) ? s.sheetName : names[0];
+    }
+
+    function buildColumnSelects(i) {
+      const s = state[i];
+      let width = s.headers.length;
+      s.dataRows.forEach(r => width = Math.max(width, r.length));
+      if (width === 0) width = 1;
+
+      const colSel = $('col-' + i);
+      if (!colSel) return;
+      colSel.innerHTML = '';
+      for (let c = 0; c < width; c++) {
+        const o = document.createElement('option');
+        o.value = c;
+        const letter = XLSX.utils.encode_col(c);
+        const h = s.headers[c];
+        o.textContent = h ? `${letter} — ${h}` : `${letter}`;
+        colSel.appendChild(o);
+      }
+      colSel.disabled = false;
+      colSel.value = (s.colIndex >= 0 && s.colIndex < width) ? s.colIndex : 0;
+
+      const regionSel = $('region-col-' + i);
+      if (!regionSel) return;
+      regionSel.innerHTML = '<option value="-1">بدون</option>';
+      for (let c = 0; c < width; c++) {
+        if (c === s.colIndex) continue;
+        const o = document.createElement('option');
+        o.value = c;
+        const letter = XLSX.utils.encode_col(c);
+        const h = s.headers[c];
+        o.textContent = h ? `${letter} — ${h}` : `${letter}`;
+        regionSel.appendChild(o);
+      }
+      regionSel.disabled = false;
+      regionSel.value = s.regionColIndex >= 0 ? s.regionColIndex : -1;
     }
 
     /* ------------------------------------------------------------------ */
@@ -937,27 +1176,24 @@
       const s = state[i];
       setFileStatus(`قراءة ${file.name}…`);
       try {
-        const buf = await file.arrayBuffer();
+        if (typeof XLSX === 'undefined') {
+          throw new Error('مكتبة XLSX لم تُحمّل — تحقّق من الاتصال بالإنترنت أو استخدم سيرفر محلى');
+        }
+        const buf = await readFileBuffer(file);
         const wb = XLSX.read(buf, { type: 'array' });
         s.wb = wb;
         s.fileName = file.name;
         s.baseName = file.name.replace(/\.[^.]+$/, '');
         $('fname-' + i).textContent = file.name;
 
-        const sheetSel = $('sheet-' + i);
-        sheetSel.innerHTML = '';
-        wb.SheetNames.forEach(n => {
-          const o = document.createElement('option');
-          o.value = n; o.textContent = n;
-          sheetSel.appendChild(o);
-        });
-        sheetSel.disabled = false;
         s.sheetName = wb.SheetNames[0];
-        sheetSel.value = s.sheetName;
+        fillSheetSelect(i);
 
         readSheet(i);
+        updateFileCountBadge();
         setFileStatus(`تم تحميل ${file.name}`, false, true);
       } catch (err) {
+        console.error(err);
         setFileStatus(`تعذّر قراءة ${file.name}: ${err.message}`, true);
       }
     }
@@ -981,41 +1217,14 @@
       aoa.forEach(r => width = Math.max(width, r.length));
       if (width === 0) width = 1;
 
-      const colSel = $('col-' + i);
-      colSel.innerHTML = '';
-      for (let c = 0; c < width; c++) {
-        const o = document.createElement('option');
-        o.value = c;
-        const letter = XLSX.utils.encode_col(c);
-        const h = s.headers[c];
-        o.textContent = h ? `${letter} — ${h}` : `${letter}`;
-        colSel.appendChild(o);
-      }
-      colSel.disabled = false;
+      s.colIndex = autoPickColumn(s, width);
+      s.regionColIndex = autoPickRegionColumn(s, width, s.colIndex);
 
-      const best = autoPickColumn(s, width);
-      s.colIndex = best;
-      colSel.value = best;
-
-      const regionSel = $('region-col-' + i);
-      regionSel.innerHTML = '<option value="-1">بدون</option>';
-      for (let c = 0; c < width; c++) {
-        if (c === s.colIndex) continue;
-        const o = document.createElement('option');
-        o.value = c;
-        const letter = XLSX.utils.encode_col(c);
-        const h = s.headers[c];
-        o.textContent = h ? `${letter} — ${h}` : `${letter}`;
-        regionSel.appendChild(o);
-      }
-      regionSel.disabled = false;
-
-      const regionBest = autoPickRegionColumn(s, width, best);
-      s.regionColIndex = regionBest;
-      regionSel.value = regionBest;
+      buildColumnSelects(i);
 
       s.ready = true;
       updateInfo(i);
+      updateFileCountBadge();
       saveStateToStorage();
       refreshExportUI();
     }
@@ -1052,13 +1261,15 @@
     }
     function updateInfo(i) {
       const s = state[i];
-      if (!s.ready) { $('info-' + i).textContent = ''; return; }
+      const el = $('info-' + i);
+      if (!el) return;
+      if (!s.ready) { el.textContent = ''; return; }
       const set = new Set();
       s.dataRows.forEach(r => {
         const v = String(r[s.colIndex] ?? '').trim();
         if (v) set.add(v);
       });
-      $('info-' + i).textContent = `${s.dataRows.length} صف · ${set.size} قيمة فريدة`;
+      el.textContent = `${s.dataRows.length} صف · ${set.size} قيمة فريدة`;
     }
 
     /* ------------------------------------------------------------------ */
@@ -1077,6 +1288,7 @@
         setFileStatus('تحذير: حجم البيانات كبير جدًا', true);
       }
     }
+
     function restoreFromStorage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
@@ -1096,46 +1308,7 @@
         s.regionColIndex = typeof d.regionColIndex === 'number' ? d.regionColIndex : -1;
         s.ready = true;
 
-        $('fname-' + i).textContent = s.fileName || '—';
-
-        const sh = $('sheet-' + i);
-        sh.innerHTML = '';
-        const shOpt = document.createElement('option');
-        shOpt.value = s.sheetName;
-        shOpt.textContent = s.sheetName;
-        sh.appendChild(shOpt);
-        sh.disabled = false;
-
-        let width = s.headers.length;
-        s.dataRows.forEach(r => width = Math.max(width, r.length));
-        if (width === 0) width = 1;
-
-        const cs = $('col-' + i);
-        cs.innerHTML = '';
-        for (let c = 0; c < width; c++) {
-          const o = document.createElement('option');
-          o.value = c;
-          const letter = XLSX.utils.encode_col(c);
-          o.textContent = s.headers[c] ? `${letter} — ${s.headers[c]}` : `${letter}`;
-          cs.appendChild(o);
-        }
-        cs.value = s.colIndex;
-        cs.disabled = false;
-
-        const rs = $('region-col-' + i);
-        rs.innerHTML = '<option value="-1">بدون</option>';
-        for (let c = 0; c < width; c++) {
-          if (c === s.colIndex) continue;
-          const o = document.createElement('option');
-          o.value = c;
-          const letter = XLSX.utils.encode_col(c);
-          o.textContent = s.headers[c] ? `${letter} — ${s.headers[c]}` : `${letter}`;
-          rs.appendChild(o);
-        }
-        rs.value = s.regionColIndex;
-        rs.disabled = false;
-
-        updateInfo(i);
+        fillCard(i);
       });
     }
 
@@ -1274,10 +1447,11 @@
           if (!g) {
             g = {
               key, display: String(raw ?? '').trim(), region: '',
-              rows: [[], [], [], []]
+              rows: {}            /* keyed by file index — supports any number of files */
             };
             groups.set(key, g);
           }
+          if (!g.rows[i]) g.rows[i] = [];
           g.rows[i].push(row);
           if (!g.region && s.regionColIndex >= 0) {
             const r = String(row[s.regionColIndex] ?? '').trim();
@@ -1288,7 +1462,7 @@
 
       const totalValues = groups.size;
       let list = [...groups.values()];
-      if (CFG.strict) list = list.filter(g => loadedIdx.every(i => g.rows[i].length > 0));
+      if (CFG.strict) list = list.filter(g => loadedIdx.every(i => (g.rows[i] || []).length > 0));
       if (exportMode === 'oneValue') {
         if (selValue) list = list.filter(g => g.display === selValue);
       } else if (exportMode === 'byRegion') {
@@ -1332,7 +1506,7 @@
       renderReport(
         data.list.map(g => ({
           value: g.display, region: g.region || '',
-          counts: data.loadedIdx.map(i => g.rows[i].length),
+          counts: data.loadedIdx.map(i => (g.rows[i] || []).length),
           fname: ''
         })),
         data.loadedIdx, data.totalValues, data.list.length, true
@@ -1404,7 +1578,7 @@
 
         for (const i of loadedIdx) {
           const s = state[i];
-          const rows = g.rows[i];
+          const rows = g.rows[i] || [];
           if (!rows.length) continue;
           const map = {};
           s.headers.forEach((h, idx) => {
@@ -1433,7 +1607,7 @@
       const usedSheetNames = new Set();
       for (const i of loadedIdx) {
         const s = state[i];
-        const rows = g.rows[i];
+        const rows = g.rows[i] || [];
         const aoa = [];
         if (CFG.incHeader && s.headers.length) aoa.push(s.headers);
         rows.forEach(r => aoa.push(r));
@@ -1477,7 +1651,7 @@
           renderReport(
             [{
               value: g.display, region: g.region,
-              counts: loadedIdx.map(i => g.rows[i].length),
+              counts: loadedIdx.map(i => (g.rows[i] || []).length),
               fname: safeFileName(g.display) + '.xlsx'
             }],
             loadedIdx, totalValues, list.length, false
@@ -1502,7 +1676,7 @@
           zip.file(path, buf);
           report.push({
             value: g.display, region: g.region || '',
-            counts: loadedIdx.map(i => g.rows[i].length),
+            counts: loadedIdx.map(i => (g.rows[i] || []).length),
             fname: path
           });
         }
@@ -1608,31 +1782,44 @@
     /* ------------------------------------------------------------------ */
     /*  WIRING                                                             */
     /* ------------------------------------------------------------------ */
-    buildCards();
-    restoreFromStorage();
-    refreshExportUI();
+    (function init() {
+      /* how many cards should exist? (from storage, min = DEFAULT_CARDS) */
+      let count = DEFAULT_CARDS;
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) count = Math.max(arr.length, 1);
+        } catch { /* ignore */ }
+      }
+      ensureStateCount(count);
+      renderCards();
+      restoreFromStorage();
+      updateFileCountBadge();
+      refreshExportUI();
 
-    // Restore export settings
-    const saved = loadExportSettings();
-    if (saved) {
-      if (saved.mode) $('exportMode').value = saved.mode;
-      $('regionRow').style.display = saved.mode !== 'all' ? 'grid' : 'none';
-      $('valueRow').style.display = saved.mode === 'oneValue' ? 'block' : 'none';
-      if (saved.regions && Array.isArray(saved.regions)) {
-        document.querySelectorAll('#regionList input[type=checkbox]').forEach(cb => {
-          cb.checked = saved.regions.includes(cb.value);
-        });
-        updateRegionCount();
+      /* Restore export settings */
+      const saved = loadExportSettings();
+      if (saved) {
+        if (saved.mode) $('exportMode').value = saved.mode;
+        $('regionRow').style.display = saved.mode !== 'all' ? 'grid' : 'none';
+        $('valueRow').style.display = saved.mode === 'oneValue' ? 'block' : 'none';
+        if (saved.regions && Array.isArray(saved.regions)) {
+          document.querySelectorAll('#regionList input[type=checkbox]').forEach(cb => {
+            cb.checked = saved.regions.includes(cb.value);
+          });
+          updateRegionCount();
+        }
+        $('mergeSheets').checked = !!saved.merge;
+        $('mergeToggle').classList.toggle('checked', !!saved.merge);
+        refreshValueSelect();
+        if (saved.value) {
+          const opt = [...$('valueSelect').options].find(o => o.value === saved.value);
+          if (opt) $('valueSelect').value = saved.value;
+        }
+        updatePreview();
       }
-      $('mergeSheets').checked = !!saved.merge;
-      $('mergeToggle').classList.toggle('checked', !!saved.merge);
-      refreshValueSelect();
-      if (saved.value) {
-        const opt = [...$('valueSelect').options].find(o => o.value === saved.value);
-        if (opt) $('valueSelect').value = saved.value;
-      }
-      updatePreview();
-    }
+    })();
 
     $('reset').addEventListener('click', () => {
       if (!confirm('مسح جميع الملفات المحمّلة؟')) return;
