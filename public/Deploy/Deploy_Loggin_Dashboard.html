@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Company-Name · Login</title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js">
+  </script>
+  <style>
+    * {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      background: linear-gradient(135deg, #fbfbfb, #ffffff, #ffffff);
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    }
+
+    .neo-card {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 28px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s;
+    }
+
+    .neo-card:hover {
+      box-shadow: 0 24px 48px -12px rgba(79, 70, 229, 0.15);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #000000, #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .input-modern {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(226, 232, 240, 0.4);
+      border-radius: 16px;
+      padding: 0.75rem 1rem;
+      transition: 0.15s;
+      width: 100%;
+      color: #1e293b;
+      font-size: 0.95rem;
+    }
+
+    .input-modern:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+      outline: none;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .input-modern::placeholder {
+      color: #94a3b8;
+    }
+
+    .btn-modern {
+      background: linear-gradient(135deg, #000000, #2d2525, #6c6262);
+      color: white;
+      border: none;
+      border-radius: 40px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+      letter-spacing: 0.01em;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .btn-modern:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-modern::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 40px;
+      padding: 2px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .btn-glass {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      color: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 40px;
+      padding: 0.6rem 1.2rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: all 0.25s;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      width: 100%;
+    }
+
+    .btn-glass:hover {
+      background: rgba(255, 255, 255, 0.45);
+      border-color: rgba(165, 180, 252, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #000000, #2e2b2b);
+      color: white;
+      border: none;
+      border-radius: 40px;
+      padding: 0.6rem 1.2rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: all 0.25s;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+      width: 100%;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.75rem 1.5rem;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 9999;
+      animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      color: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+
+    .toast.info {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .toast.warning {
+      border-left: 4px solid #f59e0b;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 1rem;
+      display: none;
+    }
+
+    .login-container.visible {
+      display: block;
+    }
+
+    .login-card {
+      padding: 2.5rem;
+      border-radius: 28px;
+    }
+
+    .login-card .logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-card .logo i {
+      font-size: 3rem;
+      color: #4f46e5;
+      background: rgba(79, 70, 229, 0.1);
+      padding: 1rem;
+      border-radius: 50%;
+      border: 2px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .login-card .logo h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-top: 0.75rem;
+    }
+
+    .login-card .logo p {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .login-card .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .login-card .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.3rem;
+    }
+
+    .login-card .form-group .input-wrapper {
+      position: relative;
+    }
+
+    .login-card .form-group .input-wrapper i {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .login-card .form-group .input-wrapper input {
+      padding-right: 2.8rem;
+    }
+
+    .login-card .login-error {
+      color: #ef4444;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      min-height: 1.5rem;
+    }
+
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #ffffff, #ffffff, #ffffff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+
+    #loadingOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(79, 70, 229, 0.1);
+      border-top-color: #000000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .dashboard-container {
+      display: none;
+      width: 100%;
+      max-width: 1200px;
+      padding: 1rem;
+      min-height: 100vh;
+    }
+
+    .dashboard-container.active {
+      display: block;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .dashboard-header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .dashboard-header .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      overflow: hidden;
+    }
+
+    .dashboard-header .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dashboard-header .user-name {
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .dashboard-header .user-role {
+      font-size: 0.7rem;
+      color: #64748b;
+    }
+
+    .dashboard-header .header-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .dashboard-header .header-actions .btn-sm {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.7rem;
+      width: auto;
+    }
+
+    .perm-hidden {
+      display: none !important;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .dashboard-stat {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 1.25rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .dashboard-stat:hover {
+      transform: translateY(-4px);
+      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+    }
+
+    .dashboard-stat .number {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .dashboard-stat .label {
+      color: #64748b;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    .dashboard-apps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .dashboard-app-card {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      color: #1e293b;
+    }
+
+    .dashboard-app-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+    }
+
+    .dashboard-app-card .app-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .dashboard-app-card .app-name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .dashboard-app-card .app-desc {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .dashboard-app-card .app-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .dashboard-footer {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      color: #64748b;
+      font-size: 0.7rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .btn-modern.loading {
+      color: transparent;
+    }
+
+    .btn-modern.loading .spinner {
+      position: absolute;
+    }
+
+    /* Theme styles */
+    .theme-dark body {
+      background: linear-gradient(135deg, #0b1120, #1a1a2e, #16213e);
+    }
+
+    .theme-dark .glass-card,
+    .theme-dark .neo-card,
+    .theme-dark .login-card,
+    .theme-dark .dashboard-stat,
+    .theme-dark .dashboard-app-card {
+      background: rgba(20, 30, 50, 0.4);
+      border-color: rgba(42, 58, 90, 0.4);
+    }
+
+    .theme-dark .input-modern {
+      background: rgba(26, 39, 64, 0.4);
+      border-color: rgba(42, 58, 90, 0.4);
+      color: #e2e8f0;
+    }
+
+    .theme-dark .input-modern::placeholder {
+      color: #64748b;
+    }
+
+    .theme-dark .login-card .logo p {
+      color: #94a3b8;
+    }
+
+    .theme-dark .login-card .form-group label {
+      color: #e2e8f0;
+    }
+
+    .theme-dark .dashboard-header .user-name {
+      color: #e2e8f0;
+    }
+
+    .theme-dark .dashboard-header .user-role {
+      color: #94a3b8;
+    }
+
+    .theme-dark .dashboard-app-card {
+      color: #e2e8f0;
+    }
+
+    .theme-dark .dashboard-app-card .app-desc {
+      color: #94a3b8;
+    }
+
+    .theme-dark .dashboard-footer {
+      color: #94a3b8;
+    }
+
+    .theme-dark .btn-glass {
+      color: #e2e8f0;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .theme-dark .btn-glass:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(165, 180, 252, 0.3);
+    }
+
+    .theme-ocean body {
+      background: linear-gradient(135deg, #064663, #0a4b6e, #1a7a9e);
+    }
+
+    .theme-ocean .glass-card,
+    .theme-ocean .neo-card,
+    .theme-ocean .login-card,
+    .theme-ocean .dashboard-stat,
+    .theme-ocean .dashboard-app-card {
+      background: rgba(6, 70, 99, 0.5);
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    .theme-ocean .input-modern {
+      background: rgba(13, 79, 117, 0.4);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .input-modern::placeholder {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .login-card .logo p {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .login-card .form-group label {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .dashboard-header .user-name {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .dashboard-header .user-role {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .dashboard-app-card {
+      color: #f0f9ff;
+    }
+
+    .theme-ocean .dashboard-app-card .app-desc {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .dashboard-footer {
+      color: #7dd3fc;
+    }
+
+    .theme-ocean .btn-glass {
+      color: #f0f9ff;
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    .theme-ocean .btn-glass:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      .login-card {
+        padding: 1.5rem;
+      }
+
+      .login-card .logo h1 {
+        font-size: 1.4rem;
+      }
+
+      .login-card .logo i {
+        font-size: 2rem;
+        padding: 0.75rem;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .dashboard-apps {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+
+      .dashboard-app-card {
+        padding: 1rem;
+      }
+
+      .dashboard-app-card .app-icon {
+        font-size: 1.8rem;
+      }
+
+      .dashboard-header {
+        padding: 0.75rem 1rem;
+      }
+
+      .dashboard-container {
+        padding: 0.5rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .dashboard-apps {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+
+      .dashboard-stat {
+        padding: 0.75rem;
+      }
+
+      .dashboard-stat .number {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+  <base target="_blank">
+  <base target="_blank">
+</head>
+
+<body>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ===== LOGIN CONTAINER ===== -->
+  <div id="loginContainer" class="login-container">
+    <div class="login-card glass-card neo-card">
+      <div class="logo">
+        <i class="fas fa-bolt"></i>
+        <h1 class="gradient-text">Company-Name</h1>
+        <p>Sign in to access your workspace</p>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="loginUsername"><i class="fas fa-user mr-1"></i> Username</label>
+          <div class="input-wrapper">
+            <input type="text" id="loginUsername" class="input-modern" placeholder="Enter your username" required
+              autocomplete="username">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword"><i class="fas fa-lock mr-1"></i> Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="loginPassword" class="input-modern" placeholder="Enter your password" required
+              autocomplete="current-password">
+            <i class="fas fa-lock"></i>
+          </div>
+        </div>
+
+        <div id="loginError" class="login-error"></div>
+
+        <button type="submit" id="loginBtn" class="btn-modern">
+          <i class="fas fa-arrow-right-to-bracket"></i>
+          Sign In
+        </button>
+      </form>
+
+      <div style="margin-top: 1rem; text-align: center; font-size: 0.75rem; color: #94a3b8;">
+        <i class="fas fa-shield-alt mr-1"></i> Title1
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD CONTAINER ===== -->
+  <div id="dashboardContainer" class="dashboard-container">
+    <div class="glass-card neo-card" style="padding: 0.5rem; min-height: 95vh; display: flex; flex-direction: column;">
+
+      <!-- Dashboard Header -->
+      <div class="dashboard-header glass-card"
+        style="border-radius: 20px; margin-bottom: 1rem; padding: 0.75rem 1.25rem;">
+        <div class="user-info" id="userInfoSection" data-perm="viewUserInfo">
+          <div class="user-avatar" id="userAvatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div>
+            <div class="user-name" id="userNameDisplay">User</div>
+            <div class="user-role" id="userRoleDisplay">Role</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <!-- Admin Button - Controlled by 'goToControl' permission -->
+          <button id="adminBtn" class="btn-glass btn-sm perm-hidden"
+            onclick="window.location.href='Deploy_Control.html'" title="Admin Control Panel">
+            <i class="fas fa-shield-alt"></i> Admin
+          </button>
+          <!-- Refresh Button - Controlled by 'refreshPermissions' permission -->
+          <button id="refreshBtn" class="btn-glass btn-sm" onclick="refreshPermissions()" title="Refresh Permissions">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+          <!-- Theme Buttons - Controlled by 'theme-option-small' permission -->
+          <div id="themeButtons" class="perm-hidden" style="display:inline-flex; gap:0.3rem;">
+            <button onclick="setTheme('light')" class="btn-glass btn-sm" title="Light Theme">☀️</button>
+            <button onclick="setTheme('dark')" class="btn-glass btn-sm" title="Dark Theme">🌙</button>
+            <button onclick="setTheme('ocean')" class="btn-glass btn-sm" title="Ocean Theme">🌊</button>
+          </div>
+          <!-- Logout Button - Controlled by 'logout' permission -->
+          <button id="logoutBtn" class="btn-danger btn-sm" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Apps -->
+      <h2 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">
+        <i class="fas fa-th-large mr-2 text-purple-500"></i> Applications
+      </h2>
+      <div class="dashboard-apps" id="appsContainer">
+        <!-- Apps loaded dynamically -->
+      </div>
+
+      <div class="dashboard-footer">
+        <i class="fas fa-copyright"></i> <span id="year"></span> Company-Name · All rights reserved
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // FIREBASE CONFIG - MAIN APP
+    // ============================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528"
+    };
+
+    let firebaseDB = null;
+    let currentUser = null;
+    let permissionListener = null;
+    let userRolePermissions = [];
+
+    // ============================================================
+    // PERMISSION SYSTEM (Integrated from Deploy_Control.html)
+    // ============================================================
+    function can(permId) { return userRolePermissions.includes(permId); }
+    function checkPermission(permId, actionName) {
+      if (!can(permId)) { showToast('Access Denied: No permission for "' + actionName + '"', 'error'); return false; }
+      return true;
+    }
+    async function logActivity(action, details) {
+      if (!firebaseDB || !currentUser) return;
+      try {
+        const log = { username: currentUser.username || 'unknown', action: action, details: details || '', timestamp: new Date().toLocaleString(), createdAt: new Date().toISOString() };
+        const logsRef = firebaseDB.ref('activityLogs');
+        const snap = await logsRef.once('value');
+        let logs = snap.val() || [];
+        if (!Array.isArray(logs)) logs = [];
+        logs.unshift(log);
+        if (logs.length > 200) logs = logs.slice(0, 200);
+        await logsRef.set(logs);
+      } catch (e) { console.error('Activity log error:', e); }
+    }
+    async function loadRolePermissions() {
+      if (!firebaseDB || !currentUser) return;
+      try {
+        const role = currentUser.author || 'visitor';
+        const snap = await firebaseDB.ref('rolePermissions/' + role).once('value');
+        const perms = snap.val();
+        if (perms && perms.permissions && Array.isArray(perms.permissions)) {
+          userRolePermissions = perms.permissions;
+        } else if (perms && Array.isArray(perms)) {
+          // Legacy format support
+          userRolePermissions = perms;
+        } else {
+          // Fallback defaults
+          const defaults = {
+            admin: ['goToControl', 'viewDashboard', 'viewUserInfo', 'goToMainApp', 'goToProcesses', 'goToSummary', 'goToHelp', 'refreshPermissions', 'theme-option-small', 'logout'],
+            user: ['viewDashboard', 'viewUserInfo', 'goToMainApp', 'goToProcesses', 'goToSummary', 'goToHelp', 'refreshPermissions', 'theme-option-small', 'logout'],
+            visitor: ['viewDashboard', 'viewUserInfo', 'goToHelp', 'logout']
+          };
+          userRolePermissions = defaults[role] || defaults['visitor'];
+        }
+        applyPermissionUI();
+      } catch (e) { console.error('Permission load error:', e); }
+    }
+    function applyPermissionUI() {
+      // 1. Control User Info Section (avatar, name, role)
+      const userInfo = document.getElementById('userInfoSection');
+      if (userInfo) {
+        if (!can('viewUserInfo')) { userInfo.style.display = 'none'; }
+        else { userInfo.style.display = 'flex'; }
+      }
+
+      // 2. Control Admin Button
+      const adminBtn = document.getElementById('adminBtn');
+      if (adminBtn) {
+        if (!can('goToControl')) { adminBtn.classList.add('perm-hidden'); adminBtn.style.display = 'none'; }
+        else { adminBtn.classList.remove('perm-hidden'); adminBtn.style.display = 'inline-flex'; }
+      }
+
+      // 3. Control Refresh Button
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        if (!can('refreshPermissions')) { refreshBtn.style.display = 'none'; }
+        else { refreshBtn.style.display = 'inline-flex'; }
+      }
+
+      // 4. Control Theme Buttons
+      const themeBtns = document.getElementById('themeButtons');
+      if (themeBtns) {
+        if (!can('theme-option-small')) { themeBtns.classList.add('perm-hidden'); themeBtns.style.display = 'none'; }
+        else { themeBtns.classList.remove('perm-hidden'); themeBtns.style.display = 'inline-flex'; }
+      }
+
+      // 5. Control Logout Button
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        if (!can('logout')) { logoutBtn.style.display = 'none'; }
+        else { logoutBtn.style.display = 'inline-flex'; }
+      }
+
+      // 6. Control App Cards
+      const appCards = document.querySelectorAll('.dashboard-app-card');
+      appCards.forEach(card => {
+        const appId = card.getAttribute('data-app-id');
+        if (appId) {
+          const permMap = {
+            'main_app': 'goToMainApp',
+            'processes': 'goToProcesses',
+            'summary': 'goToSummary',
+            'help': 'goToHelp',
+            'get_in_touch': 'goToGetInTouch',
+            'control': 'goToControl'
+          };
+          const perm = permMap[appId];
+          if (perm && !can(perm)) {
+            card.style.display = 'none';
+          } else {
+            card.style.display = 'block';
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // APPS CONFIGURATION
+    // ============================================================
+    const APPS = [{
+      id: 'main_app',
+      name: 'Main App',
+      icon: 'fa-home',
+      desc: 'Database management & operations',
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10',
+      path: 'Deploy_Main_App.html',
+      image: 'path/to/your/image.png',
+      badge: 'Core'
+    }, {
+      id: 'processes',
+      name: 'Processes',
+      icon: 'fa-cogs',
+      desc: 'Excel tools & data processing',
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+      path: 'Deploy_Processes.html',
+      badge: 'Tools'
+    }, {
+      id: 'summary',
+      name: 'Summary',
+      icon: 'fa-chart-bar',
+      desc: 'Data analysis & pivot tables',
+      color: 'text-green-500',
+      bg: 'bg-green-500/10',
+      path: 'Deploy_Summary.html',
+      badge: 'Analytics'
+    }, {
+      id: 'help',
+      name: 'Help',
+      icon: 'fa-lightbulb',
+      desc: 'Support & ticket system',
+      color: 'text-yellow-500',
+      bg: 'bg-yellow-500/10',
+      path: 'Deploy_Help.html',
+      badge: 'Support'
+    },
+    {
+      id: 'get_in_touch',  // ✅ ADD THIS
+      name: 'Get In Touch',
+      icon: 'fa-envelope',
+      desc: 'Support & contact form',
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-500/10',
+      path: 'Get_InTouch.html',
+      badge: 'Support'
+    },
+    {
+      id: 'control',
+      name: 'Control Panel',
+      icon: 'fa-shield-alt',
+      desc: 'User & permission management',
+      color: 'text-purple-500',
+      bg: 'bg-purple-500/10',
+      path: 'Deploy_Control.html',
+      badge: 'Admin'
+    }];
+
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function showToast(msg, type = 'info') {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icon = type === 'success' ? 'fa-check-circle text-emerald-500' : type === 'error' ?
+        'fa-exclamation-triangle text-red-500' : 'fa-info-circle text-blue-500';
+      toast.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+    }
+
+    function setTheme(theme) {
+      document.body.className = `theme-${theme}`;
+      localStorage.setItem('selectedTheme', theme);
+    }
+
+    // ============================================================
+    // PERMISSION CONTROL FOR DASHBOARD (Deploy_Loggin_Dashboard.html)
+    // ============================================================
+    async function loadDashboardPermissions() {
+      // Unified permission system - just call loadRolePermissions
+      return await loadRolePermissions();
+    }
+
+    // ============================================================
+    // REFRESH PERMISSIONS - Called by Refresh button
+    // ============================================================
+    async function refreshPermissions() {
+      if (!checkPermission('refreshPermissions', 'Refresh Permissions')) return;
+      console.log('🔄 Manual refresh triggered');
+      showToast('🔄 Refreshing permissions...', 'info');
+      await loadRolePermissions();
+      const count = userRolePermissions.length;
+      if (count > 0) {
+        showToast(`✅ Permissions refreshed (${count})`, 'success');
+      } else {
+        showToast('⚠️ No permissions found', 'warning');
+      }
+    }
+
+    // ============================================================
+    // REAL-TIME PERMISSION LISTENER
+    // ============================================================
+    function listenForPermissionChanges() {
+      const savedUser = localStorage.getItem('currentUser');
+      if (!savedUser) {
+        console.log('❌ No user logged in, cannot listen for permissions');
+        return;
+      }
+
+      const user = JSON.parse(savedUser);
+      const role = user.author || 'visitor';
+
+      // Remove old listener if exists
+      if (permissionListener) {
+        firebaseDB.ref('rolePermissions/' + role).off();
+        permissionListener = null;
+      }
+
+      console.log(`👂 Listening for permission changes for role: ${role}`);
+
+      permissionListener = firebaseDB.ref('rolePermissions/' + role).on('value', (snap) => {
+        const data = snap.val() || { permissions: [] };
+        const allowed = data.permissions || [];
+        userRolePermissions = allowed;
+
+        console.log(`🔄 Permissions updated in real-time! Role: ${role}, Count: ${allowed.length}`);
+
+        // Apply unified permission UI
+        applyPermissionUI();
+
+        showToast('🔄 Permissions updated in real-time!', 'info');
+      }, (error) => {
+        console.error('❌ Error listening for permissions:', error);
+      });
+    }
+
+    // ============================================================
+    // AUTH FUNCTIONS
+    // ============================================================
+    async function handleLogin(e) {
+      e.preventDefault();
+
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
+
+      if (!username || !password) {
+        errorEl.textContent = 'Please enter both username and password';
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.classList.add('loading');
+      loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+      errorEl.textContent = '';
+
+      try {
+        const snap = await firebaseDB.ref('users-generatedcode').once('value');
+        const users = snap.val();
+
+        let found = null;
+        for (let key in users) {
+          if (users[key].username && users[key].username.toLowerCase() === username.toLowerCase()) {
+            found = users[key];
+            found.id = key;
+            break;
+          }
+        }
+
+        if (!found) {
+          errorEl.textContent = 'Invalid username or password';
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('loading');
+          loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+          return;
+        }
+
+        let storedPassword = '';
+        if (typeof found.password === 'string') storedPassword = found.password;
+        else if (typeof found.password === 'object') {
+          storedPassword = found.password.password || found.password.value || JSON.stringify(found.password);
+        } else storedPassword = String(found.password);
+
+        if (String(storedPassword) === String(password)) {
+          currentUser = found;
+          localStorage.setItem('currentUser', JSON.stringify(found));
+          localStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('wasLoggedIn', 'true');
+
+          showToast(`Welcome back, ${found.username}!`, 'success');
+          await showDashboard();
+          // Load permissions using unified system
+          await loadRolePermissions();
+          // Start listening for real-time permission changes
+          listenForPermissionChanges();
+        } else {
+          errorEl.textContent = 'Invalid username or password';
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('loading');
+          loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        errorEl.textContent = 'Connection error. Please try again.';
+        loginBtn.disabled = false;
+        loginBtn.classList.remove('loading');
+        loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+      }
+    }
+
+    function handleLogout() {
+      if (!checkPermission('logout', 'Logout')) return;
+      // Remove real-time listener
+      if (permissionListener) {
+        const role = currentUser ? currentUser.author || 'visitor' : 'visitor';
+        firebaseDB.ref('rolePermissions/' + role).off();
+        permissionListener = null;
+        console.log('👂 Stopped listening for permission changes');
+      }
+
+      logActivity('Logout', 'User logged out from dashboard');
+      currentUser = null;
+      localStorage.removeItem('currentUser');
+      localStorage.setItem('isLoggedIn', 'false');
+      sessionStorage.setItem('wasLoggedIn', 'false');
+      document.getElementById('dashboardContainer').classList.remove('active');
+      document.getElementById('loginContainer').classList.add('visible');
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').textContent = '';
+      showToast('Logged out successfully', 'info');
+    }
+
+    // ============================================================
+    // DASHBOARD FUNCTIONS
+    // ============================================================
+    async function showDashboard() {
+      document.getElementById('loginContainer').classList.remove('visible');
+      document.getElementById('dashboardContainer').classList.add('active');
+
+      const user = currentUser;
+      document.getElementById('userNameDisplay').textContent = user.username || 'User';
+      document.getElementById('userRoleDisplay').textContent = `Role: ${user.author || 'visitor'}`;
+
+      const avatar = document.getElementById('userAvatar');
+      if (user.profileImage) {
+        avatar.innerHTML = `<img src="${user.profileImage}" alt="${user.username}">`;
+      } else {
+        avatar.innerHTML = `<i class="fas fa-user"></i>`;
+      }
+
+      await loadStats();
+      renderApps();
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+      setTheme(savedTheme);
+    }
+
+    async function loadStats() {
+      try {
+        const usersSnap = await firebaseDB.ref('users-generatedcode').once('value');
+        const users = usersSnap.val() || {};
+        document.getElementById('statUsers').textContent = Object.keys(users).length;
+
+        const permsSnap = await firebaseDB.ref('rolePermissions').once('value');
+        const perms = permsSnap.val() || {};
+        document.getElementById('statRoles').textContent = Object.keys(perms).length;
+
+        const dbSnap = await firebaseDB.ref('Project_1').once('value');
+        const dbs = dbSnap.val() || {};
+        document.getElementById('statDatabases').textContent = Object.keys(dbs).length;
+
+        document.getElementById('statModules').textContent = APPS.length;
+
+      } catch (err) {
+        console.error('Error loading stats:', err);
+      }
+    }
+
+    function renderApps() {
+      const container = document.getElementById('appsContainer');
+      container.innerHTML = APPS.map(app => {
+        const permMap = { 'main_app': 'goToMainApp', 'processes': 'goToProcesses', 'summary': 'goToSummary', 'help': 'goToHelp', 'control': 'goToControl', 'get_in_touch': 'goToGetInTouch' };
+        const perm = permMap[app.id];
+        return `<a href="${app.path}" class="dashboard-app-card" data-app-id="${app.id}" data-perm="${perm}" onclick="return handleAppClick('${app.path}', '${app.id}')">
+                    <span class="app-icon ${app.color}"><i class="fas ${app.icon}"></i></span>
+                    <div class="app-name">${app.name}</div>
+                    <div class="app-desc">${app.desc}</div>
+                    <span class="app-badge">${app.badge}</span>
+                </a>`;
+      }).join('');
+    }
+
+    function handleAppClick(path, appId) {
+      const permMap = { 'main_app': 'goToMainApp', 'processes': 'goToProcesses', 'summary': 'goToSummary', 'help': 'goToHelp', 'control': 'goToControl', 'get_in_touch': 'goToGetInTouch' };
+      const perm = permMap[appId];
+      if (perm && !checkPermission(perm, 'Access ' + appId)) return false;
+      if (currentUser) {
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('isLoggedIn', 'true');
+      }
+      logActivity('App Opened', `Opened ${appId}`);
+      return true;
+    }
+
+    // ============================================================
+    // CHECK EXISTING SESSION
+    // ============================================================
+    async function checkExistingSession() {
+      const savedUser = localStorage.getItem('currentUser');
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+      console.log('🔍 Checking session - isLoggedIn:', isLoggedIn, 'savedUser:', !!savedUser);
+
+      if (savedUser && isLoggedIn) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          const snap = await firebaseDB.ref('users-generatedcode/' + currentUser.id).once('value');
+          if (snap.exists()) {
+            console.log('✅ Session valid, showing dashboard');
+            await showDashboard();
+            await loadRolePermissions();
+            // Start listening for real-time permission changes
+            listenForPermissionChanges();
+            return true;
+          } else {
+            console.log('❌ User not found in Firebase, clearing session');
+            localStorage.removeItem('currentUser');
+            localStorage.setItem('isLoggedIn', 'false');
+            return false;
+          }
+        } catch (err) {
+          console.error('Error checking session:', err);
+          localStorage.removeItem('currentUser');
+          localStorage.setItem('isLoggedIn', 'false');
+          return false;
+        }
+      }
+      console.log('❌ No valid session found');
+      return false;
+    }
+
+    // ============================================================
+    // GLOBAL LOGOUT FUNCTION - Available to all pages
+    // ============================================================
+    window.globalLogout = function () {
+      handleLogout();
+      window.location.href = 'Deploy_Loggin_Dashboard.html';
+    };
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseDB = firebase.database();
+        console.log('✅ Firebase initialized');
+      } catch (err) {
+        console.error('❌ Firebase init error:', err);
+        document.getElementById('loginError').textContent = 'Failed to connect to Firebase';
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        document.getElementById('loginContainer').classList.add('visible');
+        return;
+      }
+
+      const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+      setTheme(savedTheme);
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirect = urlParams.get('redirect');
+
+      const hasSession = await checkExistingSession();
+
+      document.getElementById('loadingOverlay').classList.add('hidden');
+
+      if (!hasSession) {
+        document.getElementById('loginContainer').classList.add('visible');
+        document.getElementById('dashboardContainer').classList.remove('active');
+        localStorage.setItem('isLoggedIn', 'false');
+      } else if (redirect === 'dashboard') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+      document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+        }
+      });
+
+      if (urlParams.get('logout') === 'true') {
+        handleLogout();
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      console.log('✅ Login page loaded');
+      console.log('✅ Theme: ' + savedTheme);
+      console.log('✅ Global logout function available: window.globalLogout()');
+      console.log('✅ Real-time permission listener is active');
+      console.log('✅ Dynamic roles supported - no hardcoded admin/user/visitor');
+    }
+
+    // ✅ إضافة الدوال إلى النافذة العالمية
+    window.handleLogout = handleLogout;
+    window.setTheme = setTheme;
+    window.handleAppClick = handleAppClick;
+    window.loadDashboardPermissions = loadDashboardPermissions;
+    window.refreshPermissions = refreshPermissions;
+    window.globalLogout = window.globalLogout || function () {
+      handleLogout();
+      window.location.href = 'Deploy_Loggin_Dashboard.html';
+    };
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+
+</html>
