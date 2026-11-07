@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Toolkit · Sequence & Cleaner + Slash Reverser</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #107c41;
+            --primary-hover: #0b592e;
+            --accent: #4f46e5;
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            padding: 20px 28px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .app-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-header h1 i { color: var(--primary); }
+
+        .app-header .sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 6px;
+        }
+
+        .home-btn {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .home-btn:hover { background: #e2e8f0; color: var(--primary); }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+            background: #fafcfa;
+            cursor: pointer;
+            margin: 20px 24px 12px 24px;
+        }
+
+        .upload-area:hover { border-color: var(--primary); background: #eef7f2; }
+        .upload-area i { font-size: 34px; color: var(--primary); margin-bottom: 4px; }
+
+        .upload-label {
+            font-weight: 600;
+            color: var(--primary);
+            display: inline-block;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        #fileInput { display: none; }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .file-preview.visible { display: flex; }
+
+        .badge {
+            background: #e2e8f0;
+            padding: 3px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            padding: 13px 22px;
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .tab-btn:hover:not(.active) { background: #e8ecf0; }
+
+        .tab-content {
+            padding: 20px 24px 0 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-pane { display: none; animation: fadeIn 0.25s ease; }
+        .tab-pane.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0.5; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .controls-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px 18px;
+            align-items: end;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            background: white;
+            transition: border 0.2s;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 124, 65, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            grid-column: 1 / -1;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 10px 22px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-success { background: var(--primary); color: white; }
+        .btn-success:hover { background: var(--primary-hover); }
+        .btn-outline { background: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+        .btn:active:not(:disabled) { transform: scale(0.97); }
+
+        .mode-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 6px 0 2px 0;
+            line-height: 1.5;
+        }
+
+        .mode-hint strong { color: var(--text-main); }
+
+        .mode-hint code {
+            background: #eef2f6;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            color: #0b5e2e;
+            font-weight: 600;
+        }
+
+        .converted-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+        .tag {
+            background: #dcfce7;
+            color: #166534;
+            padding: 3px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .table-wrapper {
+            overflow: auto;
+            max-height: 420px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 6px;
+            background: white;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            padding: 10px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            z-index: 2;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.78rem;
+        }
+
+        tr:hover td { background-color: #fafbfc; }
+
+        .converted-col {
+            background-color: #f0fdf4;
+            font-weight: 600;
+            color: #0b5e2e;
+        }
+
+        .preview-info {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 8px 0 4px 0;
+        }
+
+        .status-bar {
+            margin: 8px 0 14px 0;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+        }
+
+        .status-bar.error { background: #fee2e2; color: #b91c1c; }
+        .status-bar.success { background: #dcfce7; color: #166534; }
+
+        /* Slash Reverser section (single & bulk) */
+        .slash-section {
+            background: #f9fbfd;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-top: 8px;
+        }
+
+        .slash-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            color: var(--text-main);
+        }
+
+        .slash-section h3 i { color: var(--accent); }
+
+        .slash-inline-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 8px 0;
+            font-size: 0.85rem;
+        }
+
+        .slash-inline-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .slash-inline-table td {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            font-family: monospace;
+        }
+
+        .slash-inline-table .result-cell {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .slash-bulk-output {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            min-height: 60px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .slash-row-flex {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .slash-row-flex .control-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        @media (max-width: 760px) {
+            .app-header { flex-direction: column; align-items: flex-start; padding: 16px 18px; }
+            .app-header h1 { font-size: 1.2rem; }
+            .tab-bar { padding: 0 12px; overflow-x: auto; }
+            .tab-btn { padding: 10px 14px; font-size: 0.8rem; white-space: nowrap; }
+            .controls-panel { grid-template-columns: 1fr 1fr; padding: 14px; gap: 10px; }
+            .btn-group { flex-direction: column; }
+            .btn { justify-content: center; }
+            .upload-area { margin: 12px 12px 8px 12px; padding: 20px 12px; }
+            .tab-content { padding: 12px 12px 0 12px; }
+            .slash-row-flex { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .controls-panel { grid-template-columns: 1fr; }
+            .app-header h1 .sub { display: block; margin-left: 0; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <header class="app-header">
+            <h1>
+                <i class="fas fa-file-excel"></i> Excel Data Toolkit
+                <span class="sub">Sequence · SIM Clean · Date Convert · Geo Format · Slash Reverser</span>
+            </h1>
+        </header>
+
+        <div class="upload-area" id="uploadArea">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <div class="upload-label">📂 Click or Drag Excel File Here (.xlsx, .xls, .csv)</div>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .xlsm, .csv">
+            <div class="file-preview" id="filePreview">
+                <b id="fileNameSpan"></b>
+                <span class="badge" id="rowCountBadge"></span>
+                <span class="badge" id="sizeBadge"></span>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="seq"><i class="fas fa-sort-numeric-up"></i> Sequence Generator</button>
+            <button class="tab-btn" data-tab="clean"><i class="fas fa-broom"></i> Data Cleaner</button>
+            <button class="tab-btn" data-tab="slash"><i class="fas fa-code-branch"></i> Slash Reverser</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- SEQUENCE -->
+            <div class="tab-pane active" id="pane-seq">
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <label><i class="fas fa-columns"></i> Target Column</label>
+                        <select id="seqColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-play"></i> Start Value</label>
+                        <input type="text" id="seqStart" placeholder="e.g. 8920040112411098548">
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-sort-amount-up"></i> Count / Step</label>
+                        <input type="number" id="seqCount" placeholder="100" min="1" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-arrows-alt-h"></i> Mode</label>
+                        <select id="seqMode">
+                            <option value="append">Append New Rows (bottom)</option>
+                            <option value="replace">Overwrite Existing (top-down)</option>
+                        </select>
+                    </div>
+                    <div class="btn-group">
+                        <button id="seqRunBtn" class="btn btn-primary" disabled><i class="fas fa-play"></i> Run Sequence</button>
+                        <button id="seqResetBtn" class="btn btn-outline"><i class="fas fa-undo-alt"></i> Reset Data</button>
+                    </div>
+                </div>
+                <div class="mode-hint"><strong>↯</strong> Replace mode updates existing rows; Append adds new rows at the bottom with sequence values.</div>
+            </div>
+
+            <!-- CLEANER -->
+            <div class="tab-pane" id="pane-clean">
+                <div class="controls-panel">
+                    <!-- TARGET COLUMN — hidden for geo, shown for other ops -->
+                    <div class="control-group" id="cleanColumnGroup">
+                        <label><i class="fas fa-columns"></i> Target Column</label>
+                        <select id="cleanColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label><i class="fas fa-tools"></i> Operation</label>
+                        <select id="cleanOperation">
+                            <option value="sim">📱 Clean SIM (fix 8.92E+18)</option>
+                            <option value="geo">🌍 Format LAT / LNG (XX.XXXXXXXX)</option>
+                            <option value="date_swap">🔄 Swap Day ↔ Month (DD/MM ⇄ MM/DD)</option>
+                            <option value="date_format">📅 Format Date</option>
+                            <!-- ⭐ NEW: Text ⇄ Number conversion -->
+                            <option value="numfmt">🔁 Text ⇄ Number</option>
+                        </select>
+                    </div>
+
+                    <!-- ⭐ NEW: direction selector for the Text ⇄ Number operation -->
+                    <div class="control-group" id="numDirectionGroup" style="display:none;">
+                        <label><i class="fas fa-exchange-alt"></i> Direction</label>
+                        <select id="numDirection">
+                            <option value="to_number">Text → Number</option>
+                            <option value="to_text">Number → Text</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group" id="geoDecimalsGroup" style="display:none;">
+                        <label><i class="fas fa-hashtag"></i> Decimals</label>
+                        <input type="number" id="geoDecimals" value="8" min="0" max="15">
+                    </div>
+
+                    <div class="control-group" id="geoLatGroup" style="display:none;">
+                        <label><i class="fas fa-arrow-up"></i> Latitude Column</label>
+                        <select id="geoLatSelect" disabled>
+                            <option value="">— pick LAT column —</option>
+                        </select>
+                    </div>
+                    <div class="control-group" id="geoLngGroup" style="display:none;">
+                        <label><i class="fas fa-arrow-right"></i> Longitude Column</label>
+                        <select id="geoLngSelect" disabled>
+                            <option value="">— pick LNG column —</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group" id="dateFormatGroup" style="display:none;">
+                        <label><i class="fas fa-calendar"></i> Output Format</label>
+                        <select id="dateFormatSelect">
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
+                            <option value="YYYY/MM/DD">YYYY/MM/DD (2024/12/31)</option>
+                            <option value="DD-MM-YYYY">DD-MM-YYYY (31-12-2024)</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="cleanApplyBtn" class="btn btn-success" disabled><i class="fas fa-check"></i> Apply Cleaning</button>
+                        <button id="cleanResetBtn" class="btn btn-outline"><i class="fas fa-undo-alt"></i> Reset Data</button>
+                    </div>
+                </div>
+                <div class="mode-hint" id="cleanHint"><strong>📱</strong> SIM Cleaner: expands scientific notation (e.g. 8.92E+18 → 8920040112411098548) and removes non‑digits.</div>
+            </div>
+
+            <!-- SLASH REVERSER (from check.html) + Column dropdown -->
+            <div class="tab-pane" id="pane-slash">
+
+                <!-- NEW: Apply to Excel column -->
+                <div class="controls-panel" style="grid-template-columns: 1fr 1fr auto; align-items:end;">
+                    <div class="control-group">
+                        <label><i class="fas fa-columns"></i> Excel Column</label>
+                        <select id="slashColumnSelect" disabled>
+                            <option value="">Upload a file first</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label><i class="fas fa-arrows-alt-h"></i> Action</label>
+                        <select id="slashApplyMode">
+                            <option value="replace">Overwrite column</option>
+                            <option value="new">Write to new column</option>
+                        </select>
+                    </div>
+                    <div class="btn-group" style="grid-column: auto; margin-top: 0;">
+                        <button id="slashApplyBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-check"></i> Apply Slash Reverse
+                        </button>
+                        <button id="slashResetBtn" class="btn btn-outline">
+                            <i class="fas fa-undo-alt"></i> Reset Data
+                        </button>
+                    </div>
+                </div>
+                <div class="mode-hint" style="margin-bottom: 12px;">
+                    <strong>🔁</strong> Applies <code>split('/').reverse().join('/')</code> to every cell of the selected column.
+                    <b>Overwrite</b> replaces the cells; <b>New column</b> appends a copy with the reversed values.
+                </div>
+
+                <!-- Single test -->
+                <div class="slash-section">
+                    <h3><i class="fas fa-exchange-alt"></i> Single slash string — quick test</h3>
+                    <div class="slash-row-flex">
+                        <div class="control-group" style="flex:2;">
+                            <label for="singleInput">Input (slash delimited)</label>
+                            <input type="text" id="singleInput" value="11/25/20/63/01" oninput="processSingle()">
+                        </div>
+                    </div>
+                    <table class="slash-inline-table">
+                        <thead>
+                            <tr><th>Original</th><th>Swapped Output</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td id="singleOriginal">11/25/20/63/01</td>
+                                <td id="singleResult" class="result-cell">01/63/20/25/11</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bulk text -->
+                <div class="slash-section" style="margin-top:16px;">
+                    <h3><i class="fas fa-layer-group"></i> Bulk converter — paste lines (Excel friendly)</h3>
+                    <div class="control-group" style="margin-bottom:12px;">
+                        <label for="bulkInput">Paste multiple lines (each will be reversed)</label>
+                        <textarea id="bulkInput" rows="5" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:monospace; font-size:0.9rem; resize:vertical;" placeholder="Paste lines like:&#10;11/25/20/63/01&#10;05/12/99/04&#10;100/200/300"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="processBulk()"><i class="fas fa-sync-alt"></i> Swap All Lines</button>
+                    <div style="margin-top:14px;">
+                        <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px;">Converted Output:</label>
+                        <div id="bulkOutput" class="slash-bulk-output"></div>
+                    </div>
+                </div>
+                <div class="mode-hint" style="margin-top:12px;"><strong>🔁</strong> Each line is split by "/" and reversed, then joined back. Works with numbers or text.</div>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                <i class="fas fa-info-circle"></i>
+                <span id="statusText">Upload a file to begin.</span>
+            </div>
+
+            <div id="convertedColumnsList" style="display:none; margin-bottom:10px;">
+                <small><b>Modified columns:</b></small>
+                <div id="convertedTags" class="converted-tags"></div>
+            </div>
+
+            <div id="tableContainer" style="display:none;">
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div class="preview-info" id="previewInfo"></div>
+            </div>
+
+            <div style="height:12px;"></div>
+
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  GLOBAL STATE
+        // ============================================================
+        let headers = [];
+        let masterData = [];
+        let originalDataBackup = [];
+        let originalHeadersBackup = [];
+        let convertedColumns = new Map();
+        let originalFileName = "data";
+
+        const $ = id => document.getElementById(id);
+        const fileInput = $('fileInput');
+        const uploadArea = $('uploadArea');
+        const filePreview = $('filePreview');
+        const fileNameSpan = $('fileNameSpan');
+        const rowCountBadge = $('rowCountBadge');
+        const sizeBadge = $('sizeBadge');
+        const statusBar = $('statusBar');
+        const statusText = $('statusText');
+        const tableHead = $('tableHead');
+        const tableBody = $('tableBody');
+        const tableContainer = $('tableContainer');
+        const previewInfo = $('previewInfo');
+        const convertedTags = $('convertedTags');
+        const convertedColumnsList = $('convertedColumnsList');
+
+        const seqColumnSelect = $('seqColumnSelect');
+        const seqStart = $('seqStart');
+        const seqCount = $('seqCount');
+        const seqMode = $('seqMode');
+        const seqRunBtn = $('seqRunBtn');
+        const seqResetBtn = $('seqResetBtn');
+
+        const cleanColumnGroup = $('cleanColumnGroup');
+        const cleanColumnSelect = $('cleanColumnSelect');
+        const cleanOperation = $('cleanOperation');
+        const dateFormatGroup = $('dateFormatGroup');
+        const dateFormatSelect = $('dateFormatSelect');
+        const geoDecimalsGroup = $('geoDecimalsGroup');
+        const geoDecimals = $('geoDecimals');
+        const geoLatGroup = $('geoLatGroup');
+        const geoLatSelect = $('geoLatSelect');
+        const geoLngGroup = $('geoLngGroup');
+        const geoLngSelect = $('geoLngSelect');
+        const numDirectionGroup = $('numDirectionGroup');   // ⭐ NEW
+        const numDirection = $('numDirection');             // ⭐ NEW
+        const cleanApplyBtn = $('cleanApplyBtn');
+        const cleanResetBtn = $('cleanResetBtn');
+        const cleanHint = $('cleanHint');
+
+        // Slash tab controls
+        const slashColumnSelect = $('slashColumnSelect');
+        const slashApplyMode = $('slashApplyMode');
+        const slashApplyBtn = $('slashApplyBtn');
+        const slashResetBtn = $('slashResetBtn');
+
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const panes = {
+            seq: $('pane-seq'),
+            clean: $('pane-clean'),
+            slash: $('pane-slash')
+        };
+        let activeTab = 'seq';
+
+        // ============================================================
+        //  TAB SWITCHING
+        // ============================================================
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.keys(panes).forEach(key => panes[key].classList.toggle('active', key === tab));
+                activeTab = tab;
+                updateCleanerHint();
+                if (headers.length) renderTable();
+            });
+        });
+
+        // ============================================================
+        //  UPLOAD / FILE HANDLING
+        // ============================================================
+        uploadArea.onclick = () => fileInput.click();
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary)';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--border)';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+            originalFileName = file.name.split('.')[0] || 'cleaned_data';
+            fileNameSpan.textContent = file.name;
+            sizeBadge.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            filePreview.classList.add('visible');
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {
+                        type: 'array',
+                        cellText: false,
+                        cellDates: false,
+                        raw: true
+                    });
+                    const ws = workbook.Sheets[workbook.SheetNames[0]];
+
+                    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+                    const aoa = [];
+                    for (let R = range.s.r; R <= range.e.r; R++) {
+                        const row = [];
+                        for (let C = range.s.c; C <= range.e.c; C++) {
+                            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+                            const cell = ws[addr];
+                            if (cell === undefined || cell === null) { row.push(''); continue; }
+                            if (cell.t === 'n') {
+                                row.push(String(cell.v));
+                            } else if (cell.t === 'b') {
+                                row.push(cell.v ? 'TRUE' : 'FALSE');
+                            } else {
+                                row.push(cell.v !== undefined && cell.v !== null ? String(cell.v) : '');
+                            }
+                        }
+                        aoa.push(row);
+                    }
+
+                    if (aoa.length === 0) {
+                        setStatus('⚠️ File is empty.', 'error');
+                        return;
+                    }
+                    headers = aoa[0] || [];
+                    masterData = aoa.slice(1);
+                    originalDataBackup = masterData.map(r => [...r]);
+                    originalHeadersBackup = [...headers];   // ⭐ keep headers for reset
+                    convertedColumns.clear();
+
+                    rowCountBadge.textContent = masterData.length + ' rows';
+                    setStatus('✅ File loaded. Use the tabs above to process your data.', 'success');
+
+                    enableControls(true);
+                    updateColumnSelects();
+                    renderTable();
+                    tableContainer.style.display = 'block';
+                    convertedColumnsList.style.display = 'none';
+                    updateCleanerHint();
+
+                } catch (err) {
+                    setStatus('❌ Error reading file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ============================================================
+        //  UI HELPERS
+        // ============================================================
+        function setStatus(msg, type = 'info') {
+            statusText.textContent = msg;
+            statusBar.className = 'status-bar';
+            if (type === 'error') statusBar.classList.add('error');
+            else if (type === 'success') statusBar.classList.add('success');
+            const icon = statusBar.querySelector('i');
+            icon.className = type === 'error' ? 'fas fa-exclamation-circle' :
+                type === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle';
+        }
+
+        function enableControls(enabled) {
+            const s = !enabled;
+            seqColumnSelect.disabled = s;
+            seqRunBtn.disabled = s;
+            cleanColumnSelect.disabled = s;
+            cleanApplyBtn.disabled = s;
+            geoLatSelect.disabled = s;
+            geoLngSelect.disabled = s;
+            slashColumnSelect.disabled = s;
+            slashApplyBtn.disabled = s;
+        }
+
+        function updateColumnSelects() {
+            const opts = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            seqColumnSelect.innerHTML = opts;
+            cleanColumnSelect.innerHTML = opts;
+
+            const geoOpts = `<option value="">— pick a column —</option>` +
+                headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            geoLatSelect.innerHTML = geoOpts;
+            geoLngSelect.innerHTML = geoOpts;
+
+            // Slash column dropdown (no blank option — a column must be picked)
+            if (headers.length) {
+                slashColumnSelect.innerHTML = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+            } else {
+                slashColumnSelect.innerHTML = `<option value="">Upload a file first</option>`;
+            }
+
+            if (headers.length) {
+                seqColumnSelect.disabled = false;
+                cleanColumnSelect.disabled = false;
+                geoLatSelect.disabled = false;
+                geoLngSelect.disabled = false;
+                seqRunBtn.disabled = false;
+                cleanApplyBtn.disabled = false;
+                slashColumnSelect.disabled = false;
+                slashApplyBtn.disabled = false;
+            }
+        }
+
+        function renderTable() {
+            if (!headers.length || !masterData.length) {
+                tableContainer.style.display = 'none';
+                return;
+            }
+            const preview = masterData.slice(0, 20);
+            const isCleanTab = activeTab === 'clean';
+
+            tableHead.innerHTML = `<tr>${headers.map((h, i) =>
+                `<th class="${isCleanTab && convertedColumns.has(i) ? 'converted-col' : ''}">${h}</th>`
+            ).join('')}</tr>`;
+
+            tableBody.innerHTML = preview.map(row =>
+                `<tr>${row.map((cell, i) =>
+                    `<td class="${isCleanTab && convertedColumns.has(i) ? 'converted-col' : ''}">${cell !== undefined && cell !== null ? cell : ''}</td>`
+                ).join('')}</tr>`
+            ).join('');
+
+            tableContainer.style.display = 'block';
+            previewInfo.textContent = `Showing first ${preview.length} of ${masterData.length} rows.`;
+        }
+
+        function updateCleanerHint() {
+            const op = cleanOperation.value;
+            const hints = {
+                'sim': '<strong>📱</strong> SIM Cleaner: expands scientific notation (e.g. 8.92E+18 → 8920040112411098548) and removes non‑digits.',
+                'geo': '<strong>🌍</strong> Geo Formatter: rewrites values as <code>XX.XXXXXXXX</code> (dot as decimal separator, decimals truncated). <b>Pick which columns are LAT and LNG</b> above, and any row where <code>LAT &gt; LNG</code> will be swapped automatically so that <b>LAT &lt; LNG</b>.',
+                'date_swap': '<strong>🔄</strong> Swap Day ↔ Month: turns DD/MM/YYYY into MM/DD/YYYY and vice‑versa. Handles Excel serial numbers too.',
+                'date_format': '<strong>📅</strong> Date Formatter: converts dates from various formats to your chosen output format.',
+                'numfmt': '<strong>🔁</strong> Text ⇄ Number: converts the target column either to <b>real numbers</b> (thousand separators, spaces and currency symbols removed; exported as numeric cells) or to <b>text</b> (scientific notation expanded, everything forced to text). Values too large to hold numeric precision (e.g. 19‑digit SIM numbers) are automatically kept as text.'
+            };
+            cleanHint.innerHTML = hints[op] || hints.sim;
+            dateFormatGroup.style.display = op === 'date_format' ? 'block' : 'none';
+            geoDecimalsGroup.style.display = op === 'geo' ? 'block' : 'none';
+            geoLatGroup.style.display = op === 'geo' ? 'block' : 'none';
+            geoLngGroup.style.display = op === 'geo' ? 'block' : 'none';
+            numDirectionGroup.style.display = op === 'numfmt' ? 'block' : 'none';   // ⭐ NEW
+
+            // Hide Target Column when geo, show it for all other operations
+            cleanColumnGroup.style.display = op === 'geo' ? 'none' : 'block';
+        }
+
+        function updateConvertedTags() {
+            convertedTags.innerHTML = '';
+            convertedColumns.forEach((label, idx) => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = `${headers[idx] || 'col'+idx} (${label})`;
+                convertedTags.appendChild(span);
+            });
+            convertedColumnsList.style.display = convertedColumns.size ? 'block' : 'none';
+        }
+
+        // ============================================================
+        //  SEQUENCE GENERATOR
+        // ============================================================
+        seqRunBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+            const colIdx = parseInt(seqColumnSelect.value);
+            if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                setStatus('⚠️ Please select a valid target column.', 'error');
+                return;
+            }
+            const startRaw = seqStart.value.trim();
+            if (!startRaw) {
+                setStatus('⚠️ Please enter a starting number.', 'error');
+                return;
+            }
+            const count = parseInt(seqCount.value) || 0;
+            if (count <= 0 && seqMode.value === 'append') {
+                setStatus('⚠️ Please enter a valid count for Append mode.', 'error');
+                return;
+            }
+
+            let currentVal;
+            try {
+                if (startRaw.includes('.') || startRaw.toLowerCase().includes('e')) {
+                    currentVal = parseFloat(startRaw);
+                    if (isNaN(currentVal)) throw new Error('invalid');
+                } else {
+                    currentVal = BigInt(startRaw);
+                }
+            } catch (_) {
+                setStatus('⚠️ Invalid number format. Use digits only (or decimal for floats).', 'error');
+                return;
+            }
+
+            const mode = seqMode.value;
+            let modified = 0;
+
+            if (mode === 'replace') {
+                const limit = count > 0 ? Math.min(count, masterData.length) : masterData.length;
+                for (let i = 0; i < limit; i++) {
+                    masterData[i][colIdx] = String(currentVal);
+                    currentVal = typeof currentVal === 'bigint' ? currentVal + 1n : currentVal + 1;
+                    modified++;
+                }
+                setStatus(`✅ Replaced ${modified} rows in column "${headers[colIdx]}".`, 'success');
+            } else {
+                for (let i = 0; i < count; i++) {
+                    const newRow = new Array(headers.length).fill('');
+                    newRow[colIdx] = String(currentVal);
+                    masterData.push(newRow);
+                    currentVal = typeof currentVal === 'bigint' ? currentVal + 1n : currentVal + 1;
+                    modified++;
+                }
+                setStatus(`✅ Appended ${modified} new rows with sequence values.`, 'success');
+            }
+
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+        });
+
+        seqResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
+            }
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            convertedColumns.clear();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
+
+        // ============================================================
+        //  DATA CLEANER LOGIC
+        // ============================================================
+
+        function cleanSIMNumber(val) {
+            if (val === null || val === undefined) return '';
+            let str = String(val).trim();
+            if (/e/i.test(str)) {
+                let [mantissa, exponent] = str.toLowerCase().split('e');
+                let exp = parseInt(exponent, 10);
+                let [integer, decimal = ''] = mantissa.replace(/[^0-9.]/g, '').split('.');
+                let combined = integer + decimal;
+                let trailingZeros = exp - decimal.length;
+                if (trailingZeros > 0) combined += '0'.repeat(trailingZeros);
+                else if (trailingZeros < 0) combined = combined.slice(0, trailingZeros);
+                str = combined;
+            }
+            return str.replace(/[^0-9]/g, '');
+        }
+
+        function expandScientific(s) {
+            const m = String(s).match(/^([+-]?)(\d*)(?:\.(\d*))?[eE]([+-]?\d+)$/);
+            if (!m) return null;
+            const sign = m[1] === '-' ? '-' : '';
+            const intDigits = m[2] || '0';
+            const fracDigits = m[3] || '';
+            const exp = parseInt(m[4], 10);
+            const allDigits = intDigits + fracDigits;
+            const pointPos = intDigits.length + exp;
+            let result;
+            if (pointPos <= 0) {
+                result = '0.' + '0'.repeat(-pointPos) + allDigits;
+            } else if (pointPos >= allDigits.length) {
+                result = allDigits + '0'.repeat(pointPos - allDigits.length);
+            } else {
+                result = allDigits.slice(0, pointPos) + '.' + allDigits.slice(pointPos);
+            }
+            result = result.replace(/^0+(?=\d)/, '');
+            if (result.startsWith('.')) result = '0' + result;
+            return sign + result;
+        }
+
+        function sanitizeGeoInput(val) {
+            let s = String(val);
+            s = s.replace(/[\u200B-\u200D\uFEFF\u00A0\u202F\u2060]/g, '');
+            s = s.trim().replace(/[\r\n\t\s]+/g, '');
+            s = s.replace(/^['"`]+|['"`]+$/g, '');
+            s = s.replace(/\.$/, '');
+            return s;
+        }
+
+        // ⭐ Outputs "XX.XXXXXXXX" — dot as decimal separator
+        function formatGeo(val, decimals) {
+            const d = (typeof decimals === 'number' && decimals >= 0) ? decimals : 8;
+            if (val === null || val === undefined) return '';
+
+            let s = sanitizeGeoInput(val);
+            if (s === '') return '';
+
+            if (/[eE]/.test(s)) {
+                const expanded = expandScientific(s);
+                if (expanded !== null) s = expanded;
+            }
+
+            // Normalize decimal separator → work internally with "."
+            if (s.includes('.') && s.includes(',')) s = s.replace(/,/g, '');
+            else if (s.includes(',')) s = s.replace(/,/g, '.');
+
+            let sign = '';
+            if (s.startsWith('-')) { sign = '-'; s = s.slice(1); }
+            else if (s.startsWith('+')) s = s.slice(1);
+
+            if (!/^\d+(\.\d*)?$/.test(s)) {
+                const n = Number(s);
+                if (isNaN(n) || !isFinite(n)) return String(val).trim();
+                sign = n < 0 ? '-' : '';
+                s = String(Math.abs(n));
+            }
+
+            let [intPart, fracPart = ''] = s.split('.');
+            intPart = intPart.replace(/^0+(?=\d)/, '') || '0';
+
+            if (fracPart.length <= d) {
+                fracPart = fracPart.padEnd(d, '0');
+            } else {
+                fracPart = fracPart.slice(0, d);
+            }
+
+            if (d === 0) return sign + intPart;
+            // ⭐ Output with DOT, not comma
+            return sign + intPart + '.' + fracPart;
+        }
+
+        function parseGeoNumber(s) {
+            if (s === null || s === undefined) return NaN;
+            const clean = sanitizeGeoInput(s).replace(',', '.');
+            return parseFloat(clean);
+        }
+
+        // ============================================================
+        //  ⭐ NEW: TEXT ⇄ NUMBER CONVERSION HELPERS
+        // ============================================================
+
+        // Text → Number : returns { ok, value, precision }
+        function toNumericValue(val) {
+            if (val === null || val === undefined) return { ok: false, value: '' };
+            const raw = String(val).trim();
+            if (raw === '') return { ok: false, value: '' };
+
+            // strip invisible chars / all whitespace
+            let s = raw.replace(/[\s\u00A0\u202F\u200B-\u200D\uFEFF]/g, '');
+            // strip currency symbols and apostrophes
+            s = s.replace(/[$€£¥₹'"]/g, '');
+            // strip a trailing percent sign (value is kept as-is numerically)
+            s = s.replace(/%$/, '');
+
+            // thousands separators → 1,234,567.89
+            if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+                s = s.replace(/,/g, '');
+            }
+            // decimal comma → 1234,56
+            else if (/^[+-]?\d+,\d+$/.test(s)) {
+                s = s.replace(',', '.');
+            }
+
+            // must look like a number now
+            if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(s)) {
+                return { ok: false, value: raw };
+            }
+
+            const num = Number(s);
+            if (!isFinite(num)) return { ok: false, value: raw };
+
+            // precision guard — keep huge integers (e.g. 19-digit SIM numbers) as text
+            if (Number.isInteger(num) && Math.abs(num) > Number.MAX_SAFE_INTEGER) {
+                return { ok: false, value: raw, precision: true };
+            }
+
+            return { ok: true, value: String(num) };
+        }
+
+        // Number → Text : expand scientific notation, strip separators, force text
+        function toTextValue(val) {
+            if (val === null || val === undefined) return '';
+            let s = String(val).trim();
+            if (s === '') return '';
+
+            // expand scientific notation to plain digits
+            if (/^[+-]?(\d+(\.\d*)?|\.\d+)[eE][+-]?\d+$/.test(s)) {
+                const expanded = expandScientific(s);
+                if (expanded !== null) s = expanded;
+            }
+
+            // remove thousands separators
+            if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+                s = s.replace(/,/g, '');
+            }
+
+            return s;
+        }
+
+        function excelSerialToDate(serial) {
+            let num = Number(serial);
+            if (isNaN(num) || num < 1) return null;
+            return new Date((num - 25569) * 86400000);
+        }
+
+        function formatDate(date, format) {
+            if (!date || isNaN(date.getTime())) return null;
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            if (format === 'MM/DD/YYYY') return `${m}/${d}/${y}`;
+            if (format === 'YYYY/MM/DD') return `${y}/${m}/${d}`;
+            if (format === 'DD-MM-YYYY') return `${d}-${m}-${y}`;
+            return `${d}/${m}/${y}`;
+        }
+
+        function swapDayMonth(val) {
+            if (val === null || val === undefined || val === '') return '';
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) {
+                    const swapped = new Date(d.getFullYear(), d.getDate() - 1, d.getMonth() + 1);
+                    return formatDate(swapped, 'DD/MM/YYYY');
+                }
+            }
+            const s = String(val).trim();
+            if (s === '') return '';
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const yr = parseInt(m[1]);
+                const d = new Date(yr, parseInt(m[3]) - 1, parseInt(m[2]));
+                if (!isNaN(d.getTime())) return formatDate(d, 'DD/MM/YYYY');
+            }
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (m) {
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const d = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+                if (!isNaN(d.getTime())) return formatDate(d, 'DD/MM/YYYY');
+            }
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) {
+                    const swapped = new Date(parsed.getFullYear(), parsed.getDate() - 1, parsed.getMonth() + 1);
+                    return formatDate(swapped, 'DD/MM/YYYY');
+                }
+            }
+            return s;
+        }
+
+        function parseDateValue(val, format) {
+            if (val === null || val === undefined || val === '') return '';
+            const num = Number(val);
+            if (!isNaN(num) && num > 1000 && num < 100000) {
+                const d = excelSerialToDate(num);
+                if (d) return formatDate(d, format);
+            }
+            const s = String(val).trim();
+            if (s === '') return '';
+            let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (m) {
+                const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+                if (!isNaN(d.getTime())) return formatDate(d, format);
+            }
+            m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (m) {
+                let yr = parseInt(m[3]);
+                if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
+                const d = new Date(yr, parseInt(m[2]) - 1, parseInt(m[1]));
+                if (!isNaN(d.getTime())) return formatDate(d, format);
+            }
+            if (isNaN(Number(s))) {
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) return formatDate(parsed, format);
+            }
+            return s;
+        }
+
+        // --- Cleaner Apply ---
+        cleanApplyBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+
+            const op = cleanOperation.value;
+            let modCount = 0;
+
+            if (op === 'sim' || op === 'date_swap' || op === 'date_format' || op === 'numfmt') {
+                // These ops still use the Target Column dropdown
+                const colIdx = parseInt(cleanColumnSelect.value);
+                if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                    setStatus('⚠️ Please select a valid target column.', 'error');
+                    return;
+                }
+
+                if (op === 'sim') {
+                    masterData.forEach(row => {
+                        const orig = row[colIdx];
+                        const cleaned = cleanSIMNumber(orig);
+                        if (String(orig) !== cleaned) { row[colIdx] = cleaned; modCount++; }
+                    });
+                    convertedColumns.set(colIdx, 'SIM Cleaned');
+                    setStatus(`✅ SIM cleaned column "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+
+                } else if (op === 'date_swap') {
+                    masterData.forEach(row => {
+                        const orig = row[colIdx];
+                        const swapped = swapDayMonth(orig);
+                        if (String(orig) !== swapped) { row[colIdx] = swapped; modCount++; }
+                    });
+                    convertedColumns.set(colIdx, 'Day/Month Swapped');
+                    setStatus(`✅ Day/Month swapped in "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+
+                } else if (op === 'date_format') {
+                    const fmt = dateFormatSelect.value;
+                    masterData.forEach(row => {
+                        const orig = row[colIdx];
+                        const formatted = parseDateValue(orig, fmt);
+                        if (String(orig) !== formatted) { row[colIdx] = formatted; modCount++; }
+                    });
+                    convertedColumns.set(colIdx, fmt);
+                    setStatus(`✅ Date formatted (${fmt}) in "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+
+                // ⭐ NEW: Text ⇄ Number
+                } else if (op === 'numfmt') {
+                    const direction = numDirection.value;
+
+                    if (direction === 'to_number') {
+                        let skipped = 0;
+                        masterData.forEach(row => {
+                            const orig = row[colIdx];
+                            const res = toNumericValue(orig);
+                            if (res.ok) {
+                                if (String(orig) !== res.value) { row[colIdx] = res.value; modCount++; }
+                            } else if (res.precision) {
+                                skipped++;
+                            }
+                        });
+                        convertedColumns.set(colIdx, 'Number');
+                        let msg = `✅ Converted "${headers[colIdx]}" to numbers (${modCount} cells changed).`;
+                        if (skipped) msg += ` ⚠️ ${skipped} value(s) kept as text — too large to store as a number without losing precision.`;
+                        setStatus(msg, skipped ? 'info' : 'success');
+
+                    } else {
+                        masterData.forEach(row => {
+                            const orig = row[colIdx];
+                            const out = toTextValue(orig);
+                            if (String(orig) !== out) { row[colIdx] = out; modCount++; }
+                        });
+                        convertedColumns.set(colIdx, 'Text');
+                        setStatus(`✅ Converted "${headers[colIdx]}" to text (${modCount} cells changed).`, 'success');
+                    }
+                }
+
+            } else if (op === 'geo') {
+                // Geo doesn't use Target Column — it uses LAT + LNG dropdowns
+                let dec = parseInt(geoDecimals.value, 10);
+                if (isNaN(dec)) dec = 8;
+                dec = Math.min(15, Math.max(0, dec));
+
+                const latIdx = parseInt(geoLatSelect.value);
+                const lngIdx = parseInt(geoLngSelect.value);
+                const hasLat = !isNaN(latIdx) && latIdx >= 0 && latIdx < headers.length;
+                const hasLng = !isNaN(lngIdx) && lngIdx >= 0 && lngIdx < headers.length;
+
+                if (!hasLat || !hasLng) {
+                    setStatus('⚠️ Please pick BOTH a Latitude and a Longitude column.', 'error');
+                    return;
+                }
+                if (latIdx === lngIdx) {
+                    setStatus('⚠️ Latitude and Longitude columns must be different.', 'error');
+                    return;
+                }
+
+                // 1) Format LAT and LNG (output: XX.XXXXXXXX)
+                [latIdx, lngIdx].forEach(ci => {
+                    let c = 0;
+                    masterData.forEach(row => {
+                        const orig = row[ci];
+                        const out = formatGeo(orig, dec);
+                        if (String(orig) !== out) { row[ci] = out; c++; }
+                    });
+                    modCount += c;
+                    convertedColumns.set(ci, `Geo ${dec}d`);
+                });
+
+                // 2) Swap LAT ↔ LNG where LAT > LNG (so that LAT < LNG always)
+                let swapCount = 0;
+                masterData.forEach(row => {
+                    const latStr = String(row[latIdx] || '').trim();
+                    const lngStr = String(row[lngIdx] || '').trim();
+                    if (!latStr || !lngStr) return;
+                    const lat = parseGeoNumber(latStr);
+                    const lng = parseGeoNumber(lngStr);
+                    if (isNaN(lat) || isNaN(lng)) return;
+                    if (lat > lng) {
+                        const tmp = row[latIdx];
+                        row[latIdx] = row[lngIdx];
+                        row[lngIdx] = tmp;
+                        swapCount++;
+                    }
+                });
+
+                setStatus(`✅ Geo formatted → XX.${'X'.repeat(dec)} (${modCount} cells modified). Swapped ${swapCount} row(s) where "${headers[latIdx]}" > "${headers[lngIdx]}" — result: LAT < LNG always.`, 'success');
+            }
+
+            renderTable();
+            updateConvertedTags();
+            rowCountBadge.textContent = masterData.length + ' rows';
+        });
+
+        cleanResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
+            }
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            convertedColumns.clear();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
+
+        cleanOperation.addEventListener('change', updateCleanerHint);
+
+        // ============================================================
+        //  SLASH REVERSER LOGIC (from check.html)
+        // ============================================================
+        function reverseSlashString(str) {
+            if (!str.trim()) return '';
+            return str.trim().split('/').reverse().join('/');
+        }
+
+        function processSingle() {
+            const input = document.getElementById('singleInput').value;
+            document.getElementById('singleOriginal').innerText = input;
+            document.getElementById('singleResult').innerText = reverseSlashString(input);
+        }
+
+        function processBulk() {
+            const rawText = document.getElementById('bulkInput').value;
+            const lines = rawText.split('\n');
+            const processedLines = lines.map(line => reverseSlashString(line));
+            document.getElementById('bulkOutput').innerText = processedLines.join('\n');
+        }
+
+        // expose functions globally for inline handlers
+        window.processSingle = processSingle;
+        window.processBulk = processBulk;
+
+        // --- NEW: Apply slash reverse to an entire Excel column ---
+        slashApplyBtn.addEventListener('click', () => {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data loaded. Upload a file first.', 'error');
+                return;
+            }
+
+            const colIdx = parseInt(slashColumnSelect.value);
+            if (isNaN(colIdx) || colIdx < 0 || colIdx >= headers.length) {
+                setStatus('⚠️ Please select a valid column.', 'error');
+                return;
+            }
+
+            const mode = slashApplyMode.value;
+            let modCount = 0;
+
+            if (mode === 'replace') {
+                // Overwrite the selected column in place
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const reversed = reverseSlashString(String(orig ?? ''));
+                    if (String(orig) !== reversed) { row[colIdx] = reversed; modCount++; }
+                });
+                convertedColumns.set(colIdx, 'Slash Reversed');
+                setStatus(`✅ Slash reversed column "${headers[colIdx]}" (${modCount} cells modified).`, 'success');
+
+            } else {
+                // New column mode: append a new column with reversed values
+                const newHeader = `${headers[colIdx]} (reversed)`;
+                headers.push(newHeader);
+                masterData.forEach(row => {
+                    const orig = row[colIdx];
+                    const reversed = reverseSlashString(String(orig ?? ''));
+                    row.push(reversed);
+                    if (String(orig) !== reversed) modCount++;
+                });
+                const newColIdx = headers.length - 1;
+                convertedColumns.set(newColIdx, 'Slash Reversed');
+                setStatus(`✅ Added new column "${newHeader}" with ${modCount} reversed values.`, 'success');
+            }
+
+            updateColumnSelects();
+            renderTable();
+            updateConvertedTags();
+            rowCountBadge.textContent = masterData.length + ' rows';
+        });
+
+        slashResetBtn.addEventListener('click', () => {
+            if (!originalDataBackup.length) {
+                setStatus('⚠️ No backup to restore.', 'error');
+                return;
+            }
+            if (!confirm('Revert all data to the state after the last file upload?')) return;
+            masterData = originalDataBackup.map(r => [...r]);
+            // Restore original headers (drops any "new column" added by the slash reverser)
+            if (originalHeadersBackup.length) headers = [...originalHeadersBackup];
+            convertedColumns.clear();
+            updateColumnSelects();
+            renderTable();
+            rowCountBadge.textContent = masterData.length + ' rows';
+            updateConvertedTags();
+            setStatus('↩️ Data reverted to original uploaded state.', 'info');
+        });
+
+        // initialize single input on load (if present)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.getElementById('singleInput')) {
+                processSingle();
+            }
+        });
+
+        // ============================================================
+        //  EXPORT (force TEXT / NUMBER types so Excel behaves)
+        // ============================================================
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'home-btn';
+        exportBtn.innerHTML = '<i class="fas fa-file-download"></i> Export Excel';
+        exportBtn.style.marginLeft = 'auto';
+        exportBtn.addEventListener('click', exportExcel);
+        document.querySelector('.app-header').appendChild(exportBtn);
+
+        function exportExcel() {
+            if (!headers.length || !masterData.length) {
+                setStatus('⚠️ No data to export.', 'error');
+                return;
+            }
+            try {
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...masterData]);
+
+                convertedColumns.forEach((label, colIdx) => {
+                    // --- force TEXT cells ---
+                    if (label === 'SIM Cleaned' || label.indexOf('Geo') === 0 ||
+                        label === 'Slash Reversed' || label === 'Text') {
+                        for (let r = 1; r <= masterData.length; r++) {
+                            const addr = XLSX.utils.encode_cell({ r: r, c: colIdx });
+                            const cell = ws[addr];
+                            if (cell) {
+                                cell.t = 's';
+                                cell.z = '@';
+                                if (cell.v !== undefined && cell.v !== null) cell.v = String(cell.v);
+                            }
+                        }
+                    }
+                    // --- ⭐ force NUMERIC cells ---
+                    else if (label === 'Number') {
+                        for (let r = 1; r <= masterData.length; r++) {
+                            const addr = XLSX.utils.encode_cell({ r: r, c: colIdx });
+                            const cell = ws[addr];
+                            if (!cell) continue;
+                            const raw = cell.v;
+                            if (raw === '' || raw === null || raw === undefined) {
+                                cell.t = 's';
+                                cell.z = '@';
+                                cell.v = '';
+                                continue;
+                            }
+                            const n = Number(raw);
+                            if (isFinite(n)) {
+                                cell.t = 'n';
+                                cell.v = n;
+                                delete cell.z;
+                            } else {
+                                cell.t = 's';
+                                cell.z = '@';
+                                cell.v = String(raw);
+                            }
+                        }
+                    }
+                });
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Processed_Data');
+                XLSX.writeFile(wb, `${originalFileName}_processed.xlsx`);
+                setStatus(`✅ Exported as ${originalFileName}_processed.xlsx`, 'success');
+            } catch (err) {
+                setStatus('❌ Export failed: ' + err.message, 'error');
+            }
+        }
+
+        // ============================================================
+        //  INIT
+        // ============================================================
+        setStatus('📂 Upload a file to begin.', 'info');
+        updateCleanerHint();
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (headers.length) renderTable();
+                    if (activeTab === 'clean' || activeTab === 'slash') updateConvertedTags();
+                    else convertedColumnsList.style.display = 'none';
+                }, 50);
+            });
+        });
+
+        console.log('✅ Excel Data Toolkit ready (with slash reverser + column dropdown + text/number converter).');
+    </script>
+
+</body>
+
+</html>

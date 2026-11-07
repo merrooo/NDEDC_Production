@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محلل الزوايا والأخطاء</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; }
+        :root {
+            --blue: #2563eb; --gold: #f59e0b; --red: #dc2626;
+            --green: #10b981; --violet: #8b5cf6;
+        }
+        body {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            min-height: 100vh; display: flex; justify-content: center;
+            align-items: flex-start; padding: 1.5rem;
+        }
+        .master-container {
+            max-width: 1400px; width: 100%; display: flex;
+            flex-wrap: wrap; gap: 2rem; align-items: flex-start;
+        }
+        .analytics-panel {
+            flex: 1.4; min-width: 400px;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(2px);
+            border-radius: 2rem; padding: 1.8rem;
+            box-shadow: 0 25px 40px -12px rgba(0,0,0,0.2);
+            border: 1px solid rgba(37,99,235,0.2);
+        }
+        .phasor-panel {
+            flex: 1; min-width: 340px;
+            background: rgba(255,255,255,0.96); border-radius: 2rem;
+            padding: 1.5rem; box-shadow: 0 25px 40px -12px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; align-items: center;
+            position: sticky; top: 1.5rem;
+        }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; margin-bottom: 1.5rem;
+            border-bottom: 2px dashed #cbd5e1; padding-bottom: 0.75rem; gap: 1rem;
+        }
+        h2 {
+            font-size: 1.4rem; font-weight: 800;
+            background: linear-gradient(125deg, #0f172a, #1e40af);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .btn-back {
+            border: none; background: var(--blue); color: white;
+            padding: 0.6rem 1.2rem; border-radius: 2rem; font-weight: 700;
+            cursor: pointer; font-size: 0.85rem; transition: 0.2s;
+        }
+        .btn-back:hover { background: #1e40af; transform: scale(0.97); }
+
+        .section-title {
+            font-weight: 700; font-size: 0.9rem; margin: 1.2rem 0 0.75rem 0;
+            border-right: 4px solid var(--gold); padding-right: 12px; color: #1e293b;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .angle-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
+        }
+        .angle-card {
+            background: #f8fafc; border-radius: 1rem; padding: 0.7rem;
+            text-align: center; border-bottom: 3px solid var(--blue);
+        }
+        .phase-label {
+            font-weight: 800; font-size: 0.78rem; display: block; margin-bottom: 6px;
+        }
+        .angle-card input {
+            width: 100%; background: white; border: 1px solid #cbd5e6;
+            border-radius: 10px; padding: 8px 4px; font-weight: 700;
+            text-align: center; font-size: 0.9rem; outline: none; transition: 0.15s;
+        }
+        .angle-card input:focus {
+            border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .kwh-row {
+            display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem;
+            background: #f1f5f9; padding: 0.8rem 1rem; border-radius: 1rem;
+        }
+        .kwh-row label { font-weight: 700; font-size: 0.85rem; color: #334155; }
+        .kwh-row input {
+            flex: 1; padding: 0.6rem; border: 1px solid #cbd5e6;
+            border-radius: 10px; font-weight: 700; text-align: center;
+            font-size: 0.95rem; outline: none;
+        }
+
+        .angles-summary {
+            background: #f8fafc; border-radius: 1rem; padding: 0.7rem 1rem;
+            border: 1px solid #e2e8f0; font-size: 0.78rem; margin-bottom: 0.75rem;
+        }
+        .detail-row {
+            display: flex; justify-content: space-between; padding: 3px 0;
+            color: #334155;
+        }
+        .detail-row strong { color: #0f172a; }
+
+        /* Comparison */
+        .comparison-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+        }
+        .comparison-card {
+            border-radius: 1rem; padding: 1rem; border: 2px solid transparent;
+        }
+        .comparison-card.current {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+        }
+        .comparison-card.corrected {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border-color: #10b981;
+        }
+        .comp-title {
+            font-weight: 800; font-size: 0.85rem; margin-bottom: 0.6rem;
+            padding-bottom: 0.4rem; border-bottom: 1px dashed rgba(0,0,0,0.15);
+        }
+        .comp-row {
+            display: flex; justify-content: space-between;
+            font-size: 0.78rem; padding: 3px 0; color: #334155;
+        }
+        .comp-row strong { color: #0f172a; font-weight: 800; }
+
+        /* Recommendations */
+        .remedy-list { display: flex; flex-direction: column; gap: 0.6rem; }
+        .action-step {
+            background: white; border-radius: 1rem; padding: 12px 14px;
+            font-weight: 600; font-size: 0.82rem; color: #0f172a;
+            line-height: 1.55; border-right: 5px solid var(--blue);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .action-step.red    { border-right-color: var(--red); }
+        .action-step.gold   { border-right-color: var(--gold); }
+        .action-step.green  { border-right-color: var(--green); }
+        .action-step.blue   { border-right-color: var(--blue); }
+
+        canvas {
+            background: #ffffff; border-radius: 50%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 100%; max-width: 380px; height: auto;
+        }
+        .legend {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 0.8rem; margin-top: 1rem; font-size: 0.72rem; font-weight: 700;
+        }
+        .legend span { display: inline-flex; align-items: center; gap: 4px; }
+        .legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .legend .dash { width: 14px; height: 2px; display: inline-block; }
+
+        @media (max-width: 900px) {
+            .phasor-panel { position: static; }
+        }
+    </style>
+</head>
+<body>
+<div class="master-container">
+
+    <!-- ══════════ LEFT: ANALYTICS ══════════ -->
+    <div class="analytics-panel">
+        <div class="panel-header">
+            <h2>⚡ محلل الزوايا والأخطاء</h2>
+        </div>
+
+        <!-- Inputs: Voltages -->
+        <div class="section-title">📐 زوايا الجهد المرجعية (VR / VT / VS)</div>
+        <div class="angle-grid">
+            <div class="angle-card">
+                <span class="phase-label" style="color:#dc2626;">🔴 VR</span>
+                <input type="number" id="thetaVR" value="0" step="1">
+            </div>
+            <div class="angle-card">
+                <span class="phase-label" style="color:#2563eb;">🔵 VT</span>
+                <input type="number" id="thetaVT" value="120" step="1">
+            </div>
+            <div class="angle-card">
+                <span class="phase-label" style="color:#d97706;">🟡 VS</span>
+                <input type="number" id="thetaVS" value="240" step="1">
+            </div>
+        </div>
+
+        <!-- Inputs: Currents -->
+        <div class="section-title">⚡ زوايا تأخر التيار عن الجهد (IR / IS / IT)</div>
+        <div class="angle-grid">
+            <div class="angle-card">
+                <span class="phase-label" style="color:#b91c1c;">🔴 IR</span>
+                <input type="number" id="thetaIR" value="45" step="1">
+            </div>
+            <div class="angle-card">
+                <span class="phase-label" style="color:#15803d;">🟢 IS</span>
+                <input type="number" id="thetaIS" value="15" step="1">
+            </div>
+            <div class="angle-card">
+                <span class="phase-label" style="color:#6b21a8;">🟣 IT</span>
+                <input type="number" id="thetaIT" value="30" step="1">
+            </div>
+        </div>
+
+        <!-- Import kWh -->
+        <div class="kwh-row">
+            <label>📥 كمية الاستيراد (kWh):</label>
+            <input type="number" id="importKwh" value="1000" step="10">
+        </div>
+
+        <!-- Comparison -->
+        <div class="section-title">📊 مقارنة الأخطاء</div>
+        <div class="comparison-grid">
+            <div class="comparison-card current">
+                <div class="comp-title">📸 القراءة الحالية (غير مصححة)</div>
+                <div class="comp-row"><span>PF:</span><strong id="curPF">--</strong></div>
+                <div class="comp-row"><span>الخطأ:</span><strong id="curErr">--</strong></div>
+                <div class="comp-row"><span>الفقد:</span><strong id="curLoss">--</strong></div>
+                <div class="comp-row"><span>الإجمالي:</span><strong id="curTrue">--</strong></div>
+            </div>
+            <div class="comparison-card corrected">
+                <div class="comp-title">✅ بعد التصحيح</div>
+                <div class="comp-row"><span>PF:</span><strong id="corPF">--</strong></div>
+                <div class="comp-row"><span>الخطأ:</span><strong id="corErr">--</strong></div>
+                <div class="comp-row"><span>الفقد:</span><strong id="corLoss">--</strong></div>
+                <div class="comp-row"><span>الإجمالي:</span><strong id="corTrue">--</strong></div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="section-title">🛠️ التوصيات والإجراءات</div>
+        <div class="angles-summary" id="anglesSummary"></div>
+        <div class="remedy-list" id="recommendations"></div>
+    </div>
+
+    <!-- ══════════ RIGHT: PHASOR ══════════ -->
+    <div class="phasor-panel">
+        <div class="panel-header" style="width:100%;">
+            <h2>🌀 Phasor Diagram</h2>
+        </div>
+        <canvas id="phasorCanvas" width="450" height="450"
+                style="width:100%; max-width:400px; height:auto; background:#fff; border-radius:50%;"></canvas>
+        <div class="legend">
+            <span><span class="dot" style="background:#dc2626;"></span>VR</span>
+            <span><span class="dot" style="background:#2563eb;"></span>VT</span>
+            <span><span class="dot" style="background:#d97706;"></span>VS</span>
+            <span><span class="dash" style="background:#b91c1c;"></span>IR</span>
+            <span><span class="dash" style="background:#15803d;"></span>IS</span>
+            <span><span class="dash" style="background:#6b21a8;"></span>IT</span>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CORE LOGIC
+   ══════════════════════════════════════════════════════════════ */
+
+const REF_PF = Math.cos(30 * Math.PI / 180); // 0.8660
+
+function normalize(deg) {
+    return ((deg % 360) + 360) % 360;
+}
+
+function isSuspicious(lag) {
+    const l = normalize(lag);
+    return (l >= 60 && l <= 120) || (l >= 240 && l <= 300);
+}
+
+function isPolarityReversed(abs) {
+    const a = normalize(abs);
+    return (a >= 60 && a <= 120) || (a >= 180 && a <= 240) || (a >= 300 && a <= 360);
+}
+
+function calcPF(lags) {
+    return lags.reduce((s, l) => s + Math.cos(l * Math.PI / 180), 0) / lags.length;
+}
+
+function analyze() {
+    const vR  = parseFloat(document.getElementById('thetaVR').value)  || 0;
+    const vT  = parseFloat(document.getElementById('thetaVT').value)  || 0;
+    const vS  = parseFloat(document.getElementById('thetaVS').value)  || 0;
+    const lIR = parseFloat(document.getElementById('thetaIR').value)  || 0;
+    const lIS = parseFloat(document.getElementById('thetaIS').value)  || 0;
+    const lIT = parseFloat(document.getElementById('thetaIT').value)  || 0;
+    const importKwh = parseFloat(document.getElementById('importKwh').value) || 0;
+
+    const absIR = normalize(vR + lIR);
+    const absIS = normalize(vS + lIS);
+    const absIT = normalize(vT + lIT);
+
+    const revIR = isPolarityReversed(absIR);
+    const revIS = isPolarityReversed(absIS);
+    const revIT = isPolarityReversed(absIT);
+    const reversedList = [];
+    if (revIR) reversedList.push('IR');
+    if (revIS) reversedList.push('IS');
+    if (revIT) reversedList.push('IT');
+
+    const susIR = isSuspicious(lIR);
+    const susIS = isSuspicious(lIS);
+    const susIT = isSuspicious(lIT);
+    const suspiciousList = [];
+    if (susIR) suspiciousList.push('IR');
+    if (susIS) suspiciousList.push('IS');
+    if (susIT) suspiciousList.push('IT');
+
+    let cIR = lIR, cIS = lIS, cIT = lIT;
+    let swapCorrected = false;
+    const correctedPhases = [];
+    if (suspiciousList.length >= 2) {
+        swapCorrected = true;
+        let n = 0;
+        if (susIR && n < 2) { cIR = lIR - 120; n++; correctedPhases.push('IR'); }
+        if (susIS && n < 2) { cIS = lIS - 120; n++; correctedPhases.push('IS'); }
+        if (susIT && n < 2) { cIT = lIT - 120; n++; correctedPhases.push('IT'); }
+    }
+
+    const pfCur = calcPF([lIR, lIS, lIT]);
+    const pfCor = calcPF([cIR, cIS, cIT]);
+    const errCur = (pfCur / REF_PF - 1) * 100;
+    const errCor = (pfCor / REF_PF - 1) * 100;
+
+    const lossCur = importKwh * (errCur / 100);
+    const lossCor = importKwh * (errCor / 100);
+    const trueCur = importKwh - lossCur;
+    const trueCor = importKwh - lossCor;
+
+    return {
+        vR, vT, vS, lIR, lIS, lIT, importKwh,
+        absIR, absIS, absIT,
+        revIR, revIS, revIT, reversedList,
+        susIR, susIS, susIT, suspiciousList,
+        cIR, cIS, cIT, swapCorrected, correctedPhases,
+        pfCur, pfCor, errCur, errCor,
+        lossCur, lossCor, trueCur, trueCor
+    };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PHASOR DRAWING
+   ══════════════════════════════════════════════════════════════ */
+
+const canvas = document.getElementById('phasorCanvas');
+const ctx = canvas.getContext('2d');
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+const radiusVec = 165;
+
+function drawVector(angleDeg, length, color, label, opts = {}) {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    const endX = centerX + length * Math.cos(rad);
+    const endY = centerY + length * Math.sin(rad);
+
+    ctx.globalAlpha = opts.alpha || 1;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(endX, endY);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = opts.lineWidth || 4;
+    if (opts.dashed) ctx.setLineDash([8, 5]);
+    else if (opts.dotted) ctx.setLineDash([3, 4]);
+    else ctx.setLineDash([]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const hLen = 11, hAng = Math.PI / 6;
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - hLen * Math.cos(rad - hAng), endY - hLen * Math.sin(rad - hAng));
+    ctx.lineTo(endX - hLen * Math.cos(rad + hAng), endY - hLen * Math.sin(rad + hAng));
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    if (label) {
+        ctx.font = 'bold 11px Cairo';
+        ctx.fillStyle = opts.labelColor || '#0f172a';
+        const lx = endX + 12 * Math.cos(rad);
+        const ly = endY + 12 * Math.sin(rad);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx, ly);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawPhasor(r) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radiusVec, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.font = '9px Cairo';
+    ctx.fillStyle = '#9ca3af';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < 360; i += 30) {
+        const rad = ((i - 90) * Math.PI) / 180;
+        const x1 = centerX + (radiusVec - 8) * Math.cos(rad);
+        const y1 = centerY + (radiusVec - 8) * Math.sin(rad);
+        const x2 = centerX + (radiusVec + 8) * Math.cos(rad);
+        const y2 = centerY + (radiusVec + 8) * Math.sin(rad);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#e2e8f0'; ctx.stroke();
+
+        const tx = centerX + (radiusVec + 22) * Math.cos(rad);
+        const ty = centerY + (radiusVec + 22) * Math.sin(rad);
+        ctx.fillText(i + '°', tx, ty);
+    }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+
+    if (r.swapCorrected) {
+        drawVector(normalize(r.vR + r.cIR), radiusVec - 42, '#b91c1c', '', { lineWidth: 2, dotted: true, alpha: 0.35 });
+        drawVector(normalize(r.vS + r.cIS), radiusVec - 42, '#15803d', '', { lineWidth: 2, dotted: true, alpha: 0.35 });
+        drawVector(normalize(r.vT + r.cIT), radiusVec - 42, '#6b21a8', '', { lineWidth: 2, dotted: true, alpha: 0.35 });
+    }
+
+    drawVector(r.vR, radiusVec - 12, '#dc2626', 'VR', { lineWidth: 4 });
+    drawVector(r.vT, radiusVec - 12, '#2563eb', 'VT', { lineWidth: 4 });
+    drawVector(r.vS, radiusVec - 12, '#d97706', 'VS', { lineWidth: 4 });
+
+    drawVector(r.absIR, radiusVec - 42, '#b91c1c', 'IR', { lineWidth: 3, dashed: true });
+    drawVector(r.absIS, radiusVec - 42, '#15803d', 'IS', { lineWidth: 3, dashed: true });
+    drawVector(r.absIT, radiusVec - 42, '#6b21a8', 'IT', { lineWidth: 3, dashed: true });
+
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+    ctx.fill();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════ */
+
+function colorError(id, err) {
+    const el = document.getElementById(id);
+    if (err > 0.5)        el.style.color = '#d97706';
+    else if (err < -0.5)  el.style.color = '#dc2626';
+    else                  el.style.color = '#16a34a';
+}
+
+function render() {
+    const r = analyze();
+
+    /* ---- Comparison cards ---- */
+    document.getElementById('curPF').textContent   = r.pfCur.toFixed(4);
+    document.getElementById('curErr').textContent  = (r.errCur > 0 ? '+' : '') + r.errCur.toFixed(2) + '%';
+    document.getElementById('curLoss').textContent = Math.abs(r.lossCur).toFixed(2) + ' kWh';
+    document.getElementById('curTrue').textContent = r.trueCur.toFixed(2) + ' kWh';
+
+    document.getElementById('corPF').textContent   = r.pfCor.toFixed(4);
+    document.getElementById('corErr').textContent  = (r.errCor > 0 ? '+' : '') + r.errCor.toFixed(2) + '%';
+    document.getElementById('corLoss').textContent = Math.abs(r.lossCor).toFixed(2) + ' kWh';
+    document.getElementById('corTrue').textContent = r.trueCor.toFixed(2) + ' kWh';
+
+    colorError('curErr', r.errCur);
+    colorError('corErr', r.errCor);
+
+    /* ---- Angle summary ---- */
+    const summary = document.getElementById('anglesSummary');
+    let sHtml = `<div class="detail-row"><span>الزوايا المطلقة:</span>
+                    <strong>IR = ${r.absIR.toFixed(1)}° | IS = ${r.absIS.toFixed(1)}° | IT = ${r.absIT.toFixed(1)}°</strong>
+                 </div>`;
+    if (r.swapCorrected) {
+        sHtml += `<div class="detail-row"><span>الزوايا المصححة (−120°):</span>
+                     <strong>IR = ${r.cIR}° | IS = ${r.cIS}° | IT = ${r.cIT}°</strong>
+                  </div>`;
+    }
+    summary.innerHTML = sHtml;
+
+    /* ---- Recommendations ---- */
+    const recs = document.getElementById('recommendations');
+    let rHtml = '';
+
+    if (r.reversedList.length > 0) {
+        rHtml += `<div class="action-step red">🛠️ قم بعكس أطراف سلك التيار للفازات: <b>${r.reversedList.join(', ')}</b> في العداد.</div>`;
+    }
+    if (r.swapCorrected) {
+        const pair = r.correctedPhases.slice(0, 2).join(' و ');
+        rHtml += `<div class="action-step gold">🔄 تم اكتشاف تبديل جهد بين فازتين. بدّل أطراف الجهد للفازتين <b>${pair}</b> في العداد.</div>`;
+    }
+    if (r.reversedList.length === 0 && !r.swapCorrected && Math.abs(r.errCur) < 0.5) {
+        rHtml += `<div class="action-step green">✅ التوصيلات سليمة والخطأ ضمن الحدود المقبولة. لا توجد إجراءات مطلوبة.</div>`;
+    }
+    if (!r.swapCorrected && Math.abs(r.errCor) > 0.5 && r.reversedList.length === 0) {
+        rHtml += `<div class="action-step blue">ℹ️ الخطأ (${r.errCor.toFixed(2)}%) ناتج عن زوايا تأخر غير معتادة. راجع الأحمال أو معايرة العداد.</div>`;
+    }
+    recs.innerHTML = rHtml;
+
+    /* ---- Phasor ---- */
+    drawPhasor(r);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════ */
+
+window.addEventListener('load', () => {
+    ['thetaVR', 'thetaVT', 'thetaVS', 'thetaIR', 'thetaIS', 'thetaIT', 'importKwh']
+        .forEach(id => document.getElementById(id).addEventListener('input', render));
+    render();
+});
+</script>
+</body>
+</html>
