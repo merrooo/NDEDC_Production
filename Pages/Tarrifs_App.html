@@ -1,545 +1,1058 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حسابات تعرفة الطاقة والشرائح الذكية</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bundle Finder — Step 1</title>
+<style>
+  :root{
+    --bg:#080b12;
+    --panel:#101827;
+    --panel-2:#141d2f;
+    --line:#1e2a3d;
+    --line-2:#26334d;
+    --text:#e8eefb;
+    --muted:#7f92b0;
+    --accent:#4f9cf9;
+    --accent-2:#7ee0c1;
+    --good:#2ecc71;
+    --warn:#ffb020;
+    --bad:#ff5d6c;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 12% -12%, #16233a 0%, rgba(8,11,18,0) 62%),
+      radial-gradient(900px 520px at 100% 0%, #1a1430 0%, rgba(8,11,18,0) 55%),
+      var(--bg);
+    color:var(--text);
+    font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#1e2a41;border-radius:99px;border:2px solid transparent;background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:#2b3c5c;background-clip:content-box;border:2px solid transparent}
 
-        body {
-            background: #eef2f5;
-            padding: 12px;
-            color: #1e2a3e;
-            font-size: 0.85rem;
-        }
+  .app{max-width:1380px;margin:0 auto;padding:0 22px 60px}
+  .hidden{display:none!important}
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
+  /* header */
+  .header{padding:26px 0 20px;display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap}
+  .header h1{
+    font-size:23px;margin:0 0 4px;font-weight:730;letter-spacing:-.4px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .header h1::before{
+    content:'◈';width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,#4f9cf9,#7ee0c1);
+    color:#07111f;display:grid;place-items:center;font-size:16px;
+    box-shadow:0 6px 20px rgba(79,156,249,.35);
+  }
+  .header .sub{font-size:13px;color:var(--muted);margin:0;max-width:680px;line-height:1.6}
+  .step-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    padding:3px 10px;border-radius:99px;background:rgba(126,224,193,.14);color:#7ee0c1;
+  }
+  .head-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            padding: 14px 18px;
-            margin-bottom: 14px;
-        }
+  /* buttons */
+  .btn{
+    appearance:none;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+    padding:8px 14px;border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:650;
+    font-family:inherit;transition:background .15s,border-color .15s,transform .07s,color .15s;
+    white-space:nowrap;
+  }
+  .btn:hover{background:#1b2740;border-color:var(--accent);color:#cfe0f7}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:rgba(79,156,249,.16);border-color:rgba(79,156,249,.5);color:#9ecbff}
+  .btn.primary:hover{background:rgba(79,156,249,.28)}
+  .btn.danger:hover{background:rgba(255,93,108,.14);border-color:rgba(255,93,108,.45);color:#ff8b96}
+  .btn.sm{padding:6px 11px;font-size:11.5px}
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            border-right: 4px solid #004a99;
-            padding-right: 12px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
+  /* upload */
+  .upload-card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);padding:0;overflow:hidden;
+  }
+  .dropzone{
+    padding:52px 24px;text-align:center;cursor:pointer;
+    transition:background .18s,border-color .18s;
+    border:2px dashed transparent;border-radius:var(--radius);
+  }
+  .dropzone:hover,.dropzone.drag{background:rgba(79,156,249,.06);border-color:rgba(79,156,249,.5)}
+  .dropzone.loading{pointer-events:none;opacity:.8}
+  .dz-icon{
+    width:60px;height:60px;margin:0 auto 14px;border-radius:18px;
+    display:grid;place-items:center;font-size:26px;
+    background:linear-gradient(135deg,rgba(79,156,249,.22),rgba(126,224,193,.16));
+    border:1px solid rgba(79,156,249,.35);color:#9ecbff;
+    box-shadow:0 8px 26px rgba(79,156,249,.2);
+  }
+  .dz-text{font-size:15px;font-weight:680;color:#d4e1f5;margin-bottom:4px}
+  .dz-hint{font-size:12px;color:var(--muted);letter-spacing:.3px}
+  .dz-formats{display:inline-flex;gap:6px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+  .dz-formats span{
+    font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:99px;
+    background:rgba(79,156,249,.12);color:#9ecbff;border:1px solid rgba(79,156,249,.22);
+  }
 
-        .card-header-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+  /* file info */
+  .file-info{
+    display:flex;align-items:center;gap:14px;padding:14px 18px;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:20px;
+  }
+  .fi-icon{
+    width:42px;height:42px;border-radius:12px;flex:0 0 auto;
+    display:grid;place-items:center;font-size:19px;
+    background:rgba(126,224,193,.14);color:#7ee0c1;
+  }
+  .fi-meta{flex:1;min-width:0}
+  .fi-name{font-size:14px;font-weight:680;color:#e8eefb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fi-stats{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  .fi-stats b{color:#b9c8dd;font-weight:650}
 
-        .card-header-left ion-icon {
-            font-size: 22px;
-            color: #004a99;
-        }
+  /* controls */
+  .controls-card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;margin-bottom:18px;
+  }
+  .ctrl-grid{
+    display:grid;gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    margin-bottom:14px;
+  }
+  .ctrl{display:flex;flex-direction:column;gap:6px}
+  .ctrl label{
+    font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;
+    color:var(--muted);font-weight:680;
+  }
+  .ctrl input[type="number"], .ctrl select{
+    width:100%;padding:9px 12px;border-radius:9px;
+    background:var(--bg);border:1px solid var(--line-2);color:var(--text);
+    font:inherit;font-size:13.5px;font-weight:650;
+    font-variant-numeric:tabular-nums;outline:none;
+    -moz-appearance:textfield;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .ctrl select{cursor:pointer}
+  .ctrl select option{background:var(--panel);color:var(--text)}
+  .ctrl input[type="number"]::-webkit-outer-spin-button,
+  .ctrl input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .ctrl input[type="number"]:focus, .ctrl select:focus{
+    border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,156,249,.15);
+  }
+  .ctrl .inp-wrap{
+    display:flex;align-items:center;gap:6px;
+    background:var(--bg);border:1px solid var(--line-2);
+    border-radius:9px;padding:0 12px;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .ctrl .inp-wrap:focus-within{
+    border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,156,249,.15);
+  }
+  .ctrl .inp-wrap span{color:var(--muted);font-weight:650;font-size:13.5px}
+  .ctrl .inp-wrap input{
+    flex:1;min-width:0;padding:9px 0;background:transparent;border:none;
+    color:var(--text);font:inherit;font-size:13.5px;font-weight:650;
+    font-variant-numeric:tabular-nums;outline:none;
+    -moz-appearance:textfield;
+  }
+  .ctrl .inp-wrap input::-webkit-outer-spin-button,
+  .ctrl .inp-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
-        .card-header-left h2 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #0f2b3d;
-        }
+  .qty-toggle{display:flex;gap:5px}
+  .qty-toggle button{
+    flex:1;padding:9px 6px;
+    background:var(--bg);border:1px solid var(--line-2);color:var(--muted);
+    border-radius:9px;font:inherit;font-size:13px;font-weight:720;
+    cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+  }
+  .qty-toggle button:hover{
+    background:rgba(79,156,249,.08);color:#c3d2e8;border-color:rgba(79,156,249,.35);
+  }
+  .qty-toggle button.active{
+    background:rgba(79,156,249,.2);border-color:var(--accent);color:#9ecbff;
+  }
 
-        .download-btn-small {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            padding: 6px 12px;
-            font-size: 0.75rem;
-        }
+  .ctrl-options{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding-top:12px;border-top:1px solid var(--line);
+  }
+  .ctrl-options label{
+    font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;
+  }
+  .ctrl-options input{accent-color:var(--accent);cursor:pointer}
+  .ctrl-options .btn{margin-left:auto}
 
-        .home-button {
-            background-color: #0077cc;
-            height: 30px;
-            padding: 0 10px;
-        }
+  /* cards */
+  .card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;margin-bottom:18px;
+  }
+  .card h3{
+    font-size:11px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--muted);font-weight:680;margin:0 0 12px;
+  }
 
-        .layout-spaced {
-            justify-content: space-between;
-            gap: 12px;
-        }
+  /* base products chips */
+  .chip-list{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 12px;border-radius:99px;
+    background:rgba(79,156,249,.10);border:1px solid rgba(79,156,249,.3);
+    font-size:12.5px;font-weight:650;color:#c3d2e8;
+  }
+  .chip .cp-price{color:var(--accent-2);font-variant-numeric:tabular-nums}
 
-        .consumption-input {
-            width: 250px;
-        }
+  /* summary stats */
+  .summary-stats{display:flex;gap:26px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:2px}
+  .stat span{
+    font-size:10px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--muted);font-weight:680;
+  }
+  .stat b{
+    font-size:20px;font-weight:740;letter-spacing:-.3px;
+    font-variant-numeric:tabular-nums;color:#e8eefb;
+  }
+  .stat.highlight b{color:var(--accent-2)}
 
-        .period-selector {
-            min-width: 300px;
-        }
+  /* results table */
+  .tbl-wrap{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .tbl-wrap table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .tbl-wrap thead th{
+    text-align:left;font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--muted);font-weight:680;padding:11px 12px;
+    border-bottom:1px solid var(--line);white-space:nowrap;
+    background:var(--panel);position:sticky;top:0;z-index:1;
+  }
+  .tbl-wrap thead th.num{text-align:right}
+  .tbl-wrap thead th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+  .tbl-wrap thead th.sortable:hover{color:#c3d2e8}
+  .tbl-wrap thead th .arrow{opacity:.4;margin-left:3px;font-size:9px}
+  .tbl-wrap thead th.sorted .arrow{opacity:1;color:var(--accent)}
+  .tbl-wrap tbody td{padding:10px 12px;border-bottom:1px solid rgba(30,42,61,.55);white-space:nowrap}
+  .tbl-wrap tbody tr:last-child td{border-bottom:none}
+  .tbl-wrap tbody tr{transition:background .15s}
+  .tbl-wrap tbody tr:hover td{background:rgba(79,156,249,.05)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.prod{font-weight:650;color:#c3d2e8;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+  td.extras{color:#b9c8dd;max-width:280px;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+  td.total{font-weight:730;color:#fff;font-size:13.5px}
+  td.benefit{color:#6ee7a8;font-weight:720}
+  td.benefitPct{color:#7ee0c1;font-weight:720}
+  td.rank-cell{width:36px}
 
-        .download-btn-small.is-hidden {
-            display: none;
-        }
+  .rank-badge{
+    display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;
+    font-size:11px;font-weight:800;background:rgba(255,255,255,.06);color:var(--muted);
+  }
+  .rank-badge.g1{background:linear-gradient(135deg,#ffd700,#ffa500);color:#3a2a00;box-shadow:0 0 12px rgba(255,215,0,.4)}
+  .rank-badge.g2{background:linear-gradient(135deg,#d8dde8,#a8b0c0);color:#2a2f3a}
+  .rank-badge.g3{background:linear-gradient(135deg,#e0a56b,#a86a2a);color:#2a1a0a}
 
-        .empty-table-message {
-            padding: 15px;
-            color: #64748b;
-        }
+  tbody tr.top1 td{background:rgba(46,204,113,.06)}
+  tbody tr.top1 td.total{color:#6ee7a8}
 
-        .tariff-period-cell {
-            vertical-align: middle;
-            font-size: 11px;
-            background: #f8fafc;
-            font-weight: 600;
-            color: #004a99;
-            border-left: 3px solid #004a99;
-        }
-
-        .slab-cell {
-            text-align: right;
-        }
-
-        .total-cell {
-            font-weight: 700;
-        }
-
-        .grand-total-label {
-            text-align: left;
-        }
-
-        .flex-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            align-items: center;
-        }
-
-        .preview-grid {
-            margin-top: 8px;
-            overflow-x: auto;
-            overflow-y: auto;
-            max-height: 400px;
-            border-radius: 12px;
-            border: 1px solid #e2edf2;
-            margin-bottom: 5px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-        }
-
-        th {
-            background: #004a99;
-            color: white;
-            padding: 8px 8px;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        td {
-            border-bottom: 1px solid #e2e8f0;
-            padding: 7px 8px;
-            text-align: center;
-            background: white;
-        }
-
-        tr:hover td {
-            background: #fefce8;
-        }
-
-        button {
-            background: #2c3e50;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-        }
-
-        button.primary {
-            background: linear-gradient(135deg, #004a99, #0088dd);
-        }
-
-        button.outline {
-            background: transparent;
-            border: 2px solid #004a99;
-            color: #004a99;
-            padding: 5px 14px;
-        }
-
-        button.success {
-            background: linear-gradient(135deg, #27ae60, #219653);
-        }
-
-        .total-row {
-            background: #fef9e3;
-            font-weight: 800;
-            border-top: 2px solid #f59e0b;
-        }
-
-        select, input[type="number"] {
-            padding: 6px 14px;
-            border-radius: 30px;
-            border: 2px solid #cbd5e1;
-            background: white;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        select {
-            min-width: 200px;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-    </style>
+  /* toast */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#152034;border:1px solid rgba(79,156,249,.5);color:#9ecbff;
+    padding:11px 20px;border-radius:11px;font-size:13px;font-weight:650;
+    box-shadow:0 12px 32px rgba(0,0,0,.55);opacity:0;pointer-events:none;
+    transition:opacity .25s, transform .25s;z-index:100;max-width:90vw;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.good{border-color:rgba(46,204,113,.6);color:#6ee7a8}
+  .toast.err{border-color:rgba(255,93,108,.6);color:#ff8b96}
+</style>
 </head>
-
 <body>
-    <div class="container">
-        <!-- كارت إدخال البيانات والخيارات -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-header-left">
-                    <ion-icon name="calculator-outline"></ion-icon>
-                    <h2>⚡ إدخال بيانات الاستهلاك والتعريفة</h2>
-                </div>
-                <button class="home-button" onclick="window.location.href='Control_Calc.html'">
-                    <ion-icon name="arrow-up-outline"></ion-icon><span>الرئيسية</span>
-                </button>
-            </div>
+<div class="app">
 
-            <div class="flex-row layout-spaced">
-                <div class="input-group">
-                    <input type="number" id="inptarrif" class="consumption-input" placeholder="ادخل كمية الاستهلاك (ك و س)">
-                    <button id="processSingleBtn" class="success">
-                        <i class="fas fa-calculator"></i> احسب وتشريح الاستهلاك
-                    </button>
-                </div>
-
-                <div class="input-group">
-                    <select id="tariffTypeSelector" title="نوع التعريفة" aria-label="نوع التعريفة">
-                        <option value="residential">🏠 منزلي</option>
-                        <option value="commercial" selected>🏢 تجاري</option>
-                        <option value="factory">⚙️ قوى محركة</option>
-                        <option value="farmer">🌾 الري</option>
-                        <option value="lighting">💡 انارة عامة</option>
-                        <option value="balance_cst">🧾 باقى المشتركين</option>
-                    </select>
-                    
-                    <select id="periodSelector" class="period-selector" title="فترة التعريفة" aria-label="فترة التعريفة">
-                        <option value="01/04/2026" selected>التعريفة الجديدة من تاريخ (1/4/2026)</option>
-                        <option value="1/8/2024-31/3/2026">التعريفة 2024/8-2026/3 بداية من (1/8/2024)</option>
-                        <option value="1/1/2024-31/7/2024">التعريفة 2024/1-2024/7 بداية من (1/1/2024)</option>
-                        <option value="1/1/2021-31/1/2023">التعريفة 2021-2024 بداية من (1/1/2021)</option>
-                        <option value="1/1/2020-31/12/2020">التعريفة 2020 بداية من (1/1/2020)</option>
-                        <option value="1/1/2019-31/12/2019">التعريفة 2019 بداية من (1/1/2019)</option>
-                    </select>
-
-                    <button id="recalcBtn" class="outline"><i class="fas fa-sync-alt"></i> تحديث الحسابات</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- كارت عرض النتائج -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-header-left">
-                    <ion-icon name="tablet-landscape-outline"></ion-icon>
-                    <h2>📊 تفاصيل حسابات الشرائح التشريحية</h2>
-                </div>
-                <button id="downloadTariffTableBtn" class="download-btn-small is-hidden">
-                    <i class="fas fa-download"></i> تصدير لملف (Excel)
-                </button>
-            </div>
-            <div class="preview-grid">
-                <table id="unifiedTariffTable">
-                    <thead>
-                        <tr>
-                            <th>التعريفة المطبقة</th>
-                            <th>الشريحة</th>
-                            <th>الاستهلاك المستهلك</th>
-                            <th>سعر الكيلو</th>
-                            <th>مقابل الخدمة</th>
-                            <th>فرق تشريح</th>
-                            <th>القيمة الإجمالية للسطر</th>
-                        </tr>
-                    </thead>
-                    <tbody id="unifiedTariffBody">
-                        <tr>
-                            <td colspan="7" class="empty-table-message">يرجى إدخال قيمة في حقل الاستهلاك والضغط على زر "احسب وتشريح الاستهلاك"...</td>
-                        </tr>
-                    </tbody>
-                    <tfoot id="unifiedTariffFoot"></tfoot>
-                </table>
-            </div>
-        </div>
+  <!-- HEADER -->
+  <header class="header">
+    <div>
+      <h1>Bundle Finder <span class="step-badge">Step 1</span></h1>
+      <p class="sub">Enter a base price to find all products in that range. Take 2 of each, then add 1–3 extra products that bring the total up to your target. Filter by category or search across all categories.</p>
     </div>
+    <div class="head-actions">
+      <button class="btn" id="loadSampleBtn">Load sample</button>
+      <button class="btn primary" id="uploadBtn">Upload file</button>
+    </div>
+  </header>
 
-    <script>
-        const TARIFF_CONFIGS = {
-            "01/04/2026": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.65, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 2.10, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 2.23, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 1.62, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 2.16, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 2.64, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 2.74, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 2.79, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 2.15, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 2.74, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.34, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }]
-            },
-            "1/8/2024-31/3/2026": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.68, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.78, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.95, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 1.55, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.95, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 2.1, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 2.23, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 0.85, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 1.68, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 2.2, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 2.27, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 2.33, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 2.0, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 2.34, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 2.34, s: 15, extraDiff: 0 }]
-            },
-            "1/1/2024-31/7/2024": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.58, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.68, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.83, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 1.25, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.40, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 1.5, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 1.65, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 1.36, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 1.5, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 1.56, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 1.8, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 1.1, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.5, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.5, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.5, s: 15, extraDiff: 0 }]
-            },
-            "1/1/2021-31/1/2023": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.48, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.58, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.77, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 1.06, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.28, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 1.28, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 1.20, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 0.95, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
-            },
-            "1/1/2020-31/12/2020": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.38, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.65, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.65, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 0.96, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1.18, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 1.18, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 1.2, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 0.85, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
-            },
-            "1/1/2019-31/12/2019": {
-                residential: [
-                    { label: "ش1 (0-50)", limit: 50, p: 0.3, s: 1, extraDiff: 0 },
-                    { label: "ش2 (51-100)", limit: 50, p: 0.4, s: 2, extraDiff: 0 },
-                    { label: "ش3 (0-200)", limit: 200, p: 0.5, s: 6, extraDiff: 24 },
-                    { label: "ش4 (201-350)", limit: 150, p: 0.82, s: 11, extraDiff: 0 },
-                    { label: "ش5 (351-650)", limit: 300, p: 1, s: 15, extraDiff: 0 },
-                    { label: "ش6 (651-1000)", limit: 350, p: 1.4, s: 25, extraDiff: 135 },
-                    { label: "ش7 (1001+)", limit: Infinity, p: 1.45, s: 40, extraDiff: 170 }
-                ],
-                commercial: [
-                    { label: "ش1 (0-100)", limit: 100, p: 0.65, s: 5, extraDiff: 0 },
-                    { label: "ش2 (0-250)", limit: 150, p: 1.15, s: 15, extraDiff: 70 },
-                    { label: "ش3 (0-600)", limit: 350, p: 1.4, s: 20, extraDiff: 70 },
-                    { label: "ش4 (601-1000)", limit: 400, p: 1.55, s: 25, extraDiff: 25 },
-                    { label: "ش5 (1001+)", limit: Infinity, p: 1.6, s: 40, extraDiff: 140 }
-                ],
-                farmer: [{ label: "الري", limit: Infinity, p: 0.75, s: 4, extraDiff: 0 }],
-                factory: [{ label: "قوى محركة", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }],
-                lighting: [{ label: "انارة عامة", limit: Infinity, p: 1.25, s: 4, extraDiff: 0 }],
-                balance_cst: [{ label: "باقى المشتركين", limit: Infinity, p: 1.25, s: 15, extraDiff: 0 }]
-            }
-        };
+  <!-- UPLOAD -->
+  <section id="uploadCard" class="upload-card">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" hidden
+             accept=".xlsx,.xls,.csv,.json,.jsonl,.ndjson,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/json" />
+      <div class="dz-icon">⬆</div>
+      <div class="dz-text" id="dzText">Drop your orders file or click to browse</div>
+      <div class="dz-hint">Product name &amp; unit price columns are detected automatically</div>
+      <div class="dz-formats">
+        <span>XLSX</span><span>XLS</span><span>CSV</span><span>JSON</span><span>JSONL</span>
+      </div>
+    </div>
+  </section>
 
-        function getTariffRows(kwh, tariffType, periodKey) {
-            const cfg = TARIFF_CONFIGS[periodKey]; 
-            if (!cfg) return { rows: [], totalCost: 0 };
-            const rates = cfg[tariffType]; 
-            if (!rates) return { rows: [], totalCost: 0 };
+  <!-- FILE INFO -->
+  <section id="fileInfo" class="file-info hidden">
+    <div class="fi-icon">📊</div>
+    <div class="fi-meta">
+      <div class="fi-name" id="fiName">—</div>
+      <div class="fi-stats" id="fiStats">—</div>
+    </div>
+    <button class="btn sm" id="replaceBtn">Replace</button>
+    <button class="btn sm danger" id="removeBtn" title="Remove loaded data">×</button>
+  </section>
 
-            const rows = []; 
-            let remaining = kwh; 
-            let totalCost = 0;
+  <!-- MAIN -->
+  <main id="calcArea" class="hidden">
 
-            for (let i = 0; i < rates.length && remaining > 0; i++) {
-                const slab = rates[i]; 
-                const qty = Math.min(remaining, slab.limit);
-                if (qty > 0) {
-                    const rowTotal = (qty * slab.p + slab.s) + (slab.extraDiff || 0);
-                    rows.push({ 
-                        slab: slab.label, 
-                        qty, 
-                        price: slab.p, 
-                        service: slab.s, 
-                        diff: slab.extraDiff || 0, 
-                        total: rowTotal 
-                    });
-                    totalCost += rowTotal;
-                } 
-                remaining -= qty;
-            } 
-            return { rows, totalCost };
+    <!-- CONTROLS -->
+    <section class="controls-card">
+      <div class="ctrl-grid">
+        <div class="ctrl">
+          <label>Category</label>
+          <select id="categorySelect">
+            <option value="ALL">All Categories</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Base price</label>
+          <div class="inp-wrap"><span>$</span><input type="number" id="basePrice" value="50" step="1" min="0" /></div>
+        </div>
+        <div class="ctrl">
+          <label>Range ± (absolute)</label>
+          <input type="number" id="rangeTol" value="1" step="0.5" min="0" />
+        </div>
+        <div class="ctrl">
+          <label>Base qty</label>
+          <input type="number" id="baseQty" value="2" step="1" min="1" />
+        </div>
+        <div class="ctrl">
+          <label>Target total</label>
+          <div class="inp-wrap"><span>$</span><input type="number" id="targetTotal" value="120" step="1" min="0" /></div>
+        </div>
+        <div class="ctrl">
+          <label>Extras count</label>
+          <div class="qty-toggle" id="extrasToggle">
+            <button data-extras="1">1</button>
+            <button data-extras="2" class="active">2</button>
+            <button data-extras="3">3</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Total ±</label>
+          <input type="number" id="totalTol" value="2" step="0.5" min="0" />
+        </div>
+      </div>
+      <div class="ctrl-options">
+        <label><input type="checkbox" id="allowSame" /> Allow base product as an extra</label>
+        <button class="btn primary" id="findBtn">Find bundles →</button>
+      </div>
+    </section>
+
+    <!-- BASE PRODUCTS -->
+    <section id="baseCard" class="card hidden">
+      <h3>Base products in range</h3>
+      <div class="chip-list" id="baseChips"></div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section id="summaryCard" class="card hidden">
+      <div class="summary-stats">
+        <div class="stat"><span>Base products</span><b id="statBase">0</b></div>
+        <div class="stat"><span>Bundles found</span><b id="statBundles">0</b></div>
+        <div class="stat highlight"><span>Best total</span><b id="statBestTotal">—</b></div>
+        <div class="stat highlight"><span>Best benefit</span><b id="statBestBenefit">—</b></div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="tbl-wrap hidden" id="resultsWrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="rank-cell">#</th>
+            <th>Base product</th>
+            <th class="num">Base value</th>
+            <th>Extra products</th>
+            <th class="num">Extras value</th>
+            <th class="num sortable" data-sort="total">Total <span class="arrow">▼</span></th>
+            <th class="num sortable" data-sort="benefit">Benefit <span class="arrow"></span></th>
+            <th class="num sortable" data-sort="benefitPct">Benefit % <span class="arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+
+  const SAMPLE_PRODUCTS = [
+    ['Sports', 'Foam Roller', 65.44], ['Toys', 'RC Car', 18.54], ['Apparel', 'Hoodie', 73.95], ['Electronics', 'Webcam', 96.53],
+    ['Toys', 'Plush Bear', 49.43], ['Sports', 'Yoga Mat', 56.56], ['Apparel', 'Beanie', 62.84], ['Beauty', 'Sheet Mask', 8.33],
+    ['Sports', 'Resistance Bands', 50.66], ['Electronics', 'USB-C Cable', 108.86], ['Apparel', 'Crew Tee', 30.20], ['Electronics', 'Smart Plug', 65.79],
+    ['Home', 'Ceramic Mug', 31.04], ['Home', 'Throw Pillow', 43.67], ['Apparel', 'Denim Jacket', 26.89], ['Electronics', 'Phone Case', 10.80],
+    ['Apparel', 'Rain Shell', 12.29], ['Sports', 'Water Bottle', 30.34], ['Home', 'Storage Bin', 12.95], ['Apparel', 'Joggers', 13.10],
+    ['Beauty', 'Vitamin C Serum', 14.57], ['Electronics', 'Power Bank', 86.72], ['Beauty', 'Lip Balm', 11.04], ['Sports', 'Jump Rope', 21.37],
+    ['Sports', 'Running Belt', 60.83], ['Electronics', 'Wireless Earbuds', 69.31], ['Beauty', 'SPF 50 Lotion', 32.89], ['Home', 'Towel Set', 13.46],
+    ['Toys', 'Puzzle 500pc', 28.95], ['Toys', 'Art Kit', 20.97], ['Electronics', 'Bluetooth Speaker', 95.03], ['Beauty', 'Shampoo Bar', 40.61],
+    ['Apparel', 'Chino Pants', 27.50], ['Apparel', 'Socks 3-Pack', 39.12], ['Home', 'LED Lamp', 13.87], ['Home', 'Cutting Board', 24.14],
+    ['Home', 'Scented Candle', 7.54], ['Toys', 'Board Game', 20.98], ['Toys', 'Building Blocks', 28.81], ['Beauty', 'Hand Cream', 33.49]
+  ];
+
+  const state = {
+    loaded: false,
+    isSample: false,
+    fileName: '',
+    products: [],
+    categories: [],
+    selectedCategory: 'ALL',
+    // form
+    basePrice: 50,
+    rangeTol: 1,
+    baseQty: 2,
+    targetTotal: 120,
+    extrasCount: 2,
+    totalTol: 2,
+    allowSame: false,
+    // results
+    baseProducts: [],
+    bundles: [],
+    sortKey: 'total',
+    sortDesc: true
+  };
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const money = n => '$' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+  const nf = new Intl.NumberFormat('en-US');
+
+  function toNum(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    const s = String(v).replace(/[^0-9.\-]/g, '');
+    if (s === '' || s === '-' || s === '.' || s === '-.') return null;
+    const n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  function normalizeKey(k) {
+    return String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  /* ============ XLSX loader ============ */
+  let xlsxPromise = null;
+  function loadXLSX() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (xlsxPromise) return xlsxPromise;
+    xlsxPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = XLSX_CDN;
+      s.async = true;
+      s.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('XLSX library missing'));
+      s.onerror = () => { xlsxPromise = null; reject(new Error('Failed to load XLSX parser')); };
+      document.head.appendChild(s);
+    });
+    return xlsxPromise;
+  }
+
+  /* ============ parsers ============ */
+  function parseCSV(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const firstLine = text.split(/\r?\n/, 1)[0] || '';
+    let best = ',', bestCount = 0;
+    for (const d of [',', ';', '\t', '|']) {
+      const c = (firstLine.match(new RegExp('\\' + d, 'g')) || []).length;
+      if (c > bestCount) { best = d; bestCount = c; }
+    }
+    const delim = best;
+    const rows = [];
+    let row = [], field = '', inQ = false, i = 0;
+    while (i < text.length) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
         }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQ = true; i++; continue; }
+      if (ch === delim) { row.push(field); field = ''; i++; continue; }
+      if (ch === '\r') { i++; continue; }
+      if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += ch; i++;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    while (rows.length && rows[rows.length - 1].every(c => c === '')) rows.pop();
+    if (!rows.length) return [];
+    const header = rows[0].map((h, i) => (h && h.trim()) || `col_${i + 1}`);
+    const out = [];
+    for (let r = 1; r < rows.length; r++) {
+      const obj = {};
+      for (let c = 0; c < header.length; c++) obj[header[c]] = rows[r][c] ?? '';
+      out.push(obj);
+    }
+    return out;
+  }
+  function parseJSONL(text) {
+    return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+      try { return JSON.parse(l); } catch { return { value: l }; }
+    });
+  }
+  function sanitizeDates(o) {
+    if (o === null || o === undefined) return o;
+    if (o instanceof Date) return isNaN(o.getTime()) ? null : o.toISOString();
+    if (Array.isArray(o)) return o.map(sanitizeDates);
+    if (typeof o === 'object') {
+      const out = {};
+      for (const k of Object.keys(o)) out[k] = sanitizeDates(o[k]);
+      return out;
+    }
+    return o;
+  }
 
-        function calculateAndDisplay() {
-            const inputVal = document.getElementById('inptarrif').value;
-            const kwh = parseFloat(inputVal);
+  async function readFile(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'xlsx' || ext === 'xls') {
+      await loadXLSX();
+      const buf = await file.arrayBuffer();
+      const wb = window.XLSX.read(buf, { type: 'array', cellDates: true });
+      const rows = [];
+      for (const name of wb.SheetNames) {
+        const sheet = wb.Sheets[name];
+        if (!sheet) continue;
+        try {
+          const sheetRows = window.XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
+          for (const r of sheetRows) rows.push(sanitizeDates(r));
+        } catch (e) { /* skip */ }
+      }
+      return rows;
+    }
+    const text = await file.text();
+    if (ext === 'csv') return parseCSV(text);
+    if (ext === 'json') {
+      const v = JSON.parse(text);
+      if (Array.isArray(v)) return v;
+      if (v && typeof v === 'object') {
+        for (const k of Object.keys(v)) if (Array.isArray(v[k])) return v[k];
+        return Object.keys(v).map(k => ({ key: k, ...(typeof v[k] === 'object' ? v[k] : { value: v[k] }) }));
+      }
+      throw new Error('JSON must contain an array of records');
+    }
+    if (ext === 'jsonl' || ext === 'ndjson') return parseJSONL(text);
+    throw new Error('Unsupported file type: .' + ext);
+  }
 
-            if (isNaN(kwh) || kwh < 0) {
-                alert("يرجى إدخال قيمة استهلاك صحيحة أولاً.");
-                return;
-            }
-
-            const tariffType = document.getElementById('tariffTypeSelector').value;
-            const periodKey = document.getElementById('periodSelector').value;
-            const tbody = document.getElementById('unifiedTariffBody');
-            
-            const { rows, totalCost } = getTariffRows(kwh, tariffType, periodKey);
-            
-            let html = '';
-            rows.forEach((row, i) => {
-                if (i === 0) {
-                    html += `<tr>
-                        <td rowspan="${rows.length}" class="tariff-period-cell">${periodKey}</td>
-                        <td class="slab-cell">${row.slab}</td>
-                        <td>${row.qty.toFixed(2)}</td>
-                        <td>${row.price}</td>
-                        <td>${row.service}</td>
-                        <td>${row.diff}</td>
-                        <td class="total-cell">${row.total.toFixed(2)}</td>
-                    </tr>`;
-                } else {
-                    html += `<tr>
-                        <td class="slab-cell">${row.slab}</td>
-                        <td>${row.qty.toFixed(2)}</td>
-                        <td>${row.price}</td>
-                        <td>${row.service}</td>
-                        <td>${row.diff}</td>
-                        <td class="total-cell">${row.total.toFixed(2)}</td>
-                    </tr>`;
-                }
-            });
-
-            tbody.innerHTML = html;
-            document.getElementById('unifiedTariffFoot').innerHTML = `<tr class="total-row">
-                <td colspan="2" class="grand-total-label">الإجمالي العام:</td>
-                <td>${kwh.toFixed(2)} ك و س</td>
-                <td colspan="3"></td>
-                <td>${totalCost.toFixed(2)} ج</td>
-            </tr>`;
-
-            document.getElementById('downloadTariffTableBtn').style.display = 'inline-flex';
+  /* ============ column detection ============ */
+  const ALIASES = {
+    category: ['category', 'cat', 'department', 'group', 'class', 'type'],
+    product: ['product', 'productname', 'name', 'item', 'itemname', 'title', 'sku', 'description'],
+    unit_price: ['unitprice', 'price', 'rate', 'unitcost', 'cost', 'each', 'linetotal', 'total']
+  };
+  function detectColumns(rows) {
+    const keys = new Set();
+    for (const r of rows.slice(0, 40)) {
+      if (r && typeof r === 'object') Object.keys(r).forEach(k => keys.add(k));
+    }
+    const byNorm = {};
+    keys.forEach(k => { byNorm[normalizeKey(k)] = k; });
+    const result = {};
+    for (const [field, aliases] of Object.entries(ALIASES)) {
+      for (const alias of aliases) {
+        const norm = normalizeKey(alias);
+        if (byNorm[norm] && !Object.values(result).includes(byNorm[norm])) {
+          result[field] = byNorm[norm];
+          break;
         }
+      }
+    }
+    return result;
+  }
 
-        function downloadTable(tableId, fileName) {
-            const table = document.getElementById(tableId);
-            const wb = XLSX.utils.table_to_book(table, { sheet: "تقرير الشرائح" });
-            XLSX.writeFile(wb, `${fileName}.xlsx`);
+  function buildProducts(rawRows) {
+    const columns = detectColumns(rawRows);
+    if (!columns.product || !columns.unit_price) {
+      throw new Error('Need a product name column and a price column');
+    }
+    const map = new Map();
+    const catSet = new Set();
+    for (const r of rawRows) {
+      if (!r || typeof r !== 'object') continue;
+      const cat = columns.category ? String(r[columns.category] ?? 'General').trim() : 'General';
+      const name = String(r[columns.product] ?? '').trim();
+      const price = toNum(r[columns.unit_price]);
+      if (!name || price === null || price <= 0) continue;
+      catSet.add(cat);
+      const key = name;
+      if (!map.has(key)) map.set(key, { category: cat, name, prices: [] });
+      map.get(key).prices.push(price);
+    }
+    const out = [];
+    for (const p of map.values()) {
+      const freq = new Map();
+      for (const v of p.prices) freq.set(v, (freq.get(v) || 0) + 1);
+      let price = p.prices[0], best = 0;
+      for (const [v, c] of freq) if (c > best) { price = v; best = c; }
+      out.push({ category: p.category, name: p.name, price });
+    }
+    out.sort((a, b) => a.name.localeCompare(b.name));
+    return { products: out, categories: Array.from(catSet).sort() };
+  }
+
+  function populateCategories() {
+    const sel = $('#categorySelect');
+    sel.innerHTML = '<option value="ALL">All Categories</option>' +
+      state.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = state.selectedCategory;
+  }
+
+  /* ============================================================
+     CORE: find combinations of k products summing in [min, max]
+     candidates must be sorted ascending by price
+     ============================================================ */
+  function findCombos(candidates, k, minSum, maxSum) {
+    const results = [];
+    const n = candidates.length;
+
+    if (k === 1) {
+      for (let i = 0; i < n; i++) {
+        const p = candidates[i].price;
+        if (p > maxSum) break;
+        if (p >= minSum) results.push([candidates[i]]);
+      }
+    } else if (k === 2) {
+      for (let i = 0; i < n - 1; i++) {
+        const pi = candidates[i].price;
+        if (pi + candidates[i + 1].price > maxSum) break;
+        for (let j = i + 1; j < n; j++) {
+          const sum = pi + candidates[j].price;
+          if (sum > maxSum) break;
+          if (sum >= minSum) results.push([candidates[i], candidates[j]]);
         }
+      }
+    } else if (k === 3) {
+      for (let i = 0; i < n - 2; i++) {
+        const pi = candidates[i].price;
+        if (pi + candidates[i + 1].price + candidates[i + 2].price > maxSum) break;
+        for (let j = i + 1; j < n - 1; j++) {
+          const pij = pi + candidates[j].price;
+          if (pij + candidates[j + 1].price > maxSum) break;
+          for (let kk = j + 1; kk < n; kk++) {
+            const sum = pij + candidates[kk].price;
+            if (sum > maxSum) break;
+            if (sum >= minSum) results.push([candidates[i], candidates[j], candidates[kk]]);
+          }
+        }
+      }
+    }
+    return results;
+  }
 
-        // Event Listeners
-        document.getElementById('processSingleBtn').addEventListener('click', calculateAndDisplay);
-        document.getElementById('recalcBtn').addEventListener('click', calculateAndDisplay);
-        document.getElementById('downloadTariffTableBtn').addEventListener('click', () => { 
-            downloadTable('unifiedTariffTable', 'تقرير_حساب_الشرائح'); 
+  /* ============================================================
+     CORE: build every valid bundle
+     ============================================================ */
+  function findBundles(params) {
+    const {
+      products, selectedCategory, basePrice, rangeTol, baseQty, targetTotal, extrasCount, totalTol, allowSame
+    } = params;
+
+    const filteredProducts = selectedCategory === 'ALL'
+      ? products
+      : products.filter(p => p.category === selectedCategory);
+
+    const baseMin = basePrice - rangeTol;
+    const baseMax = basePrice + rangeTol;
+    const baseProducts = filteredProducts
+      .filter(p => p.price >= baseMin && p.price <= baseMax)
+      .sort((a, b) => a.price - b.price);
+
+    if (!baseProducts.length) return { baseProducts: [], bundles: [] };
+
+    const bundles = [];
+
+    for (const base of baseProducts) {
+      const baseValue = baseQty * base.price;
+      const needed = targetTotal - baseValue;
+      const minNeeded = Math.max(0, needed - totalTol);
+      const maxNeeded = needed + totalTol;
+
+      if (maxNeeded <= 0) continue;
+
+      let candidates = filteredProducts;
+      if (!allowSame) candidates = candidates.filter(p => p.name !== base.name);
+      candidates = candidates.filter(p => p.price <= maxNeeded);
+      candidates.sort((a, b) => a.price - b.price);
+
+      const combos = findCombos(candidates, extrasCount, minNeeded, maxNeeded);
+
+      for (const combo of combos) {
+        let extrasValue = 0;
+        for (const p of combo) extrasValue += p.price;
+        const total = baseValue + extrasValue;
+        bundles.push({
+          base,
+          baseQty,
+          baseValue,
+          extras: combo,
+          extrasValue,
+          total,
+          benefit: extrasValue,
+          benefitPct: baseValue > 0 ? (extrasValue / baseValue) * 100 : 0
         });
+      }
+    }
 
-        // السماح بالضغط على Enter في حقل الإدخال للحساب المباشر
-        document.getElementById('inptarrif').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                calculateAndDisplay();
-            }
+    return { baseProducts, bundles };
+  }
+
+  /* ============================================================
+     RENDER
+     ============================================================ */
+  function renderBaseProducts() {
+    const card = $('#baseCard');
+    const chips = $('#baseChips');
+    if (!state.baseProducts.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+    chips.innerHTML = state.baseProducts.map(p =>
+      `<span class="chip">${p.name} <span class="cp-price">${money(p.price)}</span></span>`
+    ).join('');
+  }
+
+  function renderSummary() {
+    const card = $('#summaryCard');
+    if (!state.bundles.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+
+    const best = state.bundles.reduce((a, b) => b.total > a.total ? b : a, state.bundles[0]);
+    const bestBenefit = state.bundles.reduce((a, b) => b.benefit > a.benefit ? b : a, state.bundles[0]);
+
+    $('#statBase').textContent = state.baseProducts.length;
+    $('#statBundles').textContent = nf.format(state.bundles.length);
+    $('#statBestTotal').textContent = money(best.total);
+    $('#statBestBenefit').textContent = '+' + money(bestBenefit.benefit);
+  }
+
+  function getSortedBundles() {
+    const arr = state.bundles.slice();
+    const key = state.sortKey;
+    const dir = state.sortDesc ? -1 : 1;
+    arr.sort((a, b) => {
+      const av = key === 'benefitPct' ? a.benefitPct : a[key];
+      const bv = key === 'benefitPct' ? b.benefitPct : b[key];
+      return (av - bv) * dir;
+    });
+    return arr;
+  }
+
+  function renderResults() {
+    const wrap = $('#resultsWrap');
+    const tbody = $('#resultsBody');
+
+    if (!state.bundles.length) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    wrap.classList.remove('hidden');
+
+    const sorted = getSortedBundles();
+
+    tbody.innerHTML = sorted.map((b, i) => {
+      const rank = i + 1;
+      const rankCls = rank === 1 ? 'g1' : rank === 2 ? 'g2' : rank === 3 ? 'g3' : '';
+      const rowCls = rank === 1 ? 'top1' : '';
+      const extrasStr = b.extras.map(p => p.name).join(' + ');
+      return `
+        <tr class="${rowCls}">
+          <td class="rank-cell"><span class="rank-badge ${rankCls}">${rank}</span></td>
+          <td class="prod" title="${b.base.name}">${b.base.name}</td>
+          <td class="num">${b.baseQty} × ${money(b.base.price)} = ${money(b.baseValue)}</td>
+          <td class="extras" title="${extrasStr}">${extrasStr}</td>
+          <td class="num">${money(b.extrasValue)}</td>
+          <td class="num total">${money(b.total)}</td>
+          <td class="num benefit">+${money(b.benefit)}</td>
+          <td class="num benefitPct">+${b.benefitPct.toFixed(1)}%</td>
+        </tr>`;
+    }).join('');
+
+    // header arrows
+    $$('.tbl-wrap thead th.sortable').forEach(th => {
+      const k = th.dataset.sort;
+      const isSorted = k === state.sortKey;
+      th.classList.toggle('sorted', isSorted);
+      const arrow = th.querySelector('.arrow');
+      if (arrow) {
+        arrow.textContent = isSorted ? (state.sortDesc ? '▼' : '▲') : '';
+      }
+    });
+  }
+
+  /* ============================================================
+     ACTION: run finder
+     ============================================================ */
+  function runFinder() {
+    if (!state.products.length) return;
+
+    // read form
+    state.selectedCategory = $('#categorySelect').value;
+    state.basePrice = Number($('#basePrice').value) || 0;
+    state.rangeTol = Math.max(0, Number($('#rangeTol').value) || 0);
+    state.baseQty = Math.max(1, Math.round(Number($('#baseQty').value) || 1));
+    state.targetTotal = Number($('#targetTotal').value) || 0;
+    state.totalTol = Math.max(0, Number($('#totalTol').value) || 0);
+    state.allowSame = $('#allowSame').checked;
+
+    if (state.targetTotal <= 0) {
+      showToast('Enter a target total greater than 0', 'err');
+      return;
+    }
+
+    const btn = $('#findBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Computing…';
+
+    setTimeout(() => {
+      try {
+        const { baseProducts, bundles } = findBundles({
+          products: state.products,
+          selectedCategory: state.selectedCategory,
+          basePrice: state.basePrice,
+          rangeTol: state.rangeTol,
+          baseQty: state.baseQty,
+          targetTotal: state.targetTotal,
+          extrasCount: state.extrasCount,
+          totalTol: state.totalTol,
+          allowSame: state.allowSame
         });
-    </script>
+        state.baseProducts = baseProducts;
+        state.bundles = bundles;
+
+        renderBaseProducts();
+        renderSummary();
+        renderResults();
+
+        if (!baseProducts.length) {
+          showToast(`No products found between ${money(state.basePrice - state.rangeTol)} and ${money(state.basePrice + state.rangeTol)}`, 'err');
+        } else if (!bundles.length) {
+          showToast(`Found ${baseProducts.length} base products but no bundles match the target`, 'err');
+        } else {
+          showToast(`Found ${nf.format(bundles.length)} bundles across ${baseProducts.length} base products`, 'good');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Could not compute bundles', 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }, 20);
+  }
+
+  /* ============================================================
+     FILE LOADING
+     ============================================================ */
+  function showToast(msg, kind = '') {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.className = 'toast' + (kind ? ' ' + kind : '');
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  async function processFile(file) {
+    const dz = $('#dropzone');
+    const dzText = $('#dzText');
+    const original = dzText.textContent;
+
+    dz.classList.add('loading');
+    dzText.textContent = 'Reading file…';
+
+    try {
+      const rawRows = await readFile(file);
+      if (!rawRows.length) throw new Error('File contains no rows');
+      const res = buildProducts(rawRows);
+      if (!res.products.length) throw new Error('No valid products found (need name + price)');
+
+      state.loaded = true;
+      state.isSample = false;
+      state.fileName = file.name;
+      state.products = res.products;
+      state.categories = res.categories;
+      state.selectedCategory = 'ALL';
+
+      populateCategories();
+      enterDashboard();
+      showToast(`Loaded ${file.name} — ${res.products.length} products`, 'good');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Could not parse file', 'err');
+    } finally {
+      dz.classList.remove('loading');
+      dzText.textContent = original;
+    }
+  }
+
+  function loadSample() {
+    state.loaded = true;
+    state.isSample = true;
+    state.fileName = 'Sample data';
+    const rawSampleObj = SAMPLE_PRODUCTS.map(([cat, name, price]) => ({ category: cat, product: name, unit_price: price }));
+    const res = buildProducts(rawSampleObj);
+    state.products = res.products;
+    state.categories = res.categories;
+    state.selectedCategory = 'ALL';
+
+    populateCategories();
+    enterDashboard();
+    showToast('Sample loaded — 40 products', 'good');
+  }
+
+  function enterDashboard() {
+    $('#uploadCard').classList.add('hidden');
+    $('#fileInfo').classList.remove('hidden');
+    $('#calcArea').classList.remove('hidden');
+
+    $('#fiName').textContent = state.isSample ? 'Sample data (40 products)' : state.fileName;
+    $('#fiStats').innerHTML = `<b>${nf.format(state.products.length)}</b> products loaded`;
+
+    // reset results
+    state.baseProducts = [];
+    state.bundles = [];
+    $('#baseCard').classList.add('hidden');
+    $('#summaryCard').classList.add('hidden');
+    $('#resultsWrap').classList.add('hidden');
+  }
+
+  function removeData() {
+    if (!confirm('Remove the loaded data?')) return;
+    state.loaded = false;
+    state.isSample = false;
+    state.fileName = '';
+    state.products = [];
+    state.categories = [];
+    state.baseProducts = [];
+    state.bundles = [];
+
+    $('#uploadCard').classList.remove('hidden');
+    $('#fileInfo').classList.add('hidden');
+    $('#calcArea').classList.add('hidden');
+  }
+
+  /* ============================================================
+     EVENTS
+     ============================================================ */
+  function wireEvents() {
+    // upload triggers
+    $('#uploadBtn').addEventListener('click', () => $('#fileInput').click());
+    $('#replaceBtn').addEventListener('click', () => $('#fileInput').click());
+    $('#fileInput').addEventListener('change', e => {
+      if (e.target.files && e.target.files.length) {
+        processFile(e.target.files[0]);
+        e.target.value = '';
+      }
+    });
+    $('#removeBtn').addEventListener('click', removeData);
+    $('#loadSampleBtn').addEventListener('click', loadSample);
+
+    // dropzone
+    const dz = $('#dropzone');
+    dz.addEventListener('click', () => $('#fileInput').click());
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); dz.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); dz.classList.remove('drag');
+    }));
+    dz.addEventListener('drop', e => {
+      if (e.dataTransfer?.files?.length) processFile(e.dataTransfer.files[0]);
+    });
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => e.preventDefault());
+
+    // extras toggle
+    $('#extrasToggle').addEventListener('click', e => {
+      const b = e.target.closest('button[data-extras]');
+      if (!b) return;
+      state.extrasCount = Number(b.dataset.extras);
+      $$('#extrasToggle button').forEach(btn =>
+        btn.classList.toggle('active', Number(btn.dataset.extras) === state.extrasCount)
+      );
+    });
+
+    // category change triggers calculation refresh if results are shown
+    $('#categorySelect').addEventListener('change', e => {
+      state.selectedCategory = e.target.value;
+      if (state.bundles.length || state.baseProducts.length) {
+        runFinder();
+      }
+    });
+
+    // find
+    $('#findBtn').addEventListener('click', runFinder);
+
+    // enter to find
+    ['basePrice','rangeTol','baseQty','targetTotal','totalTol'].forEach(id => {
+      $('#' + id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); runFinder(); }
+      });
+    });
+
+    // sortable headers
+    $$('.tbl-wrap thead th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const k = th.dataset.sort;
+        if (state.sortKey === k) {
+          state.sortDesc = !state.sortDesc;
+        } else {
+          state.sortKey = k;
+          state.sortDesc = true;
+        }
+        renderResults();
+      });
+    });
+  }
+
+  function init() {
+    wireEvents();
+  }
+
+  init();
+})();
+</script>
 </body>
-
 </html>
