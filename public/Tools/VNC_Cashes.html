@@ -33,13 +33,19 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px; gap: 16px; overflow-y: auto;
         }
-        .theme-toggle { position: absolute; top: 10px; right: 10px; }
+
+        /* ===== Top-right control ===== */
+        .top-controls {
+            position: absolute; top: 10px; right: 10px;
+            display: flex; gap: 6px; align-items: center; z-index: 20;
+        }
         select.btn {
             padding: 0 8px; outline: none; cursor: pointer; font-size: 11px;
             background: var(--input-bg); color: var(--text-main);
             border: 1px solid var(--border); border-radius: 6px; height: 26px;
         }
-        .ip-card, .speed-card {
+
+        .ip-card, .speed-card, .clean-card {
             background: var(--card); backdrop-filter: blur(10px);
             border: 1px solid var(--border); border-radius: 12px;
             padding: 22px; width: 100%; max-width: 500px;
@@ -75,7 +81,11 @@
             height: 40px; width: 44px; padding: 0;
             font-size: 16px;
         }
-        .status-msg { font-size: 12px; color: var(--text-sub); min-height: 18px; }
+        .btn-danger { background: var(--danger); border-color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); filter: brightness(1.12); }
+        .btn-confirm { background: var(--warning); border-color: var(--warning); color: #1a1a1a; }
+        .btn-confirm:hover { background: var(--warning); filter: brightness(1.08); }
+        .status-msg { font-size: 12px; color: var(--text-sub); min-height: 18px; line-height: 1.5; }
 
         /* ===== Speed Test Card ===== */
         .speed-header {
@@ -158,6 +168,62 @@
             100% { background-position: -200% 0; }
         }
 
+        /* ===== Clean Slate Card (minimal) ===== */
+        .clean-card { align-items: stretch; text-align: left; gap: 14px; }
+        .clean-title {
+            font-size: 13px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .stat-chips {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px; width: 100%;
+        }
+        .chip {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 4px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 3px;
+            transition: border-color 0.25s;
+        }
+        .chip.has { border-color: var(--success); }
+        .chip-num {
+            font-family: 'Courier New', monospace;
+            font-size: 18px; font-weight: 800; line-height: 1;
+            color: var(--text-sub); transition: color 0.25s;
+        }
+        .chip.has .chip-num { color: var(--success); }
+        .chip-label {
+            font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px;
+            text-transform: uppercase; color: var(--text-sub);
+            white-space: nowrap;
+        }
+
+        .clean-note {
+            font-size: 11px; color: var(--text-sub); line-height: 1.4;
+            text-align: center;
+        }
+
+        /* History checkbox row */
+        .history-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; border-radius: 8px;
+            background: var(--input-bg); border: 1px solid var(--border);
+            font-size: 12px; color: var(--text-main);
+            width: 100%; box-sizing: border-box;
+        }
+        .history-row input {
+            width: 15px; height: 15px; flex-shrink: 0;
+            cursor: pointer; accent-color: var(--accent);
+        }
+        .history-row .hint {
+            font-size: 10px; color: var(--text-sub); margin-left: auto;
+            font-style: italic; white-space: nowrap;
+        }
+
         .copy-toast {
             position: fixed; bottom: 24px; left: 50%;
             transform: translateX(-50%) translateY(60px);
@@ -165,14 +231,17 @@
             padding: 10px 20px; border-radius: 8px;
             font-size: 13px; font-weight: 700;
             opacity: 0; pointer-events: none; transition: 0.3s; z-index: 9999;
+            max-width: 90vw; text-align: center;
         }
         .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .copy-toast.error { background: var(--danger); }
-        .copy-toast.warning { background: var(--warning); }
+        .copy-toast.warning { background: var(--warning); color: #1a1a1a; }
 
         @media (max-width: 420px) {
             .speed-grid { grid-template-columns: 1fr; }
             .speed-value { font-size: 32px; }
+            .stat-chips { grid-template-columns: repeat(2, 1fr); }
+            .history-row .hint { display: none; }
         }
     </style>
 </head>
@@ -180,7 +249,7 @@
     <canvas id="matrixCanvas"></canvas>
 
     <div class="main-container">
-        <div class="theme-toggle">
+        <div class="top-controls">
             <select id="themeSelect" class="btn">
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
@@ -227,19 +296,64 @@
             <button class="btn" id="speedTestBtn">🚀 Start Speed Test</button>
             <div class="status-msg" id="speedStatus">Click to test download &amp; upload speed</div>
         </div>
+
+        <!-- Clean Slate Card -->
+        <div class="clean-card">
+            <div class="clean-title">🧹 Clean Slate</div>
+
+            <div class="stat-chips">
+                <div class="chip" id="chipCaches">
+                    <span class="chip-num" id="statCaches">—</span>
+                    <span class="chip-label">Caches</span>
+                </div>
+                <div class="chip" id="chipWorkers">
+                    <span class="chip-num" id="statWorkers">—</span>
+                    <span class="chip-label">Workers</span>
+                </div>
+                <div class="chip" id="chipKeys">
+                    <span class="chip-num" id="statKeys">—</span>
+                    <span class="chip-label">Keys</span>
+                </div>
+                <div class="chip" id="chipCookies">
+                    <span class="chip-num" id="statCookies">—</span>
+                    <span class="chip-label">Cookies</span>
+                </div>
+            </div>
+
+            <label class="history-row" title="Clears this tab's session history (back/forward stack) by replacing the current entry. Browser security prevents JavaScript from erasing your full history.">
+                <input type="checkbox" id="clearHistoryCheck" checked>
+                <span>Clear history</span>
+                <span class="hint">this tab</span>
+            </label>
+
+            <button class="btn btn-danger" id="clearAllBtn">🧹 Clear Everything &amp; Reload</button>
+
+            <div class="clean-note">🔐 Saved passwords are never touched</div>
+        </div>
     </div>
 
     <div class="copy-toast" id="copyToast">✅ Copied!</div>
 
     <script>
         // ==========================================
-        // THEME & MATRIX
+        // THEME (persisted) & MATRIX
         // ==========================================
         const themeSelect = document.getElementById('themeSelect');
+
+        try {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                themeSelect.value = savedTheme;
+            }
+        } catch (e) {}
+
         themeSelect.addEventListener('change', (e) => {
             document.documentElement.setAttribute('data-theme', e.target.value);
             updateMatrixColor();
+            try { localStorage.setItem('theme', e.target.value); } catch (err) {}
         });
+
         const canvas = document.getElementById('matrixCanvas');
         const ctx = canvas.getContext('2d');
         let matrixColor = '#0F0';
@@ -277,7 +391,7 @@
             copyToast.textContent = msg;
             copyToast.className = 'copy-toast show' + (type ? ' ' + type : '');
             clearTimeout(copyToast._t);
-            copyToast._t = setTimeout(() => copyToast.classList.remove('show'), 2000);
+            copyToast._t = setTimeout(() => copyToast.classList.remove('show'), 2600);
         }
         async function copyToClipboard(text) {
             try {
@@ -410,17 +524,13 @@
         const speedStatus   = document.getElementById('speedStatus');
 
         let isTesting = false;
-        let peakDownload = 0;
-        let peakUpload = 0;
 
         function setSpeedValue(elValue, elSub, elBar, mbps) {
             if (mbps <= 0) return;
             elValue.textContent = mbps.toFixed(1);
             elValue.className = 'speed-value success';
             elSub.textContent = (mbps / 8).toFixed(2) + ' MB/s';
-            // Bar: fill relative to 100 Mbps baseline, capped at 100%
-            const pct = Math.min((mbps / 100) * 100, 100);
-            elBar.style.width = pct + '%';
+            elBar.style.width = Math.min((mbps / 100) * 100, 100) + '%';
         }
 
         function resetSpeedUI() {
@@ -436,11 +546,8 @@
             uploadBox.classList.remove('active', 'done');
             pingDisplay.textContent = 'Ping: —';
             pingDisplay.classList.remove('live');
-            peakDownload = 0;
-            peakUpload = 0;
         }
 
-        // ---------- Ping ----------
         async function measurePing() {
             const times = [];
             for (let i = 0; i < 5; i++) {
@@ -458,7 +565,6 @@
             return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
         }
 
-        // ---------- Download ----------
         async function testDownload(bytes, onProgress) {
             const url = `https://speed.cloudflare.com/__down?bytes=${bytes}`;
             const start = performance.now();
@@ -488,11 +594,9 @@
             } catch (e) { return 0; }
         }
 
-        // ---------- Upload ----------
         function testUpload(sizeBytes, onProgress) {
             return new Promise((resolve) => {
                 const data = new Uint8Array(sizeBytes);
-                // Fill with random data (in 64KB chunks, crypto limit)
                 const chunk = Math.min(sizeBytes, 65536);
                 for (let i = 0; i < sizeBytes; i += chunk) {
                     crypto.getRandomValues(data.subarray(i, Math.min(i + chunk, sizeBytes)));
@@ -527,7 +631,6 @@
             });
         }
 
-        // ---------- Orchestrator ----------
         async function runSpeedTest() {
             if (isTesting) return;
             isTesting = true;
@@ -536,7 +639,6 @@
             resetSpeedUI();
 
             try {
-                // 1. Ping
                 speedStatus.textContent = '📡 Measuring ping…';
                 const ping = await measurePing();
                 if (ping !== null) {
@@ -546,21 +648,16 @@
                     pingDisplay.textContent = 'Ping: failed';
                 }
 
-                // 2. Download
                 speedStatus.textContent = '⬇️ Testing download speed…';
                 downloadBox.classList.add('active');
                 downloadValue.textContent = '0';
                 downloadValue.className = 'speed-value loading';
 
-                // Adaptive: 10MB first, then 25MB if very fast
                 let dlMbps = await testDownload(10 * 1024 * 1024, (mbps) => {
-                    peakDownload = Math.max(peakDownload, mbps);
                     setSpeedValue(downloadValue, downloadSub, downloadBar, mbps);
                 });
                 if (dlMbps > 100) {
-                    // Very fast — do a bigger run for accuracy
                     const dl2 = await testDownload(25 * 1024 * 1024, (mbps) => {
-                        peakDownload = Math.max(peakDownload, mbps);
                         setSpeedValue(downloadValue, downloadSub, downloadBar, mbps);
                     });
                     dlMbps = Math.max(dlMbps, dl2);
@@ -573,14 +670,12 @@
                 downloadBox.classList.remove('active');
                 downloadBox.classList.add('done');
 
-                // 3. Upload
                 speedStatus.textContent = '⬆️ Testing upload speed…';
                 uploadBox.classList.add('active');
                 uploadValue.textContent = '0';
                 uploadValue.className = 'speed-value loading';
 
                 const upMbps = await testUpload(5 * 1024 * 1024, (mbps) => {
-                    peakUpload = Math.max(peakUpload, mbps);
                     setSpeedValue(uploadValue, uploadSub, uploadBar, mbps);
                 });
 
@@ -591,7 +686,6 @@
                 uploadBox.classList.remove('active');
                 uploadBox.classList.add('done');
 
-                // Done
                 speedStatus.textContent = `✅ Done — ↓ ${dlMbps.toFixed(1)} Mbps  ⬆ ${upMbps.toFixed(1)} Mbps`;
                 speedTestBtn.textContent = '🔄 Test Again';
             } catch (err) {
@@ -607,11 +701,194 @@
         speedTestBtn.addEventListener('click', runSpeedTest);
 
         // ==========================================
+        // CLEAN SLATE — clear cache/cookies/storage/history, reload
+        // Saved passwords live in the browser's password
+        // manager and are never accessible to JavaScript.
+        // ==========================================
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const clearHistoryCheck = document.getElementById('clearHistoryCheck');
+
+        const statEls = {
+            caches:  { num: document.getElementById('statCaches'),  chip: document.getElementById('chipCaches') },
+            workers: { num: document.getElementById('statWorkers'), chip: document.getElementById('chipWorkers') },
+            keys:    { num: document.getElementById('statKeys'),    chip: document.getElementById('chipKeys') },
+            cookies: { num: document.getElementById('statCookies'), chip: document.getElementById('chipCookies') },
+        };
+
+        function paintStat(key, value) {
+            const el = statEls[key];
+            el.num.textContent = value;
+            el.chip.classList.toggle('has', value > 0);
+        }
+
+        async function collectStats() {
+            const stats = { caches: 0, workers: 0, keys: 0, idb: 0, cookies: 0 };
+
+            if ('caches' in window) {
+                try { stats.caches = (await caches.keys()).length; } catch (e) {}
+            }
+            if ('serviceWorker' in navigator) {
+                try { stats.workers = (await navigator.serviceWorker.getRegistrations()).length; } catch (e) {}
+            }
+            try { stats.keys += localStorage.length; } catch (e) {}
+            try { stats.keys += sessionStorage.length; } catch (e) {}
+            try {
+                if (indexedDB && typeof indexedDB.databases === 'function') {
+                    stats.idb = (await indexedDB.databases()).filter(d => d && d.name).length;
+                }
+            } catch (e) {}
+            try {
+                stats.cookies = document.cookie
+                    ? document.cookie.split(';').filter(s => s.trim().length).length
+                    : 0;
+            } catch (e) {}
+
+            return stats;
+        }
+
+        async function paintInitialStats() {
+            const s = await collectStats();
+            paintStat('caches',  s.caches);
+            paintStat('workers', s.workers);
+            paintStat('keys',    s.keys + s.idb);
+            paintStat('cookies', s.cookies);
+        }
+
+        async function clearBrowserCaches() {
+            const result = { caches: 0, workers: 0 };
+
+            if ('caches' in window) {
+                try {
+                    for (const key of await caches.keys()) {
+                        try { if (await caches.delete(key)) result.caches++; } catch (e) {}
+                    }
+                } catch (e) {}
+            }
+
+            if ('serviceWorker' in navigator) {
+                try {
+                    for (const reg of await navigator.serviceWorker.getRegistrations()) {
+                        try { if (await reg.unregister()) result.workers++; } catch (e) {}
+                    }
+                } catch (e) {}
+            }
+
+            return result;
+        }
+
+        async function clearSiteData() {
+            const result = { keys: 0, idb: 0, cookies: 0 };
+
+            try { result.keys += localStorage.length; localStorage.clear(); } catch (e) {}
+            try { result.keys += sessionStorage.length; sessionStorage.clear(); } catch (e) {}
+
+            try {
+                if (indexedDB && typeof indexedDB.databases === 'function') {
+                    for (const db of await indexedDB.databases()) {
+                        if (!db || !db.name) continue;
+                        await new Promise((resolve) => {
+                            const req = indexedDB.deleteDatabase(db.name);
+                            req.onsuccess = req.onerror = req.onblocked = () => resolve();
+                        });
+                        result.idb++;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const jar = document.cookie ? document.cookie.split(';') : [];
+                for (const entry of jar) {
+                    const name = entry.split('=')[0].trim();
+                    if (!name) continue;
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=' + location.pathname;
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=' + location.hostname;
+                    result.cookies++;
+                }
+            } catch (e) {}
+
+            return result;
+        }
+
+        /**
+         * Best-effort "clear this tab's history".
+         * JS cannot erase the browser's global history for security reasons.
+         * We can, however:
+         *   1. Replace the current history entry's state with null.
+         *   2. Reload via location.replace(), which replaces the current
+         *      history entry — removing it from the back/forward stack.
+         * This effectively wipes this tab's session history entry.
+         */
+        function clearSessionHistory() {
+            try {
+                history.replaceState(null, '', location.href);
+            } catch (e) {}
+        }
+
+        async function nukeEverything(includeHistory) {
+            const c = await clearBrowserCaches();
+            const d = await clearSiteData();
+            if (includeHistory) clearSessionHistory();
+            return `${c.caches} cache(s) · ${c.workers} worker(s) · ${d.keys} key(s) · ${d.idb} DB(s) · ${d.cookies} cookie(s)`;
+        }
+
+        function hardReload() {
+            try {
+                const url = new URL(location.href);
+                url.searchParams.set('_cb', Date.now().toString(36));
+                location.replace(url.toString());
+            } catch (e) {
+                location.reload();
+            }
+        }
+
+        let confirmTimer = null;
+        function resetConfirm() {
+            clearTimeout(confirmTimer);
+            clearAllBtn.classList.remove('btn-confirm');
+            clearAllBtn.classList.add('btn-danger');
+            clearAllBtn.textContent = '🧹 Clear Everything & Reload';
+            clearAllBtn.disabled = false;
+        }
+
+        clearAllBtn.addEventListener('click', async () => {
+            if (!clearAllBtn.classList.contains('btn-confirm')) {
+                clearAllBtn.classList.remove('btn-danger');
+                clearAllBtn.classList.add('btn-confirm');
+                clearAllBtn.textContent = '⚠️ Tap again to confirm';
+                confirmTimer = setTimeout(resetConfirm, 4000);
+                return;
+            }
+
+            clearTimeout(confirmTimer);
+            clearAllBtn.disabled = true;
+            clearAllBtn.textContent = '⏳ Clearing…';
+
+            try {
+                const summary = await nukeEverything(clearHistoryCheck.checked);
+                showToast('🧹 Cleared — ' + summary);
+                setTimeout(hardReload, 700);
+            } catch (err) {
+                console.error(err);
+                showToast('❌ Clear failed', 'error');
+                resetConfirm();
+            }
+        });
+
+        // ==========================================
         // INIT
         // ==========================================
         window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const u = new URL(location.href);
+                if (u.searchParams.has('_cb')) {
+                    u.searchParams.delete('_cb');
+                    history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+                }
+            } catch (e) {}
+
             scanIP();
-            // Note: speed test NOT auto-run (bandwidth-heavy) — user clicks the button
+            paintInitialStats();
         });
     </script>
 </body>
