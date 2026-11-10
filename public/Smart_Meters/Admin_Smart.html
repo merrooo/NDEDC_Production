@@ -397,6 +397,12 @@
             box-shadow: 0 0 0 3px var(--primary-soft);
         }
 
+        .field select:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            background: #f1f5f9;
+        }
+
         .field .hint {
             font-size: .68rem;
             color: var(--muted);
@@ -1082,6 +1088,10 @@
             .grid-4 {
                 grid-template-columns: 1fr;
             }
+
+            .grid-4 > .field {
+                grid-column: span 1 !important;
+            }
         }
     </style>
 </head>
@@ -1219,10 +1229,20 @@
             </div>
             <div class="card-body">
                 <div class="grid-4">
-                    <div class="field">
+                    <div class="field" style="grid-column: span 2">
                         <label><i class="fas fa-file-excel"></i> اختر ملف Excel</label>
                         <input type="file" id="excelFile" accept=".xlsx, .xls">
                     </div>
+
+                    <!-- ✅ NEW: sheet picker -->
+                    <div class="field" style="grid-column: span 2">
+                        <label><i class="fas fa-table-list"></i> اختر شيت Excel <span class="req">*</span></label>
+                        <select id="sheetSelect" disabled>
+                            <option value="">— اختر الملف أولاً —</option>
+                        </select>
+                        <span class="hint"><i class="fas fa-info-circle"></i> تظهر الشيتات بعد اختيار الملف</span>
+                    </div>
+
                     <div class="field">
                         <label><i class="fas fa-key"></i> مفتاح منع التكرار</label>
                         <select id="uploadKey">
@@ -1231,7 +1251,8 @@
                         </select>
                         <span class="hint"><i class="fas fa-info-circle"></i> التحقق بناءً على هذا الحقل</span>
                     </div>
-                    <div class="field" style="grid-column: span 2">
+
+                    <div class="field" style="grid-column: span 3">
                         <label><i class="fas fa-tag"></i> مرجع الرفع <span class="req">*</span></label>
                         <input type="text" id="uploadDate" placeholder="مثال: يناير 2025 - دفعة أولى">
                         <span class="hint"><i class="fas fa-info-circle"></i> سيُستخدم هذا النص لاحقاً للحذف أو
@@ -1840,6 +1861,7 @@
         let uploadData = [];
         let internalDupKeys = [];
         let externalDupKeys = [];
+        let workbook = null;            // ✅ parsed workbook kept in memory
 
         const columnMapping = {
             'meter_number': 'meter_number', 'sim_number': 'sim_number',
@@ -1906,7 +1928,13 @@
             uploadData = [];
             internalDupKeys = [];
             externalDupKeys = [];
+            workbook = null;                              // ✅ NEW
             $('excelFile').value = '';
+
+            const ss = $('sheetSelect');                  // ✅ NEW
+            ss.innerHTML = '<option value="">— اختر الملف أولاً —</option>';
+            ss.disabled = true;
+
             $('internalDuplicateWarning').classList.remove('show');
             $('externalDuplicateWarning').classList.remove('show');
             $('uploadPreviewArea').hidden = true;
@@ -1926,12 +1954,69 @@
 
             try {
                 const buf = await file.arrayBuffer();
-                const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
+                workbook = XLSX.read(new Uint8Array(buf), {
+                    type: 'array',
+                    cellDates: true,
+                    dateNF: 'dd/mm/yyyy'
+                });
+
+                const sheetNames = workbook.SheetNames || [];
+                if (!sheetNames.length) {
+                    status.innerHTML = '⚠️ الملف لا يحتوي على أي شيت';
+                    status.className = 'status show warning';
+                    workbook = null;
+                    return;
+                }
+
+                // ✅ populate the sheet dropdown
+                const ss = $('sheetSelect');
+                ss.innerHTML = sheetNames
+                    .map(n => `<option value="${esc(n)}">${esc(n)}</option>`)
+                    .join('');
+                ss.disabled = false;
+                ss.value = sheetNames[0];
+
+                // ✅ parse the first sheet
+                await loadSheet(sheetNames[0]);
+
+            } catch (err) {
+                console.error(err);
+                workbook = null;
+                $('sheetSelect').disabled = true;
+                status.innerHTML = 'خطأ: ' + esc(err.message);
+                status.className = 'status show error';
+            }
+        }
+
+        /* ✅ NEW: parse a specific sheet from the in-memory workbook */
+        async function loadSheet(sheetName) {
+            const status = $('uploadStatus');
+
+            if (!workbook || !workbook.Sheets[sheetName]) {
+                status.innerHTML = '⚠️ الشيت غير موجود';
+                status.className = 'status show warning';
+                return;
+            }
+
+            status.innerHTML = '<span class="spinner"></span> جاري قراءة الشيت…';
+            status.className = 'status show info';
+
+            // reset previous state
+            uploadData = [];
+            internalDupKeys = [];
+            externalDupKeys = [];
+            $('internalDuplicateWarning').classList.remove('show');
+            $('externalDuplicateWarning').classList.remove('show');
+            $('uploadPreviewArea').hidden = true;
+            $('progressBar').hidden = true;
+            $('btnUploadConfirm').disabled = true;
+
+            try {
+                const ws = workbook.Sheets[sheetName];
                 const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
                 if (!json.length) {
-                    status.innerHTML = '⚠️ الملف فارغ';
+                    status.innerHTML = `⚠️ الشيت "${esc(sheetName)}" فارغ`;
                     status.className = 'status show warning';
                     return;
                 }
@@ -1941,10 +2026,14 @@
                     for (const [excelCol, dbKey] of Object.entries(columnMapping)) {
                         let v = row[excelCol];
                         if (v === undefined || v === null || v === '') continue;
-                        rec[dbKey] = dbKey === 'install_date' ? convertExcelDate(v) : norm(String(v));
+                        rec[dbKey] = dbKey === 'install_date'
+                            ? convertExcelDate(v)
+                            : norm(String(v));
                     }
-                    if (!rec['keta3'] && rec['keta3_id']) rec['keta3'] = sectorNames[rec['keta3_id']] || `قطاع ${rec['keta3_id']}`;
-                    if (!rec['handsa'] && rec['handsa_code']) rec['handsa'] = districtNames[rec['handsa_code']] || `هندسة ${rec['handsa_code']}`;
+                    if (!rec['keta3'] && rec['keta3_id'])
+                        rec['keta3'] = sectorNames[rec['keta3_id']] || `قطاع ${rec['keta3_id']}`;
+                    if (!rec['handsa'] && rec['handsa_code'])
+                        rec['handsa'] = districtNames[rec['handsa_code']] || `هندسة ${rec['handsa_code']}`;
                     return rec;
                 });
 
@@ -1952,7 +2041,7 @@
                 await runDuplicateChecks();
             } catch (err) {
                 console.error(err);
-                status.innerHTML = 'خطأ: ' + err.message;
+                status.innerHTML = 'خطأ: ' + esc(err.message);
                 status.className = 'status show error';
             }
         }
@@ -1988,7 +2077,8 @@
             body.appendChild(frag);
 
             $('uploadPreviewArea').hidden = false;
-            $('uploadPreviewMeta').textContent = `${uploadData.length} سجل — معاينة أول ${preview.length}`;
+            $('uploadPreviewMeta').textContent =
+                `${uploadData.length} سجل — معاينة أول ${preview.length} — الشيت: ${$('sheetSelect').value}`;
         }
 
         async function runDuplicateChecks() {
@@ -2123,6 +2213,13 @@
             if (uploadData.length > 0) {
                 runDuplicateChecks();
             }
+        });
+
+        /* ✅ change sheet → re-parse from the in-memory workbook (no re-read of the file) */
+        $('sheetSelect').addEventListener('change', () => {
+            const name = $('sheetSelect').value;
+            if (workbook && name) loadSheet(name);
+            touch();
         });
 
         $('btnUploadConfirm').addEventListener('click', () => performUpload(false));
