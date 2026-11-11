@@ -190,29 +190,6 @@
             background: var(--accent-orange-hover);
         }
 
-        /* HISTORY LOG TAGS CONTAINER */
-        .word-tag-container-compact {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            min-height: 45px;
-            border: 1px solid var(--border-color);
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            font-size: 11px;
-            color: var(--text-muted);
-            padding: 4px 6px;
-            background: #fff;
-            border-left: 3px solid var(--primary);
-            border-radius: 4px;
-        }
-
         /* MAIN CONTENT LAYOUT */
         .main-content {
             flex: 1;
@@ -401,9 +378,18 @@
                     <button id="removeBeforeBtn" class="action-btn-purple">💥 Word + Before</button>
                 </div>
 
-                <div class="feature-title" style="margin-top:15px;"><span>📜</span> Action Execution Log</div>
-                <div class="word-tag-container-compact" id="tagContainer">
-                    <div style="color:#64748b; font-size:11px; padding: 4px;">Modifications ledger is empty...</div>
+                <!-- ============================================================ -->
+                <!-- FIND & REPLACE                                                -->
+                <!-- ============================================================ -->
+                <div class="feature-title" style="margin-top:15px;"><span>🔁</span> 5. Find &amp; Replace</div>
+                <input type="text" id="findInput" class="compact-input" placeholder="Find word or number..." dir="auto">
+                <input type="text" id="replaceInput" class="compact-input" placeholder="Replace with... (leave empty to remove)" dir="auto">
+                <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:#64748b; margin-bottom:10px; cursor:pointer; user-select:none;">
+                    <input type="checkbox" id="matchCaseChk" checked style="accent-color:var(--primary); cursor:pointer;"> Match case
+                </label>
+                <button id="replaceBtn" class="small-btn" style="width:100%;">🔁 Replace All in Column</button>
+                <div style="font-size:10px; color:#94a3b8; margin-top:6px; line-height:1.4;">
+                    Replaces <b>every occurrence</b> in the selected column. Leave “Replace with” empty to delete the found text.
                 </div>
             </div>
         </div>
@@ -448,7 +434,6 @@
     <script>
         let currentGridData = [];
         let currentHeaders = [];
-        let historyLogs = [];
         let sheetName = null;
 
         const fileInput = document.getElementById("excelFile");
@@ -460,12 +445,17 @@
         const removeNextBtn = document.getElementById("removeNextBtn");
         const removeBeforeBtn = document.getElementById("removeBeforeBtn");
         const stripSpacesBtn = document.getElementById("stripSpacesBtn");
-        const tagContainer = document.getElementById("tagContainer");
         const exportMainBtn = document.getElementById("exportMainBtn");
         const tableHeader = document.getElementById("tableHeader");
         const tableBody = document.getElementById("tableBody");
         const gridStatsSpan = document.getElementById("gridStats");
         const logSection = document.getElementById("logSection");
+
+        // Find & Replace controls
+        const findInput = document.getElementById("findInput");
+        const replaceInput = document.getElementById("replaceInput");
+        const matchCaseChk = document.getElementById("matchCaseChk");
+        const replaceBtn = document.getElementById("replaceBtn");
 
         function addLog(msg, type = "info") {
             const entry = document.createElement("div");
@@ -489,9 +479,9 @@
             previewColumnSelect.disabled = false;
             previewColumnSelect.innerHTML = '<option value="">-- Choose target column --</option>' +
                 currentHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
-            
+
             if (currentHeaders.length > 0) {
-                previewColumnSelect.selectedIndex = 1; 
+                previewColumnSelect.selectedIndex = 1;
             }
         }
 
@@ -503,56 +493,129 @@
                 return;
             }
 
+            let rowsModified = 0;
+
             if (mode === 'stripSpaces') {
                 currentGridData.forEach(row => {
                     if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
-                        row[selectedColumn] = String(row[selectedColumn]).replace(/\s+/g, '');
-                    }
-                });
-                historyLogs.push(`Cleaned [Col: ${selectedColumn}] stripped all spaces`);
-            } else {
-                if (!targetValue) return;
-
-                const escapedTarget = targetValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                let regex;
-
-                if (mode === 'next') {
-                    regex = new RegExp('(' + escapedTarget + ')' + '.*$', 'g');
-                } else if (mode === 'before') {
-                    regex = new RegExp('^.*' + '(' + escapedTarget + ')', 'g');
-                } else {
-                    regex = new RegExp(escapedTarget, 'g');
-                }
-
-                currentGridData.forEach(row => {
-                    if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
-                        let textStr = String(row[selectedColumn]).trim();
-                        if (mode === 'next') {
-                            textStr = textStr.replace(regex, '$1');
-                        } else if (mode === 'before') {
-                            textStr = textStr.replace(regex, '$1');
-                        } else {
-                            textStr = textStr.replace(regex, '');
+                        const before = String(row[selectedColumn]);
+                        const after = before.replace(/\s+/g, '');
+                        if (before !== after) {
+                            row[selectedColumn] = after;
+                            rowsModified++;
                         }
-                        row[selectedColumn] = textStr.replace(/^-+|-+$/g, '').trim();
                     }
                 });
-
-                historyLogs.push(`Cleaned [Col: ${selectedColumn}] using search string "${targetValue}" (${mode.toUpperCase()})`);
-            }
-
-            renderHistoryLedger();
-            renderMainTable();
-            addLog(`Permanently modified column "${selectedColumn}" contents.`, "success");
-        }
-
-        function renderHistoryLedger() {
-            if (historyLogs.length === 0) {
-                tagContainer.innerHTML = '<div style="color:#64748b; font-size:11px; padding: 4px;">Modifications ledger is empty...</div>';
+                renderMainTable();
+                addLog(`Stripped all spaces in column "${selectedColumn}" — ${rowsModified} row(s) modified.`, rowsModified ? "success" : "info");
                 return;
             }
-            tagContainer.innerHTML = historyLogs.map(logText => `<div class="history-item">${logText}</div>`).join('');
-            tagContainer.scrollTop = tagContainer.scrollHeight;
+
+            if (!targetValue) {
+                addLog("Mutation blocked: No search text provided.", "error");
+                return;
+            }
+
+            const escapedTarget = targetValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            let regex;
+
+            if (mode === 'next') {
+                regex = new RegExp('(' + escapedTarget + ')' + '.*$', 'g');
+            } else if (mode === 'before') {
+                regex = new RegExp('^.*' + '(' + escapedTarget + ')', 'g');
+            } else {
+                regex = new RegExp(escapedTarget, 'g');
+            }
+
+            currentGridData.forEach(row => {
+                if (row[selectedColumn] !== undefined && row[selectedColumn] !== null) {
+                    const before = String(row[selectedColumn]).trim();
+                    let textStr = before;
+                    if (mode === 'next' || mode === 'before') {
+                        textStr = textStr.replace(regex, '$1');
+                    } else {
+                        textStr = textStr.replace(regex, '');
+                    }
+                    const after = textStr.replace(/^-+|-+$/g, '').trim();
+                    if (before !== after) {
+                        row[selectedColumn] = after;
+                        rowsModified++;
+                    }
+                }
+            });
+
+            renderMainTable();
+
+            const modeLabel =
+                mode === 'next' ? 'Word + After' :
+                mode === 'before' ? 'Word + Before' :
+                'Strip word';
+
+            addLog(`${modeLabel}: removed "${targetValue}" from column "${selectedColumn}" — ${rowsModified} row(s) modified.`, rowsModified ? "success" : "info");
+        }
+
+        // ============================================================
+        // FIND & REPLACE ENGINE
+        // ============================================================
+        function escapeRegExp(str) {
+            return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        }
+
+        function executeFindReplace() {
+            const selectedColumn = previewColumnSelect.value;
+            if (!selectedColumn) {
+                addLog("Replace blocked: No active target column selected.", "error");
+                return;
+            }
+
+            const findText = findInput.value;
+            if (findText === "") {
+                addLog("Replace blocked: 'Find' field is empty.", "error");
+                return;
+            }
+
+            const replaceText = replaceInput.value;
+            const matchCase = matchCaseChk.checked;
+
+            let cellsModified = 0;
+            let totalHits = 0;
+
+            currentGridData.forEach(row => {
+                const cell = row[selectedColumn];
+                if (cell === undefined || cell === null) return;
+                const original = String(cell);
+                if (original === "") return;
+
+                let hits = 0;
+                let updated = original;
+
+                if (matchCase) {
+                    const parts = original.split(findText);
+                    hits = parts.length - 1;
+                    if (hits > 0) updated = parts.join(replaceText);
+                } else {
+                    const re = new RegExp(escapeRegExp(findText), 'gi');
+                    const found = original.match(re);
+                    hits = found ? found.length : 0;
+                    if (hits > 0) updated = original.replace(re, () => replaceText);
+                }
+
+                if (hits > 0) {
+                    row[selectedColumn] = updated;
+                    cellsModified++;
+                    totalHits += hits;
+                }
+            });
+
+            renderMainTable();
+
+            addLog(
+                `Replace "${findText}" → "${replaceText || '(empty)'}" in column "${selectedColumn}" — ${cellsModified} row(s) modified, ${totalHits} occurrence(s) replaced.`,
+                cellsModified ? "success" : "info"
+            );
+
+            findInput.value = "";
+            replaceInput.value = "";
         }
 
         // Clean Table Grid UI Engine
@@ -574,7 +637,7 @@
             const fragment = document.createDocumentFragment();
             currentGridData.forEach(row => {
                 const tr = document.createElement("tr");
-                
+
                 currentHeaders.forEach(h => {
                     const td = document.createElement("td");
                     let val = row[h] ?? "";
@@ -621,6 +684,16 @@
             contextWordInput.value = '';
         });
 
+        // Find & Replace subscriptions
+        replaceBtn.addEventListener("click", executeFindReplace);
+
+        findInput.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') executeFindReplace();
+        });
+        replaceInput.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') executeFindReplace();
+        });
+
         fileInput.addEventListener("change", async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -630,7 +703,7 @@
                 const wb = XLSX.read(buffer);
                 sheetName = wb.SheetNames[0];
                 const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "" });
-                
+
                 if (raw.length === 0) {
                     throw new Error("The uploaded spreadsheet contains no readable rows.");
                 }
@@ -642,14 +715,12 @@
                     return obj;
                 });
 
-                historyLogs = [];
-                renderHistoryLedger();
                 populateColumnDropdown();
                 renderMainTable();
                 exportMainBtn.disabled = false;
                 addLog(`File loaded successfully: [${sheetName}] with ${currentGridData.length} records.`, "success");
-            } catch (err) { 
-                addLog(err.message, "error"); 
+            } catch (err) {
+                addLog(err.message, "error");
                 exportMainBtn.disabled = true;
             }
         });
