@@ -93,7 +93,7 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
 
 <div class="main-container">
     <div class="top-bar">
-        <h1><span class="logo">🖥️</span>VNC <span class="tagline">Remote control · Mouse · Keyboard · Messages</span></h1>
+        <h1><span class="logo">🖥️</span>VNC <span class="tagline">Mouse · Keyboard · Messages</span></h1>
         <div class="top-controls">
             <select id="themeSelect" class="btn">
                 <option value="dark">Dark</option>
@@ -104,7 +104,6 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
 
     <div class="grid-layout">
 
-        <!-- CARD 1 — SESSION -->
         <div class="card session-card">
             <div class="conn-title"><span class="conn-dot" id="connDot"></span>🌐 Firebase Bridge</div>
             <div class="infoRow">
@@ -117,14 +116,12 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
                 <button class="btn-conn btn-disc" id="btnDisconnect" disabled>✖ Disconnect</button>
             </div>
             <div id="connStatus" class="conn-status">Not connected</div>
-            <textarea id="sharedText" placeholder="Typing / Messages — syncs live with the other laptop (unlimited)." disabled></textarea>
+            <textarea id="sharedText" placeholder="Typing / Messages — syncs live (unlimited)." disabled></textarea>
         </div>
 
-        <!-- CARD 2 — REMOTE CONTROL -->
         <div class="card">
             <div class="conn-title">🎮 Remote Control</div>
 
-            <!-- Features toggles -->
             <div class="features-card" id="featuresCard">
                 <div class="conn-badge" id="connTypeBadge">🌐 Connection: detecting…</div>
 
@@ -153,7 +150,7 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
                 </label>
 
                 <div style="font-size:10px;color:var(--text-sub);text-align:center;line-height:1.5;padding:4px 8px;">
-                    Mouse &amp; Keyboard have a <b>15-min</b> limit per session · Typing is unlimited
+                    ⏱️ Timers run <b>only while pointer is locked</b> (you're actively controlling). ESC pauses. Disconnect resets to 15:00.
                 </div>
             </div>
 
@@ -165,10 +162,9 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
             </div>
         </div>
 
-        <!-- DIRECT IP — hidden on HTTPS, shown only on localhost/file:// -->
         <div class="card direct-card" id="directCard">
             <div class="conn-title">🎯 Direct IP Mode <span style="font-size:10px;color:var(--accent);background:rgba(56,189,248,.15);padding:2px 8px;border-radius:10px;">SAME NETWORK / TAILSCALE</span></div>
-            <div class="direct-note">Auto-fills when the other laptop connects. Prefers Tailscale (works cross-network).</div>
+            <div class="direct-note">Auto-fills when the other laptop connects.</div>
             <input type="text" id="directIpInput" class="direct-input" placeholder="waiting for peer…" readonly>
             <div class="buttonRow two">
                 <button class="btn-conn btn-create" id="btnDirectConnect" disabled>🔗 Connect</button>
@@ -182,7 +178,7 @@ select.btn{padding:0 10px;outline:none;cursor:pointer;font-size:11px;background:
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, onChildAdded, push, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
@@ -198,20 +194,42 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const $ = id => document.getElementById(id);
 
-const METERED_ICE_SERVERS = [
+/* ════════════════════════════════════════════════════════════════════
+   ⚠️  CRITICAL FOR CROSS-NETWORK WEBRTC
+   ────────────────────────────────────────────────────────────────────
+   Same LAN  → host/srflx candidates → direct P2P → works without TURN
+   Different networks → BOTH peers behind NAT → MUST use TURN relay.
+   
+   Metered TURN credentials EXPIRE. Get fresh ones (free) from:
+       https://www.metered.ca/tools/openrelay/
+   Replace USERNAME / CREDENTIAL below with your own.
+   
+   If ALL TURN servers below fail → cross-network will NOT work.
+   ════════════════════════════════════════════════════════════════════ */
+const ICE_SERVERS = [
+    // --- STUN (always keep these; helps same-LAN and simple NATs) ---
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun.cloudflare.com:3478" },
     { urls: "stun:stun.relay.metered.ca:80" },
-    { urls: "turn:global.relay.metered.ca:80", username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" },
+
+    // --- Metered TURN (replace credentials if expired) ---
+    { urls: "turn:global.relay.metered.ca:80",  username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" },
     { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" },
     { urls: "turn:global.relay.metered.ca:443", username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" },
-    { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" }
+    { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "62223c24e0b5a9223f1c63fc", credential: "izjZG3dSaw+r0G0m" },
+
+    // --- OpenRelay fallback (may be rate-limited) ---
+    { urls: "turn:openrelay.metered.ca:80",  username: "openrelayproject", credential: "openrelayproject" },
+    { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+    { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 async function fetchIceServers() {
     if ($('toggleP2POnly').checked) {
-        console.log('[ice] P2P-only (0 MB quota)');
-        return METERED_ICE_SERVERS.filter(s => (Array.isArray(s.urls) ? s.urls[0] : s.urls).startsWith('stun:'));
+        return ICE_SERVERS.filter(s => (Array.isArray(s.urls) ? s.urls[0] : s.urls).startsWith('stun:'));
     }
-    return METERED_ICE_SERVERS;
+    return ICE_SERVERS;
 }
 
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -223,15 +241,11 @@ async function getMyIpInfo() {
         const to = setTimeout(() => ctrl.abort(), 2000);
         const r = await fetch('http://127.0.0.1:8766/all', { cache: 'no-store', signal: ctrl.signal });
         clearTimeout(to);
-        if (r.ok) {
-            const data = await r.json();
-            return { lan_ip: data.lan_ip || null, ts_ip: data.tailscale_ip || null, screen: data.screen || null };
-        }
+        if (r.ok) { const d = await r.json(); return { lan_ip: d.lan_ip || null, ts_ip: d.tailscale_ip || null, screen: d.screen || null }; }
     } catch(_) {}
     return { lan_ip: null, ts_ip: null, screen: null };
 }
 
-/* STATE */
 let pc = null, dc = null;
 let localBridge = null;
 let mouseWS = null;
@@ -253,8 +267,12 @@ let peerInfoUnsub = null;
 let bridgeRetryTimer = null;
 let connTypeCheckInterval = null;
 
-/* ⏱️ USAGE TIMERS */
-const USAGE_MAX_SECONDS = 900;   // 15 minutes
+// ICE candidate bookkeeping (trickle)
+let pendingRemoteCandidates = [];
+let remoteDescSet = false;
+let candidateUnsubs = [];
+
+const USAGE_MAX_SECONDS = 900;
 let mouseSecondsLeft = USAGE_MAX_SECONDS;
 let keyboardSecondsLeft = USAGE_MAX_SECONDS;
 let usageTimer = null;
@@ -265,14 +283,7 @@ function setConnStatus(msg, cls='') { const el=$('connStatus'); el.innerHTML=msg
 function setDirectStatus(msg, cls='') { const el=$('directStatus'); el.textContent=msg; el.className='direct-status'+(cls?' '+cls:''); }
 function setConnDot(on) { $('connDot').className='conn-dot'+(on?' ok':''); }
 
-/* ══════════════════════════════════════════════════════════════
-   USAGE TIMERS — 15 min for mouse & keyboard
-   ══════════════════════════════════════════════════════════════ */
-function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2,'0')}`;
-}
+function formatTime(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${s.toString().padStart(2,'0')}`; }
 function updateMouseTimerHint() { $('mouseTimerHint').textContent = formatTime(mouseSecondsLeft); }
 function updateKeyboardTimerHint() { $('keyboardTimerHint').textContent = formatTime(keyboardSecondsLeft); }
 function updateAllTimerHints() { updateMouseTimerHint(); updateKeyboardTimerHint(); }
@@ -281,9 +292,9 @@ function resetUsageTimers() {
     mouseSecondsLeft = USAGE_MAX_SECONDS;
     keyboardSecondsLeft = USAGE_MAX_SECONDS;
     updateAllTimerHints();
-    // Re-enable checkboxes and remove expired styling
     $('toggleMouse').disabled = false;
     $('toggleKeyboard').disabled = false;
+    $('toggleMouse').checked = true;
     $('toggleMouse').closest('.toggle-row').classList.remove('expired');
     $('toggleKeyboard').closest('.toggle-row').classList.remove('expired');
 }
@@ -292,14 +303,12 @@ function startUsageTimer() {
     stopUsageTimer();
     usageTimer = setInterval(() => {
         if (appState !== 'connected') return;
+        if (!locked) return;
 
-        // ── Mouse ──
-        if ($('toggleMouse').checked && mouseSecondsLeft > 0) {
+        if ($('toggleMouse').checked && !$('toggleMouse').disabled && mouseSecondsLeft > 0) {
             mouseSecondsLeft--;
             updateMouseTimerHint();
-            if (mouseSecondsLeft === 60) {
-                setConnStatus('⏰ Mouse limit: 1 minute left', 'warn');
-            }
+            if (mouseSecondsLeft === 60) setConnStatus('⏰ Mouse: 1 minute left', 'warn');
             if (mouseSecondsLeft <= 0) {
                 $('toggleMouse').checked = false;
                 $('toggleMouse').disabled = true;
@@ -307,33 +316,27 @@ function startUsageTimer() {
                 $('mouseTimerHint').textContent = 'expired';
                 if (locked) document.exitPointerLock();
                 updatePad();
-                setConnStatus('⏰ Mouse control expired (15 min) — reconnect to reset', 'warn');
+                setConnStatus('⏰ Mouse expired (15 min active use) — Disconnect to reset', 'warn');
             }
         }
 
-        // ── Keyboard ──
-        if ($('toggleKeyboard').checked && keyboardSecondsLeft > 0) {
+        if ($('toggleKeyboard').checked && !$('toggleKeyboard').disabled && keyboardSecondsLeft > 0) {
             keyboardSecondsLeft--;
             updateKeyboardTimerHint();
-            if (keyboardSecondsLeft === 60) {
-                setConnStatus('⏰ Keyboard limit: 1 minute left', 'warn');
-            }
+            if (keyboardSecondsLeft === 60) setConnStatus('⏰ Keyboard: 1 minute left', 'warn');
             if (keyboardSecondsLeft <= 0) {
                 $('toggleKeyboard').checked = false;
                 $('toggleKeyboard').disabled = true;
                 $('toggleKeyboard').closest('.toggle-row').classList.add('expired');
                 $('keyboardTimerHint').textContent = 'expired';
-                setConnStatus('⏰ Keyboard expired (15 min) — reconnect to reset', 'warn');
+                setConnStatus('⏰ Keyboard expired (15 min active use) — Disconnect to reset', 'warn');
             }
         }
     }, 1000);
 }
 
-function stopUsageTimer() {
-    if (usageTimer) { clearInterval(usageTimer); usageTimer = null; }
-}
+function stopUsageTimer() { if (usageTimer) { clearInterval(usageTimer); usageTimer = null; } }
 
-/* UI HELPERS */
 function canSendMouse() {
     if (directMode) return mouseWS && mouseWS.readyState === WebSocket.OPEN;
     return dc && dc.readyState === 'open';
@@ -345,11 +348,11 @@ function updatePad() {
     if (locked) { pad.classList.add('locked'); return; }
     if (appState === 'connected' && canSendMouse() && remoteReady && $('toggleMouse').checked && !$('toggleMouse').disabled) {
         pad.classList.add('active');
-        hint.textContent = bridgeOk ? '🎮 Click here to control the other laptop' : '🎮 Click to control · ⚠ start mouse_bridge.py to receive back';
+        hint.textContent = bridgeOk ? '🎮 Click here to control the other laptop' : '🎮 Click to control';
         return;
     }
-    if (appState === 'connected' && $('toggleMouse').disabled) { hint.textContent = '⏰ Mouse limit expired — reconnect to reset'; return; }
-    if (appState === 'connected' && !remoteReady) { hint.textContent = 'Waiting for peer screen info…'; return; }
+    if (appState === 'connected' && $('toggleMouse').disabled) { hint.textContent = '⏰ Mouse expired — Disconnect to reset'; return; }
+    if (appState === 'connected' && !remoteReady) { hint.textContent = '⏳ Waiting for peer screen info…'; return; }
     if (appState === 'connected' && !$('toggleMouse').checked) { hint.textContent = 'Mouse disabled — enable above'; return; }
     if (appState === 'waiting') { hint.textContent = 'Connecting…'; return; }
     hint.textContent = 'Connect and click here to control the other laptop';
@@ -375,29 +378,23 @@ async function updateConnTypeBadge(peer) {
         stats.forEach(report => {
             if (report.type === 'transport' && report.selectedCandidatePairId) {
                 const pair = stats.get(report.selectedCandidatePairId);
-                if (pair) stats.forEach(r => {
-                    if (r.type === 'local-candidate' && r.id === pair.localCandidateId) localType = r.candidateType;
-                });
+                if (pair) stats.forEach(r => { if (r.type === 'local-candidate' && r.id === pair.localCandidateId) localType = r.candidateType; });
             }
         });
-        if (localType === 'relay') { badge.textContent = '🔄 TURN Relay · 500 MB quota used'; badge.className = 'conn-badge warn'; }
+        if (localType === 'relay') { badge.textContent = '🔄 TURN Relay · quota used'; badge.className = 'conn-badge warn'; }
         else if (['host','srflx','prflx'].includes(localType)) { badge.textContent = `🌐 P2P (${localType}) · 0 MB quota`; badge.className = 'conn-badge ok'; }
         else { badge.textContent = `❓ ${localType}`; badge.className = 'conn-badge'; }
     } catch(_) {}
 }
 
-/* TYPING TOGGLE */
 $('toggleTyping').addEventListener('change', () => {
     $('sharedText').disabled = appState !== 'connected' || !$('toggleTyping').checked;
 });
-
-/* MOUSE TOGGLE */
 $('toggleMouse').addEventListener('change', () => {
     if (!$('toggleMouse').checked && locked) document.exitPointerLock();
     updatePad();
 });
 
-/* PEER INFO */
 function watchPeerInfo(code, peerRole) {
     if (peerInfoUnsub) { try { peerInfoUnsub(); } catch(_){} peerInfoUnsub = null; }
     peerInfoUnsub = onValue(ref(db, `sessions/${code}/${peerRole}_info`), snap => {
@@ -411,11 +408,9 @@ function watchPeerInfo(code, peerRole) {
     });
 }
 
-/* DIRECT IP */
 $('btnDirectConnect').onclick = async () => {
     const ip = $('directIpInput').value.trim();
     if (!ip) { setDirectStatus('No peer IP yet', 'err'); return; }
-    if (!bridgeOk) { setDirectStatus('⚠ Start mouse_bridge.py', 'err'); return; }
     setDirectStatus('Connecting to ' + ip + '…');
     $('btnDirectConnect').disabled = true;
     try {
@@ -428,8 +423,7 @@ $('btnDirectConnect').onclick = async () => {
             ws.onerror = () => { clearTimeout(timer); reject(new Error('Cannot reach ' + ip)); };
         });
         directMode = true; remoteScreen = screen; remoteReady = true; appState = 'connected';
-        resetUsageTimers();
-        startUsageTimer();
+        resetUsageTimers(); startUsageTimer();
         updateButtons(); updatePad();
         setDirectStatus('✅ Direct connected to ' + ip, 'ok');
         setConnDot(true); setConnStatus('Direct IP connected ✅', 'ok');
@@ -458,7 +452,6 @@ $('btnDirectDisconnect').onclick = () => {
     $('featuresCard').classList.remove('visible');
 };
 
-/* FIREBASE + BRIDGE */
 async function testFirebase() {
     const bar = $('fbBar');
     try {
@@ -480,7 +473,7 @@ async function sweepStaleSession() {
     try {
         const snap = await get(ref(db, 'currentSession'));
         const val = snap.val();
-        if (val && val.ts && (Date.now() - val.ts > 5 * 60 * 1000)) {
+        if (val && val.ts && (Date.now() - val.ts > 2 * 60 * 1000)) {
             try { await remove(ref(db, `sessions/${val.code}`)); } catch(_){}
             try { await remove(ref(db, 'currentSession')); } catch(_){}
         }
@@ -502,6 +495,7 @@ async function connectLocalBridge() {
             bar.className = 'infoBar ok';
             setTimeout(() => bar.classList.add('hidden'), 3000);
             updatePad();
+            console.log('[bridge] connected');
         };
         localBridge.onerror = localBridge.onclose = () => {
             bridgeOk = false;
@@ -517,39 +511,76 @@ function sendToLocalBridge(p) {
     if (localBridge && localBridge.readyState === WebSocket.OPEN) localBridge.send(JSON.stringify(p));
 }
 
-function waitForIce(peer) {
-    if (peer.iceGatheringState === 'complete') return Promise.resolve();
-    return new Promise(r => {
-        const t = setTimeout(r, 10000);
-        peer.addEventListener('icegatheringstatechange', () => {
-            if (peer.iceGatheringState === 'complete') { clearTimeout(t); r(); }
-        });
-    });
+/* ════════════════════════════════════════════════════════════════════
+   TRICKLE ICE HELPERS
+   ────────────────────────────────────────────────────────────────────
+   Candidates arrive asynchronously. If we send them before the remote
+   description is set, the browser rejects them. So we BUFFER until the
+   remote description is applied, then flush + add subsequent ones live.
+   ════════════════════════════════════════════════════════════════════ */
+function resetIceState() {
+    pendingRemoteCandidates = [];
+    remoteDescSet = false;
 }
+
+async function applyRemoteDesc(desc) {
+    await pc.setRemoteDescription(desc);
+    remoteDescSet = true;
+    for (const c of pendingRemoteCandidates) {
+        try { await pc.addIceCandidate(c); } catch(e) { console.warn('[ice] flush fail', e); }
+    }
+    pendingRemoteCandidates = [];
+}
+
+function handleRemoteCandidate(cand) {
+    if (!pc) return;
+    if (remoteDescSet) pc.addIceCandidate(cand).catch(e => console.warn('[ice] add fail', e));
+    else pendingRemoteCandidates.push(cand);
+}
+
 function makePeer(iceServersConfig) {
+    resetIceState();
     const peer = new RTCPeerConnection({ iceServers: iceServersConfig });
     peer.addEventListener('connectionstatechange', () => {
-        if (peer.connectionState === 'failed' || peer.connectionState === 'disconnected') setConnStatus('Connection lost', 'err');
+        console.log('[pc] state:', peer.connectionState);
+        if (peer.connectionState === 'failed') setConnStatus('Connection failed — TURN blocked/expired?', 'err');
+        else if (peer.connectionState === 'disconnected') setConnStatus('Connection lost', 'err');
     });
-    peer.addEventListener('icecandidateerror', (e) => console.warn('[ice]', e.errorCode, e.url));
+    peer.addEventListener('icecandidateerror', (e) => {
+        console.warn('[ice] candidate error', e.errorCode, e.url, e.errorText);
+    });
+    peer.addEventListener('icegatheringstatechange', () => {
+        console.log('[ice] gathering:', peer.iceGatheringState);
+    });
     return peer;
 }
 
+/* ⭐ THE FIX: fire handleOpen manually if channel is already open */
 function wireChannel(ch) {
     dc = ch;
-    ch.onopen = () => {
-        try { dc.send(JSON.stringify({ type: 'screen', screen: localScreen })); } catch(_) {}
+    let openedHandled = false;
+
+    const handleOpen = () => {
+        if (openedHandled) return;
+        openedHandled = true;
+        console.log('[channel] open — sending screen info');
+        try { dc.send(JSON.stringify({ type: 'screen', screen: localScreen })); } catch(e) { console.error('[channel] send screen error', e); }
         appState = 'connected';
         resetUsageTimers();
         startUsageTimer();
-        updateButtons(); updatePad();
-        setConnStatus('Connected ✅ — 15 min mouse/keyboard session', 'ok'); setConnDot(true);
+        updateButtons();
+        updatePad();
+        setConnStatus('Connected ✅ — timer runs only while controlling', 'ok');
+        setConnDot(true);
         $('featuresCard').classList.add('visible');
         setTimeout(() => updateConnTypeBadge(pc), 1500);
         if (connTypeCheckInterval) clearInterval(connTypeCheckInterval);
         connTypeCheckInterval = setInterval(() => { if (appState === 'connected' && pc) updateConnTypeBadge(pc); }, 10000);
     };
+
+    ch.onopen = handleOpen;
     ch.onclose = () => {
+        console.log('[channel] closed');
         if (appState !== 'idle') {
             setConnStatus('Disconnected', 'err'); setConnDot(false);
             appState = 'idle'; remoteReady = false;
@@ -563,7 +594,7 @@ function wireChannel(ch) {
         try {
             const msg = JSON.parse(ev.data);
             if (msg.type === 'text') { applyingRemote = true; $('sharedText').value = msg.value; applyingRemote = false; }
-            if (msg.type === 'screen') { const s = msg.screen || {}; remoteScreen = { x: s.x||0, y: s.y||0, w: s.w||1920, h: s.h||1080 }; remoteReady = true; updatePad(); }
+            if (msg.type === 'screen') { const s = msg.screen || {}; remoteScreen = { x: s.x||0, y: s.y||0, w: s.w||1920, h: s.h||1080 }; remoteReady = true; console.log('[channel] got peer screen', remoteScreen); updatePad(); }
             if (msg.type === 'mouse') {
                 if (msg.x !== undefined && msg.y !== undefined) sendToLocalBridge({ x: msg.x, y: msg.y });
                 if (msg.click) sendToLocalBridge({ click: msg.click });
@@ -571,6 +602,11 @@ function wireChannel(ch) {
             if (msg.type === 'key') sendToLocalBridge({ type: 'key', code: msg.code, key: msg.key, down: msg.down });
         } catch(_) {}
     };
+
+    if (ch.readyState === 'open') {
+        console.log('[channel] already open — firing handleOpen manually');
+        setTimeout(handleOpen, 20);
+    }
 }
 
 function genCode() {
@@ -585,11 +621,14 @@ async function cleanup(notifyMaster = false) {
     if (answerUnsub) { try { answerUnsub(); } catch(_){} answerUnsub = null; }
     if (sessionWatcherUnsub) { try { sessionWatcherUnsub(); } catch(_){} sessionWatcherUnsub = null; }
     if (peerInfoUnsub) { try { peerInfoUnsub(); } catch(_){} peerInfoUnsub = null; }
+    candidateUnsubs.forEach(u => { try { u(); } catch(_){} });
+    candidateUnsubs = [];
     if (connTypeCheckInterval) { clearInterval(connTypeCheckInterval); connTypeCheckInterval = null; }
     stopUsageTimer();
     if (document.pointerLockElement) document.exitPointerLock();
     if (dc) { try { dc.close(); } catch(_){} dc = null; }
     if (pc) { try { pc.close(); } catch(_){} pc = null; }
+    resetIceState();
     if (wasRole === 'master' && wasCode) {
         try { await remove(ref(db, `sessions/${wasCode}`)); } catch(_){}
         try { await remove(ref(db, 'currentSession')); } catch(_){}
@@ -608,6 +647,8 @@ async function cleanup(notifyMaster = false) {
 
 $('btnCreate').onclick = async () => {
     if (!firebaseOk) return;
+    await sweepStaleSession();
+
     myRole = 'master'; appState = 'waiting';
     updateButtons(); updatePad();
     setConnStatus('Creating session…');
@@ -615,20 +656,43 @@ $('btnCreate').onclick = async () => {
     try {
         const myInfo = await getMyIpInfo();
         if (myInfo.lan_ip || myInfo.ts_ip) await set(ref(db, `sessions/${code}/master_info`), { lan_ip: myInfo.lan_ip, ts_ip: myInfo.ts_ip, screen: myInfo.screen, ts: Date.now() });
+
         const iceServersConfig = await fetchIceServers();
         pc = makePeer(iceServersConfig);
+
+        // ⭐ Trickle: push each local candidate to Firebase as it's discovered
+        pc.onicecandidate = (e) => {
+            if (e.candidate) {
+                try { push(ref(db, `sessions/${code}/master_candidates`), e.candidate.toJSON()); } catch(_){}
+            }
+        };
+
+        // Listen for slave's candidates (buffer until remote desc)
+        candidateUnsubs.push(onChildAdded(ref(db, `sessions/${code}/slave_candidates`), snap => {
+            const cand = snap.val();
+            if (cand) handleRemoteCandidate(cand);
+        }));
+
         wireChannel(pc.createDataChannel('sync'));
+
         await pc.setLocalDescription(await pc.createOffer());
-        await waitForIce(pc);
+        // ⭐ Send offer immediately — no waiting for ICE gathering
         await set(ref(db, `sessions/${code}/offer`), { sdp: pc.localDescription.sdp, type: pc.localDescription.type, ts: Date.now() });
         await set(ref(db, 'currentSession'), { code, ts: Date.now() });
+
         setConnStatus('Waiting for the other laptop to click Join…');
         watchPeerInfo(code, 'slave');
+
         answerUnsub = onValue(ref(db, `sessions/${code}/answer`), async snap => {
             const v = snap.val();
             if (!v || !pc || pc.signalingState !== 'have-local-offer') return;
-            try { await pc.setRemoteDescription({ type: v.type, sdp: v.sdp }); setConnStatus('Connecting…'); if (answerUnsub) { answerUnsub(); answerUnsub = null; } } catch(e) { setConnStatus('Error: ' + e.message, 'err'); }
+            try {
+                await applyRemoteDesc({ type: v.type, sdp: v.sdp });
+                setConnStatus('Connecting…');
+                if (answerUnsub) { answerUnsub(); answerUnsub = null; }
+            } catch(e) { setConnStatus('Error: ' + e.message, 'err'); }
         });
+
         sessionWatcherUnsub = onValue(ref(db, `sessions/${code}`), snap => {
             const val = snap.val();
             if (val && val.bye && appState !== 'idle') { cleanup(false); setConnStatus('Slave disconnected', 'warn'); }
@@ -649,12 +713,25 @@ $('btnJoin').onclick = async () => {
         if (!offer) { setConnStatus('Session not found', 'err'); appState = 'idle'; myRole = null; updateButtons(); updatePad(); return; }
         const myInfo = await getMyIpInfo();
         if (myInfo.lan_ip || myInfo.ts_ip) await set(ref(db, `sessions/${code}/slave_info`), { lan_ip: myInfo.lan_ip, ts_ip: myInfo.ts_ip, screen: myInfo.screen, ts: Date.now() });
+
         const iceServersConfig = await fetchIceServers();
         pc = makePeer(iceServersConfig);
         pc.ondatachannel = ev => wireChannel(ev.channel);
-        await pc.setRemoteDescription({ type: offer.type, sdp: offer.sdp });
+
+        pc.onicecandidate = (e) => {
+            if (e.candidate) {
+                try { push(ref(db, `sessions/${code}/slave_candidates`), e.candidate.toJSON()); } catch(_){}
+            }
+        };
+
+        // Start listening for master's candidates (buffered until remote desc)
+        candidateUnsubs.push(onChildAdded(ref(db, `sessions/${code}/master_candidates`), snap => {
+            const cand = snap.val();
+            if (cand) handleRemoteCandidate(cand);
+        }));
+
+        await applyRemoteDesc({ type: offer.type, sdp: offer.sdp });
         await pc.setLocalDescription(await pc.createAnswer());
-        await waitForIce(pc);
         await set(ref(db, `sessions/${code}/answer`), { sdp: pc.localDescription.sdp, type: pc.localDescription.type, ts: Date.now() });
         setConnStatus('Connecting…');
         watchPeerInfo(code, 'master');
@@ -684,7 +761,6 @@ function startSlaveWatcher() {
     });
 }
 
-/* TYPING SYNC — unlimited */
 $('sharedText').addEventListener('input', () => {
     if (applyingRemote) return;
     if (!$('toggleTyping').checked) return;
@@ -694,25 +770,34 @@ $('sharedText').addEventListener('input', () => {
     }, 120);
 });
 
-/* MOUSE PAD */
 const pad = $('mousePad');
 const padCoords = $('padCoords');
 
 pad.addEventListener('click', () => {
     if (locked) return;
-    if ($('toggleMouse').disabled) { setConnStatus('⏰ Mouse limit expired — reconnect to reset', 'warn'); return; }
-    if (!$('toggleMouse').checked) { setConnStatus('⚠ Enable "Mouse control" toggle', 'warn'); return; }
-    if (!canSendMouse() || !remoteReady) return;
+    if (!canSendMouse()) { setConnStatus('❌ Data channel not open — try Disconnect then reconnect', 'err'); return; }
+    if (!remoteReady) { setConnStatus('⏳ Waiting for peer screen info — check both laptops are connected', 'warn'); return; }
+    if ($('toggleMouse').disabled) { setConnStatus('⏰ Mouse expired (15 min) — Disconnect to reset', 'warn'); return; }
+    if (!$('toggleMouse').checked) { setConnStatus('⚠ Enable "Mouse control" toggle first', 'warn'); return; }
     pad.requestPointerLock();
+});
+
+document.addEventListener('pointerlockerror', (e) => {
+    console.error('[pointerlock] error', e);
+    setConnStatus('❌ Pointer lock blocked — click pad again', 'err');
 });
 
 document.addEventListener('pointerlockchange', () => {
     locked = (document.pointerLockElement === pad);
+    console.log('[pointerlock] locked =', locked);
     if (locked) {
         remoteX = Math.floor(remoteScreen.w / 2);
         remoteY = Math.floor(remoteScreen.h / 2);
         sendMouse({ x: remoteScreen.x + remoteX, y: remoteScreen.y + remoteY });
         padCoords.textContent = `${remoteX}, ${remoteY}`;
+        setConnStatus('🎮 Control active — timer running', 'ok');
+    } else {
+        setConnStatus('Control paused — click pad to resume', 'warn');
     }
     updatePad();
 });

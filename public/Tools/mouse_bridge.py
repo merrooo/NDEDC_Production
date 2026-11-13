@@ -37,6 +37,12 @@ KEY_MAP = {
     'F1': Key.f1, 'F2': Key.f2, 'F3': Key.f3, 'F4': Key.f4,
     'F5': Key.f5, 'F6': Key.f6, 'F7': Key.f7, 'F8': Key.f8,
     'F9': Key.f9, 'F10': Key.f10, 'F11': Key.f11, 'F12': Key.f12,
+    'Numpad0': '0', 'Numpad1': '1', 'Numpad2': '2', 'Numpad3': '3',
+    'Numpad4': '4', 'Numpad5': '5', 'Numpad6': '6', 'Numpad7': '7',
+    'Numpad8': '8', 'Numpad9': '9',
+    'NumpadAdd': '+', 'NumpadSubtract': '-',
+    'NumpadMultiply': '*', 'NumpadDivide': '/',
+    'NumpadDecimal': '.',
 }
 
 def screen_info():
@@ -102,23 +108,31 @@ async def ws_handler(ws):
                 d = json.loads(msg)
                 t = d.get('type', '')
 
-                if 'x' in d or 'y' in d:
+                # Mouse position — require BOTH x and y
+                if 'x' in d and 'y' in d:
                     x, y = d.get('x'), d.get('y')
                     if x is not None and y is not None:
-                        mouse.position = (int(x), int(y))
+                        try: mouse.position = (int(x), int(y))
+                        except Exception as e: print(f"[mouse.pos] {e}")
 
+                # Mouse buttons
                 click = d.get('click')
                 if click == 'left': mouse.click(Button.left, 1)
                 elif click == 'right': mouse.click(Button.right, 1)
+                elif click == 'middle': mouse.click(Button.middle, 1)
                 elif click == 'double': mouse.click(Button.left, 2)
 
+                # Keyboard
                 if t == 'key':
                     code = d.get('code'); key = d.get('key'); down = d.get('down', False)
                     k = KEY_MAP.get(code)
                     if not k:
-                        if key and len(key) == 1: k = key
-                        elif code and code.startswith('Key'): k = code[3].lower()
-                        elif code and code.startswith('Digit'): k = code[5]
+                        if code and code.startswith('Key') and len(code) == 4:
+                            k = code[3].lower()
+                        elif code and code.startswith('Digit') and len(code) == 6:
+                            k = code[5]
+                        elif key and len(key) == 1:
+                            k = key
                     if k:
                         try:
                             if down: keyboard.press(k)
@@ -136,7 +150,7 @@ async def main():
     print(f"[ready] Tailscale IP  : {tailscale_ip() or '(not detected)'}")
     print(f"[ready] Screen        : {SCREEN['virt_w']}x{SCREEN['virt_h']}")
     print("═" * 55)
-    async with serve(ws_handler, "0.0.0.0", 8765):
+    async with serve(ws_handler, "0.0.0.0", 8765, ping_interval=20, ping_timeout=20):
         print("[ready] ✅ ws://0.0.0.0:8765")
         print("[ready] ✅ http://127.0.0.1:8766")
         print("[ready] 🎯 Ready — mouse + keyboard input enabled")
