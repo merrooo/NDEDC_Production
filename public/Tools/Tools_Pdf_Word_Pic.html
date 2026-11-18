@@ -100,8 +100,8 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; c
 .size-info.warn { color: #F59E0B; }
 
 /* Thumbs */
-.thumbs-card { display: flex; flex-direction: column; gap: 10px; max-height: 400px; }
-.thumbs-head { display: flex; justify-content: space-between; align-items: center; }
+.thumbs-card { display: flex; flex-direction: column; gap: 10px; max-height: 450px; }
+.thumbs-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
 .thumbs-head h2 { font-size: 13px; font-weight: 700; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; overflow-y: auto; padding-right: 4px; }
 .grid::-webkit-scrollbar { width: 4px; }
@@ -119,15 +119,16 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; c
 
 /* Buttons */
 .btn { font-size: 12px; font-weight: 600; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text-main); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: .15s; }
-.btn:hover { background: var(--card-hover); }
+.btn:hover:not(:disabled) { background: var(--card-hover); }
 .btn.accent { background: var(--accent); color: #fff; border: none; }
+.btn.accent:hover:not(:disabled) { background: var(--accent-hover); }
 .btn.success { background: var(--success); color: #fff; border: none; }
 .btn.danger { background: var(--danger); color: #fff; border: none; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn.pdf { background: #DC2626; color: #fff; border: none; }
 
 .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.progress { flex: 1; min-width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: none; }
+.progress { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: none; }
 .progress.on { display: block; }
 .progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
 #status { font-size: 11px; color: var(--text-sub); min-height: 16px; }
@@ -197,7 +198,6 @@ select.btn { padding: 0 8px; outline: none; cursor: pointer; }
         <div class="tabs">
             <button class="tab-btn active" data-tab="tabWord">📝 Photos → Word / PDF</button>
             <button class="tab-btn" data-tab="tabPdf2Img">🖼️ PDF → Images</button>
-            <button class="tab-btn" data-tab="tabImg2Pdf">📄 Images → PDF</button>
         </div>
 
         <!-- TAB 1: PHOTOS → WORD / PDF -->
@@ -248,6 +248,8 @@ select.btn { padding: 0 8px; outline: none; cursor: pointer; }
                     <div class="thumbs-head">
                         <h2>Selected photos <span style="color:var(--text-sub);" id="count"></span></h2>
                         <div class="actions">
+                            <button class="btn" id="selectAllBtn" style="height:24px; font-size:11px;">☑️ All</button>
+                            <button class="btn" id="deselectAllBtn" style="height:24px; font-size:11px;">◻️ None</button>
                             <button class="btn" id="pdfImportBtn" style="height:24px; font-size:11px;">📄 + PDF</button>
                             <button class="btn" id="addMore" style="height:24px; font-size:11px;">+ Add</button>
                             <button class="btn" id="clearBtn" style="height:24px; font-size:11px; color:var(--danger); border-color:var(--danger);">Clear</button>
@@ -255,10 +257,12 @@ select.btn { padding: 0 8px; outline: none; cursor: pointer; }
                     </div>
                     <div class="grid" id="grid"></div>
                     <div class="actions">
-                        <button class="btn accent flex-1" id="exportBtn">Export Word</button>
-                        <button class="btn pdf flex-1" id="exportPdfBtn">Export PDF</button>
-                        <div class="progress" id="progress"><i id="bar"></i></div>
+                        <button class="btn accent" id="exportBtn">📝 Export Word</button>
+                        <button class="btn pdf" id="exportPdfBtn">📄 Export Layout PDF</button>
+                        <button class="btn accent" id="downloadCombinedPdfBtn">📑 Combined PDF (<span id="selectedCount1">0</span>)</button>
+                        <button class="btn success" id="downloadSeparatedPdfBtn">📁 Separate PDFs (<span id="selectedCount2">0</span>)</button>
                     </div>
+                    <div class="progress" id="progress"><i id="bar"></i></div>
                     <div id="status"></div>
                     <div class="err-box" id="errBox"></div>
                 </div>
@@ -290,9 +294,9 @@ select.btn { padding: 0 8px; outline: none; cursor: pointer; }
                 </div>
                 <div id="pdfFileList" style="display:none" class="file-list"></div>
                 <div class="controls">
-                    <button class="btn accent" id="downloadSelectedPdfImagesBtn" disabled onclick="downloadSelectedPdfImages()">📦 Download Images (<span id="pdfSelectedCount1">0</span>)</button>
-                    <button class="btn success" id="downloadSelectedPdfAsMergedBtn" disabled onclick="downloadSelectedPdfAsMerged()">📁 Download as PDF (<span id="pdfSelectedCount2">0</span>)</button>
-                    <button class="btn danger" id="clearPdfBtn" disabled onclick="clearPdfSession()">🗑 Clear</button>
+                    <button class="btn accent" id="downloadSelectedPdfImagesBtn" disabled>📦 Download Images (<span id="pdfSelectedCount1">0</span>)</button>
+                    <button class="btn success" id="downloadSelectedPdfAsMergedBtn" disabled>📁 Download as PDF (<span id="pdfSelectedCount2">0</span>)</button>
+                    <button class="btn danger" id="clearPdfBtn" disabled>🗑 Clear</button>
                 </div>
                 <div class="preview-section">
                     <div class="preview-header">
@@ -305,37 +309,6 @@ select.btn { padding: 0 8px; outline: none; cursor: pointer; }
                     </div>
                     <div id="pdfPreviewContent">
                         <div class="empty-state"><div style="font-size:24px; margin-bottom:8px;">✨</div><p>Upload a PDF file to preview</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: IMAGES → PDF -->
-        <div id="tabImg2Pdf" class="tab-content pdfstudio">
-            <div class="editor-box">
-                <div class="upload-area" onclick="document.getElementById('imageFileInput').click()">
-                    <span class="upload-icon">🖼️</span>
-                    <h3 style="font-size:14px; margin-bottom:4px;">Drag & Drop Images here</h3>
-                    <p style="font-size:12px; color:var(--text-sub);">or click to browse PNG, JPG</p>
-                    <input type="file" id="imageFileInput" accept="image/*" multiple onchange="handleImageUpload(event)" style="display:none;">
-                </div>
-                <div id="imgFileList" style="display:none" class="file-list"></div>
-                <div class="controls">
-                    <button class="btn accent" id="downloadCombinedPdfBtn" disabled onclick="convertSelectedImagesToSinglePdf()">📄 Download Combined PDF (<span id="imgSelectedCount1">0</span>)</button>
-                    <button class="btn success" id="downloadSeparatedPdfBtn" disabled onclick="convertSelectedImagesToSeparatedPdfs()">📁 Download Separate PDFs (<span id="imgSelectedCount2">0</span>)</button>
-                    <button class="btn danger" id="clearImgBtn" disabled onclick="clearImgSession()">🗑 Clear</button>
-                </div>
-                <div class="preview-section">
-                    <div class="preview-header">
-                        <h3 style="font-size:13px; font-weight:700;">📄 Images Board</h3>
-                        <div class="controls">
-                            <button class="btn" onclick="toggleGlobalSelection('img', true)" style="height:24px; font-size:11px;">☑️ Select All</button>
-                            <button class="btn" onclick="toggleGlobalSelection('img', false)" style="height:24px; font-size:11px;">◻️ Deselect</button>
-                            <span class="badge-count" id="imgBadge">0 Loaded</span>
-                        </div>
-                    </div>
-                    <div id="imgPreviewContent">
-                        <div class="empty-state"><div style="font-size:24px; margin-bottom:8px;">✨</div><p>Upload images to aggregate</p></div>
                     </div>
                 </div>
             </div>
@@ -394,7 +367,6 @@ initMatrix(); setInterval(drawMatrix, 50); window.addEventListener('resize', ini
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2));
 function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load fail')); document.head.appendChild(s); }); }
 function loadImage(src) { return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('decode')); img.src = src; }); }
-function fmtSize(bytes) { if (bytes < 1024) return bytes + ' B'; if (bytes < 1048576) return (bytes/1024).toFixed(0) + ' KB'; return (bytes/1048576).toFixed(1) + ' MB'; }
 function download(blob, name) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000); }
 function fitBox(iw, ih, bw, bh, mode) { if (mode === 'stretch') return { w: bw, h: bh }; const s = Math.min(bw / iw, bh / ih); return { w: iw * s, h: ih * s }; }
 
@@ -445,8 +417,12 @@ const els = {
     grid: document.getElementById('grid'), panel: document.getElementById('panel'), count: document.getElementById('count'),
     pageSize: document.getElementById('pageSize'), orient: document.getElementById('orientation'), marginH: document.getElementById('marginH'), marginV: document.getElementById('marginV'),
     gap: document.getElementById('gap'), perPage: document.getElementById('perPage'), sizing: document.getElementById('sizing'), applyAll: document.getElementById('applyAll'),
-    optimize: document.getElementById('optimize'), exportBtn: document.getElementById('exportBtn'), exportPdfBtn: document.getElementById('exportPdfBtn'), clearBtn: document.getElementById('clearBtn'),
-    addMore: document.getElementById('addMore'), progress: document.getElementById('progress'), bar: document.getElementById('bar'), status: document.getElementById('status'), errBox: document.getElementById('errBox'),
+    optimize: document.getElementById('optimize'), exportBtn: document.getElementById('exportBtn'), exportPdfBtn: document.getElementById('exportPdfBtn'),
+    downloadCombinedPdfBtn: document.getElementById('downloadCombinedPdfBtn'), downloadSeparatedPdfBtn: document.getElementById('downloadSeparatedPdfBtn'),
+    selectedCount1: document.getElementById('selectedCount1'), selectedCount2: document.getElementById('selectedCount2'),
+    selectAllBtn: document.getElementById('selectAllBtn'), deselectAllBtn: document.getElementById('deselectAllBtn'),
+    clearBtn: document.getElementById('clearBtn'), addMore: document.getElementById('addMore'), progress: document.getElementById('progress'), bar: document.getElementById('bar'),
+    status: document.getElementById('status'), errBox: document.getElementById('errBox'),
     previewStage: document.getElementById('previewStage'), previewHost: document.getElementById('previewHost'), prevBtn: document.getElementById('prevBtn'), nextBtn: document.getElementById('nextBtn'), pageInfo: document.getElementById('pageInfo')
 };
 
@@ -512,6 +488,14 @@ function render() {
     const usable = usableItems(); const n = perPageCount(); const curPage = state.pageIndex;
     const currentIds = new Set(usable.slice(curPage * n, curPage * n + n).map(i => i.id));
 
+    els.selectedCount1.textContent = usable.length;
+    els.selectedCount2.textContent = usable.length;
+    const noSel = usable.length === 0;
+    els.exportBtn.disabled = noSel;
+    els.exportPdfBtn.disabled = noSel;
+    els.downloadCombinedPdfBtn.disabled = noSel;
+    els.downloadSeparatedPdfBtn.disabled = noSel;
+
     state.items.forEach((item, i) => {
         const d = document.createElement('div');
         d.className = 'thumb' + (item.error ? ' err' : '') + (!item.error && !item.selected ? ' unsel' : '') + (currentIds.has(item.id) ? ' active' : '');
@@ -572,13 +556,24 @@ window.addEventListener('resize', () => renderPreview());
 els.prevBtn.addEventListener('click', () => { const total = pageCount(); state.pageIndex = (state.pageIndex - 1 + total) % total; render(); });
 els.nextBtn.addEventListener('click', () => { const total = pageCount(); state.pageIndex = (state.pageIndex + 1) % total; render(); });
 els.drop.addEventListener('click', () => els.file.click());
+els.drop.addEventListener('dragover', e => { e.preventDefault(); els.drop.classList.add('hover'); });
+els.drop.addEventListener('dragleave', () => els.drop.classList.remove('hover'));
+els.drop.addEventListener('drop', e => { e.preventDefault(); els.drop.classList.remove('hover'); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 els.addMore.addEventListener('click', () => els.file.click());
 els.pdfImportBtn.addEventListener('click', () => els.pdfImport.click());
 els.file.addEventListener('change', e => { if (e.target.files.length) addFiles(e.target.files); e.target.value = ''; });
 els.pdfImport.addEventListener('change', e => { if (e.target.files.length) importPdfPages(e.target.files); e.target.value = ''; });
-els.clearBtn.addEventListener('click', () => { state.items.forEach(i => URL.revokeObjectURL(i.url)); state.items = []; state.pageIndex = 0; render(); });
+els.selectAllBtn.addEventListener('click', () => { state.items.forEach(i => { if (!i.error) i.selected = true; }); render(); });
+els.deselectAllBtn.addEventListener('click', () => { state.items.forEach(i => i.selected = false); render(); });
+els.clearBtn.addEventListener('click', () => { state.items.forEach(i => URL.revokeObjectURL(i.url)); state.items = []; state.pageIndex = 0; embCache.clear(); render(); });
 els.exportBtn.addEventListener('click', exportDocx);
 els.exportPdfBtn.addEventListener('click', exportPdf);
+els.downloadCombinedPdfBtn.addEventListener('click', downloadCombinedImagesPdf);
+els.downloadSeparatedPdfBtn.addEventListener('click', downloadSeparatedImagesPdf);
+
+['pageSize', 'orientation', 'sizing', 'perPage', 'marginH', 'marginV', 'gap'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderPreview);
+});
 
 /* Post-process docx for landscape */
 async function fixLandscapeInDocx(blob) {
@@ -680,6 +675,61 @@ async function exportPdf() {
     finally { setExporting(false); }
 }
 
+/* ==========================================
+   MIGRATED LOGIC FROM TAB 3: COMBINED & SEPARATED PDFs
+   ========================================== */
+async function generateNativePdfFromTab1Items(items, outName) {
+    if (!items.length) return;
+    const JsPDF = await ensureJsPdf();
+    let pdf = null;
+    for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        const emb = await toEmbeddable(item);
+        const orient = emb.width > emb.height ? 'l' : 'p';
+        if (idx === 0) pdf = new JsPDF({ orientation: orient, unit: 'px', format: [emb.width, emb.height] });
+        else pdf.addPage([emb.width, emb.height], orient);
+        pdf.addImage(emb.canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, emb.width, emb.height);
+    }
+    pdf.save(outName);
+}
+
+async function downloadCombinedImagesPdf() {
+    els.errBox.style.display = 'none';
+    const usable = usableItems();
+    if (!usable.length) { showError('No photos selected.'); return; }
+    setExporting(true);
+    setProgress(0.2, 'Generating Combined PDF…');
+    try {
+        await generateNativePdfFromTab1Items(usable, 'Combined_Selected_Images.pdf');
+        setProgress(1, 'Combined PDF Done ✔');
+    } catch (err) {
+        showError(err.message || 'Error generating Combined PDF.');
+    } finally {
+        setExporting(false);
+    }
+}
+
+async function downloadSeparatedImagesPdf() {
+    els.errBox.style.display = 'none';
+    const usable = usableItems();
+    if (!usable.length) { showError('No photos selected.'); return; }
+    setExporting(true);
+    try {
+        for (let idx = 0; idx < usable.length; idx++) {
+            const item = usable[idx];
+            setProgress((idx + 1) / usable.length, `Exporting separate PDF ${idx + 1} / ${usable.length}…`);
+            const baseName = item.file.name.replace(/\.[^.]+$/, '');
+            await generateNativePdfFromTab1Items([item], `${baseName}_Page_1.pdf`);
+            await new Promise(r => setTimeout(r, 250));
+        }
+        setProgress(1, 'Separate PDFs Done ✔');
+    } catch (err) {
+        showError(err.message || 'Error generating Separate PDFs.');
+    } finally {
+        setExporting(false);
+    }
+}
+
 const embCache = new Map();
 async function toEmbeddable(item) {
     if (embCache.has(item.id)) return embCache.get(item.id);
@@ -692,13 +742,18 @@ async function toEmbeddable(item) {
 }
 function setProgress(ratio, text) { els.progress.classList.add('on'); els.bar.style.width = Math.round(ratio * 100) + '%'; if (text) els.status.textContent = text; }
 function showError(msg) { els.errBox.textContent = msg; els.errBox.style.display = 'block'; }
-function setExporting(on) { els.exportBtn.disabled = on; els.exportPdfBtn.disabled = on; }
+function setExporting(on) {
+    const noSel = usableItems().length === 0;
+    els.exportBtn.disabled = on || noSel;
+    els.exportPdfBtn.disabled = on || noSel;
+    els.downloadCombinedPdfBtn.disabled = on || noSel;
+    els.downloadSeparatedPdfBtn.disabled = on || noSel;
+}
 
 /* ==========================================
-   TAB 2 & 3: PDF ⇄ IMAGES
+   TAB 2: PDF → IMAGES
    ========================================== */
 let pdfStore = { files: [], images: [], selected: new Set() };
-let imgStore = { files: [], images: [], selected: new Set() };
 
 function renderFileList(elId, files, rmName) {
     const el = document.getElementById(elId); if (!files.length) { el.style.display = 'none'; return; }
@@ -714,7 +769,7 @@ function renderPreviewBoard(containerId, store, key) {
         html += `<div class="master-file-card"><div class="master-card-header"><div class="master-card-title"><input type="checkbox" id="${key}_master_${fId}" ${all?'checked':''} onchange="toggleGroupSelection('${key}','${fId}',this.checked)"><span>📄 ${g.name}</span></div></div><div class="thumb-grid">`;
         g.items.forEach(img => {
             const chk = store.selected.has(img.index);
-            html += `<div class="thumb-item ${chk?'selected':''}" id="${key}_thumb_${img.index}"><div class="thumb-checkbox"><input type="checkbox" data-store="${key}" data-file-id="${fId}" data-index="${img.index}" ${chk} onchange="toggleSingleSelection('${key}','${fId}',${img.index})"></div><img src="${img.dataUrl}"><div class="thumb-info">Page ${img.pageNumber}</div></div>`;
+            html += `<div class="thumb-item ${chk?'selected':''}" id="${key}_thumb_${img.index}"><div class="thumb-checkbox"><input type="checkbox" data-store="${key}" data-file-id="${fId}" data-index="${img.index}" ${chk?'checked':''} onchange="toggleSingleSelection('${key}','${fId}',${img.index})"></div><img src="${img.dataUrl}"><div class="thumb-info">Page ${img.pageNumber}</div></div>`;
         });
         html += `</div></div>`;
     });
@@ -722,7 +777,7 @@ function renderPreviewBoard(containerId, store, key) {
 }
 
 function toggleGlobalSelection(key, sel) {
-    const store = key === 'pdf' ? pdfStore : imgStore; if (!store.images.length) return;
+    const store = pdfStore; if (!store.images.length) return;
     if (sel) store.images.forEach(img => store.selected.add(img.index)); else store.selected.clear();
     document.querySelectorAll(`input[data-store="${key}"]`).forEach(cb => cb.checked = sel);
     store.images.forEach(img => { const t = document.getElementById(`${key}_thumb_${img.index}`); if (t) t.classList.toggle('selected', sel); });
@@ -731,7 +786,7 @@ function toggleGlobalSelection(key, sel) {
 }
 
 function toggleSingleSelection(key, fId, idx) {
-    const store = key === 'pdf' ? pdfStore : imgStore;
+    const store = pdfStore;
     if (store.selected.has(idx)) store.selected.delete(idx); else store.selected.add(idx);
     const t = document.getElementById(`${key}_thumb_${idx}`); if (t) t.classList.toggle('selected', store.selected.has(idx));
     const cbs = document.querySelectorAll(`input[data-store="${key}"][data-file-id="${fId}"]`);
@@ -740,7 +795,7 @@ function toggleSingleSelection(key, fId, idx) {
 }
 
 function toggleGroupSelection(key, fId, sel) {
-    const store = key === 'pdf' ? pdfStore : imgStore;
+    const store = pdfStore;
     document.querySelectorAll(`input[data-store="${key}"][data-file-id="${fId}"]`).forEach(cb => {
         const idx = parseInt(cb.getAttribute('data-index')); cb.checked = sel;
         if (sel) store.selected.add(idx); else store.selected.delete(idx);
@@ -751,22 +806,13 @@ function toggleGroupSelection(key, fId, sel) {
 }
 
 function updateControlUI(key) {
-    const store = key === 'pdf' ? pdfStore : imgStore;
-    if (key === 'pdf') {
-        document.getElementById('pdfBadge').textContent = `${store.images.length} Loaded`;
-        document.getElementById('pdfSelectedCount1').textContent = store.selected.size;
-        document.getElementById('pdfSelectedCount2').textContent = store.selected.size;
-        document.getElementById('downloadSelectedPdfImagesBtn').disabled = store.selected.size === 0;
-        document.getElementById('downloadSelectedPdfAsMergedBtn').disabled = store.selected.size === 0;
-        document.getElementById('clearPdfBtn').disabled = store.files.length === 0;
-    } else {
-        document.getElementById('imgBadge').textContent = `${store.images.length} Loaded`;
-        document.getElementById('imgSelectedCount1').textContent = store.selected.size;
-        document.getElementById('imgSelectedCount2').textContent = store.selected.size;
-        document.getElementById('downloadCombinedPdfBtn').disabled = store.selected.size === 0;
-        document.getElementById('downloadSeparatedPdfBtn').disabled = store.selected.size === 0;
-        document.getElementById('clearImgBtn').disabled = store.files.length === 0;
-    }
+    const store = pdfStore;
+    document.getElementById('pdfBadge').textContent = `${store.images.length} Loaded`;
+    document.getElementById('pdfSelectedCount1').textContent = store.selected.size;
+    document.getElementById('pdfSelectedCount2').textContent = store.selected.size;
+    document.getElementById('downloadSelectedPdfImagesBtn').disabled = store.selected.size === 0;
+    document.getElementById('downloadSelectedPdfAsMergedBtn').disabled = store.selected.size === 0;
+    document.getElementById('clearPdfBtn').disabled = store.files.length === 0;
 }
 
 async function handlePdfUpload(e) {
@@ -802,34 +848,6 @@ function clearPdfSession(confirmReq = true) {
     updateControlUI('pdf');
 }
 
-async function handleImageUpload(e) {
-    const files = Array.from(e.target.files); if (!files.length) return;
-    files.forEach(f => { if (!imgStore.files.some(x => x.name === f.name && x.size === f.size)) imgStore.files.push(f); });
-    renderFileList('imgFileList', imgStore.files, 'removeImgFile');
-    const allImgs = [];
-    for (let fIdx = 0; fIdx < imgStore.files.length; fIdx++) {
-        const file = imgStore.files[fIdx]; const dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
-        const dims = await new Promise(res => { const i = new Image(); i.onload = () => res({ w: i.width, h: i.height }); i.onerror = () => res({ w: 800, h: 600 }); i.src = dataUrl; });
-        allImgs.push({ fileId: `img_${fIdx}`, fileName: file.name.substring(0, file.name.lastIndexOf('.')) || file.name, originalName: file.name, pageNumber: 1, totalPages: 1, dataUrl, width: dims.w, height: dims.h, index: allImgs.length });
-    }
-    imgStore.images = allImgs; imgStore.selected = new Set(allImgs.map(i => i.index));
-    renderPreviewBoard('imgPreviewContent', imgStore, 'img'); updateControlUI('img');
-}
-
-function removeImgFile(idx) {
-    imgStore.files.splice(idx, 1); if (!imgStore.files.length) { clearImgSession(false); return; }
-    renderFileList('imgFileList', imgStore.files, 'removeImgFile'); imgStore.images = []; imgStore.selected.clear();
-    handleImageUpload({ target: { files: imgStore.files.slice() } });
-}
-
-function clearImgSession(confirmReq = true) {
-    if (confirmReq && !confirm('Clear all data?')) return;
-    imgStore = { files: [], images: [], selected: new Set() };
-    document.getElementById('imageFileInput').value = ''; document.getElementById('imgFileList').style.display = 'none';
-    document.getElementById('imgPreviewContent').innerHTML = `<div class="empty-state"><div style="font-size:24px; margin-bottom:8px;">✨</div><p>Upload images to aggregate</p></div>`;
-    updateControlUI('img');
-}
-
 async function generatePdfFromImageSet(imgs, outName) {
     if (!imgs.length) return; const JsPDF = await ensureJsPdf(); let pdf = null;
     imgs.forEach((img, idx) => {
@@ -845,9 +863,6 @@ function triggerBatchDownload(imgs) { imgs.forEach((img, idx) => { setTimeout(()
 document.getElementById('downloadSelectedPdfImagesBtn').onclick = () => triggerBatchDownload(pdfStore.images.filter(i => pdfStore.selected.has(i.index)));
 document.getElementById('downloadSelectedPdfAsMergedBtn').onclick = () => generatePdfFromImageSet(pdfStore.images.filter(i => pdfStore.selected.has(i.index)), 'Merged_Selected_Pages.pdf');
 document.getElementById('clearPdfBtn').onclick = () => clearPdfSession();
-document.getElementById('downloadCombinedPdfBtn').onclick = () => generatePdfFromImageSet(imgStore.images.filter(i => imgStore.selected.has(i.index)), 'Combined_Selected_Images.pdf');
-document.getElementById('downloadSeparatedPdfBtn').onclick = () => imgStore.images.filter(i => imgStore.selected.has(i.index)).forEach((img, idx) => setTimeout(() => generatePdfFromImageSet([img], `${img.fileName}_Page_${img.pageNumber}.pdf`), idx * 250));
-document.getElementById('clearImgBtn').onclick = () => clearImgSession();
 
 render();
 </script>

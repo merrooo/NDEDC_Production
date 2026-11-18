@@ -370,6 +370,7 @@
             box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.25);
             padding: 6px;
             min-width: 240px;
+            z-index: 1060 !important;
         }
         .export-dropdown .dropdown-item {
             border-radius: 8px;
@@ -536,6 +537,52 @@
             <div class="table-container">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="fas fa-table text-primary me-2"></i> Merge Results</h5>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button"
+                                class="btn btn-primary fw-bold d-flex align-items-center gap-2"
+                                onclick="smartOpenFullscreen()">
+                            <i class="fas fa-expand-arrows-alt"></i> Fullscreen
+                        </button>
+
+                        <div class="dropdown export-dropdown">
+                            <button class="btn btn-success fw-bold dropdown-toggle d-flex align-items-center gap-2"
+                                    type="button" id="smartExportDropdown"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-file-excel"></i> Download Excel
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="smartExportDropdown">
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="smartExportExcel('all')">
+                                        <span class="icon-wrap blue"><i class="fas fa-table"></i></span>
+                                        <div>
+                                            <div>Export All (Color Coded)</div>
+                                            <small class="text-muted fw-normal">Matched green · Not matched red</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="smartExportExcel('matched')">
+                                        <span class="icon-wrap green"><i class="fas fa-check-circle"></i></span>
+                                        <div>
+                                            <div>Export Matched Only</div>
+                                            <small class="text-muted fw-normal">All rows colored green</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="smartExportExcel('unmatched')">
+                                        <span class="icon-wrap red"><i class="fas fa-times-circle"></i></span>
+                                        <div>
+                                            <div>Export Not Matched Only</div>
+                                            <small class="text-muted fw-normal">All rows colored red</small>
+                                        </div>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <table id="smartResultTable" class="table table-hover w-100"></table>
             </div>
@@ -719,7 +766,6 @@
 
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-    <!-- ⚡ xlsx-js-style (fork of xlsx with full style support) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
@@ -770,23 +816,20 @@
            mode: 'all' | 'matched' | 'unmatched'
            ============================================================ */
         function buildStyledSheet(headers, rows, statusKey, mode) {
-            /* Build AOA */
             const aoa = [headers.slice()];
             rows.forEach(r => {
                 aoa.push(headers.map(h => {
                     const raw = r[h];
                     const v = (raw === undefined || raw === null) ? '' : String(raw);
-                    if (/^\d{11,}$/.test(v)) return '\u200C' + v; // avoid scientific notation
+                    if (/^\d{11,}$/.test(v)) return '\u200C' + v;
                     return v;
                 }));
             });
 
             const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-            /* Column widths */
             ws['!cols'] = headers.map(h => ({ wch: Math.min(Math.max(h.length + 2, 14), 42) }));
 
-            /* Header row style */
             for (let c = 0; c < headers.length; c++) {
                 const addr = XLSX.utils.encode_cell({ r: 0, c });
                 if (!ws[addr]) continue;
@@ -803,7 +846,6 @@
                 };
             }
 
-            /* Data rows style */
             const statusIdx = headers.indexOf(statusKey);
             for (let i = 0; i < rows.length; i++) {
                 const rIdx = i + 1;
@@ -960,88 +1002,106 @@
             smartRenderTable(smartResult);
         }
 
+        /* ============================================================
+           SMART MERGE — RENDER TABLE
+           ============================================================ */
         function smartRenderTable(data) {
             if (!data.length) return;
             const colsConfig = Object.keys(data[0]).map(k => ({ title: k, data: k }));
 
-            if ($.fn.DataTable.isDataTable('#smartResultTable')) $('#smartResultTable').DataTable().destroy();
+            if ($.fn.DataTable.isDataTable('#smartResultTable')) {
+                $('#smartResultTable').DataTable().destroy();
+            }
+
             $('#smartResultTable').empty().DataTable({
                 data: data,
                 columns: colsConfig,
                 scrollX: true,
                 paging: true,
                 pageLength: 10,
-                dom: 'Bfrtip',
-                buttons: [
-                    {
-                        /* ⚡ Export dropdown with 3 modes */
-                        extend: 'collection',
-                        text: '<i class="fas fa-file-excel me-1"></i> Export <i class="fas fa-caret-down ms-1"></i>',
-                        className: 'btn btn-success btn-sm fw-bold',
-                        autoClose: true,
-                        buttons: [
-                            {
-                                text: '<i class="fas fa-table me-2 text-primary"></i> Export All (Color Coded)',
-                                action: function () { smartExportExcel('all'); }
-                            },
-                            {
-                                text: '<i class="fas fa-check-circle me-2 text-success"></i> Export Matched Only',
-                                action: function () { smartExportExcel('matched'); }
-                            },
-                            {
-                                text: '<i class="fas fa-times-circle me-2 text-danger"></i> Export Not Matched Only',
-                                action: function () { smartExportExcel('unmatched'); }
-                            }
-                        ]
-                    },
-                    {
-                        text: '<i class="fas fa-expand-arrows-alt me-1"></i> Fullscreen',
-                        className: 'btn btn-primary btn-sm fw-bold',
-                        action: function () {
-                            openFullScreenPreview(colsConfig, smartResult);
-                        }
-                    }
-                ]
+                dom: 'frtip'
             });
         }
 
         /* ============================================================
-           SMART MERGE — STYLED EXCEL EXPORT
-           mode: 'all' | 'matched' | 'unmatched'
+           SMART MERGE — FULLSCREEN PREVIEW
+           ============================================================ */
+        function smartOpenFullscreen() {
+            if (!smartResult || !smartResult.length) {
+                alert('No results to preview. Run the merge first.');
+                return;
+            }
+            const colsConfig = Object.keys(smartResult[0]).map(k => ({ title: k, data: k }));
+            openFullScreenPreview(colsConfig, smartResult);
+        }
+
+        /* ============================================================
+           SMART MERGE — PREVIEW SNAPSHOT
+           Column order is fixed to Object.keys(smartResult[0]) — there
+           is no colReorder in this table, so this matches the preview
+           exactly. Rows respect live search + sort order.
+           (Avoids the unreliable dt.column(i).title() call.)
+           ============================================================ */
+        function smartGetPreviewSnapshot() {
+            const headers = smartResult.length ? Object.keys(smartResult[0]) : [];
+
+            if (!$.fn.DataTable.isDataTable('#smartResultTable') || !smartResult.length) {
+                return { rows: smartResult.slice(), headers };
+            }
+
+            try {
+                const dt = $('#smartResultTable').DataTable();
+                const rows = dt.rows({ search: 'applied', order: 'current' }).data().toArray();
+                return { rows, headers };
+            } catch (e) {
+                console.warn('Snapshot fallback:', e);
+                return { rows: smartResult.slice(), headers };
+            }
+        }
+
+        /* ============================================================
+           SMART MERGE — STYLED EXCEL EXPORT (exports the preview as-is)
            ============================================================ */
         function smartExportExcel(mode = 'all') {
-            if (!smartResult || !smartResult.length) {
-                alert('No results to export. Run the merge first.');
-                return;
+            try {
+                if (!smartResult || !smartResult.length) {
+                    alert('No results to export. Run the merge first.');
+                    return;
+                }
+
+                const snap = smartGetPreviewSnapshot();
+
+                let rowsToExport, sheetName, filenameSuffix;
+
+                if (mode === 'matched') {
+                    rowsToExport = snap.rows.filter(r => r.Status && r.Status !== '#N/A');
+                    sheetName = 'Matched_Only';
+                    filenameSuffix = 'Matched';
+                } else if (mode === 'unmatched') {
+                    rowsToExport = snap.rows.filter(r => !r.Status || r.Status === '#N/A');
+                    sheetName = 'Not_Matched_Only';
+                    filenameSuffix = 'Not_Matched';
+                } else {
+                    rowsToExport = snap.rows;
+                    sheetName = 'All_Results';
+                    filenameSuffix = 'All';
+                }
+
+                if (!rowsToExport.length) {
+                    alert(`No ${filenameSuffix.toLowerCase()} rows to export.`);
+                    return;
+                }
+
+                const ws = buildStyledSheet(snap.headers, rowsToExport, 'Status', mode);
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                const filename = `Smart_Merge_${filenameSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, filename, { cellStyles: true });
+            } catch (err) {
+                console.error('Smart export failed:', err);
+                alert('Export failed: ' + err.message);
             }
-
-            let rowsToExport, sheetName, filenameSuffix;
-            if (mode === 'matched') {
-                rowsToExport = smartResult.filter(r => r.Status && r.Status !== '#N/A');
-                sheetName = 'Matched_Only';
-                filenameSuffix = 'Matched';
-            } else if (mode === 'unmatched') {
-                rowsToExport = smartResult.filter(r => !r.Status || r.Status === '#N/A');
-                sheetName = 'Not_Matched_Only';
-                filenameSuffix = 'Not_Matched';
-            } else {
-                rowsToExport = smartResult;
-                sheetName = 'All_Results';
-                filenameSuffix = 'All';
-            }
-
-            if (!rowsToExport.length) {
-                alert(`No ${filenameSuffix.toLowerCase()} rows to export.`);
-                return;
-            }
-
-            const headers = Object.keys(smartResult[0]);
-            const ws = buildStyledSheet(headers, rowsToExport, 'Status', mode);
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            const filename = `Smart_Merge_${filenameSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            XLSX.writeFile(wb, filename, { cellStyles: true });
         }
 
         /* ============================================================
@@ -1054,7 +1114,6 @@
         document.getElementById('proxMasterFile').addEventListener('change', (e) => proxParseExcel(e, 'master'), false);
         document.getElementById('proxSearchFile').addEventListener('change', (e) => proxParseExcel(e, 'search'), false);
         document.getElementById('proxProcessBtn').addEventListener('click', proxExecuteRangeMerge, false);
-        /* proxExportBtn was replaced by dropdown — no direct listener needed */
 
         function proxParseExcel(e, fileType) {
             const file = e.target.files[0];
@@ -1212,8 +1271,9 @@
             document.querySelectorAll('.column-chk:checked').forEach(chk => {
                 if (!chk.classList.contains('master-chk') && !chk.classList.contains('search-chk')) return;
                 const fileType = chk.getAttribute('data-file');
-                const colName = chk.getAttribute('data-col');
-                activeColumns.push({ id: fileType + '_' + colName, title: colName });
+                const colName  = chk.getAttribute('data-col');
+                const displayTitle = (fileType === 'master' ? '[Master] ' : '[Search] ') + colName;
+                activeColumns.push({ id: fileType + '_' + colName, title: displayTitle });
             });
             return activeColumns;
         }
@@ -1243,7 +1303,7 @@
             });
             thead.appendChild(trHead);
 
-            proxResults.slice(0, 100).forEach(row => {
+            proxResults.forEach(row => {
                 let tr = document.createElement('tr');
                 if (row['_system_status'] === 'MATCHED') tr.classList.add('matched-row');
                 activeCols.forEach(col => {
@@ -1259,10 +1319,6 @@
             proxLogStatus('Done! Processed records based on specified directional lookup rules.', 'success');
         }
 
-        /* ============================================================
-           PROXIMITY — STYLED EXCEL EXPORT (with mode)
-           mode: 'all' | 'matched' | 'unmatched'
-           ============================================================ */
         function proxExportSelectedToExcel(mode = 'all') {
             if (proxResults.length === 0) return;
 
@@ -1289,7 +1345,6 @@
                 return;
             }
 
-            /* --- Build headers/rows aligned to selected columns --- */
             const headers = activeCols.map(c => c.title);
             const statusKey = 'Merge_Status';
 
