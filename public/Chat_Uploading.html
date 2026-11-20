@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEChatting</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+  <style>
+    :root {
+      --brand: #10b981; --brand-dark: #059669; --brand-light: #e6f7f1;
+      --bg-app: #d1d7db; --bg-panel: #ffffff; --bg-chat: #efeae2;
+      --border: #e2e8f0; --text-main: #111b21; --text-muted: #54656f;
+      --danger: #ef4444; --bubble-me: #d9fdd3; --bubble-them: #ffffff;
+    }
+    [data-theme="dark"] {
+      --brand: #059669; --brand-dark: #047857; --brand-light: #064e3b;
+      --bg-app: #0b141a; --bg-panel: #111b21; --bg-chat: #080f12;
+      --border: #222d34; --text-main: #e9edef; --text-muted: #8696a0;
+      --danger: #f87171; --bubble-me: #005c4b; --bubble-them: #202c33;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    }
+    html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg-app); }
+
+    .hidden { display: none !important; }
+
+    .app-toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+      background: var(--bg-panel); color: var(--text-main);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 16px; font-size: 0.82rem; font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 10000; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      max-width: 90vw; text-align: center;
+    }
+    .app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .app-toast.error { border-color: var(--danger); color: var(--danger); }
+    .app-toast.success { border-color: var(--brand); color: var(--brand-dark); }
+
+    #boot-overlay {
+      position: fixed; inset: 0; z-index: 9998;
+      background: var(--bg-panel); color: var(--text-main);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; padding: 24px; text-align: center;
+    }
+    #boot-overlay .spin {
+      width: 48px; height: 48px; border: 4px solid var(--border);
+      border-top-color: var(--brand); border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #boot-overlay .label { font-size: 14px; color: var(--text-muted); }
+    #boot-status {
+      font-size: 12px; color: var(--text-muted);
+      max-width: 320px; line-height: 1.6;
+    }
+    #boot-status.error { color: var(--danger); font-weight: 700; }
+
+    .app-container {
+      display: flex; width: 100vw; height: 100vh;
+      background: var(--bg-panel); overflow: hidden;
+    }
+    .sidebar {
+      width: 360px; max-width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      border-left: 1px solid var(--border);
+      background: var(--bg-panel); flex-shrink: 0; z-index: 2;
+    }
+    .sidebar-header {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .sidebar-header h2 { font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .sidebar-header-actions { display: flex; align-items: center; gap: 6px; }
+    .header-icon-btn {
+      background: rgba(255,255,255,0.2); border: none; color: #fff;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 18px;
+    }
+    .header-icon-btn:hover { background: rgba(255,255,255,0.35); }
+    .online-badge {
+      background: rgba(255,255,255,0.22); padding: 2px 10px; border-radius: 99px;
+      font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; gap: 5px;
+    }
+    .online-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #a7f3d0; }
+
+    .profile-box {
+      padding: 10px 14px; background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .my-avatar-wrapper {
+      position: relative; width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.95rem; cursor: pointer;
+      overflow: hidden; flex-shrink: 0; border: 2px solid var(--brand);
+    }
+    .my-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-box input {
+      flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.82rem; font-weight: 600; outline: none;
+      background: var(--bg-panel); color: var(--text-main);
+    }
+    .save-tick { color: var(--brand); font-weight: 900; font-size: 1rem; opacity: 0; transition: opacity 0.2s; }
+    .save-tick.show { opacity: 1; }
+
+    .search-box { padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--bg-panel); }
+    .search-box input {
+      width: 100%; padding: 7px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-app);
+      font-size: 0.8rem; outline: none; color: var(--text-main);
+    }
+
+    .contacts-list { flex: 1; overflow-y: auto; background: var(--bg-panel); }
+    .contact-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
+    }
+    .contact-item:hover { background: var(--bg-app); }
+    .contact-item.active { background: var(--brand-light); }
+
+    .avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+      position: relative; overflow: hidden;
+    }
+    .avatar.group-avatar { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar .dot-online {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 11px; height: 11px; border-radius: 50%;
+      background: #22c55e; border: 2px solid var(--bg-panel);
+    }
+
+    .contact-details { flex: 1; min-width: 0; }
+    .contact-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .contact-name {
+      font-size: 0.88rem; font-weight: 700; color: var(--text-main);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .contact-ip { font-size: 0.65rem; color: var(--text-muted); direction: ltr; }
+    .contact-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; gap: 6px; }
+    .contact-preview {
+      font-size: 0.75rem; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .unread-badge {
+      background: var(--brand); color: #fff; font-size: 0.7rem; font-weight: 800;
+      min-width: 20px; height: 20px; border-radius: 99px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 6px; flex-shrink: 0;
+    }
+    .contact-actions { display: flex; align-items: center; gap: 4px; }
+    .action-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 16px; cursor: pointer; padding: 5px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .action-btn:hover { color: var(--brand-dark); background: rgba(16,185,129,0.1); }
+    .action-btn.danger:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+
+    .chat-main {
+      flex: 1; height: 100%; display: flex; flex-direction: column;
+      background: var(--bg-chat); position: relative; min-width: 0;
+    }
+    .chat-topbar {
+      padding: 10px 16px; background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-shrink: 0;
+    }
+    .chat-topbar-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .back-btn {
+      display: none; background: var(--bg-panel);
+      border: 1px solid var(--border); width: 34px; height: 34px;
+      border-radius: 8px; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer; color: var(--text-main);
+    }
+    .active-user-meta h3 { font-size: 0.92rem; font-weight: 800; color: var(--text-main); }
+    .active-user-meta span { font-size: 0.7rem; color: var(--text-muted); display: block; }
+
+    .chat-actions-group { display: flex; align-items: center; gap: 10px; }
+    .select-all-label {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.76rem; font-weight: 700; color: var(--text-main); cursor: pointer;
+    }
+    .batch-delete-btn {
+      background: rgba(239,68,68,0.1); color: var(--danger);
+      border: 1px solid rgba(239,68,68,0.25); padding: 5px 10px;
+      border-radius: 8px; font-size: 0.74rem; font-weight: 700;
+      cursor: pointer; display: none; align-items: center; gap: 4px;
+    }
+    .batch-delete-btn.show { display: flex; }
+    .batch-delete-btn:hover { background: var(--danger); color: #fff; }
+    .group-settings-btn {
+      background: rgba(139,92,246,0.1); color: #8b5cf6;
+      border: 1px solid rgba(139,92,246,0.25); padding: 5px 10px;
+      border-radius: 8px; font-size: 0.74rem; font-weight: 700;
+      cursor: pointer; display: none; align-items: center; gap: 4px;
+    }
+    .group-settings-btn.show { display: flex; }
+
+    .empty-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      color: var(--text-muted); gap: 10px;
+    }
+    .empty-screen ion-icon { font-size: 56px; color: var(--brand); opacity: 0.7; }
+
+    .messages-area {
+      flex: 1; overflow-y: auto; padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .msg-bubble {
+      max-width: 72%; padding: 8px 12px; border-radius: 12px;
+      font-size: 0.85rem; line-height: 1.45; position: relative;
+      word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      cursor: pointer; user-select: none;
+    }
+    .msg-bubble.me {
+      align-self: flex-start; background: var(--bubble-me);
+      color: var(--text-main); border-top-right-radius: 2px;
+    }
+    .msg-bubble.them {
+      align-self: flex-end; background: var(--bubble-them);
+      color: var(--text-main); border-top-left-radius: 2px;
+    }
+    .msg-bubble.selected { outline: 2px dashed var(--danger); background: rgba(239,68,68,0.15) !important; }
+    .msg-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; margin-bottom: 2px;
+    }
+    .msg-sender {
+      font-size: 0.7rem; font-weight: 800; color: var(--brand-dark);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .msg-media { margin-top: 5px; border-radius: 8px; overflow: hidden; }
+    .msg-media img, .msg-media video { max-width: 100%; max-height: 260px; display: block; border-radius: 8px; cursor: pointer; }
+    .msg-doc {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none;
+      color: var(--text-main); font-size: 0.78rem; font-weight: 600; margin-top: 4px;
+    }
+    .msg-doc ion-icon { font-size: 22px; color: var(--brand-dark); flex-shrink: 0; }
+    .msg-save-btn {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+      padding: 5px 9px; border: 1px solid var(--border); border-radius: 7px;
+      background: var(--bg-panel); color: var(--text-main); font-size: 0.72rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .msg-save-btn ion-icon { font-size: 16px; }
+    .profile-avatar-column {
+      display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+    }
+    .wipe-data-btn {
+      width: 24px; height: 20px; padding: 0; border: 0; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; color: var(--danger); font-size: 14px;
+      opacity: 0.7; cursor: pointer;
+    }
+    .wipe-data-btn:hover, .wipe-data-btn:focus-visible {
+      opacity: 1; background: rgba(239,68,68,0.12);
+    }
+    .msg-footer {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 4px; font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;
+    }
+
+    .confirm-overlay {
+      position: absolute; inset: 0; background: rgba(17,27,33,0.75);
+      z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .confirm-overlay.hidden { display: none; }
+    .confirm-box {
+      background: var(--bg-panel); color: var(--text-main);
+      padding: 20px; border-radius: 12px; width: 100%; max-width: 380px;
+      text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .confirm-box h4 { font-size: 0.95rem; margin-bottom: 14px; font-weight: 700; }
+    .confirm-box input {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 14px; font-size: 0.85rem;
+      outline: none; text-align: right; background: var(--bg-panel); color: var(--text-main);
+    }
+    .members-checklist {
+      max-height: 150px; overflow-y: auto; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 14px; text-align: right;
+      padding: 6px 10px; background: var(--bg-app);
+    }
+    .members-checklist label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; padding: 4px 0; cursor: pointer;
+    }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+    .confirm-btn {
+      padding: 7px 18px; border-radius: 8px; font-size: 0.8rem;
+      font-weight: 700; cursor: pointer; border: none;
+    }
+    .confirm-btn.yes { background: var(--brand); color: #fff; }
+    .confirm-btn.yes.danger { background: var(--danger); }
+    .confirm-btn.no { background: var(--border); color: var(--text-main); }
+
+    .name-lock-overlay {
+      position: fixed; inset: 0; background: rgba(11,20,26,0.92);
+      z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .name-lock-overlay.hidden { display: none; }
+    .name-lock-box {
+      background: var(--bg-panel); color: var(--text-main);
+      padding: 24px; border-radius: 14px; width: 100%; max-width: 380px;
+      text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+    }
+    .name-lock-box h3 { font-size: 1.1rem; margin-bottom: 8px; font-weight: 800; }
+    .name-lock-box p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+    .name-lock-box input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 0.9rem; outline: none;
+      margin-bottom: 16px; background: var(--bg-app); color: var(--text-main); text-align: right;
+    }
+    .name-lock-box button {
+      width: 100%; padding: 10px; background: var(--brand); color: #fff;
+      border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .name-lock-box button:hover { background: var(--brand-dark); }
+
+    .emoji-bar {
+      display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
+      padding: 8px 12px; background: var(--bg-panel);
+      border-top: 1px solid var(--border); max-height: 130px; overflow-y: auto;
+    }
+    .emoji-bar.hidden { display: none; }
+    .emoji-bar button {
+      border: none; background: transparent; font-size: 20px;
+      cursor: pointer; padding: 4px; border-radius: 6px;
+    }
+    .emoji-bar button:hover { background: var(--bg-app); }
+
+    .chat-footer {
+      padding: 10px 14px; background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg-panel); color: var(--text-muted); font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .icon-btn:hover { color: var(--brand); border-color: var(--brand); }
+    .send-btn {
+      width: 42px; height: 40px; border-radius: 10px; border: none;
+      background: var(--brand); color: #fff; font-size: 19px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .send-btn.hidden { display: none; }
+    .send-btn:hover { background: var(--brand-dark); }
+    .chat-input {
+      flex: 1; min-height: 40px; max-height: 110px; padding: 9px 14px;
+      border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg-app); color: var(--text-main);
+      font-size: 0.85rem; resize: none; outline: none; line-height: 1.4;
+    }
+
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+      z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .lightbox.hidden { display: none; }
+    .lightbox img, .lightbox video { max-width: 92vw; max-height: 90vh; border-radius: 10px; }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 20px;
+      width: 42px; height: 42px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.2); color: #fff; font-size: 24px; cursor: pointer;
+    }
+    .message-notice {
+      position: fixed; top: calc(env(safe-area-inset-top) + 10px);
+      left: 12px; right: 12px; z-index: 9997; max-width: 460px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      border: 1px solid var(--border); border-radius: 16px;
+      background: var(--bg-panel); color: var(--text-main);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.22); text-align: right;
+      cursor: pointer; opacity: 0; transform: translateY(-130%);
+      pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .message-notice.show {
+      opacity: 1; transform: translateY(0); pointer-events: auto;
+    }
+    .message-notice-avatar {
+      width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; font-weight: 800;
+    }
+    .message-notice-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .message-notice-title, .message-notice-body {
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .message-notice-title { font-size: 0.85rem; font-weight: 800; }
+    .message-notice-body { font-size: 0.78rem; color: var(--text-muted); }
+    .message-notice-time { align-self: flex-start; font-size: 0.68rem; color: var(--text-muted); }
+
+    #boot-error {
+      display: none; position: fixed; inset: 0; z-index: 2147483647;
+      background: #7f1d1d; color: #fff; padding: 20px; overflow: auto;
+      font-size: 13px; direction: ltr; text-align: left; font-family: monospace;
+    }
+    #boot-error button {
+      position: sticky; top: 0; float: right; background: #fff; color: #7f1d1d;
+      border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700;
+      cursor: pointer; margin-bottom: 10px;
+    }
+    #boot-error pre { white-space: pre-wrap; margin: 0; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; position: absolute; inset: 0; transition: transform 0.25s ease; }
+      .sidebar.mobile-hide { transform: translateX(100%); pointer-events: none; }
+      .chat-main { width: 100%; }
+      .back-btn { display: flex; }
+      .msg-bubble { max-width: 85%; }
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div id="boot-overlay">
+    <div class="spin"></div>
+    <div class="label">جارٍ التحميل...</div>
+    <div id="boot-status"></div>
+  </div>
+
+  <div id="boot-error"><button onclick="this.parentElement.style.display='none'">✕</button><pre id="boot-error-pre"></pre></div>
+
+  <script>
+    (function () {
+      var box = document.getElementById('boot-error');
+      var pre = document.getElementById('boot-error-pre');
+      function show(msg) {
+        box.style.display = 'block';
+        pre.textContent += '[' + new Date().toISOString() + '] ' + msg + '\n\n';
+      }
+      window.__showBootError = show;
+      window.addEventListener('error', function (e) {
+        if (e.target && e.target !== window && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK' || e.target.tagName === 'IMG')) {
+          var url = e.target.src || e.target.href || '(no src)';
+          show('ASSET FAILED: ' + e.target.tagName + ' ' + url);
+          return;
+        }
+        show('ERROR: ' + (e.message || e.error || 'unknown') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        show('REJECTION: ' + (r && (r.stack || r.message) || r || 'unknown'));
+      });
+
+      setTimeout(function () {
+        if (!window.__appReady) {
+          var st = document.getElementById('boot-status');
+          st.classList.add('error');
+          st.textContent = 'التطبيق لم يستطع الاتصال بالإنترنت أو تحميل مكتباته. تحقق من الاتصال وأعد فتح التطبيق.';
+        }
+      }, 8000);
+    })();
+  </script>
+
+  <div class="name-lock-overlay hidden" id="name-lock-overlay">
+    <div class="name-lock-box">
+      <h3>مرحباً بك في نظام المحادثة</h3>
+      <p>يجب إدخال اسمك الشخصي قبل المتابعة واستخدام التطبيق.</p>
+      <input type="text" id="lock-name-input" placeholder="اكتب اسمك هنا..." maxlength="30">
+      <button id="lock-name-btn">دخول للمحادثة</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2><ion-icon name="chatbubbles"></ion-icon> المحادثات</h2>
+        <div class="sidebar-header-actions">
+          <button class="header-icon-btn" id="theme-toggle-btn" title="تبديل الثيم">
+            <ion-icon name="moon-outline" id="theme-icon"></ion-icon>
+          </button>
+          <button class="header-icon-btn" id="create-group-btn" title="إنشاء مجموعة جديدة">
+            <ion-icon name="people-outline"></ion-icon>
+          </button>
+          <span class="online-badge" id="online-count">0 متصل</span>
+        </div>
+      </div>
+      <div class="profile-box">
+        <input type="file" id="my-avatar-input" hidden accept="image/*">
+        <div class="profile-avatar-column">
+          <button class="wipe-data-btn" id="open-wipe-data-btn" type="button" title="حذف كل الرسائل والمرفقات" aria-label="حذف كل الرسائل والمرفقات">
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
+          <div class="my-avatar-wrapper" id="my-avatar-wrapper" title="تغيير الصورة الشخصية">
+            <span id="my-avatar-text">?</span>
+          </div>
+        </div>
+        <input type="text" id="my-name-input" placeholder="اكتب اسمك هنا..." maxlength="30">
+        <span class="save-tick" id="save-tick">✓</span>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="بحث في المحادثات والمجموعات...">
+      </div>
+      <div class="contacts-list" id="contacts-list">
+        <div class="empty-screen" style="font-size:0.8rem;">جارٍ تحميل القائمة...</div>
+      </div>
+    </aside>
+
+    <main class="chat-main" id="chat-main">
+      <div class="empty-screen" id="welcome-screen">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        <h3>مرحباً بك في نظام المحادثة والمجموعات</h3>
+        <p style="font-size:0.82rem;">اختر جهة اتصال أو مجموعة لبدء المحادثة</p>
+      </div>
+
+      <div id="active-chat-view" style="display:none; flex-direction:column; height:100%;">
+        <header class="chat-topbar">
+          <div class="chat-topbar-right">
+            <button class="back-btn" id="back-btn" title="رجوع">
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+            </button>
+            <div class="avatar" id="active-avatar" style="width:38px; height:38px; font-size:0.9rem;">؟</div>
+            <div class="active-user-meta">
+              <h3 id="active-name">اسم المحادثة</h3>
+              <span id="active-sub">متصل</span>
+            </div>
+          </div>
+          <div class="chat-actions-group">
+            <button class="group-settings-btn" id="group-settings-btn" title="إدارة أعضاء المجموعة">
+              <ion-icon name="settings-outline"></ion-icon> الأعضاء
+            </button>
+            <label class="select-all-label">
+              <input type="checkbox" id="select-all-checkbox"> تحديد الكل
+            </label>
+            <button class="batch-delete-btn" id="batch-delete-btn" title="حذف الرسائل المحددة">
+              <ion-icon name="trash-outline"></ion-icon> حذف المحدد
+            </button>
+          </div>
+        </header>
+        <div class="messages-area" id="messages-area"></div>
+        <div class="emoji-bar hidden" id="emoji-bar"></div>
+        <footer class="chat-footer">
+          <input type="file" id="file-input" hidden>
+          <input type="file" id="folder-input" hidden webkitdirectory multiple>
+          <button class="icon-btn" id="attach-btn" title="إرفاق ملف">
+            <ion-icon name="attach-outline"></ion-icon>
+          </button>
+          <button class="icon-btn" id="attach-folder-btn" title="إرفاق مجلد كملف ZIP">
+            <ion-icon name="folder-open-outline"></ion-icon>
+          </button>
+          <button class="icon-btn" id="emoji-btn" title="إيموجي">😀</button>
+          <textarea class="chat-input" id="msg-input" placeholder="اكتب رسالة..." rows="1"></textarea>
+          <button class="send-btn hidden" id="send-btn" title="إرسال">
+            <ion-icon name="send"></ion-icon>
+          </button>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <button class="message-notice" id="message-notice" type="button" aria-live="polite" aria-hidden="true">
+    <span class="message-notice-avatar" id="message-notice-avatar"></span>
+    <span class="message-notice-copy">
+      <span class="message-notice-title" id="message-notice-title"></span>
+      <span class="message-notice-body" id="message-notice-body"></span>
+    </span>
+    <span class="message-notice-time">الآن</span>
+  </button>
+
+  <div class="confirm-overlay hidden" id="confirm-overlay">
+    <div class="confirm-box">
+      <h4 id="confirm-text">تأكيد</h4>
+      <input type="text" id="confirm-input" class="hidden" placeholder="أدخل القيمة...">
+      <div id="modal-group-container" class="hidden">
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px; text-align:right;">اختر الأعضاء (أسماء فقط):</p>
+        <div class="members-checklist" id="members-checklist"></div>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn yes" id="confirm-yes">نعم</button>
+        <button class="confirm-btn no" id="confirm-no">لا</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="group-manage-overlay">
+    <div class="confirm-box">
+      <h4>إدارة أعضاء المجموعة</h4>
+      <div class="members-checklist" id="group-members-list" style="max-height: 200px;"></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn yes danger" id="leave-group-btn">مغادرة المجموعة</button>
+        <button class="confirm-btn no" id="close-manage-btn">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="wipe-data-overlay">
+    <form class="confirm-box" id="wipe-data-form" role="dialog" aria-modal="true" aria-labelledby="wipe-data-title">
+      <h4 id="wipe-data-title">هل تريد حذف جميع الرسائل؟</h4>
+      <p style="font-size:0.78rem;line-height:1.6;margin-bottom:12px;color:var(--danger);">
+        سيتم حذف الرسائل وملفاتها المرفقة فقط. ستبقى بيانات المستخدمين والمجموعات وجهات الاتصال.
+      </p>
+      <input type="password" id="wipe-admin-password" placeholder="كلمة مرور الحذف" autocomplete="current-password">
+      <div class="confirm-actions">
+        <button class="confirm-btn yes danger" id="wipe-submit-btn" type="submit">نعم، احذف الرسائل</button>
+        <button class="confirm-btn no" id="wipe-cancel-btn" type="button">لا، إلغاء</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="lightbox hidden" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close">✕</button>
+    <div id="lightbox-body"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getDatabase, ref, set, update, get, onValue,
+      onChildAdded, onChildRemoved, push, remove, onDisconnect
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnKRhT5xJTBvsQKpW7e9w-hGSbAQJWTSo",
+      authDomain: "production1-ae85.firebaseapp.com",
+      databaseURL: "https://production1-ae85-default-rtdb.firebaseio.com",
+      projectId: "production1-ae85",
+      storageBucket: "production1-ae85.firebasestorage.app",
+      messagingSenderId: "490438031865",
+      appId: "1:490438031865:web:a4a69335989f30cd13a528"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const $ = (id) => document.getElementById(id);
+
+    const WIPE_PASSWORD_PATH = 'chat/admin/wipePassword';
+
+    /* ---------- In-app toast (no native alert) ---------- */
+    let toastTimer = null;
+    function showToast(message, type = 'info') {
+      let toast = document.getElementById('app-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        toast.className = 'app-toast';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = message;
+      toast.className = 'app-toast show ' + type;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    /* ---------- Auto-create the wipe password key ---------- */
+    // Only creates the key when it does not exist. Never overwrites
+    // an existing value (string OR number).
+    async function ensureWipePasswordKey() {
+      try {
+        const snap = await get(ref(db, WIPE_PASSWORD_PATH));
+        const val = snap.val();
+        if (val === null || val === undefined) {
+          await set(ref(db, WIPE_PASSWORD_PATH), '');
+          console.log('[AEChat] Created empty wipe password key at:', WIPE_PASSWORD_PATH);
+        } else {
+          console.log('[AEChat] Wipe password key already exists. typeof =', typeof val, ' value =', val);
+        }
+      } catch (err) {
+        console.warn('[AEChat] Could not ensure wipe password key:', err);
+      }
+    }
+
+    const CLIENT_ID = localStorage.getItem('vnc_client_id') || (() => {
+      const id = 'c_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+      localStorage.setItem('vnc_client_id', id);
+      return id;
+    })();
+
+    let myIp = '';
+    let myName = (localStorage.getItem('vnc_name') || '').trim();
+    let myAvatar = localStorage.getItem('vnc_avatar') || '';
+    let currentTheme = localStorage.getItem('vnc_theme') || 'light';
+
+    document.body.setAttribute('data-theme', currentTheme);
+    $('theme-icon').name = currentTheme === 'dark' ? 'sunny-outline' : 'moon-outline';
+
+    $('theme-toggle-btn').onclick = () => {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('vnc_theme', currentTheme);
+      document.body.setAttribute('data-theme', currentTheme);
+      $('theme-icon').name = currentTheme === 'dark' ? 'sunny-outline' : 'moon-outline';
+    };
+
+    let activeTargetId = null, activeType = 'user', activeRoomId = null;
+    let activeMsgListener = null, activeDelListener = null;
+
+    const onlineUsers = {}, savedContacts = {}, myGroups = {}, allUsersDirectory = {};
+    const roomLastActivity = {}, unreadCounts = {};
+    const selectedMessageKeys = new Set();
+
+    function getRoomId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    async function getMyIp() {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 3000);
+        const res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok) return 'مجهول_IP';
+        const data = await res.json();
+        return (data && data.ip) || 'مجهول_IP';
+      } catch (_) {
+        return 'مجهول_IP';
+      }
+    }
+
+    function showSimpleConfirm(text, onYes) {
+      const overlay = $('confirm-overlay');
+      const inputEl = $('confirm-input');
+      const groupContainer = $('modal-group-container');
+      const yesBtn = $('confirm-yes');
+      $('confirm-text').textContent = text;
+      inputEl.classList.add('hidden');
+      groupContainer.classList.add('hidden');
+      yesBtn.classList.remove('danger');
+      overlay.classList.remove('hidden');
+      const noBtn = $('confirm-no');
+      const cleanUp = () => { overlay.classList.add('hidden'); yesBtn.onclick = null; noBtn.onclick = null; };
+      yesBtn.onclick = () => { cleanUp(); onYes(); };
+      noBtn.onclick = cleanUp;
+    }
+
+    function showModal({ text, isPrompt = false, isGroupCreator = false, defaultValue = '', onYes, isDanger = false }) {
+      const overlay = $('confirm-overlay');
+      const inputEl = $('confirm-input');
+      const groupContainer = $('modal-group-container');
+      const yesBtn = $('confirm-yes');
+      $('confirm-text').textContent = text;
+      inputEl.classList.add('hidden');
+      groupContainer.classList.add('hidden');
+      if (isPrompt) {
+        inputEl.classList.remove('hidden');
+        inputEl.value = defaultValue;
+        setTimeout(() => inputEl.focus(), 50);
+      } else if (isGroupCreator) {
+        groupContainer.classList.remove('hidden');
+        inputEl.classList.remove('hidden');
+        inputEl.placeholder = "اسم المجموعة...";
+        inputEl.value = '';
+        const checklistEl = $('members-checklist');
+        checklistEl.innerHTML = '';
+        const availableMembers = { ...allUsersDirectory, ...onlineUsers };
+        delete availableMembers[CLIENT_ID];
+        if (Object.keys(availableMembers).length === 0) {
+          checklistEl.innerHTML = `<span style="font-size:0.75rem; color:var(--text-muted);">لا يوجد مستخدمون متاحون للإضافة</span>`;
+        } else {
+          Object.values(availableMembers).forEach(u => {
+            const label = document.createElement('label');
+            const contactName = (u.name && u.name.trim() !== '') ? u.name : `مستخدم (${u.ip})`;
+            label.innerHTML = `<input type="checkbox" value="${u.id}" name="group_member"> ${escapeHtml(contactName)}`;
+            checklistEl.appendChild(label);
+          });
+        }
+        setTimeout(() => inputEl.focus(), 50);
+      }
+      if (isDanger) yesBtn.classList.add('danger');
+      else yesBtn.classList.remove('danger');
+      overlay.classList.remove('hidden');
+      const noBtn = $('confirm-no');
+      const cleanUp = () => {
+        overlay.classList.add('hidden');
+        inputEl.classList.add('hidden');
+        groupContainer.classList.add('hidden');
+        yesBtn.onclick = null; noBtn.onclick = null; inputEl.onkeydown = null;
+      };
+      const handleConfirm = () => {
+        const val = inputEl.value.trim();
+        if (isGroupCreator) {
+          const checked = Array.from(document.querySelectorAll('input[name="group_member"]:checked')).map(cb => cb.value);
+          cleanUp();
+          onYes({ name: val, members: checked });
+        } else {
+          cleanUp();
+          onYes(isPrompt ? val : true);
+        }
+      };
+      yesBtn.onclick = handleConfirm;
+      noBtn.onclick = cleanUp;
+      if (isPrompt || isGroupCreator) {
+        inputEl.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); handleConfirm(); }
+        };
+      }
+    }
+
+    function updateMyAvatarDisplay() {
+      const wrapper = $('my-avatar-wrapper');
+      if (myAvatar) wrapper.innerHTML = `<img src="${myAvatar}">`;
+      else {
+        const char = myName ? myName.charAt(0) : (myIp ? myIp.charAt(0) : '?');
+        wrapper.innerHTML = `<span id="my-avatar-text">${escapeHtml(char)}</span>`;
+      }
+    }
+
+    async function initUserIdentity() {
+      if (!myName) {
+        $('name-lock-overlay').classList.remove('hidden');
+        $('lock-name-input').focus();
+        $('lock-name-btn').onclick = async () => {
+          const entered = $('lock-name-input').value.trim();
+          if (!entered) { showToast('الرجاء إدخال اسم صحيح للمتابعة.', 'error'); return; }
+          myName = entered;
+          localStorage.setItem('vnc_name', myName);
+          $('name-lock-overlay').classList.add('hidden');
+          $('my-name-input').value = myName;
+          updateMyAvatarDisplay();
+          myIp = await getMyIp();
+          await publishIdentity();
+        };
+        return;
+      }
+      $('my-name-input').value = myName;
+      updateMyAvatarDisplay();
+      myIp = await getMyIp();
+      await publishIdentity();
+    }
+
+    async function publishIdentity() {
+      const userPayload = { id: CLIENT_ID, name: myName, ip: myIp, avatar: myAvatar, lastSeen: Date.now() };
+      await update(ref(db, `chat/users/${CLIENT_ID}`), userPayload);
+      await set(ref(db, `chat/online/${CLIENT_ID}`), userPayload);
+      onDisconnect(ref(db, `chat/online/${CLIENT_ID}`)).remove();
+    }
+
+    let nameTimer = null;
+    $('my-name-input').addEventListener('input', (e) => {
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(async () => {
+        myName = e.target.value.trim();
+        localStorage.setItem('vnc_name', myName);
+        updateMyAvatarDisplay();
+        if (myName) {
+          const updates = { name: myName, ip: myIp, avatar: myAvatar, lastSeen: Date.now() };
+          await update(ref(db, `chat/users/${CLIENT_ID}`), updates);
+          await update(ref(db, `chat/online/${CLIENT_ID}`), updates);
+          Object.keys(savedContacts).forEach(otherId => {
+            update(ref(db, `chat/user_contacts/${otherId}/${CLIENT_ID}`), {
+              name: myName, ip: myIp, avatar: myAvatar
+            }).catch(() => {});
+          });
+          $('save-tick').classList.add('show');
+          setTimeout(() => $('save-tick').classList.remove('show'), 1500);
+        }
+      }, 450);
+    });
+
+    $('my-avatar-wrapper').onclick = () => $('my-avatar-input').click();
+    $('my-avatar-input').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('حجم الصورة يجب ألا يتجاوز 2 ميجابايت.', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        myAvatar = ev.target.result;
+        localStorage.setItem('vnc_avatar', myAvatar);
+        updateMyAvatarDisplay();
+        const updates = { name: myName, ip: myIp, avatar: myAvatar, lastSeen: Date.now() };
+        await update(ref(db, `chat/users/${CLIENT_ID}`), updates);
+        await update(ref(db, `chat/online/${CLIENT_ID}`), updates);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    };
+
+    function startDirectoryListeners() {
+      onValue(ref(db, 'chat/online'), (snap) => {
+        const val = snap.val() || {};
+        Object.keys(onlineUsers).forEach(k => delete onlineUsers[k]);
+        Object.assign(onlineUsers, val);
+        $('online-count').textContent = `${Object.keys(val).length} متصل`;
+        renderContactsList();
+      });
+      onValue(ref(db, 'chat/users'), (snap) => {
+        const val = snap.val() || {};
+        Object.keys(allUsersDirectory).forEach(k => delete allUsersDirectory[k]);
+        Object.assign(allUsersDirectory, val);
+        Object.keys(val).forEach(uid => {
+          if (uid !== CLIENT_ID && savedContacts[uid]) {
+            const customName = localStorage.getItem(`nickname_${CLIENT_ID}_${uid}`);
+            if (!customName) savedContacts[uid].name = val[uid].name || savedContacts[uid].name;
+            savedContacts[uid].ip = val[uid].ip || savedContacts[uid].ip;
+            savedContacts[uid].avatar = val[uid].avatar || savedContacts[uid].avatar;
+          }
+        });
+        renderContactsList();
+        if (activeTargetId && activeType === 'user' && val[activeTargetId]) {
+          const customName = localStorage.getItem(`nickname_${CLIENT_ID}_${activeTargetId}`);
+          const displayName = customName || (val[activeTargetId].name && val[activeTargetId].name.trim() !== '' ? val[activeTargetId].name : `IP: ${val[activeTargetId].ip || '—'}`);
+          $('active-name').textContent = displayName;
+          const activeAvatarEl = $('active-avatar');
+          if (val[activeTargetId].avatar) activeAvatarEl.innerHTML = `<img src="${val[activeTargetId].avatar}">`;
+          else activeAvatarEl.textContent = displayName.charAt(0);
+          $('active-sub').textContent = `${onlineUsers[activeTargetId] ? 'متصل الآن' : 'غير متصل'} • IP: ${val[activeTargetId].ip || '—'}`;
+        }
+      });
+      onValue(ref(db, `chat/user_contacts/${CLIENT_ID}`), (snap) => {
+        const val = snap.val() || {};
+        Object.keys(savedContacts).forEach(k => delete savedContacts[k]);
+        Object.assign(savedContacts, val);
+        Object.keys(savedContacts).forEach(uid => attachUnreadWatcher(uid, 'user'));
+        renderContactsList();
+      });
+      onValue(ref(db, 'chat/groups'), (snap) => {
+        const groups = snap.val() || {};
+        Object.keys(myGroups).forEach(k => delete myGroups[k]);
+        Object.keys(groups).forEach(groupId => {
+          const g = groups[groupId];
+          if (g && g.members && g.members[CLIENT_ID]) {
+            myGroups[groupId] = g;
+            attachUnreadWatcher(groupId, 'group');
+          }
+        });
+        renderContactsList();
+      });
+    }
+
+    const watchedRooms = new Set();
+    let messageNoticeTimer = null;
+
+    function showIncomingMessage(targetId, type, message) {
+      if (document.visibilityState !== 'visible' ||
+          (activeTargetId === targetId && activeType === type)) return;
+
+      const notice = $('message-notice');
+      const group = type === 'group' ? myGroups[targetId] : null;
+      const contact = type === 'user'
+        ? (savedContacts[targetId] || allUsersDirectory[targetId])
+        : null;
+      const senderName = String(message.senderName || (contact && contact.name) || 'مستخدم');
+      const title = group ? `${senderName} · ${group.name || 'مجموعة'}` : senderName;
+      let preview = String(message.text || '').trim();
+      if (!preview) {
+        if (message.mediaType === 'image') preview = 'صورة';
+        else if (message.mediaType === 'video') preview = 'فيديو';
+        else preview = message.fileName || 'رسالة جديدة';
+      }
+
+      $('message-notice-avatar').textContent = senderName.charAt(0) || '؟';
+      $('message-notice-title').textContent = title;
+      $('message-notice-body').textContent = preview;
+      notice.setAttribute('aria-hidden', 'false');
+      notice.classList.add('show');
+      clearTimeout(messageNoticeTimer);
+      messageNoticeTimer = setTimeout(() => {
+        notice.classList.remove('show');
+        notice.setAttribute('aria-hidden', 'true');
+      }, 5000);
+      notice.onclick = () => {
+        clearTimeout(messageNoticeTimer);
+        notice.classList.remove('show');
+        notice.setAttribute('aria-hidden', 'true');
+        const target = type === 'group'
+          ? myGroups[targetId]
+          : (savedContacts[targetId] || allUsersDirectory[targetId]);
+        if (target) openConversation({ ...target, id: targetId }, type);
+      };
+    }
+
+    function attachUnreadWatcher(targetId, type) {
+      const roomId = type === 'user' ? getRoomId(CLIENT_ID, targetId) : targetId;
+      if (watchedRooms.has(roomId)) return;
+      watchedRooms.add(roomId);
+      const seenMessageKeys = new Set();
+      let firstSnapshot = true;
+      onValue(ref(db, `chat/messages/${roomId}`), (snap) => {
+        const msgs = snap.val() || {};
+        Object.entries(msgs).forEach(([key, message]) => {
+          if (firstSnapshot) {
+            seenMessageKeys.add(key);
+          } else if (!seenMessageKeys.has(key)) {
+            seenMessageKeys.add(key);
+            if (message.sender !== CLIENT_ID) showIncomingMessage(targetId, type, message);
+          }
+        });
+        firstSnapshot = false;
+        const lastRead = parseInt(localStorage.getItem(`read_${CLIENT_ID}_${targetId}`) || '0', 10);
+        let unread = 0, latestTs = 0;
+        Object.values(msgs).forEach(m => {
+          if (m.ts > latestTs) latestTs = m.ts;
+          if (m.sender !== CLIENT_ID && m.ts > lastRead && activeTargetId !== targetId) unread++;
+        });
+        unreadCounts[targetId] = unread;
+        roomLastActivity[targetId] = latestTs;
+        if (type === 'user' && unread > 0 && !savedContacts[targetId]) {
+          get(ref(db, `chat/users/${targetId}`)).then(uSnap => {
+            const uData = uSnap.val() || { name: '', ip: '—', avatar: '' };
+            set(ref(db, `chat/user_contacts/${CLIENT_ID}/${targetId}`), {
+              id: targetId, name: uData.name || '', ip: uData.ip || '—', avatar: uData.avatar || '', addedAt: Date.now()
+            });
+          });
+        }
+        renderContactsList();
+      });
+    }
+
+    $('create-group-btn').onclick = () => {
+      showModal({
+        text: 'إنشاء مجموعة جديدة',
+        isGroupCreator: true,
+        onYes: async ({ name, members }) => {
+          if (!name) { showToast('يجب إدخال اسم المجموعة.', 'error'); return; }
+          members.push(CLIENT_ID);
+          const membersObj = {};
+          members.forEach(mId => { membersObj[mId] = true; });
+          const newGroupRef = push(ref(db, 'chat/groups'));
+          const groupId = newGroupRef.key;
+          await set(newGroupRef, {
+            id: groupId, name, admin: CLIENT_ID, members: membersObj, createdAt: Date.now()
+          });
+        }
+      });
+    };
+
+    function renderContactsList() {
+      const listEl = $('contacts-list');
+      const query = $('search-input').value.trim().toLowerCase();
+      const merged = new Map();
+      Object.keys(myGroups).forEach(gId => {
+        const g = myGroups[gId];
+        merged.set(gId, { ...g, isGroup: true, name: g.name });
+      });
+      Object.keys(savedContacts).forEach(id => {
+        if (id !== CLIENT_ID) merged.set(id, { ...savedContacts[id], isSaved: true, isGroup: false });
+      });
+      Object.keys(onlineUsers).forEach(id => {
+        if (id !== CLIENT_ID && !merged.has(id)) merged.set(id, { ...onlineUsers[id], isOnline: true, isGroup: false });
+      });
+      const entries = Array.from(merged.values())
+        .filter(u => !query || (u.name || '').toLowerCase().includes(query) || (u.ip || '').includes(query))
+        .sort((a, b) => (roomLastActivity[b.id] || 0) - (roomLastActivity[a.id] || 0));
+      if (!entries.length) {
+        listEl.innerHTML = `<div class="empty-screen" style="font-size:0.8rem;">لا توجد محادثات أو مجموعات متاحة حالياً</div>`;
+        return;
+      }
+      listEl.innerHTML = '';
+      entries.forEach(item => {
+        const isGroup = item.isGroup;
+        const targetId = item.id;
+        const isOnline = !isGroup && Boolean(onlineUsers[targetId]);
+        const unread = unreadCounts[targetId] || 0;
+        const isActive = activeTargetId === targetId;
+        const row = document.createElement('div');
+        row.className = 'contact-item' + (isActive ? ' active' : '');
+        let displayName, avatarContent, statusLabel, ipLabel;
+        if (isGroup) {
+          displayName = item.name;
+          avatarContent = `<ion-icon name="people" style="font-size:20px;"></ion-icon>`;
+          statusLabel = `مجموعة (${Object.keys(item.members || {}).length} أعضاء)`;
+          ipLabel = item.admin === CLIENT_ID ? 'أنت المشرف (Admin)' : 'مجموعة';
+        } else {
+          const customName = localStorage.getItem(`nickname_${CLIENT_ID}_${targetId}`);
+          const baseName = customName || (item.name && item.name.trim() !== '' ? item.name : null);
+          displayName = baseName || (item.ip ? `IP: ${item.ip}` : 'مستخدم مجهول');
+          ipLabel = item.ip || '';
+          avatarContent = item.avatar ? `<img src="${item.avatar}">` : escapeHtml(displayName.charAt(0));
+          statusLabel = unread > 0 ? `<span style="color:var(--brand-dark); font-weight:700;">رسالة جديدة</span>` : (isOnline ? 'متصل الآن' : 'جهة اتصال محفوظة');
+        }
+        row.innerHTML = `
+          <div class="avatar ${isGroup ? 'group-avatar' : ''}">
+            ${avatarContent}
+            ${!isGroup && isOnline ? '<span class="dot-online"></span>' : ''}
+          </div>
+          <div class="contact-details">
+            <div class="contact-top">
+              <span class="contact-name">${escapeHtml(displayName)}</span>
+              <span class="contact-ip">${escapeHtml(ipLabel)}</span>
+            </div>
+            <div class="contact-bottom">
+              <span class="contact-preview">${statusLabel}</span>
+              ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}
+            </div>
+          </div>
+          <div class="contact-actions">
+            ${!isGroup ? `<button class="action-btn rename-btn" title="تعديل الاسم"><ion-icon name="pencil-outline"></ion-icon></button>` : ''}
+            <button class="action-btn danger del-contact-btn" title="${isGroup ? 'مغادرة المجموعة' : 'حذف جهة الاتصال'}">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        `;
+        if (!isGroup) {
+          row.querySelector('.rename-btn').onclick = (e) => {
+            e.stopPropagation();
+            showModal({
+              text: `إعادة تسمية جهة الاتصال (${item.ip || item.id})`,
+              isPrompt: true, defaultValue: displayName,
+              onYes: (newName) => {
+                if (newName) localStorage.setItem(`nickname_${CLIENT_ID}_${targetId}`, newName);
+                else localStorage.removeItem(`nickname_${CLIENT_ID}_${targetId}`);
+                renderContactsList();
+                if (activeTargetId === targetId) {
+                  $('active-name').textContent = newName || (item.name ? item.name : `IP: ${item.ip}`);
+                }
+              }
+            });
+          };
+        }
+        row.querySelector('.del-contact-btn').onclick = (e) => {
+          e.stopPropagation();
+          showSimpleConfirm(isGroup ? `هل تريد مغادرة مجموعة "${displayName}"؟` : `هل تريد حذف "${displayName}" نهائياً من قاعدة البيانات؟`, async () => {
+            if (isGroup) {
+              await remove(ref(db, `chat/groups/${targetId}/members/${CLIENT_ID}`));
+              delete myGroups[targetId];
+            } else {
+              const roomId = getRoomId(CLIENT_ID, targetId);
+              await remove(ref(db, `chat/user_contacts/${CLIENT_ID}/${targetId}`));
+              await remove(ref(db, `chat/messages/${roomId}`));
+              localStorage.removeItem(`nickname_${CLIENT_ID}_${targetId}`);
+              delete savedContacts[targetId];
+            }
+            delete unreadCounts[targetId];
+            if (activeTargetId === targetId) closeActiveChat();
+            renderContactsList();
+          });
+        };
+        row.onclick = () => openConversation(item, isGroup ? 'group' : 'user');
+        listEl.appendChild(row);
+      });
+    }
+
+    $('search-input').addEventListener('input', renderContactsList);
+
+    async function openConversation(target, type) {
+      activeTargetId = target.id;
+      activeType = type;
+      activeRoomId = type === 'user' ? getRoomId(CLIENT_ID, target.id) : target.id;
+      selectedMessageKeys.clear();
+      updateBatchDeleteState();
+      localStorage.setItem(`read_${CLIENT_ID}_${target.id}`, String(Date.now()));
+      unreadCounts[target.id] = 0;
+      let displayName, avatarHtml, subText;
+      if (type === 'group') {
+        displayName = target.name;
+        avatarHtml = `<ion-icon name="people" style="font-size:20px;"></ion-icon>`;
+        subText = `مجموعة تضم ${Object.keys(target.members || {}).length} أعضاء`;
+        $('active-avatar').className = 'avatar group-avatar';
+        $('group-settings-btn').classList.add('show');
+      } else {
+        const customName = localStorage.getItem(`nickname_${CLIENT_ID}_${target.id}`);
+        displayName = customName || (target.name && target.name.trim() !== '' ? target.name : `IP: ${target.ip || '—'}`);
+        avatarHtml = target.avatar ? `<img src="${target.avatar}">` : displayName.charAt(0);
+        subText = `${onlineUsers[target.id] ? 'متصل الآن' : 'غير متصل'} • IP: ${target.ip || '—'}`;
+        $('active-avatar').className = 'avatar';
+        $('group-settings-btn').classList.remove('show');
+        await set(ref(db, `chat/user_contacts/${CLIENT_ID}/${target.id}`), {
+          id: target.id, name: target.name || '', ip: target.ip || '—', avatar: target.avatar || '', addedAt: Date.now()
+        });
+      }
+      $('welcome-screen').style.display = 'none';
+      $('active-chat-view').style.display = 'flex';
+      $('active-name').textContent = displayName;
+      $('active-avatar').innerHTML = avatarHtml;
+      $('active-sub').textContent = subText;
+      $('sidebar').classList.add('mobile-hide');
+      renderContactsList();
+      if (activeMsgListener) activeMsgListener();
+      if (activeDelListener) activeDelListener();
+      const area = $('messages-area');
+      area.innerHTML = '';
+      const renderedKeys = new Set();
+      const msgsRef = ref(db, `chat/messages/${activeRoomId}`);
+      activeMsgListener = onChildAdded(msgsRef, (snap) => {
+        if (renderedKeys.has(snap.key)) return;
+        renderedKeys.add(snap.key);
+        localStorage.setItem(`read_${CLIENT_ID}_${target.id}`, String(Date.now()));
+        renderBubble(snap.key, snap.val());
+      });
+      activeDelListener = onChildRemoved(msgsRef, (snap) => {
+        const el = document.getElementById(`msg_${snap.key}`);
+        if (el) el.remove();
+        selectedMessageKeys.delete(snap.key);
+        updateBatchDeleteState();
+      });
+      setTimeout(() => $('msg-input').focus(), 100);
+    }
+
+    $('group-settings-btn').onclick = () => {
+      const group = myGroups[activeTargetId];
+      if (!group) return;
+      const isAdmin = group.admin === CLIENT_ID;
+      const membersListEl = $('group-members-list');
+      membersListEl.innerHTML = '';
+      const memberIds = Object.keys(group.members || {});
+      memberIds.forEach(mId => {
+        const memberData = allUsersDirectory[mId] || onlineUsers[mId] || { name: 'مستخدم', ip: '—' };
+        const mName = memberData.name ? memberData.name : `IP: ${memberData.ip}`;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);';
+        let actionHtml = '';
+        if (mId === group.admin) {
+          actionHtml = `<span style="font-size:0.7rem; color:var(--brand); font-weight:700;">مشرف (Admin)</span>`;
+        } else if (isAdmin) {
+          actionHtml = `<button class="confirm-btn yes danger" style="padding:3px 8px; font-size:0.7rem;" data-remove="${mId}">طرد</button>`;
+        }
+        row.innerHTML = `<span>${escapeHtml(mName)} ${mId === CLIENT_ID ? '(أنت)' : ''}</span>${actionHtml}`;
+        membersListEl.appendChild(row);
+      });
+      if (isAdmin) {
+        membersListEl.querySelectorAll('button[data-remove]').forEach(btn => {
+          btn.onclick = async (e) => {
+            const memberToRemove = e.target.getAttribute('data-remove');
+            await remove(ref(db, `chat/groups/${activeTargetId}/members/${memberToRemove}`));
+            $('group-manage-overlay').classList.add('hidden');
+          };
+        });
+      }
+      $('leave-group-btn').onclick = async () => {
+        showSimpleConfirm('هل أنت متأكد من مغادرة هذه المجموعة؟', async () => {
+          await remove(ref(db, `chat/groups/${activeTargetId}/members/${CLIENT_ID}`));
+          delete myGroups[activeTargetId];
+          $('group-manage-overlay').classList.add('hidden');
+          closeActiveChat();
+        });
+      };
+      $('close-manage-btn').onclick = () => $('group-manage-overlay').classList.add('hidden');
+      $('group-manage-overlay').classList.remove('hidden');
+    };
+
+    function closeActiveChat() {
+      activeTargetId = null; activeType = 'user'; activeRoomId = null;
+      selectedMessageKeys.clear();
+      updateBatchDeleteState();
+      if (activeMsgListener) { activeMsgListener(); activeMsgListener = null; }
+      if (activeDelListener) { activeDelListener(); activeDelListener = null; }
+      $('active-chat-view').style.display = 'none';
+      $('welcome-screen').style.display = 'flex';
+      $('sidebar').classList.remove('mobile-hide');
+      renderContactsList();
+    }
+
+    $('back-btn').onclick = closeActiveChat;
+
+    function renderBubble(key, msg) {
+      if (!msg) return;
+      const area = $('messages-area');
+      const isMe = msg.sender === CLIENT_ID;
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble ' + (isMe ? 'me' : 'them');
+      bubble.id = `msg_${key}`;
+      bubble.ondblclick = () => {
+        if (selectedMessageKeys.has(key)) { selectedMessageKeys.delete(key); bubble.classList.remove('selected'); }
+        else { selectedMessageKeys.add(key); bubble.classList.add('selected'); }
+        updateBatchDeleteState();
+      };
+      const headerRow = document.createElement('div');
+      headerRow.className = 'msg-header-row';
+      if (!isMe) {
+        const senderEl = document.createElement('div');
+        senderEl.className = 'msg-sender';
+        const senderCustomName = localStorage.getItem(`nickname_${CLIENT_ID}_${msg.sender}`);
+        senderEl.textContent = senderCustomName || (msg.senderName && msg.senderName.trim() !== '' ? msg.senderName : `IP: ${msg.senderIp || 'مجهول'}`);
+        headerRow.appendChild(senderEl);
+      } else {
+        headerRow.appendChild(document.createElement('div'));
+      }
+      bubble.appendChild(headerRow);
+      if (msg.text) {
+        const textEl = document.createElement('div');
+        textEl.textContent = msg.text;
+        bubble.appendChild(textEl);
+      }
+      if (msg.mediaUrl) {
+        const mediaWrap = document.createElement('div');
+        mediaWrap.className = 'msg-media';
+        if (msg.mediaType === 'image') {
+          const img = document.createElement('img');
+          img.src = msg.mediaUrl;
+          img.onclick = () => openLightbox(msg.mediaUrl, 'image');
+          mediaWrap.appendChild(img);
+        } else if (msg.mediaType === 'video') {
+          const vid = document.createElement('video');
+          vid.src = msg.mediaUrl; vid.controls = true;
+          mediaWrap.appendChild(vid);
+        } else {
+          const doc = document.createElement('div');
+          doc.className = 'msg-doc';
+          doc.innerHTML = `<ion-icon name="document-text"></ion-icon><span>${escapeHtml(msg.fileName || 'مستند مرفق')}</span>`;
+          doc.tabIndex = 0;
+          doc.setAttribute('role', 'button');
+          doc.setAttribute('aria-label', `فتح ${msg.fileName || 'المرفق'}`);
+          doc.onclick = () => openAttachment(msg);
+          doc.onkeydown = (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              openAttachment(msg);
+            }
+          };
+          mediaWrap.appendChild(doc);
+        }
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'msg-save-btn';
+        saveButton.innerHTML = '<ion-icon name="download-outline"></ion-icon><span>تنزيل الملف</span>';
+        saveButton.onclick = () => saveAttachment(msg);
+        mediaWrap.appendChild(saveButton);
+        bubble.appendChild(mediaWrap);
+      }
+      const footer = document.createElement('div');
+      footer.className = 'msg-footer';
+      const timeStr = new Date(msg.ts || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      footer.innerHTML = `<span>${timeStr}</span>${isMe ? '<ion-icon name="checkmark-done" style="color:#0284c7;font-size:14px;"></ion-icon>' : ''}`;
+      bubble.appendChild(footer);
+      area.appendChild(bubble);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    const selectAllCheckbox = $('select-all-checkbox');
+    selectAllCheckbox.onchange = (e) => {
+      const bubbles = document.querySelectorAll('.msg-bubble');
+      selectedMessageKeys.clear();
+      bubbles.forEach(b => {
+        const key = b.id.replace('msg_', '');
+        if (e.target.checked) { selectedMessageKeys.add(key); b.classList.add('selected'); }
+        else b.classList.remove('selected');
+      });
+      updateBatchDeleteState();
+    };
+
+    function updateBatchDeleteState() {
+      const batchBtn = $('batch-delete-btn');
+      if (selectedMessageKeys.size > 0) {
+        batchBtn.classList.add('show');
+        batchBtn.innerHTML = `<ion-icon name="trash-outline"></ion-icon> حذف (${selectedMessageKeys.size})`;
+      } else {
+        batchBtn.classList.remove('show');
+        selectAllCheckbox.checked = false;
+      }
+    }
+
+    $('batch-delete-btn').onclick = () => {
+      if (!activeRoomId || selectedMessageKeys.size === 0) return;
+      showSimpleConfirm(`هل تريد حذف الرسائل المحددة (${selectedMessageKeys.size})؟`, async () => {
+        const promises = Array.from(selectedMessageKeys).map(key =>
+          remove(ref(db, `chat/messages/${activeRoomId}/${key}`))
+        );
+        await Promise.all(promises);
+        selectedMessageKeys.clear();
+        updateBatchDeleteState();
+        selectAllCheckbox.checked = false;
+      });
+    };
+
+    /* ============================================================
+       حذف كل الرسائل + كل الملفات المرفوعة (محمي بكلمة مرور)
+       - كلمة المرور تُقرأ من: chat/admin/wipePassword
+       - يعمل مع قيمة نصية ("1234") أو رقمية (1234) في قاعدة البيانات
+       ============================================================ */
+    $('open-wipe-data-btn').onclick = () => {
+      $('wipe-data-form').reset();
+      $('wipe-data-overlay').classList.remove('hidden');
+      setTimeout(() => $('wipe-admin-password').focus(), 50);
+    };
+
+    $('wipe-cancel-btn').onclick = () => {
+      $('wipe-data-overlay').classList.add('hidden');
+    };
+
+    $('wipe-data-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitBtn = $('wipe-submit-btn');
+      const passwordInput = $('wipe-admin-password');
+      const entered = passwordInput.value.trim();
+
+      if (!entered) {
+        showToast('أدخل كلمة المرور أولاً.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      try {
+        // 1) Read the stored password from the database
+        const snap = await get(ref(db, WIPE_PASSWORD_PATH));
+        const rawStored = snap.val();
+
+        // KEY FIX: accept string OR number in the database
+        if (rawStored === null || rawStored === undefined) {
+          showToast('لم يتم ضبط كلمة مرور الحذف في قاعدة البيانات بعد.', 'error');
+          return;
+        }
+
+        const stored = String(rawStored).trim();
+
+        if (stored === '') {
+          showToast('كلمة مرور الحذف فارغة في قاعدة البيانات. اضبطها أولاً.', 'error');
+          return;
+        }
+
+        // 2) Compare (both sides are strings now)
+        if (entered !== stored) {
+          showToast('كلمة المرور غير صحيحة. لم يتم حذف أي شيء.', 'error');
+          return;
+        }
+
+        // 3) Password matches → wipe all messages (and embedded files)
+        await remove(ref(db, 'chat/messages'));
+
+        // Cleanup local state
+        Object.keys(unreadCounts).forEach(k => delete unreadCounts[k]);
+        Object.keys(roomLastActivity).forEach(k => delete roomLastActivity[k]);
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith(`read_${CLIENT_ID}_`)) localStorage.removeItem(key);
+        });
+        selectedMessageKeys.clear();
+        updateBatchDeleteState();
+        selectAllCheckbox.checked = false;
+
+        const area = $('messages-area');
+        if (area) area.innerHTML = '';
+
+        renderContactsList();
+        $('wipe-data-overlay').classList.add('hidden');
+        showToast('تم حذف جميع الرسائل والملفات المرفوعة.', 'success');
+      } catch (err) {
+        console.error('Wipe failed:', err);
+        showToast('تعذر تنفيذ الحذف. تحقق من الاتصال وصلاحيات قاعدة البيانات.', 'error');
+      } finally {
+        passwordInput.value = '';
+        submitBtn.disabled = false;
+      }
+    });
+
+    async function sendMessage(mediaPayload = null) {
+      if (!activeTargetId || !activeRoomId) return;
+      const input = $('msg-input');
+      const text = input.value.trim();
+      if (!text && !mediaPayload) return;
+      input.value = '';
+      input.style.height = 'auto';
+      const msgRef = push(ref(db, `chat/messages/${activeRoomId}`));
+      const payload = {
+        sender: CLIENT_ID, senderName: myName, senderIp: myIp, senderAvatar: myAvatar,
+        text: text || '', ts: Date.now(), ...(mediaPayload || {})
+      };
+      if (activeType === 'user') {
+        await set(ref(db, `chat/user_contacts/${activeTargetId}/${CLIENT_ID}`), {
+          id: CLIENT_ID, name: myName, ip: myIp, avatar: myAvatar, addedAt: Date.now()
+        });
+      }
+      await set(msgRef, payload);
+      localStorage.setItem(`read_${CLIENT_ID}_${activeTargetId}`, String(Date.now()));
+    }
+
+    $('msg-input').addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 110) + 'px';
+      const hasText = this.value.trim().length > 0;
+      if (hasText) $('send-btn').classList.remove('hidden');
+      else $('send-btn').classList.add('hidden');
+    });
+
+    $('send-btn').onclick = () => { sendMessage(); $('send-btn').classList.add('hidden'); };
+
+    $('msg-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+        $('send-btn').classList.add('hidden');
+      }
+    });
+
+    const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
+    let zipLibraryPromise = null;
+    let nativeFileSaver = null;
+
+    function getNativeFileSaver() {
+      const capacitor = window.Capacitor;
+      if (!capacitor || !capacitor.getPlatform || capacitor.getPlatform() !== 'android' ||
+          !capacitor.registerPlugin) {
+        return null;
+      }
+      nativeFileSaver = nativeFileSaver || capacitor.registerPlugin('FileSaver');
+      return nativeFileSaver;
+    }
+
+    function loadZipLibrary() {
+      if (window.JSZip) return Promise.resolve(window.JSZip);
+      if (!zipLibraryPromise) {
+        zipLibraryPromise = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+          script.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('ZIP library did not load'));
+          script.onerror = () => reject(new Error('Could not load ZIP library'));
+          document.head.appendChild(script);
+        });
+      }
+      return zipLibraryPromise;
+    }
+
+    function readAttachment(file, fileName = file.name) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        showToast('الحد الأقصى لحجم الملف هو 7 ميجابايت حتى يمكن إرساله وحفظه بأمان.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          showToast('تعذر قراءة الملف.', 'error');
+          return;
+        }
+        let mediaType = 'document';
+        if (file.type.startsWith('image/')) mediaType = 'image';
+        else if (file.type.startsWith('video/')) mediaType = 'video';
+        sendMessage({
+          mediaUrl: reader.result,
+          mediaType,
+          fileName,
+          mimeType: file.type || 'application/octet-stream'
+        });
+      };
+      reader.onerror = () => showToast('تعذر قراءة الملف.', 'error');
+      reader.readAsDataURL(file);
+    }
+
+    async function saveAttachment(message) {
+      const fileName = message.fileName || 'file';
+      try {
+        const fileSaver = getNativeFileSaver();
+        if (fileSaver) {
+          const savedFile = await fileSaver.saveFile({
+            dataUrl: message.mediaUrl,
+            fileName,
+            mimeType: message.mimeType || ''
+          });
+          if (savedFile && savedFile.cancelled) return;
+          const savedName = savedFile && savedFile.fileName ? savedFile.fileName : fileName;
+          showToast(`تم حفظ ${savedName} في ${savedFile && savedFile.location ? savedFile.location : 'المجلد الذي اخترته'}.`, 'success');
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.href = message.mediaUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        console.error('Could not save attachment:', error);
+        showToast('تعذر حفظ الملف في المجلد الذي اخترته.', 'error');
+      }
+    }
+
+    async function openAttachment(message) {
+      const fileName = message.fileName || 'file';
+      try {
+        const fileSaver = getNativeFileSaver();
+        if (fileSaver) {
+          await fileSaver.openFile({
+            dataUrl: message.mediaUrl,
+            fileName,
+            mimeType: message.mimeType || ''
+          });
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.href = message.mediaUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        console.error('Could not open attachment:', error);
+        showToast('تعذر فتح الملف. قد لا يوجد تطبيق مناسب لهذا النوع.', 'error');
+      }
+    }
+
+    $('attach-btn').onclick = () => $('file-input').click();
+    $('file-input').onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) readAttachment(file);
+      e.target.value = '';
+    };
+    $('attach-folder-btn').onclick = () => {
+      const folderInput = $('folder-input');
+      if (!('webkitdirectory' in folderInput)) {
+        showToast('اختيار المجلدات غير مدعوم على هذا الجهاز. يمكنك ضغط المجلد إلى ZIP ثم إرفاقه كملف.', 'error');
+        return;
+      }
+      folderInput.click();
+    };
+    $('folder-input').onchange = async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      if (!files.length) return;
+      const totalBytes = files.reduce((total, file) => total + file.size, 0);
+      if (totalBytes > MAX_ATTACHMENT_BYTES) {
+        showToast('حجم ملفات المجلد يتجاوز 7 ميجابايت. أرسل ملف ZIP أصغر.', 'error');
+        return;
+      }
+
+      try {
+        const JSZip = await loadZipLibrary();
+        const zip = new JSZip();
+        files.forEach(file => zip.file(file.webkitRelativePath || file.name, file));
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 1 }
+        });
+        const folderName = (files[0].webkitRelativePath || files[0].name).split('/')[0];
+        readAttachment(zipBlob, `${folderName || 'folder'}.zip`);
+      } catch (error) {
+        console.error('Could not create folder archive:', error);
+        showToast('تعذر ضغط المجلد إلى ZIP. حاول ضغطه على الجهاز ثم إرفاق ملف ZIP.', 'error');
+      }
+    };
+
+    const EMOJIS = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😙','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👍','👎','👏','🙌','👐','🤲','🤝','🙏','✍️','💪','🦾','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','🔥','✨','🎉','🌟','💡','✅','❌','📌','📷','📁','💼','⚡'];
+    const emojiBar = $('emoji-bar');
+    EMOJIS.forEach(em => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = em;
+      btn.onclick = () => {
+        const inp = $('msg-input');
+        inp.value += em;
+        inp.focus();
+        $('send-btn').classList.remove('hidden');
+      };
+      emojiBar.appendChild(btn);
+    });
+    $('emoji-btn').onclick = (e) => { e.stopPropagation(); emojiBar.classList.toggle('hidden'); };
+    document.addEventListener('click', (e) => {
+      if (!emojiBar.contains(e.target) && e.target.id !== 'emoji-btn') emojiBar.classList.add('hidden');
+    });
+
+    function openLightbox(url, type) {
+      $('lightbox-body').innerHTML = type === 'image'
+        ? `<img src="${url}">`
+        : `<video src="${url}" controls autoplay></video>`;
+      $('lightbox').classList.remove('hidden');
+    }
+    $('lightbox-close').onclick = () => {
+      $('lightbox').classList.add('hidden');
+      $('lightbox-body').innerHTML = '';
+    };
+
+    // Boot sequence — hide spinner only after everything is set up
+    (async () => {
+      try {
+        await initUserIdentity();
+        await ensureWipePasswordKey();
+        startDirectoryListeners();
+        window.__appReady = true;
+        $('boot-overlay').style.display = 'none';
+      } catch (err) {
+        window.__showBootError('init failed: ' + (err && (err.stack || err.message) || err));
+        var st = document.getElementById('boot-status');
+        st.classList.add('error');
+        st.textContent = 'حدث خطأ أثناء بدء التشغيل.';
+      }
+    })();
+  </script>
+</body>
+</html>
